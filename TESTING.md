@@ -1,5 +1,15 @@
 # Validação do Voxy
 
+## Publicação 0.4.1 — 20/10/2026
+
+A [execução de publicação](https://github.com/labarro/Voxy/actions/runs/39516455777) terminou com sucesso: instalação limpa de dependências e binários verificados do Electron, 18 testes, build NSIS, assinatura dos metadados, teste de abertura/reabertura do ASAR e publicação dos cinco assets na [release 0.4.1](https://github.com/labarro/Voxy/releases/tag/v0.4.1). A tentativa 0.4.0 falhou antes de publicar porque Electron 44 não inclui mais o download implícito dos binários; a 0.4.1 adiciona o postinstall explícito e a etapa idempotente no workflow, preservando a tag anterior.
+
+O `RemoteUpdates` e o `NsisUpdater` reais foram executados contra o domínio público, em perfil/cache isolados e com versão de origem 0.4.0 para exercitar o fluxo. Sem substituir o transporte nem a chave pública de produção, passaram por checking → available → downloading → ready. O catálogo assinado e o instalador público foram verificados; nenhuma instalação foi executada. Os dois endpoints responderam 200 depois dos redirects.
+
+Instalador publicado: `release/0.4.1/Voxy-Setup-0.4.1-x64.exe`, **126.614.876 bytes**, SHA-256 `A98DCA686223F0720AB9A3831E0314D3FB9EA2EBFC163A2BC70D888D7F7C8283`. Os cinco arquivos públicos foram copiados e verificados nessa pasta; o build local original permanece na pasta de staging indicada por `latest-build.json`. O executável permanece sem Authenticode, e o envelope tem assinatura Ed25519.
+
+Evidência: `evidence/publication-0.4.1.json`. Ainda pendentes: instalação/reinício NSIS real numa máquina de teste, dez PCs físicos pelo Radmin, webcams físicas, avaliação audível e duração prolongada. As validações locais e limitações abaixo são históricas e continuam aplicáveis.
+
 ## Versão 0.4.0 — 20/10/2026
 
 Passaram: `npm test` (**18 testes**), `npm run test:microphone`, `npm run test:ptt`, `npm run test:media`, `npm run test:desktop`, `npm run test:dev`, `npm run dist`, `npm run test:packaged` e `npm run test:updater`.

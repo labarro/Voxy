@@ -2,7 +2,7 @@
 
 O Voxy 0.4.0 inclui atualização automática com **electron-updater + NSIS**, publicações no **GitHub Releases** e o endereço **https://devbarros.com/voxy/updates/** na Vercel. A mídia das chamadas continua P2P pelo Radmin VPN; o serviço de atualização não participa das chamadas.
 
-**Estado da entrega:** código, workflow e arquivos de configuração implementados; download diferencial e fallback completo testados localmente com o atualizador real. O ambiente `release` e o segredo de assinatura já foram configurados no GitHub, com política para tags `v*`. Os dois redirects foram publicados na `main` do portfólio (commit `3ac5886`) e verificados em produção. A primeira release do Voxy ainda precisa ser publicada. Não foi executada uma instalação automática sobre a instalação pessoal deste computador.
+**Estado da entrega:** código, workflow e arquivos de configuração implementados; download diferencial e fallback completo testados localmente com o atualizador real. O ambiente `release` e o segredo de assinatura já foram configurados no GitHub, com política para tags `v*`. Os dois redirects foram publicados na `main` do portfólio (commit `3ac5886`) e verificados em produção. A [release 0.4.1](https://github.com/labarro/Voxy/releases/tag/v0.4.1) foi publicada pelo [workflow concluído com sucesso](https://github.com/labarro/Voxy/actions/runs/39516455777). Os dois endpoints responderam 200 e o atualizador real baixou e verificou o pacote público, chegando a pronto para instalar. Não foi executada uma instalação automática sobre a instalação pessoal deste computador.
 
 ## Por que esta arquitetura
 
@@ -27,7 +27,7 @@ O suporte NSIS e o fluxo de `latest.yml` são documentados pelo [electron-builde
 
 O canal **Novidades do Voxy** combina o catálogo instalado com o último catálogo remoto cuja assinatura foi validada. Funciona sem servidor de amigos e mantém o histórico em cache para uso offline. Conteúdo remoto é texto estruturado, sem HTML executável.
 
-**Primeira migração:** versões até 0.3.0 não têm este atualizador. Instale a 0.4.0 uma última vez usando `release/0.4.0/Voxy-Setup-0.4.0-x64.exe`, sem desinstalar, ou o seletor de instalador existente. Depois, novas versões podem chegar pelo aplicativo. Todos os participantes precisam migrar, pois a 0.4.0 muda o protocolo para suportar webcam.
+**Primeira migração:** versões até 0.3.0 não têm este atualizador. Instale a 0.4.1 uma última vez usando `release/0.4.1/Voxy-Setup-0.4.1-x64.exe`, sem desinstalar, ou o seletor de instalador existente. Depois, novas versões podem chegar pelo aplicativo. Todos os participantes precisam migrar, pois a 0.4.0 muda o protocolo para suportar webcam.
 
 ## Preparação única: chave de publicação
 
@@ -97,8 +97,8 @@ O domínio serve como ponto de entrada para metadados pequenos. Os instaladores 
    ```powershell
    git switch main
    git pull --ff-only origin main
-   git tag -a v0.4.1 -m "Voxy 0.4.1"
-   git push origin v0.4.1
+   git tag -a v0.4.2 -m "Voxy 0.4.2"
+   git push origin v0.4.2
    ```
 
 6. Acompanhe **Actions → Publicar Voxy para Windows**. O workflow valida tag/versão e ancestralidade na `main`, instala com `npm ci`, roda os testes, gera o instalador, assina os metadados e testa o executável empacotado.
@@ -138,6 +138,6 @@ Não há rollback automático garantido de uma instalação NSIS interrompida, n
 
 ## Validação e pendências
 
-`npm test` verifica assinatura, adulteração, replay, metadados inconsistentes, ausência de instalação indevida, backup e ordem de reinício. `npm run test:updater` usa Electron/NSIS reais e um servidor Range local para diferencial e fallback, sem executar o instalador. Esse último teste requer os instaladores/blockmaps locais 0.3.0 e 0.4.0; não altera a instalação pessoal. `npm run test:packaged` abre o ASAR duas vezes e verifica persistência e histórico offline.
+`npm test` verifica assinatura, adulteração, replay, metadados inconsistentes, ausência de instalação indevida, backup e ordem de reinício. `npm run test:updater` usa Electron/NSIS reais e um servidor Range local para diferencial e fallback, sem executar o instalador. Esse último teste requer o instalador/blockmap local 0.3.0 e o da versão corrente; não altera a instalação pessoal. `npm run test:packaged` abre o ASAR duas vezes e verifica persistência e histórico offline.
 
-Permanecem pendentes: publicar o código/workflow do Voxy na main, executar a primeira publicação por tag no GitHub, consultar seus assets públicos e validar instalação/reinício real numa máquina Windows de teste. Os redirects e o secret já foram configurados; o GitHub retorna 404 para os assets enquanto não houver uma release publicada. A conexão de dez computadores físicos pelo Radmin e diferentes webcams físicas também permanece no roteiro manual de [TESTING.md](TESTING.md).
+A publicação pública, os redirects, o secret e o download/verificação reais já foram validados com a 0.4.1. Permanece pendente executar instalação/reinício real numa máquina Windows de teste. A conexão de dez computadores físicos pelo Radmin e diferentes webcams físicas também permanece no roteiro manual de [TESTING.md](TESTING.md).

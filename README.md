@@ -14,7 +14,7 @@ Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu compu
 ![WebRTC P2P](https://img.shields.io/badge/WebRTC-P2P-68d6b1?style=flat-square)
 ![Até 10 participantes](https://img.shields.io/badge/at%C3%A9-10%20participantes-c9233c?style=flat-square)
 
-[Instalar e conectar](INSTALACAO-E-CONEXAO.md) · [Atualizar o Voxy](GUIA-DE-ATUALIZACAO.md) · [Desenvolvimento](#desenvolvimento) · [Documentação](#documentação)
+[⬇ Baixar Voxy 0.4.1](https://github.com/labarro/Voxy/releases/download/v0.4.1/Voxy-Setup-0.4.1-x64.exe) · [Instalar e conectar](INSTALACAO-E-CONEXAO.md) · [Atualizar o Voxy](GUIA-DE-ATUALIZACAO.md) · [Desenvolvimento](#desenvolvimento) · [Documentação](#documentação)
 
 </div>
 
@@ -22,7 +22,7 @@ Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu compu
 
 ## Sua sala, no seu computador
 
-**Na versão 0.4.0:** webcam independente da tela, imagem do servidor administrada pelo criador, Home com servidores recentes, canal global de novidades e atualizações remotas assinadas. Atualize host e amigos para 0.4.0; versões anteriores não têm o novo contrato de mídia e não podem entrar nesta sala.
+**Na versão 0.4.1:** webcam independente da tela, imagem do servidor administrada pelo criador, Home com servidores recentes, canal global de novidades e atualizações remotas assinadas. Atualize host e amigos para 0.4.1; versões até 0.3.0 não têm o novo contrato de mídia e não podem entrar nesta sala.
 
 O Voxy reúne conversas e transmissões em servidores privados com canais de texto e voz. Um amigo hospeda a sala, compartilha um convite e os demais entram pela rede Radmin VPN. A mídia circula diretamente entre os participantes, usando WebRTC.
 
@@ -48,7 +48,7 @@ Sem VPS, banco hospedado ou assinatura do Voxy. O host guarda servidores e hist�
 
 ### 1. Instale o Voxy
 
-Receba estes dois arquivos de quem mantém o projeto:
+Baixe o instalador e o checksum na [release oficial 0.4.1](https://github.com/labarro/Voxy/releases/tag/v0.4.1), ou receba os mesmos arquivos de quem mantém o projeto:
 
 ```text
 Voxy-Setup-0.4.1-x64.exe
@@ -89,11 +89,11 @@ Para transmitir, use **Compartilhar tela**, selecione a fonte e a qualidade e in
 
 ## Atualizações sem perder seus dados
 
-A partir da 0.4.0 instalada, o Voxy consulta e baixa versões publicadas automaticamente, mostra o progresso e oferece **Reiniciar e atualizar**. O mantenedor precisa concluir a configuração inicial do canal de distribuição.
+A partir da 0.4.0 instalada, o Voxy consulta e baixa versões publicadas automaticamente, mostra o progresso e oferece **Reiniciar e atualizar**. O canal de distribuição já está publicado e validado.
 
 Perfil, volumes, preferências e histórico ficam separados dos arquivos do programa. O fluxo iniciado pelo aplicativo cria um backup antes de executar o instalador. **Não é necessário desinstalar a versão anterior.**
 
-O endpoint em **devbarros.com**, na Vercel, aponta para publicações do GitHub Releases. Os metadados são assinados com Ed25519 e o pacote é conferido antes da instalação. O download pode ser diferencial. Ao atualizar o host, a sala será encerrada temporariamente. Versões até 0.3.0 precisam receber a 0.4.0 uma última vez pelo instalador; o seletor manual permanece como alternativa.
+O endpoint em **devbarros.com**, na Vercel, aponta para publicações do GitHub Releases. Os metadados são assinados com Ed25519 e o pacote é conferido antes da instalação. O download pode ser diferencial. Ao atualizar o host, a sala será encerrada temporariamente. Versões até 0.3.0 precisam receber a 0.4.1 uma última vez pelo instalador; o seletor manual permanece como alternativa.
 
 → [Guia para atualizar sem perder dados](GUIA-DE-ATUALIZACAO.md) · [Configurar domínio e publicação automática](ATUALIZACOES-REMOTAS.md)
 
@@ -229,7 +229,9 @@ Cada empacotamento usa uma pasta `build-*` nova. `release/0.4.1/latest-build.jso
 
 Os testes de navegador usam Microsoft Edge instalado. `test:desktop` utiliza microfone e captura de desktop reais, com perfis isolados em `test-results/`; execute em um desktop de teste sem conteúdo sensível aberto. Fontes sintéticas são usadas somente nos testes.
 
-**Validado na versão 0.4.0:** 14 testes de serviço/contratos, 45 pares WebRTC, áudio nos 90 sentidos e vídeo para nove espectadores em dois ciclos. Captura nativa e interface foram verificadas com três instâncias Electron locais; o executável empacotado foi aberto duas vezes para verificar persistência e novidades.
+**Validado na linha 0.4:** 18 testes de serviço/contratos, 45 pares WebRTC, áudio nos 90 sentidos e vídeo para nove espectadores em dois ciclos. Captura nativa e interface foram verificadas com três instâncias Electron locais; o executável empacotado foi aberto duas vezes para verificar persistência e novidades.
+
+A release 0.4.1 foi gerada e publicada pelo GitHub Actions. O fluxo público pelo domínio chegou ao estado pronto para instalar, com catálogo e pacote verificados, sem executar a instalação.
 
 **Validação ainda pendente:** dez computadores físicos pelo Radmin, avaliação humana de áudio em ambiente ruidoso, desempenho prolongado, atalhos com programas elevados e instalação NSIS sobre uma instalação pessoal existente.
 

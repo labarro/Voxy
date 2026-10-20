@@ -11,5 +11,20 @@
       "Sons diferentes de entrada e saída, com opção para desativar.",
       "Atualização pelo aplicativo com backup dos dados, sem desinstalar."
     ]
+  },
+  "0.3.0": {
+    "title": "Mais controle sobre voz e conversas",
+    "items": [
+      "Push-to-Talk com captura da tecla escolhida e preferência salva.",
+      "HUD da transmissão se oculta após 2,5 segundos sem movimento em fullscreen.",
+      "Modais centralizados, inclusive configurações, imagens e edição.",
+      "Edite e exclua suas próprias mensagens, com atualização para todos.",
+      "Volume de entrada, detecção de voz e limite de ativação ajustáveis.",
+      "Novo som para todos no canal quando alguém inicia uma transmissão.",
+      "Ícone de áudio silenciado visível nos participantes da chamada e na lista do canal.",
+      "Mute local por participante no clique direito, salvo sem afetar os outros ouvintes.",
+      "Escolha uma foto de perfil do seu computador ou continue usando um emoji.",
+      "Indicador AO VIVO com vermelho mais forte na lateral."
+    ]
   }
 }

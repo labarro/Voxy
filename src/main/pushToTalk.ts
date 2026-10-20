@@ -1,6 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { join } from "node:path";
-import { PTT_KEYS, type PttKey } from "../shared/preferences";
+import { PTT_KEYS, isPttKey, type PttKey } from "../shared/preferences";
 export class PushToTalk {
   private child?: ChildProcessWithoutNullStreams;
   private key?: PttKey;
@@ -16,7 +16,7 @@ export class PushToTalk {
       this.changed(false, "Push to Talk global disponível somente no Windows.");
       return;
     }
-    const vk = PTT_KEYS[key]?.vk;
+    const vk = isPttKey(key) ? PTT_KEYS[key].vk : undefined;
     if (!vk) throw Error("Tecla de Push to Talk inválida.");
     const generation = ++this.generation;
     this.key = key;

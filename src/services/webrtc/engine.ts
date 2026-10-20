@@ -1,6 +1,7 @@
 import type { Participant, Signal, Profile } from "../../shared/types";
 import { MAX_PARTICIPANTS } from "../../shared/constants";
 import { microphoneMuted } from "../../shared/preferences";
+import { MicrophonePipeline } from "./microphone";
 export const qualities = {
   "720p15": { width: 1280, height: 720, fps: 15, bitrate: 1800000 },
   "720p30": { width: 1280, height: 720, fps: 30, bitrate: 3000000 },
@@ -44,11 +45,15 @@ export type VoiceView = {
   local?: MediaStream;
   error: string;
   micOpen?: boolean;
+  micLevelDb?: number;
 };
 export class VoiceEngine {
   private peers = new Map<string, Peer>();
   private earlySignals = new Map<string, Signal[]>();
   private microphone?: MediaStream;
+  private pipeline?: MicrophonePipeline;
+  private preferences?: Profile;
+  private sharingPeers = new Set<string>();
   private screen?: MediaStream;
   private context?: AudioContext;
   private stopLocalMeter?: () => void;
@@ -64,6 +69,7 @@ export class VoiceEngine {
   private quality: Quality = "720p30";
   private volumes = new Map<string, number>();
   private streamVolumes = new Map<string, number>();
+  private mutedParticipants = new Map<string, boolean>();
   private peerProfiles = new Map<string, string>();
   private pttEnabled = false;
   private pressed = false;
@@ -99,7 +105,7 @@ export class VoiceEngine {
           deviceId: input ? { exact: input } : undefined,
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true,
+          autoGainControl: false,
         },
         video: false,
       });
@@ -109,11 +115,12 @@ export class VoiceEngine {
       }
       this.self = self;
       this.input = input;
-      this.microphone = stream;
       this.active = true;
       this.context = new AudioContext();
+      this.pipeline = this.createMicrophone(stream);
+      this.microphone = this.pipeline.stream;
       await this.context.resume();
-      this.stopLocalMeter = this.meter(stream, self);
+      this.stopLocalMeter = this.meter(this.microphone, self);
       this.applyMicrophone();
       stream.getAudioTracks()[0].onended = () =>
         this.error(
@@ -135,6 +142,17 @@ export class VoiceEngine {
       this.leave();
       return;
     }
+    const sharing = new Set(
+      participants
+        .filter((p) => p.channelId === me.channelId && p.sharing)
+        .map((p) => p.id),
+    );
+    if (
+      this.channel === me.channelId &&
+      [...sharing].some((id) => !this.sharingPeers.has(id))
+    )
+      this.chime("share");
+    this.sharingPeers = sharing;
     const ids = new Set(
       participants
         .filter((p) => p.id !== selfId && p.channelId === me.channelId)
@@ -165,7 +183,7 @@ export class VoiceEngine {
     }
     const audio = new Audio();
     audio.autoplay = true;
-    audio.muted = this.deafened;
+    audio.muted = this.deafened || this.isParticipantMuted(id);
     audio.volume = this.getVolume(id);
     const systemAudio = new Audio();
     systemAudio.autoplay = true;
@@ -343,14 +361,18 @@ export class VoiceEngine {
     this.micChanged(muted);
   }
   configurePreferences(p: Profile) {
+    this.preferences = p;
+    this.pipeline?.configure(p);
     this.volumes = new Map(Object.entries(p.volumes ?? {}));
     this.streamVolumes = new Map(Object.entries(p.streamVolumes ?? {}));
+    this.mutedParticipants = new Map(Object.entries(p.mutedParticipants ?? {}));
     const enabled = !!p.pttEnabled;
     if (enabled !== this.pttEnabled) this.pressed = false;
     this.pttEnabled = enabled;
     this.callSounds = p.callSounds !== false;
     this.applyMicrophone();
     for (const [id, peer] of this.peers) {
+      peer.audio.muted = this.deafened || this.isParticipantMuted(id);
       peer.audio.volume = this.getVolume(id);
       peer.systemAudio.volume = this.getVolume(id, true);
     }
@@ -359,16 +381,20 @@ export class VoiceEngine {
     this.pressed = pressed;
     this.applyMicrophone();
   }
-  private chime(kind: "join" | "leave") {
+  private chime(kind: "join" | "leave" | "share") {
     if (!this.callSounds || this.deafened || !this.context) return;
     const ctx = this.context;
     const now = ctx.currentTime;
     for (let i = 0; i < 2; i++) {
       const oscillator = ctx.createOscillator(),
         gain = ctx.createGain();
-      oscillator.frequency.value = (kind === "join" ? [440, 660] : [660, 330])[
-        i
-      ];
+      oscillator.frequency.value = (
+        kind === "share"
+          ? [660, 880]
+          : kind === "join"
+            ? [440, 660]
+            : [660, 330]
+      )[i];
       const start = now + i * 0.1;
       gain.gain.setValueAtTime(0, start);
       gain.gain.linearRampToValueAtTime(0.06, start + 0.012);
@@ -386,7 +412,7 @@ export class VoiceEngine {
   setDeafened(value: boolean) {
     this.deafened = value;
     for (const [id, p] of this.peers) {
-      p.audio.muted = value;
+      p.audio.muted = value || this.isParticipantMuted(id);
       p.systemAudio.muted = value || this.watching !== id;
     }
   }
@@ -394,6 +420,18 @@ export class VoiceEngine {
     this.watching = id;
     for (const [key, p] of this.peers)
       p.systemAudio.muted = this.deafened || key !== id;
+  }
+  isParticipantMuted(id: string) {
+    return this.mutedParticipants.get(this.peerProfiles.get(id) ?? id) === true;
+  }
+  muteParticipant(
+    id: string,
+    muted: boolean,
+    profileId = this.peerProfiles.get(id) ?? id,
+  ) {
+    this.mutedParticipants.set(profileId, muted);
+    const peer = this.peers.get(id);
+    if (peer) peer.audio.muted = this.deafened || muted;
   }
   getVolume(id: string, stream = false) {
     return (
@@ -454,6 +492,7 @@ export class VoiceEngine {
         deviceId: id ? { exact: id } : undefined,
         echoCancellation: true,
         noiseSuppression: true,
+        autoGainControl: false,
       },
       video: false,
     });
@@ -461,11 +500,12 @@ export class VoiceEngine {
       stream.getTracks().forEach((t) => t.stop());
       return;
     }
-    stream.getAudioTracks()[0].enabled = !this.isMuted();
+    const pipeline = this.createMicrophone(stream);
+    pipeline.stream.getAudioTracks()[0].enabled = !this.isMuted();
     try {
       await Promise.all(
         [...this.peers.values()].map((p) =>
-          p.mic?.sender.replaceTrack(stream.getAudioTracks()[0]),
+          p.mic?.sender.replaceTrack(pipeline.stream.getAudioTracks()[0]),
         ),
       );
     } catch (e) {
@@ -476,19 +516,33 @@ export class VoiceEngine {
           ),
         ),
       );
-      stream.getTracks().forEach((t) => t.stop());
+      pipeline.close();
       throw e;
     }
+    if (generation !== this.generation) {
+      pipeline.close();
+      return;
+    }
     this.stopLocalMeter?.();
-    this.microphone?.getTracks().forEach((t) => {
-      t.onended = null;
-      t.stop();
-    });
-    this.microphone = stream;
+    this.pipeline?.close();
+    this.pipeline = pipeline;
+    this.microphone = pipeline.stream;
     this.input = id;
     stream.getAudioTracks()[0].onended = () =>
       this.error(Error("Microfone desconectado."));
-    this.stopLocalMeter = this.meter(stream, this.self);
+    this.stopLocalMeter = this.meter(this.microphone, this.self);
+  }
+  private createMicrophone(raw: MediaStream) {
+    try {
+      const pipeline = new MicrophonePipeline(this.context!, raw, (db) =>
+        this.publish({ micLevelDb: db }),
+      );
+      if (this.preferences) pipeline.configure(this.preferences);
+      return pipeline;
+    } catch (e) {
+      raw.getTracks().forEach((t) => t.stop());
+      throw e;
+    }
   }
   async share(source: string, audio: boolean, quality: Quality) {
     if (!this.active || this.busy)
@@ -686,6 +740,7 @@ export class VoiceEngine {
     ++this.generation;
     this.active = false;
     this.channel = null;
+    this.sharingPeers.clear();
     this.pressed = false;
     this.earlySignals.clear();
     clearInterval(this.interval);
@@ -694,6 +749,8 @@ export class VoiceEngine {
     for (const id of this.peers.keys()) this.remove(id);
     this.stopLocalMeter?.();
     this.stopLocalMeter = undefined;
+    this.pipeline?.close();
+    this.pipeline = undefined;
     this.microphone?.getTracks().forEach((t) => {
       t.onended = null;
       t.stop();
@@ -702,6 +759,12 @@ export class VoiceEngine {
     if (this.context && this.context.state !== "closed")
       void this.context.close().catch(() => {});
     this.context = undefined;
-    this.publish({ speaking: new Set(), streams: new Map(), diagnostics: [] });
+    this.publish({
+      speaking: new Set(),
+      streams: new Map(),
+      diagnostics: [],
+      micLevelDb: undefined,
+      micOpen: false,
+    });
   }
 }

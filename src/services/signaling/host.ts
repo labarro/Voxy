@@ -58,7 +58,14 @@ export class RoomHost {
         return next(Error(`A sala está cheia (${MAX_PARTICIPANTS} pessoas).`));
       if ([...this.people.values()].some((x) => x.profile.id === p.data.id))
         return next(Error("Este perfil já está conectado."));
-      socket.data.profile = p.data;
+      try {
+        socket.data.profile = {
+          ...p.data,
+          avatar: this.store.registerAvatar(p.data.avatar),
+        };
+      } catch {
+        return next(Error("Não foi possível salvar a foto de perfil."));
+      }
       socket.data.host = auth.ownerKey === this.ownerKey;
       next();
     });
@@ -148,8 +155,15 @@ export class RoomHost {
     });
   }
   state(): RoomState {
+    const state = this.store.snapshot();
     return {
-      ...this.store.snapshot(),
+      ...state,
+      avatars: {
+        ...state.avatars,
+        ...this.store.avatarImages(
+          [...this.people.values()].map((p) => p.profile.avatar),
+        ),
+      },
       participants: [...this.people.values()],
     };
   }
@@ -204,6 +218,12 @@ export class RoomHost {
           c.image,
         );
         break;
+      case "message.edit":
+        this.store.changeMessage(c.id, p.profile.id, c.text);
+        break;
+      case "message.delete":
+        this.store.changeMessage(c.id, p.profile.id);
+        break;
       case "voice":
         if (
           c.channelId !== null &&
@@ -222,7 +242,7 @@ export class RoomHost {
         break;
       case "profile":
         p.profile.name = c.name;
-        p.profile.avatar = c.avatar;
+        p.profile.avatar = this.store.registerAvatar(c.avatar);
         break;
     }
     const ids = new Set(this.store.snapshot().channels.map((x) => x.id));

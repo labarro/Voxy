@@ -7,7 +7,7 @@ import {
   mkdirSync,
 } from "node:fs";
 import { dirname } from "node:path";
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 import type { Channel, Community, Message } from "../shared/types";
 export class Store {
   private constructor(
@@ -27,6 +27,12 @@ export class Store {
     db.run(
       "CREATE TABLE IF NOT EXISTS images(id TEXT PRIMARY KEY,messageId TEXT UNIQUE REFERENCES messages(id) ON DELETE CASCADE,data TEXT NOT NULL)",
     );
+    db.run(
+      "CREATE TABLE IF NOT EXISTS avatars(id TEXT PRIMARY KEY,data TEXT NOT NULL)",
+    );
+    const columns = db.exec("PRAGMA table_info(messages)")[0]?.values ?? [];
+    if (!columns.some((row) => row[1] === "editedAt"))
+      db.run("ALTER TABLE messages ADD COLUMN editedAt INTEGER");
     return new Store(db, path);
   }
   private rows<T>(sql: string, params: string[] = []): T[] {
@@ -41,13 +47,37 @@ export class Store {
     }
   }
   snapshot() {
+    const messages = this.rows<Message>(
+      "SELECT id,channelId,author,name,avatar,text,time,editedAt,(SELECT id FROM images WHERE messageId=recent.id) AS imageId FROM (SELECT *,ROW_NUMBER() OVER(PARTITION BY channelId ORDER BY time DESC) AS rank FROM messages) recent WHERE rank<=500 ORDER BY time",
+    );
     return {
       servers: this.rows<Community>("SELECT * FROM servers"),
       channels: this.rows<Channel>("SELECT * FROM channels"),
-      messages: this.rows<Message>(
-        "SELECT id,channelId,author,name,avatar,text,time,(SELECT id FROM images WHERE messageId=recent.id) AS imageId FROM (SELECT *,ROW_NUMBER() OVER(PARTITION BY channelId ORDER BY time DESC) AS rank FROM messages) recent WHERE rank<=500 ORDER BY time",
-      ),
+      messages,
+      avatars: this.avatarImages(messages.map((m) => m.avatar)),
     };
+  }
+  registerAvatar(value: string) {
+    if (!value.startsWith("data:")) return value;
+    const id = "avatar:" + createHash("sha256").update(value).digest("hex");
+    if (!this.rows("SELECT id FROM avatars WHERE id=?", [id]).length) {
+      this.db.run("INSERT INTO avatars VALUES(?,?)", [id, value]);
+      this.flush();
+    }
+    return id;
+  }
+  avatarImages(values: string[]) {
+    const result: Record<string, string> = {};
+    for (const id of new Set(
+      values.filter((v) => typeof v === "string" && v.startsWith("avatar:")),
+    )) {
+      const row = this.rows<{ data: string }>(
+        "SELECT data FROM avatars WHERE id=?",
+        [id],
+      )[0];
+      if (row) result[id] = row.data;
+    }
+    return result;
   }
   createServer(name: string) {
     const id = randomUUID();
@@ -87,6 +117,29 @@ export class Store {
     } catch (e) {
       this.db.run("ROLLBACK");
       throw e;
+    }
+    this.flush();
+  }
+  changeMessage(id: string, author: string, text?: string) {
+    const row = this.rows<Message>("SELECT * FROM messages WHERE id=?", [
+      id,
+    ])[0];
+    if (!row) throw Error("Mensagem não encontrada.");
+    if (row.author !== author)
+      throw Error("Você só pode alterar suas próprias mensagens.");
+    if (text === undefined)
+      this.db.run("DELETE FROM messages WHERE id=?", [id]);
+    else {
+      if (
+        !text.trim() &&
+        !this.rows("SELECT id FROM images WHERE messageId=?", [id]).length
+      )
+        throw Error("Uma mensagem sem imagem precisa ter texto.");
+      this.db.run("UPDATE messages SET text=?,editedAt=? WHERE id=?", [
+        text,
+        Date.now(),
+        id,
+      ]);
     }
     this.flush();
   }

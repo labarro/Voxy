@@ -1,9 +1,21 @@
 import { z } from "zod";
-import { PTT_KEYS } from "./preferences";
+import { isPttKey } from "./preferences";
 import { MAX_IMAGE_BYTES } from "./constants";
+import { validateImage } from "./image";
 const id = z.string().min(1).max(100),
   name = z.string().trim().min(1).max(60);
-export const avatarSchema = z.string().max(12);
+export const avatarSchema = z
+  .string()
+  .max(44000)
+  .refine((value) => {
+    if (!value.startsWith("data:")) return value.length <= 12;
+    try {
+      const info = validateImage(value);
+      return info.width <= 128 && info.height <= 128 && info.bytes <= 32768;
+    } catch {
+      return false;
+    }
+  }, "Escolha um emoji ou uma foto de até 128 px / 32 KB.");
 export const profileSchema = z.object({
   id: z.uuid(),
   name,
@@ -11,17 +23,14 @@ export const profileSchema = z.object({
   input: z.string().max(300),
   output: z.string().max(300),
   pttEnabled: z.boolean().default(false),
-  pttKey: z
-    .enum(
-      Object.keys(PTT_KEYS) as [
-        keyof typeof PTT_KEYS,
-        ...(keyof typeof PTT_KEYS)[],
-      ],
-    )
-    .default("KeyV"),
+  pttKey: z.string().max(40).refine(isPttKey).default("KeyV"),
+  inputVolume: z.number().min(0).max(2).default(1),
+  voiceDetection: z.boolean().default(false),
+  voiceThreshold: z.number().min(-70).max(-10).default(-45),
   callSounds: z.boolean().default(true),
   volumes: z.record(z.uuid(), z.number().min(0).max(1)).default({}),
   streamVolumes: z.record(z.uuid(), z.number().min(0).max(1)).default({}),
+  mutedParticipants: z.record(z.uuid(), z.boolean()).default({}),
 });
 export const publicProfileSchema = profileSchema.pick({
   id: true,
@@ -53,6 +62,12 @@ export const commandSchema = z.discriminatedUnion("type", [
     })
     .refine((v) => v.text.length > 0 || !!v.image),
   z.object({ type: z.literal("voice"), channelId: id.nullable() }),
+  z.object({
+    type: z.literal("message.edit"),
+    id,
+    text: z.string().trim().max(4000),
+  }),
+  z.object({ type: z.literal("message.delete"), id }),
   z.object({
     type: z.literal("status"),
     muted: z.boolean(),

@@ -7,9 +7,13 @@ export type Profile = {
   output: string;
   pttEnabled?: boolean;
   pttKey?: PttKey;
+  inputVolume?: number;
+  voiceDetection?: boolean;
+  voiceThreshold?: number;
   callSounds?: boolean;
   volumes?: Record<string, number>;
   streamVolumes?: Record<string, number>;
+  mutedParticipants?: Record<string, boolean>;
 };
 export type Community = { id: string; name: string };
 export type Channel = {
@@ -36,8 +40,10 @@ export type Message = {
   text: string;
   time: number;
   imageId?: string | null;
+  editedAt?: number | null;
 };
 export type RoomState = {
+  avatars?: Record<string, string>;
   servers: Community[];
   channels: Channel[];
   participants: Participant[];
@@ -62,6 +68,8 @@ export type Command =
   | { type: "channel.rename"; id: string; name: string }
   | { type: "channel.delete"; id: string }
   | { type: "message"; channelId: string; text: string; image?: string }
+  | { type: "message.edit"; id: string; text: string }
+  | { type: "message.delete"; id: string }
   | { type: "voice"; channelId: string | null }
   | { type: "status"; muted: boolean; deafened: boolean; sharing: boolean }
   | { type: "profile"; name: string; avatar: string };
@@ -91,6 +99,7 @@ export interface DesktopAPI {
   profile(): Promise<Profile>;
   saveProfile(p: Profile): Promise<Profile>;
   setVolume(id: string, value: number, stream: boolean): Promise<void>;
+  setParticipantMuted(id: string, muted: boolean): Promise<void>;
   image(id: string): Promise<string>;
   addresses(): Promise<string[]>;
   host(options: {

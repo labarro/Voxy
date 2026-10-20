@@ -20,6 +20,7 @@ test("atualizador confere pacote, hash, alteração posterior e backup sem modif
     await writeFile(join(data, "profile.json"), "perfil preservado");
     await writeFile(join(data, "room.sqlite"), "histórico preservado");
     await writeFile(join(data, "release-notes.json"), '["0.2.0"]');
+    await writeFile(join(data, "recent-rooms.json"), "[]");
     const source = join(dir, "Voxy-Setup-0.3.0-x64.exe");
     const pe = Buffer.alloc(128);
     pe.write("MZ");
@@ -38,6 +39,10 @@ test("atualizador confere pacote, hash, alteração posterior e backup sem modif
     const staged = await manager.installer(info.id);
     assert.notEqual(staged, source);
     const backup = manager.backup();
+    assert.equal(
+      await readFile(join(backup, "recent-rooms.json"), "utf8"),
+      "[]",
+    );
     assert.equal(
       await readFile(join(backup, "profile.json"), "utf8"),
       "perfil preservado",

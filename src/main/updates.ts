@@ -93,6 +93,8 @@ export class UpdateManager {
       "room.sqlite",
       "host-secret.bin",
       "release-notes.json",
+      "recent-rooms.json",
+      "remote-release-history.json",
     ]) {
       const source = join(this.dataDir, name);
       if (existsSync(source)) copyFileSync(source, join(directory, name));

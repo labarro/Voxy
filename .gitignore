@@ -5,3 +5,7 @@ release/
 *.log
 test-results/
 *.sqlite*
+.local/
+*.pfx
+*.p12
+*-private.pem

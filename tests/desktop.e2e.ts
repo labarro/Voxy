@@ -26,6 +26,7 @@ async function centered(page: Page) {
   assert(r.w <= r.vw && r.h <= r.vh);
 }
 async function main() {
+  const testCamera = process.env.VOXY_TEST_NATIVE_MEDIA !== "1";
   await mkdir("test-results", { recursive: true });
   const apps: ElectronApplication[] = [];
   const pages: Page[] = [];
@@ -41,7 +42,11 @@ async function main() {
       env.VOXY_DATA_DIR = resolve(`test-results/desktop-${Date.now()}-${i}`);
       delete env.ELECTRON_RUN_AS_NODE;
       const app = await electron.launch({
-        args: [".", "--use-fake-ui-for-media-stream"],
+        args: [
+          ".",
+          "--use-fake-ui-for-media-stream",
+          ...(testCamera ? ["--use-fake-device-for-media-stream"] : []),
+        ],
         env,
       });
       apps.push(app);
@@ -106,15 +111,73 @@ async function main() {
         .waitFor({ timeout: 10000 });
     }
     const image = await a.screenshot();
+    await a
+      .getByRole("button", { name: "Gerenciar servidor e canais", exact: true })
+      .click();
+    await a.getByLabel("Arquivo de imagem do servidor").setInputFiles({
+      name: "servidor.png",
+      mimeType: "image/png",
+      buffer: image,
+    });
+    for (const page of pages)
+      await page.waitForFunction(
+        () =>
+          document.querySelector<HTMLImageElement>(".server-photo img")
+            ?.naturalWidth === 128,
+      );
+    await a
+      .getByRole("button", { name: "Remover imagem do servidor", exact: true })
+      .click();
+    for (const page of pages)
+      await page.locator(".server-photo").waitFor({ state: "detached" });
+    await a.getByLabel("Arquivo de imagem do servidor").setInputFiles({
+      name: "servidor.png",
+      mimeType: "image/png",
+      buffer: image,
+    });
+    await a.waitForFunction(
+      () =>
+        document.querySelector<HTMLImageElement>(".server-photo img")
+          ?.naturalWidth === 128,
+    );
+    await a.getByRole("button", { name: "Fechar", exact: true }).click();
+    await pages[1]
+      .getByRole("button", { name: "Gerenciar servidor e canais", exact: true })
+      .click();
+    assert(
+      await pages[1].getByLabel("Arquivo de imagem do servidor").isDisabled(),
+    );
+    assert(
+      await pages[1]
+        .getByRole("button", {
+          name: "Remover imagem do servidor",
+          exact: true,
+        })
+        .isDisabled(),
+    );
+    await pages[1].getByRole("button", { name: "Fechar", exact: true }).click();
+    await pages[1].getByRole("button", { name: "Home", exact: true }).click();
+    await pages[1].locator(".availability.available").waitFor();
+    await pages[1]
+      .getByRole("button", { name: "Desconectar da sala", exact: true })
+      .click();
+    await pages[1]
+      .getByRole("button", {
+        name: "Reconectar a Teste de amigos",
+        exact: true,
+      })
+      .click();
+    await pages[1].getByText("Conectado", { exact: true }).waitFor();
+    results.push(
+      "Imagem do servidor adicionada/removida pelo criador; outro cliente bloqueado. Home reconecta usando convite salvo.",
+    );
     await a.getByRole("button", { name: "Configurações", exact: true }).click();
     await centered(a);
-    await a
-      .getByLabel("Arquivo de foto de perfil")
-      .setInputFiles({
-        name: "perfil.png",
-        mimeType: "image/png",
-        buffer: image,
-      });
+    await a.getByLabel("Arquivo de foto de perfil").setInputFiles({
+      name: "perfil.png",
+      mimeType: "image/png",
+      buffer: image,
+    });
     await a.waitForFunction(
       () =>
         document.querySelector<HTMLImageElement>(".profile-photo-picker img")
@@ -340,6 +403,37 @@ async function main() {
     results.push(
       "Volume de voz persistido por UUID após desconexão e nova sessão do participante.",
     );
+    if (testCamera) {
+      await a
+        .getByRole("button", { name: "Ativar câmera", exact: true })
+        .click();
+      await a
+        .getByRole("button", { name: "Ligar câmera selecionada", exact: true })
+        .click();
+      for (const page of pages)
+        await page.waitForFunction(() => {
+          const v =
+            document.querySelector<HTMLVideoElement>(".camera-tile video");
+          return !!v && v.videoWidth > 0 && v.readyState >= 2;
+        });
+      await pages[1]
+        .getByRole("button", { name: "Ampliar câmera de Amigo 0", exact: true })
+        .click();
+      await pages[1]
+        .getByRole("button", { name: "Tela cheia", exact: true })
+        .click();
+      await pages[1].waitForFunction(() => !!document.fullscreenElement);
+      await pages[1].evaluate(() => document.exitFullscreen());
+      await pages[1]
+        .getByRole("button", { name: "Fechar visualização", exact: true })
+        .click();
+      await a
+        .getByRole("button", { name: "Trocar câmera", exact: true })
+        .click();
+      await a
+        .getByRole("button", { name: "Ligar câmera selecionada", exact: true })
+        .click();
+    }
     for (let cycle = 0; cycle < 2; cycle++) {
       await a
         .getByRole("button", { name: "Compartilhar tela", exact: true })
@@ -367,7 +461,7 @@ async function main() {
           {},
           { timeout: 20000 },
         );
-        const info = await page.locator("video").evaluate((el) => {
+        const info = await page.locator(".player video").evaluate((el) => {
           const v = el as HTMLVideoElement;
           return {
             width: v.videoWidth,
@@ -401,17 +495,19 @@ async function main() {
             .getByRole("button", { name: "Tela cheia", exact: true })
             .click();
           await page.waitForFunction(() => !!document.fullscreenElement);
-          const rects = await page.locator("video").evaluate((video) => {
-            const r = video.getBoundingClientRect();
-            return {
-              left: r.left,
-              top: r.top,
-              width: r.width,
-              height: r.height,
-              viewportWidth: innerWidth,
-              viewportHeight: innerHeight,
-            };
-          });
+          const rects = await page
+            .locator(".player video")
+            .evaluate((video) => {
+              const r = video.getBoundingClientRect();
+              return {
+                left: r.left,
+                top: r.top,
+                width: r.width,
+                height: r.height,
+                viewportWidth: innerWidth,
+                viewportHeight: innerHeight,
+              };
+            });
           assert.equal(rects.left, 0);
           assert.equal(rects.top, 0);
           assert.equal(rects.width, rects.viewportWidth);
@@ -466,6 +562,31 @@ async function main() {
     results.push(
       "Player ocupa 100% da viewport em fullscreen; volume/mute da transmissão são independentes e persistidos.",
     );
+    if (testCamera) {
+      await a
+        .getByRole("button", { name: "Desligar câmera", exact: true })
+        .click();
+      for (const page of pages)
+        await page.locator(".camera-tile").waitFor({ state: "detached" });
+      await a
+        .getByRole("button", { name: "Ativar câmera", exact: true })
+        .click();
+      await a
+        .getByRole("button", { name: "Ligar câmera selecionada", exact: true })
+        .click();
+      for (const page of pages)
+        await page.waitForFunction(() => {
+          const v =
+            document.querySelector<HTMLVideoElement>(".camera-tile video");
+          return !!v && v.videoWidth > 0;
+        });
+      await a
+        .getByRole("button", { name: "Desligar câmera", exact: true })
+        .click();
+      results.push(
+        "Webcam via getUserMedia no Electron: prévia, recepção, fullscreen, troca, parada e reinício junto da captura nativa de tela.",
+      );
+    }
     await a
       .getByRole("button", { name: "Mutar microfone", exact: true })
       .first()
@@ -508,6 +629,35 @@ async function main() {
         .first()
         .click();
     results.push("Saída de voz nas três janelas.");
+    for (const page of pages)
+      await page
+        .getByRole("button", { name: "Novidades do Voxy", exact: true })
+        .click();
+    for (const page of pages)
+      await page.getByText("Voxy 0.4.0", { exact: true }).waitFor();
+    await pages[1]
+      .getByRole("button", { name: "Desconectar da sala", exact: true })
+      .click();
+    await pages[1]
+      .getByRole("button", { name: "Novidades do Voxy", exact: true })
+      .click();
+    await pages[1].getByText("Voxy 0.2.0", { exact: true }).waitFor();
+    await pages[1].screenshot({ path: "test-results/news-0.4.0.png" });
+    await pages[1].getByRole("button", { name: "Home", exact: true }).click();
+    await pages[1].screenshot({ path: "test-results/home-0.4.0.png" });
+    await pages[1]
+      .getByRole("button", {
+        name: "Remover Teste de amigos dos recentes",
+        exact: true,
+      })
+      .click();
+    assert.equal(
+      (await pages[1].evaluate(() => window.voxy.savedRooms())).length,
+      0,
+    );
+    results.push(
+      "Novidades offline preserva histórico por versão; Home permite remover servidor sem apagar os dados da sala.",
+    );
     await a.screenshot({ path: "test-results/desktop-final.png" });
     assert.deepEqual(errors, []);
     console.log(results.join("\n"));

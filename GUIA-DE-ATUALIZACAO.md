@@ -6,9 +6,19 @@ O Voxy usa o mesmo identificador de aplicativo em todas as versões. O instalado
 
 Perfil, UUID, avatares, volumes, preferências, servidores, mensagens e imagens ficam separados do programa em `%APPDATA%\voxy-desktop`. Na atualização iniciada pelo aplicativo, um backup dos dados é criado antes de fechar a chamada e executar o instalador.
 
-O fluxo funciona por envio privado do instalador. Não há descoberta automática nem download pela internet, conta de publicação ou hospedagem paga.
+A versão 0.4.0 acrescenta busca e download automáticos pelo domínio devbarros.com e GitHub Releases, com assinatura dos metadados, conferência do pacote e reinício escolhido pelo usuário. É preciso concluir a configuração inicial de publicação: veja [ATUALIZACOES-REMOTAS.md](ATUALIZACOES-REMOTAS.md). O instalador manual continua disponível para migração inicial e recuperação.
 
-## Atualizar para 0.3.0
+## Atualizar para 0.4.0
+
+Distribua `release/0.4.0/Voxy-Setup-0.4.0-x64.exe` e o `SHA256SUMS.txt` correspondente. No Voxy 0.2.0 ou posterior, abra **Engrenagem → Atualizações → Selecionar novo instalador → Fazer backup e atualizar**, sem desinstalar. Todos devem atualizar: a versão 0.4.0 usa quatro trilhas de mídia e rejeita o protocolo antigo, nos dois sentidos.
+
+São preservados perfil, volumes, mensagens e imagens. O banco recebe `ownerId` e `icon` nos servidores; o host assume os servidores antigos sem criador. `recent-rooms.json` guarda metadados e convites protegidos pelo Windows e também entra no backup. O histórico de recentes só começa a ser preenchido a partir dos acessos na 0.4.0; versões antigas não guardavam convites.
+
+Webcam, imagem de servidor, Home com recentes e canal global de novidades são apresentados no popup da primeira abertura. O canal **Novidades do Voxy** inclui versões anteriores e continua disponível offline. Câmeras não são abertas automaticamente ao atualizar ou reconectar.
+
+Para publicar versões futuras, adicione a entrada em `src/shared/releases.json` com `date` no formato `AAAA-MM-DD`, `title`, `items` (resumo do popup) e as listas `features`, `improvements` e `fixes`. A lista pode estar vazia quando não houver alterações na categoria. O empacotamento exige esses campos na versão corrente. O canal é somente leitura e combina o catálogo instalado com o último catálogo remoto assinado. O workflow de tags publica o mesmo changelog no GitHub.
+
+## Histórico: atualizar para 0.3.0
 
 Se você já usa 0.2.0, abra a engrenagem → **Atualizações** → **Selecionar novo instalador**, escolha `Voxy-Setup-0.3.0-x64.exe` e use **Fazer backup e atualizar**. Envie também `SHA256SUMS.txt` da mesma pasta para seus amigos. O perfil, os volumes e o histórico são preservados. O banco recebe a coluna de indicação de mensagens editadas ao abrir; não há exclusão do histórico.
 
@@ -31,7 +41,11 @@ Essas versões antigas ainda não têm o botão de atualização:
 
 Se quiser uma cópia adicional antes dessa primeira atualização, feche o Voxy e copie `%APPDATA%\voxy-desktop` para uma pasta de backup.
 
-## Atualizar pelo Voxy a partir da versão 0.2.0
+## Atualização automática a partir da 0.4.0
+
+Após a configuração do canal de publicação, o programa verifica ao iniciar e a cada seis horas, baixa em segundo plano e mostra **Reiniciar e atualizar**. Também é possível consultar em **Engrenagem → Atualizações**. Só reinicia ao clicar; a chamada é encerrada, e os dados são salvos e copiados para backup antes de instalar. As novidades ficam no canal global e no aviso único da nova versão. O download pode ser completo se não houver cache diferencial.
+
+## Alternativa manual a partir da versão 0.2.0
 
 1. Receba o novo instalador, por exemplo `Voxy-Setup-0.2.1-x64.exe`, e o arquivo `SHA256SUMS.txt` correspondente. Salve os dois na mesma pasta.
 2. Abra a engrenagem do Voxy e localize **Atualizações**.
@@ -52,7 +66,7 @@ Não é preciso redefinir nome, avatar ou volumes depois de uma atualização. T
 %APPDATA%\voxy-desktop\backups\DATA-HORA-vVERSAO\
 ```
 
-O backup contém os arquivos existentes entre `profile.json`, `room.sqlite`, `host-secret.bin` e `release-notes.json`. O banco inclui o chat e as imagens do host. As notas já lidas também são preservadas.
+O backup contém os arquivos existentes entre `profile.json`, `room.sqlite`, `host-secret.bin`, `release-notes.json`, `recent-rooms.json` e `remote-release-history.json`. O banco inclui o chat e as imagens do host. As notas já lidas também são preservadas.
 
 Se você usa `VOXY_DATA_DIR` para testes, dados, backups e arquivos de atualização ficam nesse diretório alternativo. O uso normal do aplicativo instalado não exige essa variável.
 

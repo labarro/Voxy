@@ -1,6 +1,6 @@
 {
   "name": "voxy-desktop",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "Voz e tela entre amigos pela sua rede privada",
   "author": "Voxy",
@@ -19,9 +19,13 @@
     "test:packaged": "tsx tests/packaged.e2e.ts",
     "test:dev": "tsx tests/dev.e2e.ts",
     "test:ptt": "tsx tests/pushToTalk.e2e.ts",
-    "test:microphone": "tsx tests/microphone.e2e.ts"
+    "test:microphone": "tsx tests/microphone.e2e.ts",
+    "updates:keygen": "node scripts/update-keys.mjs",
+    "updates:export-key": "node scripts/update-keys.mjs --export",
+    "test:updater": "node scripts/test-updater.mjs"
   },
   "dependencies": {
+    "electron-updater": "6.8.9",
     "lucide-react": "^0.468.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
@@ -51,7 +55,7 @@
     "appId": "dev.voxy.desktop",
     "productName": "Voxy",
     "directories": {
-      "output": "release/0.3.0"
+      "output": "release/0.4.0"
     },
     "files": [
       "dist/**/*",
@@ -62,15 +66,23 @@
     "win": {
       "target": "nsis",
       "icon": "build/icon.ico",
-      "signExecutable": false
+      "signExecutable": false,
+      "signtoolOptions": {
+        "publisherName": "Voxy"
+      }
     },
     "nsis": {
       "deleteAppDataOnUninstall": false,
       "perMachine": false,
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true
+      "createDesktopShortcut": true,
+      "differentialPackage": true
     },
-    "artifactName": "Voxy-Setup-${version}-${arch}.${ext}"
+    "artifactName": "Voxy-Setup-${version}-${arch}.${ext}",
+    "publish": {
+      "provider": "generic",
+      "url": "https://www.devbarros.com/voxy/updates/"
+    }
   }
 }

@@ -1,6 +1,16 @@
 # Voxy
 
-**Versão atual: 0.2.0.** Inclui até dez participantes, Push to Talk global configurável, volumes por perfil persistidos, volume separado de transmissões, imagens no chat, fullscreen sem bordas, avatar 👴, sons opcionais de entrada/saída, atualização local com backup e popup de novidades uma vez por versão. Veja [GUIA-DE-ATUALIZACAO.md](GUIA-DE-ATUALIZACAO.md).
+**Versão atual: 0.3.0.** Inclui até dez participantes, Push to Talk global configurável, volumes por perfil persistidos, volume separado de transmissões, imagens no chat, fullscreen sem bordas, avatar 👴, sons opcionais de entrada/saída, atualização local com backup e popup de novidades uma vez por versão. Veja [GUIA-DE-ATUALIZACAO.md](GUIA-DE-ATUALIZACAO.md).
+
+Nesta versão, clique em **alterar tecla** e pressione a tecla desejada para configurar o PTT. Letras, números, F1–F24, modificadores, navegação, pontuação e teclado numérico são aceitos conforme o teclado Windows; atalhos reservados pelo sistema e teclas Fn de hardware podem não chegar ao aplicativo. É uma tecla individual, sem combinações. A preferência só muda ao salvar.
+
+Nas configurações de microfone, ajuste **Volume de entrada** (0–200%) e ative **detecção de voz** para definir o **Limite de ativação** em dBFS. O medidor mostra a entrada durante a chamada antes do ganho. Comece em 100%, fale normalmente e escolha um limite acima do ruído ambiente e abaixo da sua voz. −70 é mais sensível; −10 exige som forte. O ganho automático do Chromium é solicitado como desativado; drivers e melhorias de áudio do Windows podem aplicar processamento próprio. Detecção vem desligada para preservar o comportamento de perfis anteriores. O filtro não reconhece fala: sons fortes acima do limite também passam. Alterações entram em vigor ao salvar, inclusive durante uma chamada, sem alterar a transmissão.
+
+Suas mensagens têm **Editar** e **Excluir**, com confirmação para excluir e indicação de edição. Imagens são preservadas ao editar a legenda e removidas ao excluir a mensagem. No fullscreen, a HUD e o cursor somem após 2,5 segundos sem interação e reaparecem ao mover o mouse. O início de uma transmissão toca um som em todos os participantes do mesmo canal, incluindo quem transmite; a opção de sons e o áudio silenciado são respeitados.
+
+Para silenciar só a voz de alguém, clique com o botão direito no cartão ou no nome na lateral e escolha **Mutar voz para mim**. O botão também aparece no cartão. **Ouvir voz novamente** restaura a voz no volume anterior. Essa preferência fica salva por perfil, não muda o que os outros ouvem e não silencia a transmissão. O ícone de fone cortado indica quem silenciou o áudio recebido; o ícone de volume cortado em âmbar indica seu mute local. Quem compartilha aparece com o selo vermelho **AO VIVO** na lateral.
+
+Para usar sua própria foto, abra a engrenagem → **Escolher foto do computador** e salve o perfil. PNG/JPEG/WebP de até 5 MB e 24 megapixels são aceitos; o aplicativo faz um recorte central quadrado e reduz para 128×128. A miniatura fica no perfil local e é compartilhada com os membros da sala. Para remover, escolha qualquer emoji e salve. Atualize todos os amigos para 0.3.0 para exibir as fotos corretamente.
 
 Nas configurações, salve o modo Push to Talk e a tecla desejada. A tecla funciona com o Voxy em segundo plano no Windows; o mute manual continua prevalecendo. Se o leitor global não puder iniciar, o microfone permanece fechado nesse modo e um erro é exibido. Ao selecionar um dispositivo de entrada/saída diferente, salve as preferências. Os volumes de voz e de transmissão são independentes e lembrados pelo UUID do participante.
 
@@ -10,13 +20,13 @@ Fullscreen usa toda a viewport, com controles sobrepostos. Se a proporção da f
 
 Aplicativo desktop para até dez pessoas, incluindo o host: voz, texto e compartilhamento real de monitor/janela com Electron, React e WebRTC. O computador que hospeda mantém o estado e o histórico; cada participante envia mídia diretamente aos demais. Não requer VPS, banco hospedado, serviço de streaming ou assinatura do Voxy.
 
-**Validação da versão 0.2.0:** dez clientes WebRTC automatizados receberam voz nos 90 sentidos e uma tela nos nove espectadores em dois ciclos de iniciar/parar. A validação em computadores físicos pelo Radmin VPN e a avaliação humana da qualidade de áudio ainda estão pendentes. A captura nativa já foi validada com três instâncias Electron locais. Veja [TESTING.md](TESTING.md).
+**Validação da versão 0.3.0:** dez clientes WebRTC automatizados receberam voz nos 90 sentidos e uma tela nos nove espectadores em dois ciclos de iniciar/parar. A validação em computadores físicos pelo Radmin VPN e a avaliação humana da qualidade de áudio ainda estão pendentes. A captura nativa já foi validada com três instâncias Electron locais. Veja [TESTING.md](TESTING.md).
 
 ## Instalação para os amigos
 
-O instalador atualizado fica em `release/0.2.0/Voxy-Setup-0.2.0-x64.exe`. Abra-o, escolha a pasta e conclua a instalação. Cada empacotamento usa uma pasta `build-*` nova para evitar travas de arquivos ASAR no Windows; `release/0.2.0/latest-build.json` identifica a pasta final. Para teste sem instalador, use `win-unpacked/Voxy.exe` dentro dela e copie a pasta `win-unpacked` inteira ao distribuir. Não há certificado de assinatura digital: Windows/SmartScreen pode mostrar editor desconhecido. Confirme a procedência e o SHA-256 antes de executar. Não é necessário desativar o antivírus.
+O instalador atualizado fica em `release/0.3.0/Voxy-Setup-0.3.0-x64.exe`. Abra-o, escolha a pasta e conclua a instalação. Cada empacotamento usa uma pasta `build-*` nova para evitar travas de arquivos ASAR no Windows; `release/0.3.0/latest-build.json` identifica a pasta final. Para teste sem instalador, use `win-unpacked/Voxy.exe` dentro dela e copie a pasta `win-unpacked` inteira ao distribuir. Não há certificado de assinatura digital: Windows/SmartScreen pode mostrar editor desconhecido. Confirme a procedência e o SHA-256 antes de executar. Não é necessário desativar o antivírus.
 
-O hash atualizado acompanha o instalador em `release/0.2.0/SHA256SUMS.txt`.
+O hash atualizado acompanha o instalador em `release/0.3.0/SHA256SUMS.txt`.
 
 Windows 10/11 x64 são os alvos; esta execução foi validada em Windows build 26200. Não foi testada em uma instalação limpa de Windows 10. Os amigos não precisam instalar Node.js.
 
@@ -42,7 +52,7 @@ Confira o estado dos amigos no Radmin e use `ping IP_RADMIN_DO_AMIGO` para diagn
 ## Áudio e transmissão
 
 - Microfone e silenciar recepção são controles distintos. Deafen silencia a reprodução local; mute desativa a track enviada. A atividade de voz vem de análise RMS do áudio, sem animação simulada.
-- Nas configurações, selecione entrada e saída e salve. A seleção de saída depende de `setSinkId` e da disponibilidade de dispositivos. Nomes podem aparecer somente após permitir microfone. O volume por participante fica no cartão da pessoa e vale durante a sessão.
+- Nas configurações, selecione entrada e saída e salve. A seleção de saída depende de `setSinkId` e da disponibilidade de dispositivos. Nomes podem aparecer somente após permitir microfone. O volume por participante fica no cartão e é salvo por perfil entre sessões.
 - Presets: 720p/15 (1,8 Mbps), 720p/30 (3 Mbps), 1080p/30 (5 Mbps), 1080p/60 (8 Mbps), como tetos por espectador. Resolução/FPS são objetivos, não garantias. Com dez pessoas, nove cópias de um stream de 5 Mbps podem exigir aproximadamente 45 Mbps de upload, além de áudio e overhead.
 - `contentHint=detail`, preferência VP8 e manutenção de resolução favorecem texto; redução de FPS é possível. Qualidade pode mudar durante a transmissão. Consulte resolução/FPS efetivos no diagnóstico.
 - Áudio do sistema usa `loopback` no Windows e é **opcional e desligado por padrão**. Captura o sistema inteiro, mesmo ao escolher uma janela; não é isolamento de áudio por aplicativo. Pode incluir as vozes recebidas e criar eco. Fones não eliminam essa recaptura digital: se houver eco, desative o áudio do sistema ou use roteamento de áudio externo. Não há cancelamento garantido desse loopback.

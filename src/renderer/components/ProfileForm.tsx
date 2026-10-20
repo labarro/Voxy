@@ -1,5 +1,7 @@
 import type { Profile } from "../../shared/types";
-import { PTT_KEYS, type PttKey } from "../../shared/preferences";
+import { useRef, useState } from "react";
+import { Avatar } from "./Avatar";
+import { PTT_KEYS, isPttKey } from "../../shared/preferences";
 import { Updates } from "./Updates";
 const avatars = ["🪻", "🦊", "🐳", "🪐", "🐸", "🍄", "🌙", "🎧", "👴"];
 export function ProfileForm({
@@ -8,17 +10,72 @@ export function ProfileForm({
   devices,
   busy,
   onSave,
+  inputLevel,
 }: {
   profile: Profile;
   setProfile: (profile: Profile) => void;
   devices: MediaDeviceInfo[];
   busy: boolean;
   onSave: () => void;
+  inputLevel?: number;
 }) {
+  const [recording, setRecording] = useState(false);
+  const [keyError, setKeyError] = useState("");
+  const photoInput = useRef<HTMLInputElement>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState("");
+  async function choosePhoto(file?: File) {
+    if (!file) return;
+    setPhotoBusy(true);
+    setPhotoError("");
+    let bitmap: ImageBitmap | undefined;
+    try {
+      if (
+        !["image/png", "image/jpeg", "image/webp"].includes(file.type) ||
+        file.size > 5 * 1024 * 1024
+      )
+        throw Error("Escolha PNG, JPEG ou WebP de até 5 MB.");
+      bitmap = await createImageBitmap(file);
+      if (
+        bitmap.width > 8192 ||
+        bitmap.height > 8192 ||
+        bitmap.width * bitmap.height > 24000000
+      )
+        throw Error("A foto deve ter até 8192 px / 24 megapixels.");
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 128;
+      const size = Math.min(bitmap.width, bitmap.height);
+      canvas
+        .getContext("2d")!
+        .drawImage(
+          bitmap,
+          (bitmap.width - size) / 2,
+          (bitmap.height - size) / 2,
+          size,
+          size,
+          0,
+          0,
+          128,
+          128,
+        );
+      const avatar = canvas.toDataURL("image/webp", 0.8);
+      if (avatar.length > 43720)
+        throw Error(
+          "Não foi possível reduzir a foto para 32 KB. Escolha uma imagem mais simples.",
+        );
+      setProfile({ ...profile, avatar });
+    } catch (e) {
+      setPhotoError((e as Error).message || "Não foi possível abrir a foto.");
+    } finally {
+      bitmap?.close();
+      setPhotoBusy(false);
+    }
+  }
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
+        if (recording || photoBusy) return;
         onSave();
       }}
     >
@@ -45,6 +102,38 @@ export function ProfileForm({
           </button>
         ))}
       </div>
+      <div className="profile-photo-picker">
+        <Avatar avatar={profile.avatar} className="large-avatar" />
+        <div>
+          <input
+            ref={photoInput}
+            type="file"
+            hidden
+            accept="image/png,image/jpeg,image/webp"
+            aria-label="Arquivo de foto de perfil"
+            onChange={(e) => {
+              void choosePhoto(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
+          <button
+            type="button"
+            disabled={photoBusy || busy}
+            onClick={() => photoInput.current?.click()}
+          >
+            {photoBusy ? "Preparando foto…" : "Escolher foto do computador"}
+          </button>
+          <small>
+            PNG, JPEG ou WebP de até 5 MB. Recorte central quadrado de 128 px.
+            Selecione um emoji para remover a foto. Salve para aplicar.
+          </small>
+        </div>
+      </div>
+      {photoError && (
+        <p className="modal-error" role="alert">
+          {photoError}
+        </p>
+      )}
       <label className="checkbox">
         <input
           type="checkbox"
@@ -58,18 +147,36 @@ export function ProfileForm({
       {profile.pttEnabled && (
         <label>
           Tecla para falar
-          <select
-            value={profile.pttKey ?? "KeyV"}
-            onChange={(e) =>
-              setProfile({ ...profile, pttKey: e.target.value as PttKey })
-            }
+          <button
+            type="button"
+            className={recording ? "chosen" : ""}
+            aria-label="Configurar tecla para falar"
+            onClick={() => {
+              setRecording((v) => !v);
+              setKeyError("");
+            }}
+            onBlur={() => setRecording(false)}
+            onKeyDown={(e) => {
+              if (!recording) return;
+              e.preventDefault();
+              e.stopPropagation();
+              if (!isPttKey(e.code)) {
+                setKeyError(
+                  "Esta tecla não é identificada pelo Windows. Tente outra.",
+                );
+                return;
+              }
+              setProfile({ ...profile, pttKey: e.code });
+              setRecording(false);
+              setKeyError("");
+            }}
           >
-            {Object.entries(PTT_KEYS).map(([code, key]) => (
-              <option key={code} value={code}>
-                {key.label}
-              </option>
-            ))}
-          </select>
+            {recording
+              ? "Pressione a tecla desejada…"
+              : (PTT_KEYS[profile.pttKey ?? "KeyV"]?.label ?? "V") +
+                " — alterar tecla"}
+          </button>
+          {keyError && <small role="alert">{keyError}</small>}
           <small>
             Funciona também com outros programas em foco. O mute manual continua
             tendo prioridade.
@@ -84,7 +191,66 @@ export function ProfileForm({
             setProfile({ ...profile, callSounds: e.target.checked })
           }
         />{" "}
-        Sons de entrada e saída da chamada
+        Sons de entrada e saída da chamada e início de transmissão
+      </label>
+      <label>
+        Volume de entrada: {Math.round((profile.inputVolume ?? 1) * 100)}%
+        <input
+          aria-label="Volume de entrada"
+          type="range"
+          min="0"
+          max="2"
+          step="0.05"
+          value={profile.inputVolume ?? 1}
+          onChange={(e) =>
+            setProfile({ ...profile, inputVolume: Number(e.target.value) })
+          }
+        />
+        <small>
+          100% preserva o nível original. Aumentar também aumenta ruídos; o
+          ganho automático está desativado.
+        </small>
+      </label>
+      <label className="checkbox">
+        <input
+          type="checkbox"
+          checked={!!profile.voiceDetection}
+          onChange={(e) =>
+            setProfile({ ...profile, voiceDetection: e.target.checked })
+          }
+        />
+        Ativar detecção de voz (filtro por sensibilidade)
+      </label>
+      <label>
+        Limite de ativação: {profile.voiceThreshold ?? -45} dBFS
+        <input
+          aria-label="Limite de ativação"
+          type="range"
+          min="-70"
+          max="-10"
+          step="1"
+          disabled={!profile.voiceDetection}
+          value={profile.voiceThreshold ?? -45}
+          onChange={(e) =>
+            setProfile({ ...profile, voiceThreshold: Number(e.target.value) })
+          }
+        />
+        <small>
+          Mais perto de −10 exige voz mais forte; −70 capta sons mais baixos. O
+          filtro também se aplica ao Push-to-Talk. Aplicado ao salvar.
+        </small>
+      </label>
+      <label>
+        Nível captado{" "}
+        {inputLevel === undefined
+          ? "(entre na chamada para medir)"
+          : Math.round(inputLevel) + " dBFS"}
+        <meter
+          aria-label="Nível do microfone"
+          min="-100"
+          max="0"
+          value={inputLevel ?? -100}
+        />
       </label>
       <label>
         Microfone
@@ -122,7 +288,7 @@ export function ProfileForm({
         Os nomes dos dispositivos aparecem após permitir o microfone. Mudanças
         são aplicadas ao salvar.
       </p>
-      <button className="primary" disabled={busy}>
+      <button className="primary" disabled={busy || photoBusy || recording}>
         Salvar perfil e dispositivos
       </button>
       <Updates />

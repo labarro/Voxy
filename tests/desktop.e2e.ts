@@ -6,7 +6,25 @@ import {
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import assert from "node:assert/strict";
-import {key as globalF9} from './support/keyboard';
+import { key as globalF9 } from "./support/keyboard";
+async function centered(page: Page) {
+  const r = await page.locator("dialog[open]").evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    return {
+      x: r.x + r.width / 2,
+      y: r.y + r.height / 2,
+      vw: innerWidth,
+      vh: innerHeight,
+      w: r.width,
+      h: r.height,
+    };
+  });
+  assert(
+    Math.abs(r.x - r.vw / 2) < 2 && Math.abs(r.y - r.vh / 2) < 2,
+    JSON.stringify(r),
+  );
+  assert(r.w <= r.vw && r.h <= r.vh);
+}
 async function main() {
   await mkdir("test-results", { recursive: true });
   const apps: ElectronApplication[] = [];
@@ -50,6 +68,7 @@ async function main() {
     }
     const a = pages[0];
     await a.getByRole("button", { name: "Configurações", exact: true }).click();
+    await centered(a);
     await a.getByLabel("Nome de exibição").fill("Amigo 0");
     await a.getByRole("button", { name: "Avatar 👴", exact: true }).click();
     await a.getByLabel("Sons de entrada e saída da chamada").uncheck();
@@ -87,6 +106,30 @@ async function main() {
         .waitFor({ timeout: 10000 });
     }
     const image = await a.screenshot();
+    await a.getByRole("button", { name: "Configurações", exact: true }).click();
+    await centered(a);
+    await a
+      .getByLabel("Arquivo de foto de perfil")
+      .setInputFiles({
+        name: "perfil.png",
+        mimeType: "image/png",
+        buffer: image,
+      });
+    await a.waitForFunction(
+      () =>
+        document.querySelector<HTMLImageElement>(".profile-photo-picker img")
+          ?.naturalWidth === 128,
+    );
+    await a
+      .getByRole("button", {
+        name: "Salvar perfil e dispositivos",
+        exact: true,
+      })
+      .click();
+    const uploadedAvatar = await a.evaluate(
+      async () => (await window.voxy.profile()).avatar,
+    );
+    assert(uploadedAvatar.startsWith("data:image/webp;base64,"));
     await a.getByLabel("Arquivo de imagem").setInputFiles({
       name: "teste.png",
       mimeType: "image/png",
@@ -98,6 +141,12 @@ async function main() {
       .click();
     for (const page of pages) {
       await page.getByText("Imagem integrada", { exact: true }).waitFor();
+      await page.waitForFunction(
+        () =>
+          document.querySelector<HTMLImageElement>(
+            ".message .profile-avatar img",
+          )?.naturalWidth === 128,
+      );
       await page.waitForFunction(() => {
         const image = document.querySelector(
           ".chat-image img",
@@ -109,9 +158,45 @@ async function main() {
       .getByRole("button", { name: "Ampliar imagem", exact: true })
       .click();
     await pages[1].getByRole("heading", { name: "Imagem do chat" }).waitFor();
+    await centered(pages[1]);
     await pages[1].getByRole("button", { name: "Fechar", exact: true }).click();
     results.push(
-      "Imagem enviada pela interface, recebida e ampliada; avatar de velho selecionável.",
+      "Imagem enviada, recebida e ampliada; emoji selecionável e foto do PC redimensionada, salva e exibida nos outros clientes.",
+    );
+    await a
+      .getByRole("button", { name: "Editar mensagem", exact: true })
+      .click();
+    await centered(a);
+    await a.getByLabel("Texto da mensagem").fill("Imagem editada");
+    await a
+      .getByRole("button", { name: "Salvar mensagem", exact: true })
+      .click();
+    for (const page of pages)
+      await page.getByText("Imagem editada", { exact: true }).waitFor();
+    assert.equal(
+      await pages[1]
+        .getByRole("button", { name: "Editar mensagem", exact: true })
+        .count(),
+      0,
+    );
+    await a
+      .getByRole("button", { name: "Excluir mensagem", exact: true })
+      .click();
+    await centered(a);
+    await a.getByRole("button", { name: "Cancelar", exact: true }).click();
+    assert.equal(await a.locator(".chat-image").count(), 1);
+    await a
+      .getByRole("button", { name: "Excluir mensagem", exact: true })
+      .click();
+    await a
+      .getByRole("button", { name: "Confirmar exclusão", exact: true })
+      .click();
+    for (const page of pages)
+      await page
+        .getByText("Imagem editada", { exact: true })
+        .waitFor({ state: "detached" });
+    results.push(
+      "Edição e exclusão da própria mensagem propagadas; confirmação e modais centralizados.",
     );
     for (const page of pages) {
       await page
@@ -128,13 +213,93 @@ async function main() {
       .waitFor({ timeout: 15000 });
     await a.getByRole("button", { name: "Fechar", exact: true }).click();
     results.push("3 janelas Electron de produção conectadas e no mesmo canal.");
-    await apps[0].evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setSize(900,620));
-    await a.waitForFunction(()=>{const controls=document.querySelector('.call-controls')?.getBoundingClientRect();return !!controls&&controls.bottom<=innerHeight&&document.documentElement.scrollWidth<=innerWidth;});
-    await a.screenshot({path:'test-results/responsive-900.png'});await apps[0].evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setSize(1280,820));
-    await a.getByRole('button',{name:'Configurações',exact:true}).click();await a.getByLabel('Push to Talk: falar enquanto segura uma tecla').check();await a.getByLabel('Tecla para falar').selectOption('F9');await a.getByRole('button',{name:'Salvar perfil e dispositivos'}).click();await a.getByText('Segure F9 para falar · PTT',{exact:true}).waitFor();
-    try{await globalF9(false);await a.getByText('Falando · PTT',{exact:true}).waitFor({timeout:15000});await globalF9(true);await a.getByText('Segure F9 para falar · PTT',{exact:true}).waitFor();}finally{await globalF9(true);}
-    await a.getByRole('button',{name:'Configurações',exact:true}).click();await a.getByLabel('Push to Talk: falar enquanto segura uma tecla').uncheck();await a.getByRole('button',{name:'Salvar perfil e dispositivos'}).click();results.push('Push to Talk global passa pelo main/IPC e abre/fecha a fala no aplicativo.');
+    await apps[0].evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()[0].setSize(900, 620),
+    );
+    await a.waitForFunction(() => {
+      const controls = document
+        .querySelector(".call-controls")
+        ?.getBoundingClientRect();
+      return (
+        !!controls &&
+        controls.bottom <= innerHeight &&
+        document.documentElement.scrollWidth <= innerWidth
+      );
+    });
+    await a.screenshot({ path: "test-results/responsive-900.png" });
+    await apps[0].evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()[0].setSize(1280, 820),
+    );
+    await a.getByRole("button", { name: "Configurações", exact: true }).click();
+    await centered(a);
+    await a.getByLabel("Volume de entrada", { exact: true }).fill("0.75");
+    await a
+      .getByLabel("Ativar detecção de voz (filtro por sensibilidade)", {
+        exact: true,
+      })
+      .check();
+    await a.getByLabel("Limite de ativação", { exact: true }).fill("-40");
+    await a.getByLabel("Push to Talk: falar enquanto segura uma tecla").check();
+    await a
+      .getByRole("button", { name: "Configurar tecla para falar" })
+      .click();
+    await a
+      .getByRole("button", { name: "Configurar tecla para falar" })
+      .press("F9");
+    await a
+      .getByRole("button", { name: "Salvar perfil e dispositivos" })
+      .click();
+    await a.getByText("Segure F9 para falar · PTT", { exact: true }).waitFor();
+    const prefs = await a.evaluate(() => window.voxy.profile());
+    assert.equal(prefs.inputVolume, 0.75);
+    assert.equal(prefs.voiceDetection, true);
+    assert.equal(prefs.voiceThreshold, -40);
+    try {
+      await globalF9(false);
+      await a
+        .getByText("Falando · PTT", { exact: true })
+        .waitFor({ timeout: 15000 });
+      await globalF9(true);
+      await a
+        .getByText("Segure F9 para falar · PTT", { exact: true })
+        .waitFor();
+    } finally {
+      await globalF9(true);
+    }
+    await a.getByRole("button", { name: "Configurações", exact: true }).click();
+    await a
+      .getByLabel("Push to Talk: falar enquanto segura uma tecla")
+      .uncheck();
+    await a
+      .getByRole("button", { name: "Salvar perfil e dispositivos" })
+      .click();
+    results.push(
+      "Push to Talk global passa pelo main/IPC e abre/fecha a fala no aplicativo.",
+    );
     const cProfile = await pages[2].evaluate(() => window.voxy.profile());
+    const localCard = pages[1]
+      .locator(".participant-card")
+      .filter({ hasText: "Amigo 2" });
+    await localCard.click({ button: "right" });
+    await centered(pages[1]);
+    await pages[1]
+      .getByRole("dialog")
+      .getByRole("button", { name: "Mutar voz para mim", exact: true })
+      .click();
+    await localCard
+      .getByRole("img", { name: "Voz mutada só para você", exact: true })
+      .waitFor();
+    assert.equal(
+      await a
+        .getByRole("img", { name: "Voz mutada só para você", exact: true })
+        .count(),
+      0,
+    );
+    await pages[1].waitForFunction(
+      async (id) =>
+        (await window.voxy.profile()).mutedParticipants?.[id] === true,
+      cProfile.id,
+    );
     const volume = pages[1].getByRole("slider", {
       name: "Volume de Amigo 2",
       exact: true,
@@ -160,6 +325,18 @@ async function main() {
         .inputValue(),
       "0.35",
     );
+    await localCard
+      .getByRole("img", { name: "Voz mutada só para você", exact: true })
+      .waitFor();
+    await localCard
+      .getByRole("button", { name: "Ouvir voz novamente", exact: true })
+      .click();
+    await localCard
+      .getByRole("img", { name: "Voz mutada só para você", exact: true })
+      .waitFor({ state: "detached" });
+    results.push(
+      "Mute local via clique direito, isolado e persistido após reconexão; voz pode ser restaurada.",
+    );
     results.push(
       "Volume de voz persistido por UUID após desconexão e nova sessão do participante.",
     );
@@ -172,6 +349,14 @@ async function main() {
       await a
         .getByRole("button", { name: "Parar transmissão" })
         .waitFor({ timeout: 15000 });
+      for (const page of pages) {
+        await page
+          .locator(".sidebar-live")
+          .getByText("AO VIVO", { exact: true })
+          .waitFor();
+      }
+      if (cycle === 0)
+        await a.screenshot({ path: "test-results/live-badge-0.3.0.png" });
       for (const page of pages.slice(1)) {
         await page.getByRole("button", { name: "Assistir à tela" }).click();
         await page.waitForFunction(
@@ -231,6 +416,34 @@ async function main() {
           assert.equal(rects.top, 0);
           assert.equal(rects.width, rects.viewportWidth);
           assert.equal(rects.height, rects.viewportHeight);
+          await page.waitForFunction(() =>
+            document.querySelector(".player")?.classList.contains("hud-hidden"),
+          );
+          assert.equal(
+            await page
+              .locator(".player-head")
+              .evaluate((el) => getComputedStyle(el).visibility),
+            "hidden",
+          );
+          assert.equal(
+            await page
+              .locator(".stream-audio")
+              .evaluate((el) => getComputedStyle(el).visibility),
+            "hidden",
+          );
+          await page.mouse.move(240, 180);
+          await page.waitForFunction(
+            () =>
+              !document
+                .querySelector(".player")
+                ?.classList.contains("hud-hidden"),
+          );
+          assert.equal(
+            await page
+              .locator(".player-head")
+              .evaluate((el) => getComputedStyle(el).visibility),
+            "visible",
+          );
           await page.evaluate(() => document.exitFullscreen());
         }
         await page.screenshot({
@@ -262,6 +475,33 @@ async function main() {
       .first()
       .waitFor();
     results.push("Controle de mute responde no aplicativo.");
+    await a
+      .getByRole("button", { name: "Silenciar áudio", exact: true })
+      .first()
+      .click();
+    for (const page of pages) {
+      await page
+        .locator(".participant-card")
+        .filter({ hasText: "Amigo 0" })
+        .getByRole("img", { name: "Áudio silenciado", exact: true })
+        .waitFor();
+      await page
+        .locator(".channel-person")
+        .filter({ hasText: "Amigo 0" })
+        .getByRole("img", { name: "Áudio silenciado", exact: true })
+        .waitFor();
+    }
+    await a
+      .getByRole("button", { name: "Ouvir áudio", exact: true })
+      .first()
+      .click();
+    for (const page of pages)
+      await page
+        .getByRole("img", { name: "Áudio silenciado", exact: true })
+        .waitFor({ state: "detached" });
+    results.push(
+      "Ícone de áudio silenciado e mute coexistem; deafen propagado aos cartões e lista do canal.",
+    );
     for (const page of pages)
       await page
         .getByRole("button", { name: "Sair do canal de voz", exact: true })

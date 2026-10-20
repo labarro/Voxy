@@ -1,67 +1,49 @@
 import { PushToTalk } from "../src/main/pushToTalk";
-import { spawn } from "node:child_process";
-import { join } from "node:path";
+import { key } from "./support/keyboard";
 import assert from "node:assert/strict";
-function key(up: boolean) {
-  const script = `Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class VoxyTestKey { [DllImport("user32.dll")] public static extern void keybd_event(byte key, byte scan, uint flags, UIntPtr extra); }'; [VoxyTestKey]::keybd_event(120,0,${up ? 2 : 0},[UIntPtr]::Zero)`;
-  return new Promise<void>((resolve, reject) => {
-    const child = spawn(
-      join(
-        process.env.SystemRoot ?? "C:\\Windows",
-        "System32",
-        "WindowsPowerShell",
-        "v1.0",
-        "powershell.exe",
-      ),
-      [
-        "-NoProfile",
-        "-NonInteractive",
-        "-WindowStyle",
-        "Hidden",
-        "-EncodedCommand",
-        Buffer.from(script, "utf16le").toString("base64"),
-      ],
-      { windowsHide: true },
-    );
-    child.on("error", reject);
-    child.on("exit", (code) =>
-      code === 0 ? resolve() : reject(Error("Falha ao simular F9")),
-    );
-  });
-}
 async function main() {
   const events: { pressed: boolean; error?: string }[] = [];
   const ptt = new PushToTalk((pressed, error) =>
     events.push({ pressed, error }),
   );
   try {
-    ptt.configure(true, "F9");
-    await new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(
-        () => reject(Error("Leitor global não iniciou")),
-        12000,
-      );
-      (ptt as any).child.stdout.once("data", () => {
-        clearTimeout(timer);
-        resolve();
+    for (const [code, vk] of [
+      ["F9", 120],
+      ["KeyQ", 81],
+    ] as const) {
+      events.length = 0;
+      ptt.configure(true, code);
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(
+          () => reject(Error("Leitor global não iniciou")),
+          12000,
+        );
+        (ptt as any).child.stdout.once("data", () => {
+          clearTimeout(timer);
+          resolve();
+        });
       });
-    });
-    await key(false);
-    await wait(() => events.some((e) => e.pressed));
-    assert(!events.some((e) => e.error));
-    await key(true);
-    await wait(() => events.length >= 2 && !events[events.length - 1].pressed);
-    await key(false);
-    await wait(() => events[events.length - 1].pressed);
-    ptt.stop();
-    assert.equal(events[events.length - 1].pressed, false);
-    assert(!(ptt as any).child);
+      await key(false, vk);
+      await wait(() => events.some((e) => e.pressed));
+      assert(!events.some((e) => e.error));
+      await key(true, vk);
+      await wait(
+        () => events.length >= 2 && !events[events.length - 1].pressed,
+      );
+      await key(false, vk);
+      await wait(() => events[events.length - 1].pressed);
+      ptt.stop();
+      assert.equal(events[events.length - 1].pressed, false);
+      assert(!(ptt as any).child);
+    }
+    assert.throws(() => ptt.configure(true, "__proto__"));
     console.log(
-      "Windows global PTT: F9 pressionada/solta detectada e parada libera o microfone.",
+      "Windows global PTT: F9 e Q pressionadas/soltas detectadas; reconfiguração, validação e limpeza funcionam.",
     );
   } finally {
     ptt.stop();
     await key(true);
+    await key(true, 81);
   }
 }
 async function wait(check: () => boolean) {

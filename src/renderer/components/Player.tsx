@@ -22,6 +22,20 @@ export function Player({
   const video = useRef<HTMLVideoElement>(null),
     container = useRef<HTMLDivElement>(null);
   const [fullscreen, setFullscreen] = useState(false);
+  const [hudVisible, setHudVisible] = useState(true);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  function showHud() {
+    setHudVisible(true);
+    clearTimeout(hideTimer.current);
+    if (document.fullscreenElement === container.current)
+      hideTimer.current = setTimeout(() => setHudVisible(false), 2500);
+  }
+  useEffect(() => {
+    showHud();
+    return () => clearTimeout(hideTimer.current);
+  }, [fullscreen]);
   const restoreVolume = useRef(1);
   if (volume > 0) restoreVolume.current = volume;
   useEffect(() => {
@@ -61,8 +75,15 @@ export function Player({
   }, [output]);
   return (
     <section
-      className={"player " + (fullscreen ? "is-fullscreen" : "")}
+      className={
+        "player " +
+        (fullscreen ? "is-fullscreen " : "") +
+        (fullscreen && !hudVisible ? "hud-hidden" : "")
+      }
       ref={container}
+      onPointerMove={showHud}
+      onPointerDown={showHud}
+      onKeyDown={showHud}
     >
       <div className="player-head">
         <span>

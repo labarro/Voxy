@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { Hash, ImagePlus, Send, X, Maximize } from "lucide-react";
+import {
+  Hash,
+  ImagePlus,
+  Send,
+  X,
+  Maximize,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import type { Message } from "../../shared/types";
 import { MAX_IMAGE_BYTES } from "../../shared/constants";
 import { Avatar } from "./Avatar";
@@ -90,13 +98,26 @@ export function Chat({
   messages,
   busy,
   onSend,
+  authorId,
+  onEdit,
+  onDelete,
 }: {
   channelId: string;
   name: string;
   messages: Message[];
   busy: boolean;
   onSend: (text: string, image?: string) => Promise<void>;
+  authorId: string;
+  onEdit: (id: string, text: string) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
 }) {
+  const [action, setAction] = useState<{
+    kind: "edit" | "delete";
+    message: Message;
+  } | null>(null);
+  const [editText, setEditText] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [changing, setChanging] = useState(false);
   const [text, setText] = useState(""),
     [image, setImage] = useState(""),
     [error, setError] = useState(""),
@@ -159,6 +180,34 @@ export function Chat({
                     month: "2-digit",
                   })}
                 </time>
+                {!!m.editedAt && (
+                  <small className="edited-tag">(editada)</small>
+                )}
+                {m.author === authorId && (
+                  <span className="message-actions">
+                    <button
+                      title="Editar mensagem"
+                      disabled={busy}
+                      onClick={() => {
+                        setAction({ kind: "edit", message: m });
+                        setEditText(m.text);
+                        setActionError("");
+                      }}
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    <button
+                      title="Excluir mensagem"
+                      disabled={busy}
+                      onClick={() => {
+                        setAction({ kind: "delete", message: m });
+                        setActionError("");
+                      }}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </span>
+                )}
               </div>
               {m.text && <p>{m.text}</p>}
               {m.imageId && <MessageImage id={m.imageId} />}
@@ -240,6 +289,84 @@ export function Chat({
           <Send size={21} />
         </button>
       </form>
+      {action && (
+        <Modal
+          title={
+            action.kind === "edit" ? "Editar mensagem" : "Excluir mensagem"
+          }
+          close={() => {
+            if (!changing) setAction(null);
+          }}
+        >
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (changing) return;
+              setChanging(true);
+              setActionError("");
+              try {
+                if (action.kind === "edit")
+                  await onEdit(action.message.id, editText.trim());
+                else await onDelete(action.message.id);
+                setAction(null);
+              } catch (e) {
+                setActionError((e as Error).message);
+              } finally {
+                setChanging(false);
+              }
+            }}
+          >
+            {action.kind === "edit" ? (
+              <label>
+                Texto da mensagem
+                <textarea
+                  aria-label="Texto da mensagem"
+                  autoFocus
+                  maxLength={4000}
+                  rows={4}
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                />
+              </label>
+            ) : (
+              <p>
+                Excluir esta mensagem
+                {action.message.imageId ? " e sua imagem" : ""}? Esta ação não
+                pode ser desfeita.
+              </p>
+            )}
+            {actionError && (
+              <p className="modal-error" role="alert">
+                {actionError}
+              </p>
+            )}
+            <div className="message-dialog-actions">
+              <button
+                type="button"
+                disabled={changing}
+                onClick={() => setAction(null)}
+              >
+                Cancelar
+              </button>
+              <button
+                className="primary"
+                disabled={
+                  changing ||
+                  (action.kind === "edit" &&
+                    !editText.trim() &&
+                    !action.message.imageId)
+                }
+              >
+                {changing
+                  ? "Salvando…"
+                  : action.kind === "edit"
+                    ? "Salvar mensagem"
+                    : "Confirmar exclusão"}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </>
   );
 }

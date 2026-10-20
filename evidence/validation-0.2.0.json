@@ -1,0 +1,8 @@
+{
+  "version":"0.2.0",
+  "passed":["npm test (9 tests)","npm run test:media","npm run test:desktop","npm run test:ptt","npm run test:dev","npm run build","npm run dist","npm run test:packaged","ASAR main/preload/renderer match validated build"],
+  "media":{"participants":10,"peerPairs":45,"audioDirectionsWithPackets":90,"viewers":9,"syntheticScreenCycles":2,"nativeScreenCycles":2,"nativeViewers":2},
+  "verifiedFeatures":["Global Windows F9 press/release through main and IPC","PTT gate and manual mute precedence","Per-UUID volume preserved after participant reconnect","Independent stream volume/mute","Native fullscreen video rect equals viewport","Chat image sending, reception and enlargement","Old SQLite history preserved","Elder emoji selectable as avatar; no overlay","Distinct WebAudio join/leave effects; sounds-off/deafen respected","Update version/hash/staging/tamper validation and backup","Release notes acknowledged once and absent on second packaged startup","Persisted PTT and volume settings across restart","900x620 layout with call controls visible"],
+  "artifact":{"path":"release/0.2.0/Voxy-Setup-0.2.0-x64.exe","bytes":126937176,"sha256":"48430E89365EB4E6FD860F6C5205DBF6E0312BB417CF1E63B90E9D27E4612964","signature":"NotSigned"},
+  "pending":["Real NSIS in-place upgrade on an existing personal installation","Ten physical computers over Radmin VPN","Human listening quality and sustained native screen performance","Global PTT with elevated applications/games"]
+}

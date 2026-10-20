@@ -30,6 +30,8 @@ jobs:
           cache: npm
       - name: Instalar dependências fixadas
         run: npm ci
+      - name: Preparar binários verificados do Electron
+        run: node node_modules/electron/install.js
       - name: Testar contratos, migrações e segurança das atualizações
         run: npm test
       - name: Validar tag e gerar instalador e publicação assinada

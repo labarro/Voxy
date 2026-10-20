@@ -9,6 +9,7 @@ export function Player({
   close,
   volume = 1,
   onVolume = () => {},
+  kind = "screen",
 }: {
   stream?: MediaStream;
   name: string;
@@ -18,6 +19,7 @@ export function Player({
   close: () => void;
   volume?: number;
   onVolume?: (value: number) => void;
+  kind?: "screen" | "camera";
 }) {
   const video = useRef<HTMLVideoElement>(null),
     container = useRef<HTMLDivElement>(null);
@@ -87,7 +89,8 @@ export function Player({
     >
       <div className="player-head">
         <span>
-          <i className="live-dot" /> Tela de {name}
+          <i className="live-dot" /> {kind === "camera" ? "Câmera" : "Tela"} de{" "}
+          {name}
           {local ? " (sua prévia)" : ""}
         </span>
         <div>
@@ -116,7 +119,7 @@ export function Player({
           </button>
         </div>
       </div>
-      {!local && (
+      {!local && kind === "screen" && (
         <div className="stream-audio">
           <button
             title={
@@ -148,7 +151,7 @@ export function Player({
           ref={video}
           autoPlay
           playsInline
-          muted={local || deafened}
+          muted={kind === "camera" || local || deafened}
           style={{ objectFit: fit ? "contain" : "cover" }}
           onLoadedData={() => {
             setReady(true);

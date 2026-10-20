@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { UpdatePackage } from "../../shared/types";
+import { RemoteUpdate } from "./RemoteUpdate";
 export function Updates() {
   const [info, setInfo] = useState<{ version: string; packaged: boolean }>(),
     [update, setUpdate] = useState<UpdatePackage | null>(null),
@@ -25,6 +26,7 @@ export function Updates() {
   return (
     <section className="updates">
       <h3>Atualizações {info && "· v" + info.version}</h3>
+      <RemoteUpdate />
       <p className="hint">
         Recebeu uma versão nova? Selecione o instalador para atualizar por cima,
         preservando seus dados. Um backup será criado antes da atualização.

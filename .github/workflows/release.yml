@@ -1,0 +1,68 @@
+name: Publicar Voxy para Windows
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: voxy-stable-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Instalar dependências fixadas
+        run: npm ci
+      - name: Testar contratos, migrações e segurança das atualizações
+        run: npm test
+      - name: Validar tag e gerar instalador e publicação assinada
+        env:
+          VOXY_UPDATE_SIGNING_PRIVATE_KEY: ${{ secrets.VOXY_UPDATE_SIGNING_PRIVATE_KEY }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: |
+          node scripts/validate-release.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run dist
+      - name: Verificar executável empacotado e persistência
+        run: npm run test:packaged
+      - name: Publicar arquivos completos antes de disponibilizar a versão
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $releaseVersion = node -p "require('./package.json').version"
+          $releaseDirectory = Join-Path 'release' $releaseVersion
+          $releaseAssets = @(
+            (Join-Path $releaseDirectory "Voxy-Setup-$releaseVersion-x64.exe"),
+            (Join-Path $releaseDirectory "Voxy-Setup-$releaseVersion-x64.exe.blockmap"),
+            (Join-Path $releaseDirectory 'latest.yml'),
+            (Join-Path $releaseDirectory 'voxy-release.json'),
+            (Join-Path $releaseDirectory 'SHA256SUMS.txt')
+          )
+          foreach ($asset in $releaseAssets) { if (!(Test-Path -LiteralPath $asset)) { throw "Artefato ausente: $asset" } }
+          $draftStatus = gh release view $env:GITHUB_REF_NAME --repo $env:GITHUB_REPOSITORY --json isDraft --jq '.isDraft' 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            if ($draftStatus -ne 'true') { throw 'Esta versão já foi publicada. Publique uma nova versão, sem sobrescrever pacotes estáveis.' }
+            gh release upload $env:GITHUB_REF_NAME @releaseAssets --repo $env:GITHUB_REPOSITORY --clobber
+          } else {
+            gh release create $env:GITHUB_REF_NAME @releaseAssets --repo $env:GITHUB_REPOSITORY --draft --verify-tag --title "Voxy $releaseVersion" --notes-file (Join-Path $releaseDirectory 'release-notes.md')
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          gh release edit $env:GITHUB_REF_NAME --repo $env:GITHUB_REPOSITORY --draft=false --latest

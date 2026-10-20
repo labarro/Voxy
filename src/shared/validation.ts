@@ -22,6 +22,7 @@ export const profileSchema = z.object({
   avatar: avatarSchema,
   input: z.string().max(300),
   output: z.string().max(300),
+  cameraDevice: z.string().max(300).default(""),
   pttEnabled: z.boolean().default(false),
   pttKey: z.string().max(40).refine(isPttKey).default("KeyV"),
   inputVolume: z.number().min(0).max(2).default(1),
@@ -45,6 +46,11 @@ export const commandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("server.create"), name }),
   z.object({ type: z.literal("server.rename"), id, name }),
   z.object({ type: z.literal("server.delete"), id }),
+  z.object({
+    type: z.literal("server.icon"),
+    id,
+    image: avatarSchema.refine((v) => v.startsWith("data:image/")).nullable(),
+  }),
   z.object({
     type: z.literal("channel.create"),
     serverId: id,
@@ -73,6 +79,7 @@ export const commandSchema = z.discriminatedUnion("type", [
     muted: z.boolean(),
     deafened: z.boolean(),
     sharing: z.boolean(),
+    camera: z.boolean().optional(),
   }),
   z.object({
     type: z.literal("profile"),

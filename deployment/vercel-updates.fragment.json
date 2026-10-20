@@ -1,0 +1,14 @@
+{
+  "redirects": [
+    {
+      "source": "/voxy/updates/voxy-release.json",
+      "destination": "https://github.com/labarro/Voxy/releases/latest/download/voxy-release.json",
+      "permanent": false
+    },
+    {
+      "source": "/voxy/updates/latest.yml",
+      "destination": "https://github.com/labarro/Voxy/releases/latest/download/latest.yml",
+      "permanent": false
+    }
+  ]
+}

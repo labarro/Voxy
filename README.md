@@ -9,7 +9,7 @@
 Voz, chat e compartilhamento de tela para o seu grupo de amigos.<br />
 Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu computador.
 
-![Versão 0.3.0](https://img.shields.io/badge/vers%C3%A3o-0.3.0-b6adff?style=flat-square)
+![Versão 0.4.0](https://img.shields.io/badge/vers%C3%A3o-0.4.0-b6adff?style=flat-square)
 ![Windows 10 e 11 x64](https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-4389e8?style=flat-square)
 ![WebRTC P2P](https://img.shields.io/badge/WebRTC-P2P-68d6b1?style=flat-square)
 ![Até 10 participantes](https://img.shields.io/badge/at%C3%A9-10%20participantes-c9233c?style=flat-square)
@@ -22,6 +22,8 @@ Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu compu
 
 ## Sua sala, no seu computador
 
+**Na versão 0.4.0:** webcam independente da tela, imagem do servidor administrada pelo criador, Home com servidores recentes, canal global de novidades e atualizações remotas assinadas. Atualize host e amigos para 0.4.0; versões anteriores não têm o novo contrato de mídia e não podem entrar nesta sala.
+
 O Voxy reúne conversas e transmissões em servidores privados com canais de texto e voz. Um amigo hospeda a sala, compartilha um convite e os demais entram pela rede Radmin VPN. A mídia circula diretamente entre os participantes, usando WebRTC.
 
 Sem VPS, banco hospedado ou assinatura do Voxy. O host guarda servidores e histórico; cada pessoa mantém seu perfil e suas preferências no próprio computador. A sala comporta **até dez participantes, incluindo quem hospeda**.
@@ -30,6 +32,9 @@ Sem VPS, banco hospedado ou assinatura do Voxy. O host guarda servidores e hist�
 
 |                                | Recursos                                                                                                                     |
 | :----------------------------- | :--------------------------------------------------------------------------------------------------------------------------- |
+| 📹 **Usar sua webcam**         | Escolha a câmera, ligue ou desligue, veja os participantes e amplie em fullscreen, sem interromper a tela ou a voz.          |
+| 🏠 **Voltar aos amigos**       | Home com servidores recentes persistentes, disponibilidade e reconexão com convite protegido no Windows.                     |
+| 📰 **Acompanhar as versões**   | Canal global Novidades do Voxy, com data, funcionalidades, melhorias e correções, inclusive offline.                         |
 | 🖥️ **Compartilhar a tela**     | Escolha um monitor ou janela, ajuste a qualidade e transmita enquanto conversa. Pare e reinicie sem sair da chamada.         |
 | 🎙️ **Conversar por voz**       | Push-to-Talk com tecla configurável, mute, seleção de dispositivos, volume de entrada e filtro por sensibilidade.            |
 | 🎧 **Controlar o que ouve**    | Volume salvo por participante, mute local pelo clique direito e volume independente para a transmissão.                      |
@@ -37,7 +42,7 @@ Sem VPS, banco hospedado ou assinatura do Voxy. O host guarda servidores e hist�
 | 👤 **Usar seu perfil**         | Nome, foto do computador ou avatar em emoji — incluindo 👴.                                                                  |
 | 🔴 **Acompanhar a chamada**    | Atividade de voz real, ícones de mute e áudio silenciado, selo **AO VIVO** e sons opcionais de entrada, saída e transmissão. |
 | ⛶ **Assistir em fullscreen**   | Player sem bordas, ajuste de enquadramento e HUD que se oculta após 2,5 segundos de inatividade.                             |
-| 📦 **Atualizar sem recomeçar** | Instalação sobre a versão anterior, backup pelo aplicativo e aviso de novidades uma vez por versão.                          |
+| 📦 **Atualizar sem recomeçar** | Busca e download automáticos, reinício escolhido pelo usuário, backup e novidades por versão.                                |
 
 ## Comece com seus amigos
 
@@ -46,13 +51,13 @@ Sem VPS, banco hospedado ou assinatura do Voxy. O host guarda servidores e hist�
 Receba estes dois arquivos de quem mantém o projeto:
 
 ```text
-Voxy-Setup-0.3.0-x64.exe
+Voxy-Setup-0.4.0-x64.exe
 SHA256SUMS.txt
 ```
 
 Execute o instalador e conclua a instalação. **Os amigos não precisam instalar Node.js.** Todos devem usar a mesma versão para os recursos novos funcionarem corretamente.
 
-O instalador gerado neste projeto fica em `release/0.3.0/Voxy-Setup-0.3.0-x64.exe`. Essa pasta é local e não é versionada no Git. O executável não tem assinatura digital; o Windows pode mostrar editor desconhecido. Confira a procedência e o SHA-256 do arquivo recebido.
+O instalador gerado neste projeto fica em `release/0.4.0/Voxy-Setup-0.4.0-x64.exe`. Essa pasta é local e não é versionada no Git. O executável não tem assinatura digital; o Windows pode mostrar editor desconhecido. Confira a procedência e o SHA-256 do arquivo recebido.
 
 ### 2. Conecte a rede
 
@@ -84,15 +89,28 @@ Para transmitir, use **Compartilhar tela**, selecione a fonte e a qualidade e in
 
 ## Atualizações sem perder seus dados
 
-Recebeu uma versão nova? Abra **Engrenagem → Atualizações → Selecionar novo instalador**, confira o pacote e escolha **Fazer backup e atualizar**.
+A partir da 0.4.0 instalada, o Voxy consulta e baixa versões publicadas automaticamente, mostra o progresso e oferece **Reiniciar e atualizar**. O mantenedor precisa concluir a configuração inicial do canal de distribuição.
 
 Perfil, volumes, preferências e histórico ficam separados dos arquivos do programa. O fluxo iniciado pelo aplicativo cria um backup antes de executar o instalador. **Não é necessário desinstalar a versão anterior.**
 
-As atualizações são distribuídas por envio do instalador, sem busca ou download automático pela internet. Ao atualizar o host, a sala será encerrada temporariamente.
+O endpoint em **devbarros.com**, na Vercel, aponta para publicações do GitHub Releases. Os metadados são assinados com Ed25519 e o pacote é conferido antes da instalação. O download pode ser diferencial. Ao atualizar o host, a sala será encerrada temporariamente. Versões até 0.3.0 precisam receber a 0.4.0 uma última vez pelo instalador; o seletor manual permanece como alternativa.
 
-→ [Guia de atualização e distribuição de novas versões](GUIA-DE-ATUALIZACAO.md)
+→ [Guia para atualizar sem perder dados](GUIA-DE-ATUALIZACAO.md) · [Configurar domínio e publicação automática](ATUALIZACOES-REMOTAS.md)
 
 ## Áudio e tela do seu jeito
+
+<details>
+<summary><strong>Webcam, imagem do servidor e servidores recentes</strong></summary>
+
+Dentro da chamada, clique em **Ativar câmera**, selecione o dispositivo e use **Ligar câmera selecionada**. **Trocar câmera** muda a fonte e **Desligar câmera** encerra a captura sem afetar voz ou tela. As webcams aparecem em uma grade; use **Ampliar câmera** para abrir o player com fullscreen e HUD por inatividade. A webcam não captura áudio: a conversa continua usando o microfone configurado. A câmera nunca é religada automaticamente após desconectar.
+
+Em **Gerenciar servidor e canais**, o criador pode adicionar, alterar ou remover a imagem do servidor. Os demais podem visualizá-la. Servidores antigos sem criador registrado são atribuídos ao perfil do host na primeira abertura da sala após migrar.
+
+**Home** mantém até 40 servidores recentes mesmo com o Radmin desligado, verifica disponibilidade ao abrir, voltar ao foco e a cada 30 segundos e permite atualizar a consulta manualmente. **Reconectar** usa o convite protegido no Windows; **Hospedar novamente** reabre sua própria sala quando o endereço salvo está disponível. Remover um recente apaga somente o acesso local. “Fora de alcance” não distingue host fechado, VPN desconectada e bloqueio de firewall. IP ou segredo alterado exige um novo convite.
+
+**Novidades do Voxy**, no ícone de megafone da barra de servidores, fica disponível independentemente da sala. O histórico instalado é combinado com o catálogo remoto assinado e guardado em cache para consulta offline.
+
+</details>
 
 <details>
 <summary><strong>Microfone, Push-to-Talk e sensibilidade</strong></summary>
@@ -193,9 +211,9 @@ O comando inicia Vite em `127.0.0.1:5173` e abre o Electron. O renderer tem atua
 | `npm run dist`  | Gera o instalador Windows x64 e seu SHA-256.    |
 | `npm run pack`  | Gera a pasta do executável sem instalador.      |
 
-Cada empacotamento usa uma pasta `build-*` nova. `release/0.3.0/latest-build.json` indica a pasta final; para distribuir sem instalador, copie a pasta `win-unpacked` inteira. O ícone original pode ser reproduzido com `node scripts/icon.mjs`.
+Cada empacotamento usa uma pasta `build-*` nova. `release/0.4.0/latest-build.json` indica a pasta final; para distribuir sem instalador, copie a pasta `win-unpacked` inteira. O ícone original pode ser reproduzido com `node scripts/icon.mjs`.
 
-[`.env.example`](.env.example) documenta a variável opcional `VOXY_DATA_DIR`. Não são necessárias chaves de serviços externos e o aplicativo não carrega `.env` automaticamente.
+[`.env.example`](.env.example) documenta a variável opcional `VOXY_DATA_DIR`. O aplicativo não carrega `.env` automaticamente. Para publicar atualizações, configure o segredo de assinatura descrito em [ATUALIZACOES-REMOTAS.md](ATUALIZACOES-REMOTAS.md); clientes não precisam de credenciais.
 
 ### Testes e validação
 
@@ -211,7 +229,7 @@ Cada empacotamento usa uma pasta `build-*` nova. `release/0.3.0/latest-build.jso
 
 Os testes de navegador usam Microsoft Edge instalado. `test:desktop` utiliza microfone e captura de desktop reais, com perfis isolados em `test-results/`; execute em um desktop de teste sem conteúdo sensível aberto. Fontes sintéticas são usadas somente nos testes.
 
-**Validado na versão 0.3.0:** dez testes de serviço/contratos, 45 pares WebRTC, áudio nos 90 sentidos e vídeo para nove espectadores em dois ciclos. Captura nativa e interface foram verificadas com três instâncias Electron locais; o executável empacotado foi aberto duas vezes para verificar persistência e novidades.
+**Validado na versão 0.4.0:** 14 testes de serviço/contratos, 45 pares WebRTC, áudio nos 90 sentidos e vídeo para nove espectadores em dois ciclos. Captura nativa e interface foram verificadas com três instâncias Electron locais; o executável empacotado foi aberto duas vezes para verificar persistência e novidades.
 
 **Validação ainda pendente:** dez computadores físicos pelo Radmin, avaliação humana de áudio em ambiente ruidoso, desempenho prolongado, atalhos com programas elevados e instalação NSIS sobre uma instalação pessoal existente.
 
@@ -248,7 +266,7 @@ Os dados ficam em `%APPDATA%\voxy-desktop`, separados da instalação:
 
 `VOXY_DATA_DIR` pode substituir a pasta durante testes. Não use duas instâncias no mesmo perfil. Para backup manual, feche o aplicativo e copie a pasta de dados; histórico e perfil não são criptografados. O fluxo de atualização pelo aplicativo também cria backup antes de instalar.
 
-O host recupera os servidores ao hospedar novamente. Clientes mantêm perfil e dispositivos, mas não guardam o convite. Se um convite vazar, feche o host, remova apenas `host-secret.bin` e hospede novamente para gerar outro segredo. Preserve `room.sqlite` para manter o histórico.
+O host recupera os servidores ao hospedar novamente. Clientes mantêm perfil e dispositivos e salvam convites dos servidores recentes com proteção do Windows. Se um convite vazar, feche o host, remova apenas `host-secret.bin` e hospede novamente para gerar outro segredo. Preserve `room.sqlite` para manter o histórico.
 
 </details>
 
@@ -260,13 +278,14 @@ O host recupera os servidores ao hospedar novamente. Clientes mantêm perfil e d
 - **O histórico pertence ao host.** Clientes não mantêm uma réplica persistente. A interface carrega as últimas 500 mensagens por canal; as anteriores permanecem no SQLite, sem paginação.
 - **Windows 10/11 x64 são os alvos.** A execução foi validada no Windows build 26200, sem teste em uma instalação limpa de Windows 10.
 
-Não há câmera, bots, sincronização offline, anexos de outros formatos ou assinatura de código. Consulte [arquitetura e segurança](ARCHITECTURE.md) para os detalhes.
+Não há bots, sincronização offline, anexos de outros formatos ou assinatura de código. Consulte [arquitetura e segurança](ARCHITECTURE.md) para os detalhes.
 
 ## Documentação
 
 | Guia                                            | Conteúdo                                                            |
 | :---------------------------------------------- | :------------------------------------------------------------------ |
 | [Instalação e conexão](INSTALACAO-E-CONEXAO.md) | Arquivos para enviar aos amigos, Radmin e primeira chamada.         |
+| [Publicação remota](ATUALIZACOES-REMOTAS.md)    | Domínio Vercel, GitHub Actions, assinatura e download diferencial.  |
 | [Atualizações](GUIA-DE-ATUALIZACAO.md)          | Atualizar sem desinstalar, backups e distribuição de novas versões. |
 | [Arquitetura](ARCHITECTURE.md)                  | Host local, WebRTC mesh, persistência e segurança.                  |
 | [Testes](TESTING.md)                            | Verificações executadas, evidências e validações pendentes.         |

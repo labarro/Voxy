@@ -33,6 +33,12 @@ export class Store {
     const columns = db.exec("PRAGMA table_info(messages)")[0]?.values ?? [];
     if (!columns.some((row) => row[1] === "editedAt"))
       db.run("ALTER TABLE messages ADD COLUMN editedAt INTEGER");
+    const serverColumns =
+      db.exec("PRAGMA table_info(servers)")[0]?.values ?? [];
+    if (!serverColumns.some((row) => row[1] === "ownerId"))
+      db.run("ALTER TABLE servers ADD COLUMN ownerId TEXT");
+    if (!serverColumns.some((row) => row[1] === "icon"))
+      db.run("ALTER TABLE servers ADD COLUMN icon TEXT");
     return new Store(db, path);
   }
   private rows<T>(sql: string, params: string[] = []): T[] {
@@ -50,11 +56,15 @@ export class Store {
     const messages = this.rows<Message>(
       "SELECT id,channelId,author,name,avatar,text,time,editedAt,(SELECT id FROM images WHERE messageId=recent.id) AS imageId FROM (SELECT *,ROW_NUMBER() OVER(PARTITION BY channelId ORDER BY time DESC) AS rank FROM messages) recent WHERE rank<=500 ORDER BY time",
     );
+    const servers = this.rows<Community>("SELECT * FROM servers");
     return {
-      servers: this.rows<Community>("SELECT * FROM servers"),
+      servers,
       channels: this.rows<Channel>("SELECT * FROM channels"),
       messages,
-      avatars: this.avatarImages(messages.map((m) => m.avatar)),
+      avatars: this.avatarImages([
+        ...messages.map((m) => m.avatar),
+        ...servers.map((s) => s.icon ?? ""),
+      ]),
     };
   }
   registerAvatar(value: string) {
@@ -79,13 +89,34 @@ export class Store {
     }
     return result;
   }
-  createServer(name: string) {
+  createServer(name: string, ownerId?: string) {
     const id = randomUUID();
-    this.db.run("INSERT INTO servers VALUES(?,?)", [id, name]);
+    this.db.run("INSERT INTO servers(id,name,ownerId) VALUES(?,?,?)", [
+      id,
+      name,
+      ownerId ?? null,
+    ]);
     this.createChannel(id, "geral", "text");
     this.createChannel(id, "Sala dos amigos", "voice");
     this.flush();
     return id;
+  }
+  claimLegacyServers(ownerId: string) {
+    this.db.run("UPDATE servers SET ownerId=? WHERE ownerId IS NULL", [
+      ownerId,
+    ]);
+    this.flush();
+  }
+  setServerIcon(id: string, ownerId: string, image: string | null) {
+    const server = this.rows<Community>("SELECT * FROM servers WHERE id=?", [
+      id,
+    ])[0];
+    if (!server) throw Error("Servidor não encontrado.");
+    if (server.ownerId !== ownerId)
+      throw Error("Somente o criador pode alterar a imagem do servidor.");
+    const icon = image === null ? null : this.registerAvatar(image);
+    this.db.run("UPDATE servers SET icon=? WHERE id=?", [icon, id]);
+    this.flush();
   }
   createChannel(serverId: string, name: string, kind: string) {
     this.db.run("INSERT INTO channels VALUES(?,?,?,?)", [

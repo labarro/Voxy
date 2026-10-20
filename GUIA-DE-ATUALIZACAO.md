@@ -2,6 +2,8 @@
 
 ## Como funciona
 
+**Publicação inicial: 0.4.1.** A tag 0.4.0 foi preservada no Git, mas seu workflow falhou antes de publicar arquivos. A 0.4.1 prepara explicitamente os binários verificados do Electron em instalações limpas e inclui todos os recursos da linha 0.4. Use o instalador `release/0.4.1/Voxy-Setup-0.4.1-x64.exe`; instalações até 0.3.0 precisam recebê-lo uma última vez manualmente, sem desinstalar. Quem já instalou o pacote local 0.4.0 poderá receber a 0.4.1 pelo atualizador.
+
 O Voxy usa o mesmo identificador de aplicativo em todas as versões. O instalador novo atualiza os arquivos do programa por cima da instalação existente; não é necessário desinstalar ou apagar pastas.
 
 Perfil, UUID, avatares, volumes, preferências, servidores, mensagens e imagens ficam separados do programa em `%APPDATA%\voxy-desktop`. Na atualização iniciada pelo aplicativo, um backup dos dados é criado antes de fechar a chamada e executar o instalador.

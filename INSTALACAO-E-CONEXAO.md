@@ -21,19 +21,19 @@ Na versão 0.4.0, a engrenagem também permite escolher Push to Talk, tecla para
 O instalador atualizado está nesta pasta:
 
 ```text
-C:\projects\Voxy\release\0.4.0
+C:\projects\Voxy\release\0.4.1
 ```
 
 O arquivo que você deve instalar no seu computador e enviar aos amigos é:
 
 ```text
-Voxy-Setup-0.4.0-x64.exe
+Voxy-Setup-0.4.1-x64.exe
 ```
 
 Caminho completo:
 
 ```text
-C:\projects\Voxy\release\0.4.0\Voxy-Setup-0.4.0-x64.exe
+C:\projects\Voxy\release\0.4.1\Voxy-Setup-0.4.1-x64.exe
 ```
 
 **Envie somente esse instalador aos amigos.** Não é necessário enviar o código do projeto, a pasta `node_modules`, arquivos `.blockmap`, nem as pastas `build-*` ou `win-unpacked`. Não use o instalador antigo da versão 0.1.0.
@@ -44,7 +44,7 @@ O mesmo instalador serve para quem vai hospedar e para quem vai entrar na sala. 
 
 Cada pessoa deve seguir estes passos no próprio computador Windows 10/11 de 64 bits:
 
-1. Salve o arquivo `Voxy-Setup-0.4.0-x64.exe` em uma pasta do computador.
+1. Salve o arquivo `Voxy-Setup-0.4.1-x64.exe` em uma pasta do computador.
 2. Abra o instalador com dois cliques.
 3. Escolha a pasta de instalação e conclua o assistente.
 4. Abra o Voxy pelo atalho criado ou pelo menu Iniciar.

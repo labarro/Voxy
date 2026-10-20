@@ -73,5 +73,30 @@
       "Backup inclui o histórico de conexões; migração preserva servidores, mensagens e fotos existentes."
     ],
     "fixes": []
+  },
+  "0.4.1": {
+    "date": "2026-10-20",
+    "title": "Webcam e atualizações automáticas",
+    "items": [
+      "Webcam independente da tela: escolha a câmera, ligue, troque e desligue durante a chamada.",
+      "Foto do servidor gerenciada pelo criador.",
+      "Home com servidores recentes salvos e reconexão por convite protegido.",
+      "Canal global de novidades com histórico por versão, disponível offline.",
+      "Atualizações remotas: verificação automática, download no aplicativo e reinício para instalar."
+    ],
+    "features": [
+      "Transmissão de webcam em paralelo à voz e à tela, com grade de participantes e player fullscreen.",
+      "Adicionar, trocar e remover a imagem de cada servidor, com permissão de criador.",
+      "Histórico local de servidores, disponibilidade e reconexão sem digitar o convite.",
+      "Canal Novidades do Voxy com publicações por versão, data e categorias.",
+      "Atualizador remoto com publicação assinada, download diferencial e reinício escolhido pelo usuário."
+    ],
+    "improvements": [
+      "Convites recentes protegidos pelo armazenamento seguro do Windows, sem depender do Radmin para listar o histórico.",
+      "Backup inclui o histórico de conexões; migração preserva servidores, mensagens e fotos existentes."
+    ],
+    "fixes": [
+      "Preparação explícita dos binários verificados do Electron em instalações limpas e no GitHub Actions."
+    ]
   }
 }

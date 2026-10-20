@@ -9,7 +9,7 @@
 Voz, chat e compartilhamento de tela para o seu grupo de amigos.<br />
 Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu computador.
 
-![Versão 0.4.0](https://img.shields.io/badge/vers%C3%A3o-0.4.0-b6adff?style=flat-square)
+![Versão 0.4.1](https://img.shields.io/badge/vers%C3%A3o-0.4.1-b6adff?style=flat-square)
 ![Windows 10 e 11 x64](https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-4389e8?style=flat-square)
 ![WebRTC P2P](https://img.shields.io/badge/WebRTC-P2P-68d6b1?style=flat-square)
 ![Até 10 participantes](https://img.shields.io/badge/at%C3%A9-10%20participantes-c9233c?style=flat-square)
@@ -51,13 +51,13 @@ Sem VPS, banco hospedado ou assinatura do Voxy. O host guarda servidores e hist�
 Receba estes dois arquivos de quem mantém o projeto:
 
 ```text
-Voxy-Setup-0.4.0-x64.exe
+Voxy-Setup-0.4.1-x64.exe
 SHA256SUMS.txt
 ```
 
 Execute o instalador e conclua a instalação. **Os amigos não precisam instalar Node.js.** Todos devem usar a mesma versão para os recursos novos funcionarem corretamente.
 
-O instalador gerado neste projeto fica em `release/0.4.0/Voxy-Setup-0.4.0-x64.exe`. Essa pasta é local e não é versionada no Git. O executável não tem assinatura digital; o Windows pode mostrar editor desconhecido. Confira a procedência e o SHA-256 do arquivo recebido.
+O instalador gerado neste projeto fica em `release/0.4.1/Voxy-Setup-0.4.1-x64.exe`. Essa pasta é local e não é versionada no Git. O executável não tem assinatura digital; o Windows pode mostrar editor desconhecido. Confira a procedência e o SHA-256 do arquivo recebido.
 
 ### 2. Conecte a rede
 
@@ -211,7 +211,7 @@ O comando inicia Vite em `127.0.0.1:5173` e abre o Electron. O renderer tem atua
 | `npm run dist`  | Gera o instalador Windows x64 e seu SHA-256.    |
 | `npm run pack`  | Gera a pasta do executável sem instalador.      |
 
-Cada empacotamento usa uma pasta `build-*` nova. `release/0.4.0/latest-build.json` indica a pasta final; para distribuir sem instalador, copie a pasta `win-unpacked` inteira. O ícone original pode ser reproduzido com `node scripts/icon.mjs`.
+Cada empacotamento usa uma pasta `build-*` nova. `release/0.4.1/latest-build.json` indica a pasta final; para distribuir sem instalador, copie a pasta `win-unpacked` inteira. O ícone original pode ser reproduzido com `node scripts/icon.mjs`.
 
 [`.env.example`](.env.example) documenta a variável opcional `VOXY_DATA_DIR`. O aplicativo não carrega `.env` automaticamente. Para publicar atualizações, configure o segredo de assinatura descrito em [ATUALIZACOES-REMOTAS.md](ATUALIZACOES-REMOTAS.md); clientes não precisam de credenciais.
 

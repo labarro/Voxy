@@ -8,11 +8,11 @@ O Voxy usa o mesmo identificador de aplicativo em todas as versões. O instalado
 
 Perfil, UUID, avatares, volumes, preferências, servidores, mensagens e imagens ficam separados do programa em `%APPDATA%\voxy-desktop`. Na atualização iniciada pelo aplicativo, um backup dos dados é criado antes de fechar a chamada e executar o instalador.
 
-A versão 0.4.0 acrescenta busca e download automáticos pelo domínio devbarros.com e GitHub Releases, com assinatura dos metadados, conferência do pacote e reinício escolhido pelo usuário. É preciso concluir a configuração inicial de publicação: veja [ATUALIZACOES-REMOTAS.md](ATUALIZACOES-REMOTAS.md). O instalador manual continua disponível para migração inicial e recuperação.
+A versão 0.4.0 acrescenta busca e download automáticos pelo domínio devbarros.com e GitHub Releases, com assinatura dos metadados, conferência do pacote e reinício escolhido pelo usuário. A configuração de publicação já está ativa; veja [ATUALIZACOES-REMOTAS.md](ATUALIZACOES-REMOTAS.md). O instalador manual continua disponível para migração inicial e recuperação.
 
-## Atualizar para 0.4.0
+## Atualizar para 0.4.1
 
-Distribua `release/0.4.0/Voxy-Setup-0.4.0-x64.exe` e o `SHA256SUMS.txt` correspondente. No Voxy 0.2.0 ou posterior, abra **Engrenagem → Atualizações → Selecionar novo instalador → Fazer backup e atualizar**, sem desinstalar. Todos devem atualizar: a versão 0.4.0 usa quatro trilhas de mídia e rejeita o protocolo antigo, nos dois sentidos.
+Distribua `release/0.4.1/Voxy-Setup-0.4.1-x64.exe` e o `SHA256SUMS.txt` correspondente. No Voxy 0.2.0 ou posterior, abra **Engrenagem → Atualizações → Selecionar novo instalador → Fazer backup e atualizar**, sem desinstalar. Todos devem atualizar: a versão 0.4.0 usa quatro trilhas de mídia e rejeita o protocolo antigo, nos dois sentidos.
 
 São preservados perfil, volumes, mensagens e imagens. O banco recebe `ownerId` e `icon` nos servidores; o host assume os servidores antigos sem criador. `recent-rooms.json` guarda metadados e convites protegidos pelo Windows e também entra no backup. O histórico de recentes só começa a ser preenchido a partir dos acessos na 0.4.0; versões antigas não guardavam convites.
 

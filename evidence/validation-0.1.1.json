@@ -1,0 +1,8 @@
+{
+  "version": "0.1.1",
+  "changes": ["Radmin VPN 26/8 invite support; host requires local Radmin adapter for 26/8", "Five participants including host; sixth rejected"],
+  "passed": ["npm test", "npm run test:media", "npm run build", "npm run dist", "npm run test:packaged", "ASAR main/preload/renderer match validated build"],
+  "media": {"participants":5,"peerPairs":10,"audioDirectionsWithPackets":20,"syntheticScreenCycles":2,"viewers":4,"rejoinCycles":3},
+  "artifact": {"path":"release/0.1.1/Voxy-Setup-0.1.1-x64.exe","bytes":126923604,"sha256":"CF138B467673CE2D1F446A5712C99B1A86A6C52A487DF98E3F98A6839D957D3F"},
+  "pending": ["Radmin VPN connectivity between physical computers", "Native capture to four physical viewers and audible quality under real upload constraints"]
+}

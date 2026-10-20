@@ -21,20 +21,27 @@ export type Diagnostic = {
   fps?: number;
   loss?: number;
   rtt?: number;
+  cameraKbps?: number;
+  cameraWidth?: number;
+  cameraHeight?: number;
+  cameraFps?: number;
 };
 type Peer = {
   pc: RTCPeerConnection;
   mic?: RTCRtpTransceiver;
   video?: RTCRtpTransceiver;
   system?: RTCRtpTransceiver;
+  camera?: RTCRtpTransceiver;
   pending: RTCIceCandidateInit[];
   queue: Promise<void>;
   audio: HTMLAudioElement;
   systemAudio: HTMLAudioElement;
   stream: MediaStream;
+  cameraStream: MediaStream;
   monitor?: () => void;
   lastBytes: number;
   lastTime: number;
+  counters: Map<string, { bytes: number; time: number }>;
   restart?: ReturnType<typeof setTimeout>;
 };
 export type VoiceView = {
@@ -46,6 +53,9 @@ export type VoiceView = {
   error: string;
   micOpen?: boolean;
   micLevelDb?: number;
+  cameraStreams?: Map<string, MediaStream>;
+  cameraActive?: boolean;
+  localCamera?: MediaStream;
 };
 export class VoiceEngine {
   private peers = new Map<string, Peer>();
@@ -55,6 +65,9 @@ export class VoiceEngine {
   private preferences?: Profile;
   private sharingPeers = new Set<string>();
   private screen?: MediaStream;
+  private camera?: MediaStream;
+  private cameraBusy = false;
+  private cameraGeneration = 0;
   private context?: AudioContext;
   private stopLocalMeter?: () => void;
   private interval?: ReturnType<typeof setInterval>;
@@ -88,6 +101,7 @@ export class VoiceEngine {
     private update: (view: VoiceView) => void,
     private sharingChanged: (value: boolean) => void,
     private micChanged: (muted: boolean) => void = () => {},
+    private cameraChanged: (value: boolean) => void = () => {},
   ) {}
   private publish(patch: Partial<VoiceView> = {}) {
     this.view = { ...this.view, ...patch };
@@ -174,12 +188,13 @@ export class VoiceEngine {
       iceServers: [],
       bundlePolicy: "max-bundle",
     });
-    // Only the elected offerer creates m-lines. The answerer adopts the three
+    // Only the elected offerer creates m-lines. The answerer adopts the four
     // incoming transceivers; pre-creating them would leave duplicate, inactive slots.
     if (this.self < id) {
       pc.addTransceiver("audio", { direction: "sendrecv" });
       pc.addTransceiver("video", { direction: "sendrecv" });
       pc.addTransceiver("audio", { direction: "sendrecv" });
+      pc.addTransceiver("video", { direction: "sendrecv" });
     }
     const audio = new Audio();
     audio.autoplay = true;
@@ -196,8 +211,10 @@ export class VoiceEngine {
       audio,
       systemAudio,
       stream: new MediaStream(),
+      cameraStream: new MediaStream(),
       lastBytes: 0,
       lastTime: 0,
+      counters: new Map(),
     };
     this.peers.set(id, peer);
     pc.onicecandidate = (e) => {
@@ -222,7 +239,14 @@ export class VoiceEngine {
         this.publish({
           streams: new Map([...this.peers].map(([key, p]) => [key, p.stream])),
         });
-      } else {
+      } else if (e.transceiver.mid === "3") {
+        peer.cameraStream.addTrack(e.track);
+        this.publish({
+          cameraStreams: new Map(
+            [...this.peers].map(([key, p]) => [key, p.cameraStream]),
+          ),
+        });
+      } else if (e.transceiver.mid === "2") {
         systemAudio.srcObject = new MediaStream([e.track]);
         void this.applyOutput(systemAudio).catch((e) => this.error(e));
         e.track.onunmute = () =>
@@ -278,10 +302,10 @@ export class VoiceEngine {
     for (const signal of pending) this.signal(signal);
   }
   private async prepare(p: Peer) {
-    [p.mic, p.video, p.system] = p.pc.getTransceivers();
-    if (!p.mic || !p.video || !p.system)
+    [p.mic, p.video, p.system, p.camera] = p.pc.getTransceivers();
+    if (!p.mic || !p.video || !p.system || !p.camera)
       throw Error("Contrato de trilhas de mídia inválido.");
-    for (const transceiver of [p.mic, p.video, p.system])
+    for (const transceiver of [p.mic, p.video, p.system, p.camera])
       transceiver.direction = "sendrecv";
     const codecs = RTCRtpReceiver.getCapabilities("video")?.codecs;
     if (codecs)
@@ -296,6 +320,105 @@ export class VoiceEngine {
     await p.system.sender.replaceTrack(
       this.screen?.getAudioTracks()[0] ?? null,
     );
+    await p.camera.sender.replaceTrack(
+      this.camera?.getVideoTracks()[0] ?? null,
+    );
+  }
+  async startCamera(deviceId: string) {
+    if (!this.active || this.cameraBusy)
+      throw Error("Entre em um canal de voz e aguarde a câmera.");
+    this.cameraBusy = true;
+    const generation = this.generation,
+      cameraGeneration = ++this.cameraGeneration;
+    let stream: MediaStream | undefined;
+    try {
+      await window.voxy.authorizeCamera();
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          deviceId: deviceId ? { exact: deviceId } : undefined,
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          frameRate: { ideal: 30, max: 30 },
+        },
+      });
+      if (
+        generation !== this.generation ||
+        cameraGeneration !== this.cameraGeneration
+      ) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+      const track = stream.getVideoTracks()[0];
+      if (!track) throw Error("A câmera não forneceu vídeo.");
+      const old = this.camera;
+      try {
+        await Promise.all(
+          [...this.peers.values()].map((p) =>
+            p.camera?.sender.replaceTrack(track),
+          ),
+        );
+      } catch (e) {
+        await Promise.allSettled(
+          [...this.peers.values()].map((p) =>
+            p.camera?.sender.replaceTrack(old?.getVideoTracks()[0] ?? null),
+          ),
+        );
+        throw e;
+      }
+      if (
+        generation !== this.generation ||
+        cameraGeneration !== this.cameraGeneration
+      ) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+      this.camera = stream;
+      old?.getTracks().forEach((t) => {
+        t.onended = null;
+        t.stop();
+      });
+      track.contentHint = "motion";
+      track.onended = () => {
+        this.error(
+          Error("Câmera desconectada. Escolha outra câmera para continuar."),
+        );
+        void this.stopCamera();
+      };
+      for (const p of this.peers.values()) {
+        if (!p.camera?.sender.track) continue;
+        const params = p.camera.sender.getParameters();
+        if (params.encodings?.length) {
+          params.encodings[0].maxBitrate = 1500000;
+          params.encodings[0].maxFramerate = 30;
+          void p.camera.sender
+            .setParameters(params)
+            .catch((e) => this.error(e));
+        }
+      }
+      this.publish({ localCamera: stream, cameraActive: true, error: "" });
+      this.cameraChanged(true);
+    } catch (e) {
+      stream?.getTracks().forEach((t) => t.stop());
+      throw e;
+    } finally {
+      this.cameraBusy = false;
+    }
+  }
+  async stopCamera() {
+    const generation = ++this.cameraGeneration;
+    const stream = this.camera;
+    this.camera = undefined;
+    stream?.getTracks().forEach((t) => {
+      t.onended = null;
+      t.stop();
+    });
+    await Promise.allSettled(
+      [...this.peers.values()].map((p) => p.camera?.sender.replaceTrack(null)),
+    );
+    if (generation !== this.cameraGeneration) return;
+    this.publish({ localCamera: undefined, cameraActive: false });
+    if (stream) this.cameraChanged(false);
   }
   private enqueue(p: Peer, fn: () => Promise<void>) {
     p.queue = p.queue
@@ -677,16 +800,32 @@ export class VoiceEngine {
         const stats = await p.pc.getStats();
         stats.forEach((s) => {
           if (s.type === "outbound-rtp" && s.kind === "video") {
+            const camera =
+              s.mid === "3" ||
+              (!!this.camera &&
+                stats.get(s.mediaSourceId)?.trackIdentifier ===
+                  this.camera?.getVideoTracks()[0]?.id);
             if (s.frameWidth) {
-              d.width = s.frameWidth;
-              d.height = s.frameHeight;
-              d.fps = s.framesPerSecond;
+              if (camera) {
+                d.cameraWidth = s.frameWidth;
+                d.cameraHeight = s.frameHeight;
+                d.cameraFps = s.framesPerSecond;
+              } else {
+                d.width = s.frameWidth;
+                d.height = s.frameHeight;
+                d.fps = s.framesPerSecond;
+              }
             }
-            const elapsed = s.timestamp - p.lastTime;
-            if (p.lastTime && elapsed > 0)
-              d.kbps = Math.round(((s.bytesSent - p.lastBytes) * 8) / elapsed);
-            p.lastBytes = s.bytesSent;
-            p.lastTime = s.timestamp;
+            const old = p.counters.get(s.id),
+              elapsed = s.timestamp - (old?.time ?? s.timestamp);
+            if (old && elapsed > 0) {
+              const kbps = Math.round(
+                Math.max(0, ((s.bytesSent - old.bytes) * 8) / elapsed),
+              );
+              if (camera) d.cameraKbps = kbps;
+              else d.kbps = kbps;
+            }
+            p.counters.set(s.id, { bytes: s.bytesSent, time: s.timestamp });
             d.codec = stats.get(s.codecId)?.mimeType;
           }
           if (s.type === "inbound-rtp") {
@@ -733,6 +872,9 @@ export class VoiceEngine {
     speaking.delete(id);
     this.publish({
       streams: new Map([...this.peers].map(([key, p]) => [key, p.stream])),
+      cameraStreams: new Map(
+        [...this.peers].map(([key, p]) => [key, p.cameraStream]),
+      ),
       speaking,
     });
   }
@@ -746,6 +888,7 @@ export class VoiceEngine {
     clearInterval(this.interval);
     this.interval = undefined;
     void this.stopShare();
+    void this.stopCamera();
     for (const id of this.peers.keys()) this.remove(id);
     this.stopLocalMeter?.();
     this.stopLocalMeter = undefined;
@@ -765,6 +908,9 @@ export class VoiceEngine {
       diagnostics: [],
       micLevelDb: undefined,
       micOpen: false,
+      cameraStreams: new Map(),
+      cameraActive: false,
+      localCamera: undefined,
     });
   }
 }

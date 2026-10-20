@@ -11,6 +11,17 @@ async function invoke<T>(method: string, arg?: unknown): Promise<T> {
   return r.value;
 }
 const api: DesktopAPI = {
+  remoteUpdateState:()=>invoke("remoteUpdateState"),
+  checkRemoteUpdate:()=>invoke("checkRemoteUpdate"),
+  downloadRemoteUpdate:()=>invoke("downloadRemoteUpdate"),
+  installRemoteUpdate:()=>invoke("installRemoteUpdate"),
+  releaseHistory: () => invoke("releaseHistory"),
+  savedRooms: () => invoke("savedRooms"),
+  roomAvailability: () => invoke("roomAvailability"),
+  reconnectRoom: (id) => invoke("reconnectRoom", id),
+  removeRoom: (id) => invoke("removeRoom", id),
+  visitServer: (id) => invoke("visitServer", id),
+  authorizeCamera: () => invoke("authorizeCamera"),
   releaseNotes: () => invoke("releaseNotes"),
   markReleaseNotes: (version) => invoke("markReleaseNotes", version),
   updateInfo: () => invoke("updateInfo"),

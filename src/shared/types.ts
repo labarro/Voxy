@@ -5,6 +5,7 @@ export type Profile = {
   avatar: string;
   input: string;
   output: string;
+  cameraDevice?: string;
   pttEnabled?: boolean;
   pttKey?: PttKey;
   inputVolume?: number;
@@ -15,7 +16,12 @@ export type Profile = {
   streamVolumes?: Record<string, number>;
   mutedParticipants?: Record<string, boolean>;
 };
-export type Community = { id: string; name: string };
+export type Community = {
+  id: string;
+  name: string;
+  ownerId?: string | null;
+  icon?: string | null;
+};
 export type Channel = {
   id: string;
   serverId: string;
@@ -29,6 +35,7 @@ export type Participant = {
   muted: boolean;
   deafened: boolean;
   sharing: boolean;
+  camera?: boolean;
   host: boolean;
 };
 export type Message = {
@@ -43,6 +50,7 @@ export type Message = {
   editedAt?: number | null;
 };
 export type RoomState = {
+  protocol?: number;
   avatars?: Record<string, string>;
   servers: Community[];
   channels: Channel[];
@@ -59,6 +67,7 @@ export type Command =
   | { type: "server.create"; name: string }
   | { type: "server.rename"; id: string; name: string }
   | { type: "server.delete"; id: string }
+  | { type: "server.icon"; id: string; image: string | null }
   | {
       type: "channel.create";
       serverId: string;
@@ -71,11 +80,18 @@ export type Command =
   | { type: "message.edit"; id: string; text: string }
   | { type: "message.delete"; id: string }
   | { type: "voice"; channelId: string | null }
-  | { type: "status"; muted: boolean; deafened: boolean; sharing: boolean }
+  | {
+      type: "status";
+      muted: boolean;
+      deafened: boolean;
+      sharing: boolean;
+      camera?: boolean;
+    }
   | { type: "profile"; name: string; avatar: string };
 export type Reply<T = unknown> =
   { ok: true; value: T } | { ok: false; error: string };
 export type NetworkEvent =
+  | { type: "remote-update"; state: RemoteUpdateState }
   | { type: "state"; state: RoomState }
   | { type: "signal"; signal: Signal }
   | { type: "connection"; status: string; selfId?: string };
@@ -90,7 +106,54 @@ export type UpdatePackage = {
   verified: boolean;
 };
 export type ReleaseNotes = { version: string; title: string; items: string[] };
+export type ReleasePost = ReleaseNotes & {
+  date: string;
+  features: string[];
+  improvements: string[];
+  fixes: string[];
+};
+export type RemoteUpdateState = {
+  phase:
+    | "disabled"
+    | "idle"
+    | "checking"
+    | "available"
+    | "downloading"
+    | "ready"
+    | "installing"
+    | "error"
+    | "up-to-date";
+  version?: string;
+  percent?: number;
+  bytesPerSecond?: number;
+  message?: string;
+};
+export type SavedRoom = {
+  id: string;
+  serverId: string;
+  name: string;
+  icon: string | null;
+  address: string;
+  port: number;
+  lastAccess: number;
+  hosted: boolean;
+};
+export type RoomAvailability = {
+  id: string;
+  status: "available" | "unavailable" | "invalid" | "missing" | "full";
+};
 export interface DesktopAPI {
+  remoteUpdateState(): Promise<RemoteUpdateState>;
+  checkRemoteUpdate(): Promise<void>;
+  downloadRemoteUpdate(): Promise<void>;
+  installRemoteUpdate(): Promise<void>;
+  releaseHistory(): Promise<ReleasePost[]>;
+  savedRooms(): Promise<SavedRoom[]>;
+  roomAvailability(): Promise<RoomAvailability[]>;
+  reconnectRoom(id: string): Promise<{ serverId: string; hostInfo?: HostInfo }>;
+  removeRoom(id: string): Promise<void>;
+  visitServer(id: string): Promise<void>;
+  authorizeCamera(): Promise<void>;
   releaseNotes(): Promise<ReleaseNotes | null>;
   markReleaseNotes(version: string): Promise<void>;
   updateInfo(): Promise<{ version: string; packaged: boolean }>;

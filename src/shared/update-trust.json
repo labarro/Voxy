@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "repository": "labarro/Voxy",
+  "endpoint": "https://www.devbarros.com/voxy/updates/",
+  "publicKeys": [
+    "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA6FelK/taR4GCgi/9IDtJoPRWlfuQNBy923ICcZVP8ig=\n-----END PUBLIC KEY-----\n"
+  ],
+  "authenticodePublisher": null
+}

@@ -1,5 +1,26 @@
 # Validação do Voxy
 
+## Versão 0.4.0 — 20/10/2026
+
+Passaram: `npm test` (**18 testes**), `npm run test:microphone`, `npm run test:ptt`, `npm run test:media`, `npm run test:desktop`, `npm run test:dev`, `npm run dist`, `npm run test:packaged` e `npm run test:updater`.
+
+- Contratos, migrações e autorização: imagem adicionada, removida e persistida; outro perfil impedido de alterá-la. Migração atribui servidores legados ao host sem apagar mensagens. O protocolo 2 é exigido para evitar misturar clientes com três e quatro trilhas de mídia.
+- Recentes: convites cifrados com DPAPI/safeStorage, metadados disponíveis sem rede, remoção respeitada após novos snapshots, arquivo corrompido preservado e disponibilidade autenticada sem ocupar vaga. Home reconecta usando o convite salvo. O pacote reaberto mantém a imagem e pode hospedar novamente pelo recente.
+- Dez clientes WebRTC reais no Edge, com fontes de teste: **45 pares, quatro transceivers por par e pacotes de voz nos 90 sentidos**. Pixels de webcam e tela recebidos por nove espectadores simultaneamente, dois ciclos de tela e três saídas/reentradas. Trocar/parar/reiniciar câmera, negar permissão e encerrar a track preservam a voz. As fontes de teste são canvas/áudio gerado, exclusivamente nos testes.
+- Três janelas Electron: UI real de câmera, seleção/troca, prévia, recepção, fullscreen, desligamento e reinício em paralelo à tela. O modo padrão usa dispositivos de mídia de teste do Chromium para câmera/microfone. A execução separada com `VOXY_TEST_NATIVE_MEDIA=1` desativa esses dispositivos de teste e valida a captura desktop nativa em dois ciclos para dois espectadores; não testa webcam física. Regressões de PTT, mute local, deafen, volumes, imagens, modais, edição/exclusão de mensagens e HUD também passaram.
+- Novidades: versões 0.2.0, 0.3.0 e 0.4.0 com data/categorias disponíveis sem sala; popup não repete na segunda abertura. Catálogo remoto só entra após validação de assinatura.
+- Atualizador: testes rejeitam assinatura falsa, payload alterado, repositório diferente, caminho inesperado, metadados divergentes, replay de versão antiga e instalador modificado após download. Verificam fallback da consulta, cache offline e backup antes de reiniciar. Nenhum pacote é instalado durante download.
+- Download diferencial **com NsisUpdater real**, instaladores NSIS reais 0.3.0/0.4.0 e servidor local com HTTP Range: **88 requisições Range**, **13.397.238 bytes transferidos** para um instalador de **126.614.367 bytes** (economia arredondada de **89%**). Sem instalador anterior no cache, houve fallback completo, com verificação final bem-sucedida. O teste usa chave efêmera isolada, não altera a confiança de produção e não executa o instalador.
+- Produção: ASAR aberto duas vezes; perfil, foto, tecla Q, volumes, mute local, entrada/sensibilidade, câmera preferida, servidor/imagem e recentes preservados. Cinco arquivos de main/preload/renderer conferem byte a byte com o build empacotado. Envelope de publicação validado com a chave pública de produção e hashes SHA-512 conferidos.
+
+Instalador: `release/0.4.0/Voxy-Setup-0.4.0-x64.exe`, **126.614.367 bytes**, SHA-256 `9CCBD31D11FE3C696DEC36C70529BFE64EEB6B1C96946B334C1632272CCA888A`. O `.exe` permanece **NotSigned** no Authenticode; os metadados remotos têm assinatura Ed25519. [Guia remoto](ATUALIZACOES-REMOTAS.md).
+
+**Pendências reais:** publicar o código/workflow do Voxy e executar uma publicação pública pelo Actions e validar a instalação/reabertura automática sobre uma versão instalada em Windows de teste. Nenhuma instalação pessoal foi substituída. Também faltam dez PCs físicos pelo Radmin, webcams físicas diferentes, áudio audível entre máquinas, duração prolongada e qualidade sob upload limitado. A economia diferencial depende dos blocos/cache e não é garantia para outras versões. NSIS não oferece rollback automático de banco nem garantia de recuperação de instalação interrompida.
+
+Infraestrutura configurada em 20/10/2026: portfólio publicado na main (`3ac5886`), duas rotas de atualização respondendo com 307 ao GitHub e site respondendo 200. Ambiente `release` com segredo de assinatura e acesso restrito a tags `v*` confirmado via API. O aplicativo foi reempacotado com o endpoint canônico `www.devbarros.com`, e os testes unitários, de pacote e de atualização diferencial/fallback passaram novamente.
+
+Resumo de evidências sem imagens privadas em `evidence/validation-0.4.0.json`. Relatórios detalhados e capturas locais ficam em `test-results/`, ignorado pelo Git. As seções abaixo são históricas.
+
 ## Versão 0.3.0 — 20/10/2026
 
 Executados com sucesso: `npm test` (10 testes), `npm run test:microphone`, `npm run test:ptt`, `npm run test:media`, `npm run test:desktop`, `npm run test:dev`, `npm run build`, `npm run dist` e `npm run test:packaged`.
@@ -46,16 +67,16 @@ Execução em Windows x64 build 26200, Node 24.13.0, Electron 44.9.0, Edge 155.0
 
 ## Resultados automatizados
 
-| Comando | Escopo | Resultado |
-| --- | --- | --- |
-| `npm test` | 2 suítes: convites/validação e integração com host SQLite + três clientes Socket.IO reais | Passou |
-| `npm run test:media` | Três páginas Edge com motor WebRTC de produção; SDP/ICE/DTLS/RTP locais | Passou |
-| `npm run build` | TypeScript estrito, main/preload, renderer Vite/Tailwind | Passou |
-| `npm run test:desktop` | Três instâncias do Electron com build de produção, fontes de captura nativas | Passou |
-| `npm run dist` | electron-builder + instalador NSIS x64 | Passou; artefato final em `release/0.1.0/` |
-| `npm run test:packaged` | Executável em ASAR, host, SQLite e persistência após reinício | Passou, duas aberturas do binário final |
-| `npm run test:dev` | Vite e Electron em perfil isolado | UI, React Refresh e preload abrem sem pageerror |
-| `npm audit --omit=dev --json` | Dependências de runtime | 0 vulnerabilidades reportadas |
+| Comando                       | Escopo                                                                                    | Resultado                                       |
+| ----------------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| `npm test`                    | 2 suítes: convites/validação e integração com host SQLite + três clientes Socket.IO reais | Passou                                          |
+| `npm run test:media`          | Três páginas Edge com motor WebRTC de produção; SDP/ICE/DTLS/RTP locais                   | Passou                                          |
+| `npm run build`               | TypeScript estrito, main/preload, renderer Vite/Tailwind                                  | Passou                                          |
+| `npm run test:desktop`        | Três instâncias do Electron com build de produção, fontes de captura nativas              | Passou                                          |
+| `npm run dist`                | electron-builder + instalador NSIS x64                                                    | Passou; artefato final em `release/0.1.0/`      |
+| `npm run test:packaged`       | Executável em ASAR, host, SQLite e persistência após reinício                             | Passou, duas aberturas do binário final         |
+| `npm run test:dev`            | Vite e Electron em perfil isolado                                                         | UI, React Refresh e preload abrem sem pageerror |
+| `npm audit --omit=dev --json` | Dependências de runtime                                                                   | 0 vulnerabilidades reportadas                   |
 
 `npm audit --json` completo reportou 8 alertas moderados na cadeia **de desenvolvimento/empacotamento** electron-builder → @electron/get → global-agent/roarr → sprintf-js. Não são dependências de runtime distribuídas. Não foi aplicado downgrade automático do builder sugerido pelo audit. Não há garantia de ausência de vulnerabilidades fora do banco de advisories.
 
@@ -88,28 +109,28 @@ O artefato final tem 126.923.218 bytes e SHA-256 `B0C4D2DEBE1E9A910C59F78F1BDADC
 
 Marque os resultados com data, versão, Windows, microfone, GPU, IP Radmin VPN, rede/upload e tempo de chamada. Todos os itens abaixo permanecem **pendentes de validação física**.
 
-| # | Procedimento | Critério de aceitação |
-| --- | --- | --- |
-| 1 | Instalar o EXE em A, B e C e iniciar | Sem Node instalado; perfil e UI abrem |
-| 2 | A hospeda no IP Radmin VPN e cria servidor | B/C conseguem conectar com o convite, sem porta pública |
-| 3 | A cria canal de voz; todos entram | Três nomes visíveis em todos |
-| 4 | A fala; B responde; C responde | Todos ouvem os outros com clareza, sem retorno indesejado |
-| 5 | Cada um muta e desmuta | Mutado não chega aos amigos; indicação acompanha |
-| 6 | B silencia recebimento e restaura | B deixa de ouvir, depois volta; sua voz continua conforme mute |
-| 7 | Trocar entrada/saída, volume e desconectar USB | Dispositivo escolhido funciona ou erro explícito; recuperar ao selecionar outro |
-| 8 | A compartilha monitor 720p/30 com IDE e texto em movimento | B/C recebem conteúdo legível, conversando ao mesmo tempo |
-| 9 | B fecha player, continua falando e abre outra vez | Voz continua e vídeo reaparece |
-| 10 | A para e reinicia tela 10 vezes | Voz permanece; tracks e uso de recursos não crescem continuamente |
-| 11 | Compartilhar janela, fechar/minimizar fonte, usar parada nativa quando houver | Encerra quando o SO informa `ended`; fonte congelada pode exigir Parar manual |
-| 12 | C entra depois de a transmissão começar | C recebe voz e vídeo sem A reiniciar |
-| 13 | Testar 720p/15, 1080p/30 e 1080p/60 e mudar qualidade durante captura | Métricas efetivas observadas, sem promessa de atingir 60 FPS |
-| 14 | Incluir áudio de sistema e tocar um som conhecido | B/C ouvem o som; identificar eco; desligar se recapturar a chamada |
-| 15 | A/B transmitem simultaneamente, C alterna | Players corretos; somente áudio da tela selecionada; voz independente |
-| 16 | C sai/volta 10 vezes; depois A encerra | Listas atualizam; recursos são liberados; encerramento do host encerra a sala |
-| 17 | Desligar/religar Radmin VPN e Wi-Fi | Estado reflete falha; ICE tenta recuperação; sessão perdida exige nova entrada na voz |
-| 18 | Rejeitar permissão de microfone no Windows | Erro visível; nenhuma chamada ou captura fictícia |
-| 19 | Chamada de 30–60 min, CPU/GPU/upload e screenshots das métricas | Sem crescimento progressivo de recursos ou travamento; registrar perdas, FPS e RTT |
-| 20 | Reiniciar A e hospedar novamente | Servidores/canais/chat e segredo persistidos; preferências B/C preservadas |
+| #   | Procedimento                                                                  | Critério de aceitação                                                                 |
+| --- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| 1   | Instalar o EXE em A, B e C e iniciar                                          | Sem Node instalado; perfil e UI abrem                                                 |
+| 2   | A hospeda no IP Radmin VPN e cria servidor                                    | B/C conseguem conectar com o convite, sem porta pública                               |
+| 3   | A cria canal de voz; todos entram                                             | Três nomes visíveis em todos                                                          |
+| 4   | A fala; B responde; C responde                                                | Todos ouvem os outros com clareza, sem retorno indesejado                             |
+| 5   | Cada um muta e desmuta                                                        | Mutado não chega aos amigos; indicação acompanha                                      |
+| 6   | B silencia recebimento e restaura                                             | B deixa de ouvir, depois volta; sua voz continua conforme mute                        |
+| 7   | Trocar entrada/saída, volume e desconectar USB                                | Dispositivo escolhido funciona ou erro explícito; recuperar ao selecionar outro       |
+| 8   | A compartilha monitor 720p/30 com IDE e texto em movimento                    | B/C recebem conteúdo legível, conversando ao mesmo tempo                              |
+| 9   | B fecha player, continua falando e abre outra vez                             | Voz continua e vídeo reaparece                                                        |
+| 10  | A para e reinicia tela 10 vezes                                               | Voz permanece; tracks e uso de recursos não crescem continuamente                     |
+| 11  | Compartilhar janela, fechar/minimizar fonte, usar parada nativa quando houver | Encerra quando o SO informa `ended`; fonte congelada pode exigir Parar manual         |
+| 12  | C entra depois de a transmissão começar                                       | C recebe voz e vídeo sem A reiniciar                                                  |
+| 13  | Testar 720p/15, 1080p/30 e 1080p/60 e mudar qualidade durante captura         | Métricas efetivas observadas, sem promessa de atingir 60 FPS                          |
+| 14  | Incluir áudio de sistema e tocar um som conhecido                             | B/C ouvem o som; identificar eco; desligar se recapturar a chamada                    |
+| 15  | A/B transmitem simultaneamente, C alterna                                     | Players corretos; somente áudio da tela selecionada; voz independente                 |
+| 16  | C sai/volta 10 vezes; depois A encerra                                        | Listas atualizam; recursos são liberados; encerramento do host encerra a sala         |
+| 17  | Desligar/religar Radmin VPN e Wi-Fi                                           | Estado reflete falha; ICE tenta recuperação; sessão perdida exige nova entrada na voz |
+| 18  | Rejeitar permissão de microfone no Windows                                    | Erro visível; nenhuma chamada ou captura fictícia                                     |
+| 19  | Chamada de 30–60 min, CPU/GPU/upload e screenshots das métricas               | Sem crescimento progressivo de recursos ou travamento; registrar perdas, FPS e RTT    |
+| 20  | Reiniciar A e hospedar novamente                                              | Servidores/canais/chat e segredo persistidos; preferências B/C preservadas            |
 
 Para a versão 0.1.1, repita o roteiro com A, B, C, D e E na mesma rede Radmin, incluindo os quatro espectadores e os 20 sentidos de voz. Para sinais bloqueados: valide TCP na porta escolhida, rede Radmin/firewall, endereço e segredo. Para ICE sem conectar: valide UDP entre todos os IPs e permissão do executável no firewall. Use o estado da rede no Radmin, `ping IP_RADMIN` e `Test-NetConnection IP_RADMIN -Port 43120`. Não use sucesso de TCP ou da prévia local como prova de recepção de tela. Use o diagnóstico de cada espectador e confirme visualmente um relógio/texto alterando em A.
 

@@ -7,6 +7,7 @@ import {
   safeStorage,
   clipboard,
   dialog,
+  Notification,
 } from "electron";
 import { spawn } from "node:child_process";
 import { UpdateManager } from "./updates";
@@ -36,6 +37,12 @@ import type { Profile, NetworkEvent, PttEvent, Reply } from "../shared/types";
 import { PushToTalk } from "./pushToTalk";
 import { configureLog, log } from "./log";
 import { roomAddresses } from "./addresses";
+import { RecentRooms } from "./recentRooms";
+import releases from "../shared/releases.json";
+import type { RoomState } from "../shared/types";
+import { NsisUpdater } from "electron-updater";
+import { RemoteUpdates } from "./remoteUpdates";
+import updateTrust from "../shared/update-trust.json";
 let win: BrowserWindow,
   store: Store,
   host: RoomHost | undefined,
@@ -43,6 +50,11 @@ let win: BrowserWindow,
   profile: Profile;
 let selected: { id: string; audio: boolean; expires: number } | undefined;
 let inVoice = false;
+let cameraPermissionUntil = 0;
+let recentRooms: RecentRooms;
+let currentInvite = "";
+let currentHosted = false;
+let currentState: RoomState | undefined;
 const ptt = new PushToTalk((pressed, error) =>
   emit({ type: "ptt", pressed, error }),
 );
@@ -77,6 +89,9 @@ async function disconnect() {
   inVoice = false;
   ptt.stop();
   selected = undefined;
+  cameraPermissionUntil = 0;
+  currentInvite = "";
+  currentState = undefined;
   client?.disconnect();
   client = undefined;
   await host?.close();
@@ -86,9 +101,14 @@ async function disconnect() {
 async function connect(invite: string, ownerKey?: string) {
   const v = parseInvite(invite);
   client?.disconnect();
+  currentInvite = invite;
+  currentHosted = !!ownerKey;
+  let firstState = true;
+  let savedStamp = "";
   const socket = io(`http://${v.address}:${v.port}`, {
     transports: ["websocket"],
     auth: {
+      protocol: 2,
       token: v.token,
       profile: {
         id: profile.id,
@@ -104,6 +124,29 @@ async function connect(invite: string, ownerKey?: string) {
   });
   client = socket;
   socket.on("state", (state) => {
+    if (socket !== client) return;
+    if (state.protocol !== 2) {
+      socket.disconnect();
+      emit({ type: "connection", status: "error" });
+      return;
+    }
+    currentState = state;
+    try {
+      const stamp = JSON.stringify(state.servers);
+      if (firstState || stamp !== savedStamp) {
+        recentRooms.remember(
+          invite,
+          state.servers,
+          state.avatars ?? {},
+          !!ownerKey,
+          firstState,
+        );
+        savedStamp = stamp;
+        firstState = false;
+      }
+    } catch {
+      log("recent.save-failed");
+    }
     inVoice = !!state.participants.find(
       (p: { id: string; channelId: string | null }) => p.id === socket.id,
     )?.channelId;
@@ -115,6 +158,7 @@ async function connect(invite: string, ownerKey?: string) {
     emit({ type: "connection", status: "connected", selfId: socket.id }),
   );
   socket.on("disconnect", () => {
+    if (socket !== client) return;
     inVoice = false;
     ptt.stop();
     emit({ type: "connection", status: "disconnected" });
@@ -126,14 +170,38 @@ async function connect(invite: string, ownerKey?: string) {
     emit({ type: "connection", status: "error" }),
   );
   await new Promise<void>((resolve, reject) => {
-    socket.once("connect", resolve);
-    socket.once("connect_error", (e) =>
+    const cleanup = () => {
+      clearTimeout(timer);
+      socket.off("connect_error", failed);
+      socket.off("state", ready);
+    };
+    const failed = (e: Error) => {
+      cleanup();
+      socket.disconnect();
       reject(
         Error(
           `Não foi possível conectar: ${e.message}. Confira Radmin VPN, convite e firewall.`,
         ),
-      ),
+      );
+    };
+    const ready = (state: RoomState) => {
+      cleanup();
+      if (state.protocol === 2) resolve();
+      else {
+        socket.disconnect();
+        reject(
+          Error(
+            "Host incompatível. Atualize todos os participantes para Voxy 0.4.0 ou posterior.",
+          ),
+        );
+      }
+    };
+    const timer = setTimeout(
+      () => failed(Error("O host não confirmou a versão da sala")),
+      10000,
     );
+    socket.once("state", ready);
+    socket.once("connect_error", failed);
   });
 }
 async function send(event: string, value: unknown) {
@@ -181,7 +249,39 @@ app.whenReady().then(async () => {
     saveProfile();
   }
   store = await Store.open(data("room.sqlite"));
+  recentRooms = new RecentRooms(data("recent-rooms.json"), safeStorage);
   const updates = new UpdateManager(app.getPath("userData"), app.getVersion());
+  let notifiedVersion = "";
+  const remoteUpdates = new RemoteUpdates({
+    version: app.getVersion(),
+    packaged: app.isPackaged,
+    trust: updateTrust,
+    cachePath: data("remote-release-history.json"),
+    factory: (url) => new NsisUpdater({ provider: "generic", url }),
+    changed: (state) => {
+      emit({ type: "remote-update", state });
+      if (state.phase === "available" && state.version !== notifiedVersion) {
+        notifiedVersion = state.version!;
+        if (Notification.isSupported()) {
+          const notification = new Notification({
+            title: "Nova versão do Voxy",
+            body: `Voxy ${state.version} disponível. O download será preparado em segundo plano.`,
+          });
+          notification.on("click", () => {
+            win.show();
+            win.focus();
+          });
+          notification.show();
+        }
+      }
+    },
+    beforeInstall: async () => {
+      store.flush();
+      updates.backup();
+      await disconnect();
+    },
+    log: (event) => log(event),
+  });
   const releaseNotes = new ReleaseNotesStore(
     data("release-notes.json"),
     app.getVersion(),
@@ -218,7 +318,8 @@ app.whenReady().then(async () => {
             permission === "fullscreen" ||
             (permission === "media" &&
               "mediaTypes" in details &&
-              !(details.mediaTypes ?? []).includes("video"))),
+              (!(details.mediaTypes ?? []).includes("video") ||
+                (inVoice && Date.now() < cameraPermissionUntil)))),
       ),
   );
   session.defaultSession.setPermissionCheckHandler(
@@ -226,7 +327,9 @@ app.whenReady().then(async () => {
       wc === win.webContents &&
       details.isMainFrame &&
       trusted(details.requestingUrl ?? "") &&
-      (permission === "media" ||
+      ((permission === "media" &&
+        (details.mediaType !== "video" ||
+          (inVoice && Date.now() < cameraPermissionUntil))) ||
         permission === "display-capture" ||
         permission === "speaker-selection" ||
         permission === "fullscreen"),
@@ -265,6 +368,49 @@ app.whenReady().then(async () => {
     },
   );
   handle("profile", () => profile);
+  handle("authorizeCamera", () => {
+    if (!inVoice || !client?.connected)
+      throw Error("Entre em um canal de voz antes de ligar a câmera.");
+    cameraPermissionUntil = Date.now() + 30000;
+  });
+  handle("releaseHistory", () => {
+    const posts = new Map(
+      Object.entries(releases).map(([version, entry]) => [
+        version,
+        { version, ...entry },
+      ]),
+    );
+    for (const entry of remoteUpdates.history())
+      posts.set(entry.version, entry);
+    return [...posts.values()].sort((a, b) =>
+      b.version.localeCompare(a.version, undefined, { numeric: true }),
+    );
+  });
+  handle("remoteUpdateState", () => remoteUpdates.status());
+  handle("checkRemoteUpdate", () => remoteUpdates.check());
+  handle("downloadRemoteUpdate", () => remoteUpdates.download());
+  handle("installRemoteUpdate", () => remoteUpdates.install());
+  handle("savedRooms", () => recentRooms.list());
+  handle("roomAvailability", () =>
+    recentRooms.availability(
+      (address) =>
+        !address.startsWith("26.") ||
+        addresses().some((ip) => ip.startsWith("26.")),
+    ),
+  );
+  handle("removeRoom", (raw) => recentRooms.remove(z.uuid().parse(raw)));
+  handle("visitServer", (raw) => {
+    const id = z.string().max(100).parse(raw),
+      server = currentState?.servers.find((s) => s.id === id);
+    if (server && currentInvite)
+      recentRooms.remember(
+        currentInvite,
+        [server],
+        currentState?.avatars ?? {},
+        currentHosted,
+        true,
+      );
+  });
   handle("releaseNotes", () => releaseNotes.notes());
   handle("markReleaseNotes", (raw) =>
     releaseNotes.mark(z.string().max(40).parse(raw)),
@@ -355,7 +501,7 @@ app.whenReady().then(async () => {
     return reply.value;
   });
   handle("addresses", addresses);
-  handle("host", async (raw) => {
+  const startHost = async (raw: unknown) => {
     const options = z
       .object({
         address: z.string().refine((a) => addresses().includes(a)),
@@ -374,13 +520,41 @@ app.whenReady().then(async () => {
       token = randomBytes(32).toString("hex");
       writeFileSync(data("host-secret.bin"), safeStorage.encryptString(token));
     }
-    if (!store.snapshot().servers.length) store.createServer(options.name);
+    if (!store.snapshot().servers.length)
+      store.createServer(options.name, profile.id);
     const ownerKey = randomBytes(32).toString("hex");
     host = new RoomHost(store, token, ownerKey);
     const port = await host.listen(options.address, options.port);
     const invite = `voxy://${options.address}:${port}/${token}`;
     await connect(invite, ownerKey);
     return { invite, address: options.address, port };
+  };
+  handle("host", startHost);
+  handle("reconnectRoom", async (raw) => {
+    const saved = recentRooms.get(z.uuid().parse(raw));
+    if (currentInvite !== saved.invite || !client?.connected) {
+      if (saved.hosted)
+        await startHost({
+          address: saved.address,
+          port: saved.port,
+          name: saved.name,
+        });
+      else {
+        await disconnect();
+        await connect(saved.invite);
+      }
+    }
+    if (!currentState?.servers.some((s) => s.id === saved.serverId))
+      throw Error(
+        "Este servidor foi removido pelo host. Remova o acesso salvo da Home.",
+      );
+    const v = parseInvite(currentInvite);
+    return {
+      serverId: saved.serverId,
+      hostInfo: currentHosted
+        ? { invite: currentInvite, address: v.address, port: v.port }
+        : undefined,
+    };
   });
   handle("connect", async (raw) => {
     const invite = z.string().max(400).parse(raw);
@@ -417,6 +591,15 @@ app.whenReady().then(async () => {
   handle("copy", (raw) => clipboard.writeText(z.string().max(4000).parse(raw)));
   if (dev) await win.loadURL(origin);
   else await win.loadFile(join(__dirname, "../renderer/index.html"));
+  if (app.isPackaged) {
+    const timer = setTimeout(() => void remoteUpdates.check(), 10000);
+    timer.unref();
+    const periodic = setInterval(
+      () => void remoteUpdates.check(),
+      6 * 60 * 60 * 1000,
+    );
+    periodic.unref();
+  }
   win.on("closed", () => {
     void disconnect();
   });

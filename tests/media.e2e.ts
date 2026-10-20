@@ -1,10 +1,54 @@
-import { chromium } from "playwright";
+import { chromium, type Page } from "playwright";
 import { build } from "esbuild";
 import { mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer } from "node:http";
 import assert from "node:assert/strict";
+async function cameraPixel(page: Page, color: "green" | "red") {
+  await page.waitForFunction(
+    () =>
+      !!(window as any).view.cameraStreams?.get("0")?.getVideoTracks().length,
+  );
+  const pixel = await page.evaluate(async (color) => {
+    const v = document.createElement("video");
+    v.muted = true;
+    v.srcObject = (window as any).view.cameraStreams.get("0");
+    await v.play();
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 1;
+    let callback = 0;
+    try {
+      return await new Promise<number[]>((resolve, reject) => {
+        const timer = setTimeout(() => {
+          v.cancelVideoFrameCallback(callback);
+          reject(Error("Webcam: novos pixels não chegaram"));
+        }, 10000);
+        const next = () => {
+          callback = v.requestVideoFrameCallback(() => {
+            canvas.getContext("2d")!.drawImage(v, 200, 100, 1, 1, 0, 0, 1, 1);
+            const pixel = [
+              ...canvas.getContext("2d")!.getImageData(0, 0, 1, 1).data,
+            ];
+            if (
+              color === "green"
+                ? pixel[1] > 150 && pixel[0] < 150
+                : pixel[0] > 180 && pixel[1] < 100
+            ) {
+              clearTimeout(timer);
+              resolve(pixel);
+            } else next();
+          });
+        };
+        next();
+      });
+    } finally {
+      v.pause();
+      v.srcObject = null;
+    }
+  }, color);
+  assert(pixel.length === 4);
+}
 async function main() {
   const bundle = await build({
     entryPoints: ["src/services/webrtc/engine.ts"],
@@ -82,7 +126,7 @@ async function main() {
             peers.every(
               (p) =>
                 p.pc.connectionState === "connected" &&
-                p.pc.getTransceivers().length === 3,
+                p.pc.getTransceivers().length === 4,
             )
           );
         },
@@ -112,7 +156,7 @@ async function main() {
       );
     }
     results.push(
-      "45 pares mesh conectados; exatamente 3 transceivers por par; pacotes de áudio recebidos nos 90 sentidos.",
+      "45 pares mesh conectados; exatamente 4 transceivers por par; pacotes de áudio recebidos nos 90 sentidos.",
     );
     await pages[0].evaluate(() => {
       const w = window as any;
@@ -178,11 +222,53 @@ async function main() {
     results.push(
       "PTT abre/fecha a track; mute tem prioridade; volumes independentes; mute local isola uma voz e sobrevive a deafen.",
     );
+    await pages[0].evaluate(async () => {
+      const w = window as any,
+        original = navigator.mediaDevices.getUserMedia.bind(
+          navigator.mediaDevices,
+        );
+      w.voxy = {
+        authorizeCamera: async () => {},
+        selectSource: async () => {},
+      };
+      Object.defineProperty(navigator.mediaDevices, "getUserMedia", {
+        configurable: true,
+        value: async (constraints: MediaStreamConstraints) => {
+          if (!constraints.video) return original(constraints);
+          if (w.denyCamera)
+            throw new DOMException("Negado no teste", "NotAllowedError");
+          const canvas = document.createElement("canvas");
+          canvas.width = 640;
+          canvas.height = 360;
+          const ctx = canvas.getContext("2d")!;
+          const draw = () => {
+            ctx.fillStyle = w.cameraColor ?? "#33dd88";
+            ctx.fillRect(0, 0, 640, 360);
+          };
+          draw();
+          const stream = canvas.captureStream(15),
+            timer = setInterval(draw, 60),
+            track = stream.getVideoTracks()[0],
+            stop = track.stop.bind(track);
+          track.stop = () => {
+            clearInterval(timer);
+            stop();
+          };
+          w.testCameraTrack = track;
+          return stream;
+        },
+      });
+      await w.engine.startCamera("camera-1");
+    });
+    for (const page of pages.slice(1)) await cameraPixel(page, "green");
+    results.push(
+      "Webcam em slot independente: pixels recebidos pelos nove espectadores.",
+    );
     for (let cycle = 0; cycle < 2; cycle++) {
       // Only the capture source is substituted in this test. The production engine, SDP, ICE and RTP are unchanged.
       await pages[0].evaluate(async (cycle) => {
         const w = window as any;
-        w.voxy = { selectSource: async () => {} };
+        w.voxy = { ...w.voxy, selectSource: async () => {} };
         const canvas = document.createElement("canvas");
         canvas.width = 1280;
         canvas.height = 720;
@@ -299,7 +385,41 @@ async function main() {
       results.push(
         `Transmissão ${cycle + 1}: pixels RTP corretos nos nove espectadores; pacotes de voz continuam crescendo nos 90 sentidos após parar.`,
       );
+      for (const page of pages.slice(1)) await cameraPixel(page, "green");
     }
+    await pages[0].evaluate(async () => {
+      const w = window as any;
+      const old = w.testCameraTrack;
+      w.cameraColor = "#ee2255";
+      await w.engine.startCamera("camera-2");
+      if (old.readyState !== "ended")
+        throw Error("Câmera anterior não foi liberada");
+    });
+    for (const page of pages.slice(1)) await cameraPixel(page, "red");
+    await pages[0].evaluate(async () => {
+      const w = window as any;
+      const track = w.testCameraTrack;
+      await w.engine.stopCamera();
+      if (track.readyState !== "ended" || w.view.cameraActive)
+        throw Error("Câmera não parou");
+      w.denyCamera = true;
+      let failed = false;
+      try {
+        await w.engine.startCamera("denied");
+      } catch {
+        failed = true;
+      }
+      if (!failed || !w.engine.microphone.getAudioTracks()[0].enabled)
+        throw Error("Falha de permissão afetou voz");
+      w.denyCamera = false;
+      w.cameraColor = "#33dd88";
+      await w.engine.startCamera("camera-1");
+      w.engine.camera.getVideoTracks()[0].dispatchEvent(new Event("ended"));
+    });
+    await pages[0].waitForFunction(() => !(window as any).view.cameraActive);
+    results.push(
+      "Webcam e tela simultâneas nos nove espectadores; troca, parada, reinício, permissão negada e track encerrada preservam a voz.",
+    );
     for (let cycle = 0; cycle < 3; cycle++) {
       await pages[0].evaluate((cycle) => {
         const w = window as any;

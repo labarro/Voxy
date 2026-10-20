@@ -16,6 +16,7 @@ import {
 import { roomAddresses } from "../src/main/addresses";
 import type { NetworkInterfaceInfo } from "node:os";
 import type { RoomState, Reply, Command } from "../src/shared/types";
+import { probeRoom } from "../src/main/recentRooms";
 const token = "a".repeat(64),
   ownerKey = "host-key";
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -89,11 +90,12 @@ test("dez sessões, décima primeira rejeitada; imagens, canais e persistência"
   const port = await host.listen("127.0.0.1", 0);
   const clients: Socket[] = [];
   const states = new Map<Socket, RoomState>();
-  async function connect(secret = token, owner = false) {
+  async function connect(secret = token, owner = false, protocol = 2) {
     const socket = io(`http://127.0.0.1:${port}`, {
       transports: ["websocket"],
       reconnection: false,
       auth: {
+        protocol,
         token: secret,
         ownerKey: owner ? ownerKey : undefined,
         profile: {
@@ -126,6 +128,7 @@ test("dez sessões, décima primeira rejeitada; imagens, canais e persistência"
   }
   try {
     await assert.rejects(connect("wrong"));
+    await assert.rejects(connect(token, false, 1));
     const a = await connect(token, true),
       b = await connect(),
       c = await connect();
@@ -134,6 +137,7 @@ test("dez sessões, décima primeira rejeitada; imagens, canais e persistência"
     const extras: Socket[] = [];
     for (let i = 0; i < 5; i++) extras.push(await connect());
     await state(extras[4], (s) => s.participants.length === 10);
+    assert.equal(await probeRoom("127.0.0.1", port, token, serverId), "full");
     await assert.rejects(connect());
     d.disconnect();
     e.disconnect();
@@ -141,6 +145,33 @@ test("dez sessões, décima primeira rejeitada; imagens, canais e persistência"
     const initial = await state(c, (s) => s.participants.length === 3),
       voice = initial.channels.find((c) => c.kind === "voice")!,
       text = initial.channels.find((c) => c.kind === "text")!;
+    const pictureIcon =
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jPboAAAAASUVORK5CYII=";
+    assert.equal(
+      (
+        await command(b, {
+          type: "server.icon",
+          id: serverId,
+          image: pictureIcon,
+        })
+      ).ok,
+      false,
+    );
+    assert.equal(
+      (
+        await command(a, {
+          type: "server.icon",
+          id: serverId,
+          image: pictureIcon,
+        })
+      ).ok,
+      true,
+    );
+    await state(c, (s) => !!s.servers.find((s) => s.id === serverId)?.icon);
+    assert.equal(
+      (await command(a, { type: "server.icon", id: serverId, image: null })).ok,
+      true,
+    );
     assert.equal(
       (await command(b, { type: "server.create", name: "Não permitido" })).ok,
       false,

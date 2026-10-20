@@ -28,9 +28,67 @@ export class RoomHost {
     ownerKey: string,
   ) {
     this.ownerKey = ownerKey;
-    this.http = createServer((_req, res) => {
-      res.writeHead(404);
-      res.end();
+    let probeBudget = 80,
+      probeAt = Date.now();
+    this.http = createServer((req, res) => {
+      if (
+        req.method !== "POST" ||
+        req.url !== "/availability" ||
+        req.headers.origin
+      ) {
+        res.writeHead(404);
+        res.end();
+        return;
+      }
+      const now = Date.now();
+      probeBudget = Math.min(80, probeBudget + (now - probeAt) / 1000);
+      probeAt = now;
+      if (--probeBudget < 0) {
+        res.writeHead(429);
+        res.end();
+        return;
+      }
+      let data = "";
+      req.setTimeout(2000, () => req.destroy());
+      req.on("data", (chunk) => {
+        data += chunk;
+        if (data.length > 1024) req.destroy();
+      });
+      req.on("end", () => {
+        try {
+          const value = z
+            .object({
+              token: z.string().regex(/^[a-f0-9]{64}$/),
+              serverId: z.string().min(1).max(100),
+            })
+            .parse(JSON.parse(data));
+          if (!timingSafeEqual(Buffer.from(value.token), Buffer.from(token))) {
+            res.writeHead(401);
+            res.end();
+            return;
+          }
+          const exists = this.store
+            .snapshot()
+            .servers.some((s) => s.id === value.serverId);
+          res.writeHead(200, {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-store",
+          });
+          res.end(
+            JSON.stringify({
+              status: !exists
+                ? "missing"
+                : this.people.size >= MAX_PARTICIPANTS
+                  ? "full"
+                  : "available",
+            }),
+          );
+        } catch {
+          res.writeHead(401);
+          res.end();
+        }
+      });
+      req.on("error", () => {});
     });
     this.io = new Server(this.http, {
       maxHttpBufferSize: 3 * 1024 * 1024,
@@ -42,6 +100,12 @@ export class RoomHost {
     });
     this.io.use((socket, next) => {
       const auth = socket.handshake.auth;
+      if (auth.protocol !== 2)
+        return next(
+          Error(
+            "Versão incompatível. Atualize todos os participantes para Voxy 0.4.0 ou posterior.",
+          ),
+        );
       const p = publicProfileSchema.safeParse(auth.profile);
       const secret =
           typeof auth.token === "string"
@@ -67,6 +131,7 @@ export class RoomHost {
         return next(Error("Não foi possível salvar a foto de perfil."));
       }
       socket.data.host = auth.ownerKey === this.ownerKey;
+      if (socket.data.host) this.store.claimLegacyServers(p.data.id);
       next();
     });
     this.io.on("connection", (socket) => {
@@ -82,6 +147,7 @@ export class RoomHost {
         muted: false,
         deafened: false,
         sharing: false,
+        camera: false,
         host: socket.data.host,
       });
       let budget = 120,
@@ -157,6 +223,7 @@ export class RoomHost {
   state(): RoomState {
     const state = this.store.snapshot();
     return {
+      protocol: 2,
       ...state,
       avatars: {
         ...state.avatars,
@@ -176,19 +243,23 @@ export class RoomHost {
     const state = this.store.snapshot();
     if (
       (c.type.startsWith("server.") || c.type.startsWith("channel.")) &&
+      c.type !== "server.icon" &&
       !p.host
     )
       throw Error("Somente o host pode gerenciar servidores e canais.");
     switch (c.type) {
       case "server.create":
         if (state.servers.length >= 20) throw Error("Limite de servidores.");
-        this.store.createServer(c.name);
+        this.store.createServer(c.name, p.profile.id);
         break;
       case "server.rename":
         this.store.rename("servers", c.id, c.name);
         break;
       case "server.delete":
         this.store.delete("servers", c.id);
+        break;
+      case "server.icon":
+        this.store.setServerIcon(c.id, p.profile.id, c.image);
         break;
       case "channel.create":
         if (state.channels.length >= 100) throw Error("Limite de canais.");
@@ -234,11 +305,13 @@ export class RoomHost {
           throw Error("Canal de voz inexistente.");
         p.channelId = c.channelId;
         p.sharing = false;
+        p.camera = false;
         break;
       case "status":
         p.muted = c.muted;
         p.deafened = c.deafened;
         p.sharing = !!p.channelId && c.sharing;
+        if (c.camera !== undefined) p.camera = !!p.channelId && c.camera;
         break;
       case "profile":
         p.profile.name = c.name;
@@ -250,6 +323,7 @@ export class RoomHost {
       if (person.channelId && !ids.has(person.channelId)) {
         person.channelId = null;
         person.sharing = false;
+        person.camera = false;
       }
   }
   async listen(address: string, port: number) {

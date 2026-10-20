@@ -33,6 +33,21 @@ async function main() {
           .count()
       )
         throw Error("Release popup repeated");
+      if (cycle === 1) {
+        const saved = await page.evaluate(() => window.voxy.savedRooms());
+        assert.equal(saved.length, 1);
+        assert(saved[0].icon?.startsWith("data:image/png;base64,"));
+        assert.equal(
+          (await page.evaluate(() => window.voxy.roomAvailability()))[0].status,
+          "unavailable",
+        );
+        await page
+          .getByRole("button", { name: "Novidades do Voxy", exact: true })
+          .click();
+        await page.getByText("Voxy 0.4.0", { exact: true }).waitFor();
+        await page.getByText("Voxy 0.2.0", { exact: true }).waitFor();
+        await page.getByRole("button", { name: "Home", exact: true }).click();
+      }
       const info = await page.evaluate(async (cycle) => {
         const p = await window.voxy.profile();
         if (cycle === 0) {
@@ -49,16 +64,24 @@ async function main() {
             voiceDetection: true,
             voiceThreshold: -38,
             callSounds: false,
+            cameraDevice: "camera-persisted",
           });
           await window.voxy.setVolume(p.id, 0.35, false);
           await window.voxy.setVolume(p.id, 0.15, true);
           await window.voxy.setParticipantMuted(p.id, true);
         }
-        const info = await window.voxy.host({
-          address: "127.0.0.1",
-          port: 43138,
-          name: "Pacote validado",
-        });
+        const info =
+          cycle === 1
+            ? (
+                await window.voxy.reconnectRoom(
+                  (await window.voxy.savedRooms())[0].id,
+                )
+              ).hostInfo!
+            : await window.voxy.host({
+                address: "127.0.0.1",
+                port: 43138,
+                name: "Pacote validado",
+              });
         return { p, info };
       }, cycle);
       if (cycle === 1) {
@@ -71,10 +94,26 @@ async function main() {
         assert.equal(info.p.voiceThreshold, -38);
         assert.equal(info.p.mutedParticipants?.[info.p.id], true);
         assert.equal(info.p.callSounds, false);
+        assert.equal(info.p.cameraDevice, "camera-persisted");
         assert.equal(info.p.volumes?.[info.p.id], 0.35);
         assert.equal(info.p.streamVolumes?.[info.p.id], 0.15);
       }
       await page.getByRole("heading", { name: "Pacote validado" }).waitFor();
+      if (cycle === 0) {
+        await page.evaluate(async () => {
+          const entry = (await window.voxy.savedRooms())[0];
+          await window.voxy.command({
+            type: "server.icon",
+            id: entry.serverId,
+            image: (await window.voxy.profile()).avatar,
+          });
+        });
+      }
+      await page.waitForFunction(
+        () =>
+          !!document.querySelector<HTMLImageElement>(".server-photo img")
+            ?.naturalWidth,
+      );
       const runtime = await app.evaluate(({ app }) => ({
         packaged: app.isPackaged,
         version: app.getVersion(),
@@ -92,6 +131,7 @@ async function main() {
       "Executável ASAR abre em produção.",
       "SQLite WASM e dependências incluídas: host criado.",
       "Reinício preserva servidor e perfil; segredo DPAPI reutilizado.",
+      "Histórico protegido e imagem do servidor persistem offline; reabrir sala pelo recente funciona; canal global preserva versões.",
     ],
   };
   console.log(result.results.join("\n"));

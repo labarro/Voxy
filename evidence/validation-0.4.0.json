@@ -1,0 +1,120 @@
+{
+  "version": "0.4.0",
+  "date": "2026-10-20T23:26:33.190Z",
+  "unit": {
+    "passed": 18,
+    "failed": 0
+  },
+  "checks": {
+    "build": "passed",
+    "dist": "passed",
+    "packaged": "passed",
+    "development": "passed",
+    "microphone": "passed",
+    "pushToTalk": "passed",
+    "desktopWebcam": "passed (Chromium test devices)",
+    "desktopNativeScreen": "passed (without fake device flag)",
+    "mediaMesh": "passed (10 clients,45 pairs,90 audio directions)",
+    "runtimeAudit": "0 vulnerabilities",
+    "asarComparedFiles": 5
+  },
+  "desktopWebcam": [
+    "Imagem do servidor adicionada/removida pelo criador; outro cliente bloqueado. Home reconecta usando convite salvo.",
+    "Imagem enviada, recebida e ampliada; emoji selecionável e foto do PC redimensionada, salva e exibida nos outros clientes.",
+    "Edição e exclusão da própria mensagem propagadas; confirmação e modais centralizados.",
+    "3 janelas Electron de produção conectadas e no mesmo canal.",
+    "Push to Talk global passa pelo main/IPC e abre/fecha a fala no aplicativo.",
+    "Mute local via clique direito, isolado e persistido após reconexão; voz pode ser restaurada.",
+    "Volume de voz persistido por UUID após desconexão e nova sessão do participante.",
+    "Captura desktop Electron 1: frames recebidos pelos dois clientes; parar e reiniciar sem sair da voz.",
+    "Captura desktop Electron 2: frames recebidos pelos dois clientes; parar e reiniciar sem sair da voz.",
+    "Player ocupa 100% da viewport em fullscreen; volume/mute da transmissão são independentes e persistidos.",
+    "Webcam via getUserMedia no Electron: prévia, recepção, fullscreen, troca, parada e reinício junto da captura nativa de tela.",
+    "Controle de mute responde no aplicativo.",
+    "Ícone de áudio silenciado e mute coexistem; deafen propagado aos cartões e lista do canal.",
+    "Saída de voz nas três janelas.",
+    "Novidades offline preserva histórico por versão; Home permite remover servidor sem apagar os dados da sala."
+  ],
+  "desktopNativeScreen": [
+    "Imagem do servidor adicionada/removida pelo criador; outro cliente bloqueado. Home reconecta usando convite salvo.",
+    "Imagem enviada, recebida e ampliada; emoji selecionável e foto do PC redimensionada, salva e exibida nos outros clientes.",
+    "Edição e exclusão da própria mensagem propagadas; confirmação e modais centralizados.",
+    "3 janelas Electron de produção conectadas e no mesmo canal.",
+    "Push to Talk global passa pelo main/IPC e abre/fecha a fala no aplicativo.",
+    "Mute local via clique direito, isolado e persistido após reconexão; voz pode ser restaurada.",
+    "Volume de voz persistido por UUID após desconexão e nova sessão do participante.",
+    "Captura desktop Electron 1: frames recebidos pelos dois clientes; parar e reiniciar sem sair da voz.",
+    "Captura desktop Electron 2: frames recebidos pelos dois clientes; parar e reiniciar sem sair da voz.",
+    "Player ocupa 100% da viewport em fullscreen; volume/mute da transmissão são independentes e persistidos.",
+    "Controle de mute responde no aplicativo.",
+    "Ícone de áudio silenciado e mute coexistem; deafen propagado aos cartões e lista do canal.",
+    "Saída de voz nas três janelas.",
+    "Novidades offline preserva histórico por versão; Home permite remover servidor sem apagar os dados da sala."
+  ],
+  "media": [
+    "45 pares mesh conectados; exatamente 4 transceivers por par; pacotes de áudio recebidos nos 90 sentidos.",
+    "Mute/desmute altera track do microfone.",
+    "PTT abre/fecha a track; mute tem prioridade; volumes independentes; mute local isola uma voz e sobrevive a deafen.",
+    "Webcam em slot independente: pixels recebidos pelos nove espectadores.",
+    "Transmissão 1: pixels RTP corretos nos nove espectadores; pacotes de voz continuam crescendo nos 90 sentidos após parar.",
+    "Transmissão 2: pixels RTP corretos nos nove espectadores; pacotes de voz continuam crescendo nos 90 sentidos após parar.",
+    "Webcam e tela simultâneas nos nove espectadores; troca, parada, reinício, permissão negada e track encerrada preservam a voz.",
+    "3 ciclos de saída/reentrada com reconexão dos pares.",
+    "Sons distintos de saída/entrada gerados; opção desativada e deafen impedem os efeitos.",
+    "Início de transmissão notifica os dez participantes, incluindo o transmissor, uma vez por transição.",
+    "Recursos de mídia liberados nos dez clientes."
+  ],
+  "packaged": [
+    "Executável ASAR abre em produção.",
+    "SQLite WASM e dependências incluídas: host criado.",
+    "Reinício preserva servidor e perfil; segredo DPAPI reutilizado.",
+    "Histórico protegido e imagem do servidor persistem offline; reabrir sala pelo recente funciona; canal global preserva versões."
+  ],
+  "updater": {
+    "version": "0.4.0",
+    "rangeRequests": 88,
+    "bytesServed": 13397238,
+    "fullInstallerBytes": 126614367,
+    "savedPercent": 89,
+    "installerInvoked": false,
+    "phases": ["checking", "available", "downloading", "ready"],
+    "fallback": {
+      "fullInstallerRequests": 1,
+      "bytesServed": 126747820,
+      "verified": true,
+      "installerInvoked": false
+    }
+  },
+  "artifact": {
+    "path": "release/0.4.0/Voxy-Setup-0.4.0-x64.exe",
+    "size": 126614367,
+    "sha256": "9CCBD31D11FE3C696DEC36C70529BFE64EEB6B1C96946B334C1632272CCA888A",
+    "authenticode": "NotSigned",
+    "releaseEnvelope": "Ed25519 verified with pinned production public key"
+  },
+  "pending": [
+    "Public release workflow and endpoint validation",
+    "Real NSIS in-place update and restart on a separate Windows machine",
+    "Physical webcams and 10 physical computers over Radmin VPN",
+    "Audible audio quality and prolonged calls on constrained networks"
+  ],
+  "deployment": {
+    "date": "2026-10-20T23:33:42.157Z",
+    "portfolioCommit": "3ac58861eaaabea52c039a4e5cafdaa05e7df2f9",
+    "branch": "main",
+    "pushed": true,
+    "homepageStatus": 200,
+    "updateRoutes": {
+      "release": 307,
+      "manifest": 307
+    },
+    "canonicalEndpoint": "https://www.devbarros.com/voxy/updates/",
+    "githubSecret": {
+      "environment": "release",
+      "name": "VOXY_UPDATE_SIGNING_PRIVATE_KEY",
+      "configured": true,
+      "allowedTags": "v*"
+    },
+    "publicReleasePublished": false
+  }
+}

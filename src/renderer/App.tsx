@@ -6,6 +6,11 @@ import { Chat } from "./components/Chat";
 import { ProfileForm } from "./components/ProfileForm";
 import { ShareForm } from "./components/ShareForm";
 import { ManageRow } from "./components/ManageRow";
+import { Home } from "./components/Home";
+import { ReleaseChannel } from "./components/ReleaseChannel";
+import { ServerImage } from "./components/ServerImage";
+import { CameraTile } from "./components/CameraTile";
+import { RemoteUpdate } from "./components/RemoteUpdate";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   AudioLines,
@@ -29,6 +34,9 @@ import {
   Pencil,
   Network,
   LogOut,
+  Video,
+  VideoOff,
+  Megaphone,
 } from "lucide-react";
 import type {
   RoomState,
@@ -63,8 +71,13 @@ type Dialog =
   | "channel"
   | "manage"
   | "diagnostics"
+  | "camera"
   | null;
 export function App() {
+  const [page, setPage] = useState<"home" | "room" | "news">("home");
+  const [watchCamera, setWatchCamera] = useState<string | null>(null);
+  const [cameraDevice, setCameraDevice] = useState("");
+  const pendingServer = useRef<string | null>(null);
   const [notes, setNotes] = useState<ReleaseNotes | null>(null);
   const [profile, setProfile] = useState<Profile>(),
     [room, setRoom] = useState<RoomState>(empty),
@@ -138,6 +151,20 @@ export function App() {
               })
               .catch((e) => setError(e.message));
         },
+        (camera) => {
+          const l = latest.current,
+            me = l.room.participants.find((p) => p.id === l.selfId);
+          if (l.status === "connected" && me?.channelId)
+            void window.voxy
+              .command({
+                type: "status",
+                muted: effectiveMuted.current,
+                deafened: l.deafened,
+                sharing: me.sharing,
+                camera,
+              })
+              .catch((e) => setError(e.message));
+        },
       ),
   );
   useEffect(() => {
@@ -152,6 +179,7 @@ export function App() {
       if (event.type === "connection") {
         latest.current.status = event.status;
         setStatus(event.status);
+        if (event.status === "connected") setPage("room");
         if (event.selfId) {
           latest.current.selfId = event.selfId;
           setSelfId(event.selfId);
@@ -160,11 +188,20 @@ export function App() {
           setRoom(empty);
           latest.current.room = empty;
           setWatch(null);
+          setWatchCamera(null);
+          setPage("home");
         }
       }
       if (event.type === "state") {
         latest.current.room = event.state;
         setRoom(event.state);
+        if (
+          pendingServer.current &&
+          event.state.servers.some((s) => s.id === pendingServer.current)
+        ) {
+          setServerId(pendingServer.current);
+          pendingServer.current = null;
+        }
         if (!joining.current)
           engine.sync(event.state.participants, latest.current.selfId);
       }
@@ -211,13 +248,22 @@ export function App() {
     ),
     streams = peers.filter((p) => p.sharing),
     watched = peers.find((p) => p.id === watch && p.sharing);
+  const cameras = room.participants.filter(
+    (p) => p.channelId === channelId && p.camera,
+  );
+  const selectedCamera = cameras.find((p) => p.id === watchCamera);
   const online = status === "connected";
   useEffect(
     () =>
       engine.setWatching(
-        watched && me?.channelId === channelId ? watched.id : null,
+        page === "room" &&
+          !selectedCamera &&
+          watched &&
+          me?.channelId === channelId
+          ? watched.id
+          : null,
       ),
-    [engine, watched?.id, channelId, me?.channelId],
+    [engine, watched?.id, channelId, me?.channelId, page, selectedCamera?.id],
   );
   async function run(fn: () => Promise<unknown>, close = false) {
     setError("");
@@ -251,12 +297,14 @@ export function App() {
         setSources(list);
         setSource(list[0]?.id ?? "");
       });
-    if (d === "profile")
+    if (d === "camera") setCameraDevice(profile?.cameraDevice ?? "");
+    if (d === "profile" || d === "camera")
       await run(async () =>
         setDevices(await navigator.mediaDevices.enumerateDevices()),
       );
   }
   async function joinVoice(c: Channel) {
+    setPage("room");
     if (busy || joining.current) return;
     setChannelId(c.id);
     if (me?.channelId === c.id) return;
@@ -288,6 +336,7 @@ export function App() {
   async function leaveVoice() {
     engine.leave();
     setWatch(null);
+    setWatchCamera(null);
     await command({ type: "voice", channelId: null });
   }
   async function toggleMute() {
@@ -360,6 +409,22 @@ export function App() {
   const selectedParticipant = room.participants.find(
     (p) => p.id === participantAudio && p.id !== selfId,
   );
+  async function reconnectSaved(id: string) {
+    engine.leave();
+    if (
+      latest.current.status === "connected" &&
+      latest.current.room.participants.some(
+        (p) => p.id === latest.current.selfId && p.channelId,
+      )
+    )
+      await command({ type: "voice", channelId: null });
+    const result = await window.voxy.reconnectRoom(id);
+    setHostInfo(result.hostInfo);
+    if (latest.current.room.servers.some((s) => s.id === result.serverId))
+      setServerId(result.serverId);
+    else pendingServer.current = result.serverId;
+    setPage("room");
+  }
   if (!profile)
     return <main className="boot">Abrindo Voxy…{error && <p>{error}</p>}</main>;
   return (
@@ -401,18 +466,42 @@ export function App() {
           </Modal>
         )}
         <nav className="server-rail" aria-label="Servidores">
-          <div className="brand" title="Voxy">
+          <button
+            className={"brand " + (page === "home" ? "active" : "")}
+            title="Home"
+            onClick={() => setPage("home")}
+          >
             <AudioLines size={28} />
-          </div>
+          </button>
+          <button
+            className={"rail-action " + (page === "news" ? "selected" : "")}
+            title="Novidades do Voxy"
+            onClick={() => setPage("news")}
+          >
+            <Megaphone />
+          </button>
           <div className="rail-divider" />
           {room.servers.map((s) => (
             <button
               key={s.id}
-              className={"server-icon " + (s.id === serverId ? "selected" : "")}
+              className={
+                "server-icon " +
+                (page === "room" && s.id === serverId ? "selected" : "")
+              }
               title={s.name}
-              onClick={() => setServerId(s.id)}
+              onClick={() => {
+                setServerId(s.id);
+                setPage("room");
+                void window.voxy
+                  .visitServer(s.id)
+                  .catch((e) => setError(e.message));
+              }}
             >
-              {s.name.slice(0, 2).toUpperCase()}
+              {s.icon ? (
+                <Avatar avatar={s.icon} className="server-photo" />
+              ) : (
+                s.name.slice(0, 2).toUpperCase()
+              )}
             </button>
           ))}
           <button
@@ -434,6 +523,9 @@ export function App() {
         </nav>
         <aside className="channel-panel">
           <header className="server-header">
+            {server?.icon && (
+              <Avatar avatar={server.icon} className="mini-avatar" />
+            )}
             <div>
               <small>Sua sala privada</small>
               <h2>{server?.name ?? "Seu espaço"}</h2>
@@ -527,6 +619,11 @@ export function App() {
                                   {p.sharing && (
                                     <span className="live-label sidebar-live">
                                       AO VIVO
+                                    </span>
+                                  )}
+                                  {p.camera && (
+                                    <span title="Câmera ligada">
+                                      <Video size={13} />
                                     </span>
                                   )}
                                   <ParticipantStatus
@@ -630,10 +727,25 @@ export function App() {
           </footer>
         </aside>
         <main className="workspace">
+          <RemoteUpdate compact/>
           <header className="workspace-header">
             <div>
-              {channel?.kind === "voice" ? <Volume2 /> : <Hash />}
-              <strong>{channel?.name ?? "Bem-vindo ao Voxy"}</strong>
+              {page === "news" ? (
+                <Megaphone />
+              ) : page === "home" ? (
+                <AudioLines />
+              ) : channel?.kind === "voice" ? (
+                <Volume2 />
+              ) : (
+                <Hash />
+              )}
+              <strong>
+                {page === "news"
+                  ? "Novidades do Voxy"
+                  : page === "home"
+                    ? "Home"
+                    : (channel?.name ?? "Bem-vindo ao Voxy")}
+              </strong>
               <span className="header-description">
                 {channel?.kind === "voice"
                   ? "Converse. Mostre. Fique por perto."
@@ -681,35 +793,15 @@ export function App() {
               </button>
             </div>
           )}
-          {!online ? (
-            <section className="welcome">
-              <div className="welcome-art">
-                <AudioLines size={70} />
-                <span className="orbit one" />
-                <span className="orbit two" />
-              </div>
-              <h1>
-                Seu grupo.
-                <br />
-                Sua frequência.
-              </h1>
-              <p>
-                Voz e tela para estar junto.
-                <br />
-                Uma sala no seu computador, um convite para os amigos.
-              </p>
-              <div className="welcome-actions">
-                <button className="primary" onClick={() => void open("host")}>
-                  <Radio size={18} /> Hospedar sala
-                </button>
-                <button className="secondary" onClick={() => void open("join")}>
-                  <LogIn size={18} /> Entrar em sala
-                </button>
-              </div>
-              <small>
-                Conecte os computadores ao Radmin VPN antes de começar.
-              </small>
-            </section>
+          {page === "news" ? (
+            <ReleaseChannel />
+          ) : page === "home" || !online ? (
+            <Home
+              busy={busy}
+              host={() => void open("host")}
+              join={() => void open("join")}
+              reconnect={(id) => void run(() => reconnectSaved(id))}
+            />
           ) : channel?.kind === "text" ? (
             <Chat
               key={channelId}
@@ -740,7 +832,21 @@ export function App() {
                   por aqui
                 </span>
               </div>
-              {watched && me?.channelId === channelId ? (
+              {selectedCamera && me?.channelId === channelId ? (
+                <Player
+                  stream={
+                    selectedCamera.id === selfId
+                      ? media.localCamera
+                      : media.cameraStreams?.get(selectedCamera.id)
+                  }
+                  name={selectedCamera.profile.name}
+                  kind="camera"
+                  local={selectedCamera.id === selfId}
+                  deafened={deafened}
+                  output={profile.output}
+                  close={() => setWatchCamera(null)}
+                />
+              ) : watched && me?.channelId === channelId ? (
                 <Player
                   stream={
                     watched.id === selfId
@@ -849,13 +955,33 @@ export function App() {
                   )}
                 </div>
               )}
+              {me?.channelId === channelId && cameras.length > 0 && (
+                <div className="camera-grid">
+                  {cameras.map((p) => (
+                    <CameraTile
+                      key={p.id}
+                      stream={
+                        p.id === selfId
+                          ? media.localCamera
+                          : media.cameraStreams?.get(p.id)
+                      }
+                      name={p.profile.name}
+                      local={p.id === selfId}
+                      open={() => setWatchCamera(p.id)}
+                    />
+                  ))}
+                </div>
+              )}
               {me?.channelId === channelId && streams.length > 0 && (
                 <div className="stream-list">
                   {streams.map((p) => (
                     <button
                       key={p.id}
                       className={watch === p.id ? "active" : ""}
-                      onClick={() => setWatch(p.id)}
+                      onClick={() => {
+                        setWatchCamera(null);
+                        setWatch(p.id);
+                      }}
                     >
                       <MonitorUp size={16} />
                       {p.profile.name}
@@ -867,6 +993,31 @@ export function App() {
               <div className="call-controls">
                 {me?.channelId === channelId ? (
                   <>
+                    <button
+                      className={
+                        "control " + (media.cameraActive ? "camera-on" : "")
+                      }
+                      title={
+                        media.cameraActive ? "Desligar câmera" : "Ativar câmera"
+                      }
+                      disabled={busy}
+                      onClick={() =>
+                        media.cameraActive
+                          ? void run(() => engine.stopCamera())
+                          : void open("camera")
+                      }
+                    >
+                      {media.cameraActive ? <VideoOff /> : <Video />}
+                    </button>
+                    {media.cameraActive && (
+                      <button
+                        title="Trocar câmera"
+                        disabled={busy}
+                        onClick={() => void open("camera")}
+                      >
+                        <Settings size={16} />
+                      </button>
+                    )}
                     <button
                       className={"control " + (muted ? "muted" : "")}
                       title={muted ? "Ativar microfone" : "Mutar microfone"}
@@ -1011,6 +1162,7 @@ export function App() {
                 channel: "Criar canal",
                 manage: "Gerenciar este espaço",
                 diagnostics: "Diagnóstico de conexão",
+                camera: "Compartilhar webcam",
               }[dialog]
             }
             close={() => {
@@ -1125,6 +1277,46 @@ export function App() {
                 onSave={() => void run(() => savePreferences(profile), true)}
               />
             )}
+            {dialog === "camera" && (
+              <form
+                onSubmit={(e) =>
+                  submit(e, async () => {
+                    await engine.startCamera(cameraDevice);
+                    const saved = await window.voxy.saveProfile({
+                      ...profile,
+                      cameraDevice,
+                    });
+                    setProfile(saved);
+                    engine.configurePreferences(saved);
+                    setDevices(await navigator.mediaDevices.enumerateDevices());
+                  })
+                }
+              >
+                <p>
+                  Sua câmera será transmitida para quem estiver no mesmo canal.
+                  Voz e compartilhamento de tela continuam funcionando.
+                </p>
+                <label>
+                  Câmera
+                  <select
+                    value={cameraDevice}
+                    onChange={(e) => setCameraDevice(e.target.value)}
+                  >
+                    <option value="">Padrão do sistema</option>
+                    {devices
+                      .filter((d) => d.kind === "videoinput")
+                      .map((d, i) => (
+                        <option key={d.deviceId || i} value={d.deviceId}>
+                          {d.label || "Câmera " + (i + 1)}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <button className="primary" disabled={busy}>
+                  {busy ? "Abrindo câmera…" : "Ligar câmera selecionada"}
+                </button>
+              </form>
+            )}
             {dialog === "share" && (
               <ShareForm
                 sources={sources}
@@ -1189,6 +1381,16 @@ export function App() {
             )}
             {dialog === "manage" && (
               <div className="manage-list">
+                {server && (
+                  <ServerImage
+                    server={server}
+                    allowed={server.ownerId === profile.id}
+                    busy={busy}
+                    save={(image) =>
+                      command({ type: "server.icon", id: server.id, image })
+                    }
+                  />
+                )}
                 <p>
                   {me?.host
                     ? "Renomeie ou exclua os espaços da sala. Excluir também remove seu histórico."

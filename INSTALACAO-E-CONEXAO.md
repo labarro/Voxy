@@ -1,31 +1,39 @@
 # Voxy — instalação e conexão com os amigos
 
-Versão atual: **0.3.0**. Para atualizar sem apagar dados, siga [GUIA-DE-ATUALIZACAO.md](GUIA-DE-ATUALIZACAO.md). Não desinstale a versão anterior. Depois desta atualização, as futuras podem ser iniciadas pela seção **Atualizações** da engrenagem.
+Versão atual: **0.4.0**. Para atualizar sem apagar dados, siga [GUIA-DE-ATUALIZACAO.md](GUIA-DE-ATUALIZACAO.md). Não desinstale a versão anterior. Depois desta atualização, as futuras podem ser iniciadas pela seção **Atualizações** da engrenagem.
+
+**Atualize todos os amigos para 0.4.0.** As versões anteriores são incompatíveis com a nova trilha de webcam. Dentro da chamada, **Ativar câmera** permite escolher a fonte; **Trocar câmera** e **Desligar câmera** preservam voz e tela. As webcams podem ser ampliadas em fullscreen. Resolução alvo: até 720p/30, conforme câmera e conexão. O áudio continua vindo do microfone.
+
+No menu **… → Gerenciar servidor e canais**, somente o criador pode gerenciar a imagem do servidor. Para servidores antigos sem criador registrado, o host assume essa função na migração. A imagem aparece na barra lateral e na Home.
+
+O botão **Home** mostra os servidores recentes e permite reconectar sem colar o convite. A lista continua disponível sem Radmin e após reiniciar. Convites são protegidos pelo Windows; remover o recente não remove o servidor do host. Para uma sala própria, **Hospedar novamente** usa o endereço e a porta salvos; se o IP mudou, hospede manualmente e compartilhe um novo convite. A disponibilidade é uma verificação momentânea, não garantia de acesso futuro.
+
+O megafone **Novidades do Voxy** abre o canal oficial, mesmo desconectado, com versões, datas, funcionalidades, melhorias e correções. O conteúdo está incluído no aplicativo e recebe novas publicações quando você instala uma versão nova.
 
 Novidades: na engrenagem, clique em **alterar tecla**, pressione a tecla desejada e salve para configurar o Push-to-Talk. Ajuste **Volume de entrada**, ative a **detecção de voz** e ajuste o limite acima do ruído ambiente usando o medidor durante a chamada. −70 dBFS é mais sensível; −10 dBFS exige sons mais fortes. O filtro vem desligado por padrão e não distingue voz de outros sons fortes. As mensagens próprias têm botões para editar/excluir. No fullscreen, a HUD some após 2,5 segundos e reaparece ao mover o mouse. Iniciar transmissão toca um aviso para o canal; desligue os sons nas configurações se preferir.
 
-Na engrenagem, **Escolher foto do computador** permite selecionar PNG/JPEG/WebP de até 5 MB, com prévia de recorte central e miniatura de 128 px. Salve para aplicar ou escolha um emoji para remover a foto. Todos devem usar a versão 0.3.0 para ver fotos. O clique direito em uma pessoa oferece **Mutar voz para mim**; só você deixa de ouvir essa voz, mantendo o volume da transmissão separado. Fone cortado indica áudio silenciado; o selo vermelho **AO VIVO** indica transmissão ativa.
+Na engrenagem, **Escolher foto do computador** permite selecionar PNG/JPEG/WebP de até 5 MB, com prévia de recorte central e miniatura de 128 px. Salve para aplicar ou escolha um emoji para remover a foto. Todos devem usar a versão 0.4.0 para ver fotos. O clique direito em uma pessoa oferece **Mutar voz para mim**; só você deixa de ouvir essa voz, mantendo o volume da transmissão separado. Fone cortado indica áudio silenciado; o selo vermelho **AO VIVO** indica transmissão ativa.
 
-Na versão 0.3.0, a engrenagem também permite escolher Push to Talk, tecla para falar, avatar 👴 e sons de entrada/saída. Volumes das vozes ficam nos cartões; o áudio da transmissão tem controle próprio no player. No chat, use **Enviar imagem** para PNG/JPEG/WebP de até 2 MB. A primeira abertura apresenta as novidades apenas uma vez por versão.
+Na versão 0.4.0, a engrenagem também permite escolher Push to Talk, tecla para falar, avatar 👴 e sons de entrada/saída. Volumes das vozes ficam nos cartões; o áudio da transmissão tem controle próprio no player. No chat, use **Enviar imagem** para PNG/JPEG/WebP de até 2 MB. A primeira abertura apresenta as novidades apenas uma vez por versão.
 
 ## 1. Qual arquivo instalar e enviar
 
 O instalador atualizado está nesta pasta:
 
 ```text
-C:\projects\Voxy\release\0.3.0
+C:\projects\Voxy\release\0.4.0
 ```
 
 O arquivo que você deve instalar no seu computador e enviar aos amigos é:
 
 ```text
-Voxy-Setup-0.3.0-x64.exe
+Voxy-Setup-0.4.0-x64.exe
 ```
 
 Caminho completo:
 
 ```text
-C:\projects\Voxy\release\0.3.0\Voxy-Setup-0.3.0-x64.exe
+C:\projects\Voxy\release\0.4.0\Voxy-Setup-0.4.0-x64.exe
 ```
 
 **Envie somente esse instalador aos amigos.** Não é necessário enviar o código do projeto, a pasta `node_modules`, arquivos `.blockmap`, nem as pastas `build-*` ou `win-unpacked`. Não use o instalador antigo da versão 0.1.0.
@@ -36,7 +44,7 @@ O mesmo instalador serve para quem vai hospedar e para quem vai entrar na sala. 
 
 Cada pessoa deve seguir estes passos no próprio computador Windows 10/11 de 64 bits:
 
-1. Salve o arquivo `Voxy-Setup-0.3.0-x64.exe` em uma pasta do computador.
+1. Salve o arquivo `Voxy-Setup-0.4.0-x64.exe` em uma pasta do computador.
 2. Abra o instalador com dois cliques.
 3. Escolha a pasta de instalação e conclua o assistente.
 4. Abra o Voxy pelo atalho criado ou pelo menu Iniciar.
@@ -166,4 +174,8 @@ Não é necessário abrir portas públicas no roteador. A prévia da própria te
 
 ## Estado da validação
 
-A versão 0.3.0 passou nos testes locais com dez clientes WebRTC e nove espectadores. O executável empacotado também é verificado. A conexão entre computadores físicos pelo Radmin VPN ainda precisa ser validada pelo grupo.
+A versão 0.4.0 passou nos testes locais com dez clientes WebRTC e nove espectadores. O executável empacotado também é verificado. A conexão entre computadores físicos pelo Radmin VPN ainda precisa ser validada pelo grupo.
+
+## Próximas versões
+
+A 0.4.0 inclui o atualizador remoto. Depois que o mantenedor configurar o canal, as próximas versões serão verificadas e baixadas automaticamente. Clique em **Reiniciar e atualizar** quando puder encerrar a chamada. Não desinstale o aplicativo. O instalador manual permanece como alternativa. Veja [GUIA-DE-ATUALIZACAO.md](GUIA-DE-ATUALIZACAO.md) para usuários e [ATUALIZACOES-REMOTAS.md](ATUALIZACOES-REMOTAS.md) para configurar publicação e domínio.

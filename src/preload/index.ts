@@ -19,6 +19,8 @@ const api: DesktopAPI = {
   profile: () => invoke("profile"),
   saveProfile: (p) => invoke("saveProfile", p),
   setVolume: (id, value, stream) => invoke("setVolume", { id, value, stream }),
+  setParticipantMuted: (id, muted) =>
+    invoke("setParticipantMuted", { id, muted }),
   image: (id) => invoke("image", id),
   addresses: () => invoke("addresses"),
   host: (p) => invoke("host", p),

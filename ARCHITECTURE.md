@@ -1,5 +1,19 @@
 # Arquitetura do Voxy
 
+## Atualização 0.3.0
+
+O microfone passa por `MicrophonePipeline`: captura com cancelamento de eco, supressão de ruído e `autoGainControl: false` → medição RMS antes do ganho → volume manual → gate com limiar em dBFS → `MediaStreamAudioDestinationNode` → slot de microfone WebRTC. O gate usa 6 dB de histerese e retenção de 250 ms, com transições de ganho suavizadas. Mute e PTT continuam desabilitando a track enviada e têm prioridade; a captura bruta permanece ativa para a medição e é encerrada ao sair. O main desativa background throttling para a detecção continuar com a janela minimizada. Veja as referências de [autoGainControl](https://developer.mozilla.org/en-US/docs/Web/API/MediaTrackConstraints/autoGainControl) e [setTargetAtTime](https://developer.mozilla.org/en-US/docs/Web/API/AudioParam/setTargetAtTime).
+
+O PTT captura `KeyboardEvent.code`, valida em um mapa de teclas Windows e envia somente o VK numérico permitido ao helper. Não executa texto recebido do renderer. A configuração antiga continua compatível. A API distingue teclas laterais quando o Windows oferece VK específico; Enter principal e numérico usam o mesmo VK. Fn e atalhos interceptados pelo sistema não são garantidos.
+
+Edição/exclusão são comandos autenticados. O host confere autoria no banco pelo UUID do perfil antes de alterar; nem o host pode alterar a mensagem de outro perfil. A migração adiciona `editedAt` preservando mensagens e imagens, e exclusões removem imagens por chave estrangeira. A identidade ainda é a identidade local do modelo de convite: quem possui o segredo e copia o UUID de outro perfil pode se passar por ele quando ele estiver desconectado; não existe conta com senha/assinatura individual.
+
+O som de transmissão usa transição `sharing: false → true` dos participantes do mesmo canal, incluindo o próprio usuário. Snapshots repetidos não repetem o som. Não toca por transmissões de outros canais, ao entrar em uma transmissão já ativa, com sons desativados ou deafen. Reiniciar uma transmissão gera um novo aviso.
+
+Mute local usa `mutedParticipants`, um mapa de UUID → boolean salvo via IPC específico e validado. O engine aplica `audio.muted = deafened || mutedParticipants[profileId]` apenas à voz, preserva o volume configurado e mantém o mute após trocar socket/reentrar. Deafen não remove a preferência. Esse estado não é transmitido ao host nem altera os outros clientes. `ParticipantStatus` apresenta separadamente microfone, deafen compartilhado e mute local.
+
+Fotos são decodificadas e recortadas no renderer a partir de PNG/JPEG/WebP locais até 5 MB, 8192 px e 24 MP. A saída WebP de 128×128 até 32 KB é validada novamente no main e no host por MIME, cabeçalho, dimensões e tamanho; SVG/URLs externas não são aceitos como foto. O perfil local guarda a miniatura. No host, a tabela `avatars` deduplica por SHA-256: participantes e mensagens guardam `avatar:<hash>`, e o snapshot traz uma cópia de cada miniatura referenciada no mapa `avatars`. O contexto `AvatarImages` resolve a imagem em toda a interface. O histórico mantém a foto usada no envio; emojis antigos continuam compatíveis. Miniaturas antigas permanecem no banco enquanto não houver limpeza manual dos dados; não há envio do arquivo original ou caminho local.
+
 ## Atualização 0.2.0
 
 O limite compartilhado passou para dez participantes (45 pares, até nove cópias por transmissor). Preferências de voz e transmissão são mapas persistidos por UUID no perfil local, sem enviar essas preferências ao host. O Push to Talk usa um helper Windows iniciado pelo main com tecla da lista permitida, consulta GetAsyncKeyState e monitora saída/heartbeat; o renderer recebe somente o estado da tecla escolhida. Falha/saída libera o estado e o gate permanece fechado em PTT. Mute manual tem prioridade. Sons são osciladores WebAudio na saída local, sem serem misturados ao envio do microfone.

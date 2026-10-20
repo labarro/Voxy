@@ -1,8 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { profileSchema, commandSchema } from "../src/shared/validation";
-import { microphoneMuted } from "../src/shared/preferences";
+import {
+  profileSchema,
+  commandSchema,
+  avatarSchema,
+} from "../src/shared/validation";
+import { microphoneMuted, PTT_KEYS } from "../src/shared/preferences";
+import { VoiceGate } from "../src/services/webrtc/microphone";
 import { validateImage } from "../src/shared/image";
 import initSqlJs from "sql.js";
 import { Store } from "../src/database/store";
@@ -22,6 +27,34 @@ test("perfil antigo recebe padrões; UUID, volumes e tecla são validados", () =
   });
   assert.equal(p.pttEnabled, false);
   assert.equal(p.callSounds, true);
+  assert.equal(p.inputVolume, 1);
+  assert.equal(p.voiceDetection, false);
+  assert.equal(p.voiceThreshold, -45);
+  assert.deepEqual(p.mutedParticipants, {});
+  assert(
+    !profileSchema.safeParse({ ...p, mutedParticipants: { [id]: "true" } })
+      .success,
+  );
+  for (const code of [
+    "KeyQ",
+    "Digit7",
+    "F24",
+    "ShiftRight",
+    "Numpad5",
+    "ArrowUp",
+    "Quote",
+  ])
+    assert(profileSchema.safeParse({ ...p, pttKey: code }).success);
+  for (const code of ["__proto__", "constructor", "Unknown"])
+    assert(!profileSchema.safeParse({ ...p, pttKey: code }).success);
+  for (const value of Object.values(PTT_KEYS))
+    assert(Number.isInteger(value.vk) && value.vk > 0 && value.vk < 256);
+  for (const patch of [
+    { inputVolume: 2.1 },
+    { voiceThreshold: -100 },
+    { voiceThreshold: NaN },
+  ])
+    assert(!profileSchema.safeParse({ ...p, ...patch }).success);
 
   assert.deepEqual(p.volumes, {});
   assert(!profileSchema.safeParse({ ...p, pttKey: "ExecuteCommand" }).success);
@@ -35,6 +68,16 @@ test("perfil antigo recebe padrões; UUID, volumes e tecla são validados", () =
     0.35,
   );
 });
+test("detecção tem limiar, histerese, retenção e reinicia ao ativar", () => {
+  const gate = new VoiceGate();
+  assert.equal(gate.update(-60, -40, 100, true), false);
+  assert.equal(gate.update(-30, -40, 200, true), true);
+  assert.equal(gate.update(-44, -40, 400, true), true);
+  assert.equal(gate.update(-65, -40, 600, true), true);
+  assert.equal(gate.update(-65, -40, 700, true), false);
+  assert.equal(gate.update(-80, -40, 800, false), true);
+  assert.equal(gate.update(-44, -40, 900, true), false);
+});
 test("Push to Talk só abre enquanto pressionado e nunca supera mute manual", () => {
   for (const manual of [false, true])
     for (const ptt of [false, true])
@@ -45,6 +88,19 @@ test("Push to Talk só abre enquanto pressionado e nunca supera mute manual", ()
         );
 });
 test("imagem: formato real, limites e mensagem sem texto", () => {
+  assert(avatarSchema.safeParse(PNG).success);
+  assert(!avatarSchema.safeParse("data:image/svg+xml;base64,PHN2Zz4=").success);
+  assert(
+    !avatarSchema.safeParse("data:image/png;base64," + "A".repeat(44000))
+      .success,
+  );
+  const bigAvatar = Buffer.from(PNG.split(",")[1], "base64");
+  bigAvatar.writeUInt32BE(256, 16);
+  assert(
+    !avatarSchema.safeParse(
+      "data:image/png;base64," + bigAvatar.toString("base64"),
+    ).success,
+  );
   assert.deepEqual(validateImage(PNG), {
     width: 1,
     height: 1,

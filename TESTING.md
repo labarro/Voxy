@@ -1,5 +1,23 @@
 # Validação do Voxy
 
+## Versão 0.3.0 — 20/10/2026
+
+Executados com sucesso: `npm test` (10 testes), `npm run test:microphone`, `npm run test:ptt`, `npm run test:media`, `npm run test:desktop`, `npm run test:dev`, `npm run build`, `npm run dist` e `npm run test:packaged`.
+
+- Contratos/host/SQLite: migração sem perder histórico, coluna de edição, autoria obrigatória inclusive para o host, rejeição de mensagem vazia sem imagem, propagação de edição/exclusão e remoção da imagem junto da mensagem. Foto validada por formato/dimensões/tamanho, deduplicada por hash, referenciada no estado e preservada após reabrir o banco. Preferências antigas recebem os novos padrões.
+- Microfone em Web Audio real, com fonte senoidal de teste: sinal baixo bloqueado (RMS 0), sinal forte liberado (RMS ≈0,142), volume 25% entrega ≈0,035, redução de ruído abaixo do limiar volta a RMS 0, desativar detecção libera o sinal baixo e volume zero silencia. Tracks terminam ao fechar. Teste unitário verifica histerese, retenção e alternância da detecção.
+- PTT Windows: F9 e Q detectadas globalmente ao pressionar/soltar, troca de configuração, entrada inválida rejeitada e estado limpo ao parar. No Electron, a tecla foi capturada pela interface e enviada ao helper/IPC; volume/limiar/detecção foram salvos.
+- Dez clientes WebRTC: 45 pares e voz nos 90 sentidos, dois ciclos de tela para nove espectadores, voz mantida depois de parar e três reentradas. Mute local silencia somente uma voz, mantém volumes, sobrevive a deafen e não afeta o áudio da transmissão. O teste de pixels agora aguarda o quadro da nova fonte após `replaceTrack`, pois pode existir um quadro antigo no buffer.
+- Sons: aviso de início de transmissão para os dez participantes, inclusive o transmissor, sem repetir em snapshots iguais; parar/reiniciar avisa novamente. Outros canais, opção desligada e deafen não geram o aviso. Entrada/saída continuam com sequências próprias.
+- Três janelas Electron: foto escolhida de arquivo, reduzida para 128 px, salva e exibida nos outros clientes; emoji continua disponível. Imagem do chat ampliada, mensagem editada/excluída com atualização remota e cancelamento da confirmação preservando a imagem. Configurações, imagem, edição, confirmação e menu de áudio tiveram centralização verificada geometricamente.
+- Mute local pelo clique direito: aparece só no cliente que o escolheu, permanece após reconectar o participante e pode ser removido. O ícone de deafen aparece em todos os clientes nos cartões e lateral, coexiste com microfone mutado e desaparece ao reativar a audição. Selo lateral **AO VIVO** verificado e inspecionado visualmente.
+- Captura desktop nativa em dois ciclos, dois espectadores, áudio/transmissão independentes e fullscreen com vídeo igual à viewport. Após 2,5 s a HUD fica com `visibility: hidden`; mover o mouse a torna visível. Controles continuam acessíveis a 900×620.
+- Pacote ASAR abre duas vezes, cria host SQLite, mantém foto, volumes, mute local, PTT Q, volume de entrada, detecção e limite após reinício; novidades aparecem somente na primeira abertura da versão. Código main/preload/renderer do ASAR confere com o build validado.
+
+Instalador: `release/0.3.0/Voxy-Setup-0.3.0-x64.exe`, 126.944.290 bytes, SHA-256 `7124FC361DF7E09ED8715E2DAD3D31E4E69715AACA782EA57206B251599C397A`, sem assinatura (`NotSigned`). Guias: [atualização](GUIA-DE-ATUALIZACAO.md) e [instalação/conexão](INSTALACAO-E-CONEXAO.md).
+
+Ainda precisam de validação humana: dez computadores físicos pelo Radmin, instalação NSIS por cima de uma instalação pessoal real, qualidade audível em ambientes ruidosos, detecção com diferentes microfones/ganhos do Windows, duração prolongada, layouts de teclado incomuns e jogos/programas elevados. Fn, atalhos interceptados pelo sistema e distinção de Enter numérico/principal não são garantidos. Fontes senoidais e canvas são usadas somente nos testes, não no produto.
+
 ## Versão 0.2.0
 
 Testes locais passaram com dez clientes, 45 pares mesh, voz nos 90 sentidos e pixels corretos nos nove espectadores em dois ciclos. Push to Talk foi verificado no gate real do microfone, com prioridade do mute manual; o leitor global do Windows detectou F9 pressionada/solta e liberou o estado ao encerrar. A geração dos sons produziu sequências distintas de entrada/saída e ficou silenciosa com a preferência desligada ou deafen.

@@ -212,7 +212,44 @@ test("dez sessões, décima primeira rejeitada; imagens, canais e persistência"
       channelId: text.id,
       text: "Olá <script> texto literal",
     });
-    await state(c, (s) => s.messages.length === 1);
+    const original = (await state(c, (s) => s.messages.length === 1))
+      .messages[0];
+    assert.equal(
+      (
+        await command(a, {
+          type: "message.edit",
+          id: original.id,
+          text: "Ataque",
+        })
+      ).ok,
+      false,
+    );
+    assert.equal(
+      (await command(c, { type: "message.delete", id: original.id })).ok,
+      false,
+    );
+    assert.equal(
+      (await command(b, { type: "message.edit", id: original.id, text: "" }))
+        .ok,
+      false,
+    );
+    assert.equal(
+      (await command(b, { type: "message.edit", id: "missing", text: "x" })).ok,
+      false,
+    );
+    assert.equal(
+      (
+        await command(b, {
+          type: "message.edit",
+          id: original.id,
+          text: "Texto editado",
+        })
+      ).ok,
+      true,
+    );
+    await state(c, (s) =>
+      s.messages.some((m) => m.text === "Texto editado" && !!m.editedAt),
+    );
     const image =
       "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jPboAAAAASUVORK5CYII=";
     assert(
@@ -220,7 +257,7 @@ test("dez sessões, décima primeira rejeitada; imagens, canais e persistência"
         await command(b, {
           type: "profile",
           name: "Velho",
-          avatar: "x",
+          avatar: image,
         })
       ).ok,
     );
@@ -237,9 +274,38 @@ test("dez sessões, décima primeira rejeitada; imagens, canais e persistência"
     const imageState = await state(c, (s) => s.messages.length === 2);
     const picture = imageState.messages[1];
     assert(picture.imageId);
-    assert(!JSON.stringify(imageState).includes("base64"));
+    assert(!JSON.stringify(imageState.messages).includes("base64"));
+    assert(picture.avatar.startsWith("avatar:"));
+    assert.equal(imageState.avatars?.[picture.avatar], image);
+    assert.equal(Object.keys(imageState.avatars ?? {}).length, 1);
+    assert.equal(
+      imageState.participants.find((p) => p.id === b.id)?.profile.avatar,
+      picture.avatar,
+    );
     const fetched = await c.timeout(3000).emitWithAck("image", picture.imageId);
     assert.equal(fetched.value, image);
+    assert.equal(
+      (await command(a, { type: "message.delete", id: picture.id })).ok,
+      false,
+    );
+    await command(b, {
+      type: "message",
+      channelId: text.id,
+      text: "Descartável",
+    });
+    const disposable = (
+      await state(c, (s) => s.messages.length === 3)
+    ).messages.find((m) => m.text === "Descartável")!;
+    assert.equal(
+      (await command(b, { type: "message.delete", id: disposable.id })).ok,
+      true,
+    );
+    await state(
+      c,
+      (s) =>
+        s.messages.length === 2 &&
+        !s.messages.some((m) => m.id === disposable.id),
+    );
     assert.equal(
       (
         await command(b, {
@@ -268,12 +334,13 @@ test("dez sessões, décima primeira rejeitada; imagens, canais e persistência"
     await host.close();
     store.close();
     store = await Store.open(join(dir, "room.sqlite"));
-    assert.equal(
-      store.snapshot().messages[0].text,
-      "Olá <script> texto literal",
-    );
+    assert.equal(store.snapshot().messages[0].text, "Texto editado");
     assert.equal(store.snapshot().channels.length, 2);
     assert.equal(store.image(picture.imageId!), image);
+    assert.equal(store.snapshot().avatars[picture.avatar], image);
+    assert(store.snapshot().messages[0].editedAt);
+    store.changeMessage(picture.id, picture.author);
+    assert.throws(() => store.image(picture.imageId!));
     assert.throws(() =>
       store.createChannel("inexistente", "Inválido", "voice"),
     );

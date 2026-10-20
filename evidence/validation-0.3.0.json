@@ -1,0 +1,8 @@
+{
+  "version": "0.3.0",
+  "date": "2026-10-20",
+  "passed": ["npm test (10 tests)", "npm run test:microphone", "npm run test:ptt", "npm run test:media", "npm run test:desktop", "npm run test:dev", "npm run build", "npm run dist", "npm run test:packaged", "ASAR main/preload/renderer match validated build"],
+  "verified": ["Keyboard capture and global Windows F9/Q PTT", "Persisted microphone volume, detection and threshold", "Real Web Audio gain and gate with synthetic sine source", "Centered dialogs and image popup", "Fullscreen HUD hides after idle and wakes on pointer movement", "Author-only edit/delete and database migration", "Screen-start sound in all ten clients, with deduplication, channel isolation and sounds/deafen preferences", "Deafen icons in all clients", "Local per-profile mute persists after reconnect, isolated from voices and stream volume", "Red AO VIVO sidebar badge", "Local photo upload, resizing, remote display and persistence", "Avatar database deduplication and validation", "Native desktop capture restart with two remote viewers", "45 mesh pairs and 90 audio directions"],
+  "artifact": {"path": "release/0.3.0/Voxy-Setup-0.3.0-x64.exe", "bytes": 126944290, "sha256": "7124FC361DF7E09ED8715E2DAD3D31E4E69715AACA782EA57206B251599C397A", "signature": "NotSigned"},
+  "pending": ["Ten physical computers over Radmin VPN", "Human listening and noisy-room microphone calibration", "Long-running screen and voice performance", "NSIS in-place upgrade on personal existing install", "Unusual keyboard layouts and elevated games/applications"]
+}

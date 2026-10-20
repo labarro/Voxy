@@ -1,6 +1,6 @@
 {
   "name": "voxy-desktop",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Voz e tela entre amigos pela sua rede privada",
   "author": "Voxy",
@@ -18,7 +18,8 @@
     "format": "prettier --write src tests scripts vite.config.mts",
     "test:packaged": "tsx tests/packaged.e2e.ts",
     "test:dev": "tsx tests/dev.e2e.ts",
-    "test:ptt": "tsx tests/pushToTalk.e2e.ts"
+    "test:ptt": "tsx tests/pushToTalk.e2e.ts",
+    "test:microphone": "tsx tests/microphone.e2e.ts"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
@@ -50,7 +51,7 @@
     "appId": "dev.voxy.desktop",
     "productName": "Voxy",
     "directories": {
-      "output": "release/0.2.0"
+      "output": "release/0.3.0"
     },
     "files": [
       "dist/**/*",

@@ -1,6 +1,7 @@
 import { MAX_PARTICIPANTS } from "../shared/constants";
 import { PTT_KEYS } from "../shared/preferences";
-import { Avatar } from "./components/Avatar";
+import { Avatar, AvatarImages } from "./components/Avatar";
+import { ParticipantStatus } from "./components/ParticipantStatus";
 import { Chat } from "./components/Chat";
 import { ProfileForm } from "./components/ProfileForm";
 import { ShareForm } from "./components/ShareForm";
@@ -90,6 +91,7 @@ export function App() {
     [quality, setQuality] = useState<Quality>("720p30"),
     [systemAudio, setSystemAudio] = useState(false),
     [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  const [participantAudio, setParticipantAudio] = useState<string | null>(null);
   const [media, setMedia] = useState<VoiceView>({
     streams: new Map(),
     speaking: new Set(),
@@ -336,814 +338,952 @@ export function App() {
     e.preventDefault();
     void run(fn, true);
   }
+  async function muteParticipant(socketId: string, value: boolean) {
+    const person = latest.current.room.participants.find(
+      (p) => p.id === socketId,
+    );
+    if (!person) return;
+    await window.voxy.setParticipantMuted(person.profile.id, value);
+    engine.muteParticipant(socketId, value, person.profile.id);
+    setProfile((p) =>
+      p
+        ? {
+            ...p,
+            mutedParticipants: {
+              ...p.mutedParticipants,
+              [person.profile.id]: value,
+            },
+          }
+        : p,
+    );
+  }
+  const selectedParticipant = room.participants.find(
+    (p) => p.id === participantAudio && p.id !== selfId,
+  );
   if (!profile)
     return <main className="boot">Abrindo Voxy…{error && <p>{error}</p>}</main>;
   return (
-    <div className="app-shell">
-      {notes && (
-        <Modal
-          title={"Novidades · Voxy " + notes.version}
-          close={() =>
-            void run(async () => {
-              await window.voxy.markReleaseNotes(notes.version);
-              setNotes(null);
-            })
-          }
-        >
-          <h3>{notes.title}</h3>
-          <ul className="release-list">
-            {notes.items.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-          <button
-            className="primary"
-            disabled={busy}
-            onClick={() =>
+    <AvatarImages.Provider value={room.avatars ?? {}}>
+      <div className="app-shell">
+        {notes && (
+          <Modal
+            title={"Novidades · Voxy " + notes.version}
+            close={() =>
               void run(async () => {
                 await window.voxy.markReleaseNotes(notes.version);
                 setNotes(null);
               })
             }
           >
-            Entendi, vamos lá
-          </button>
-          {error && (
-            <p role="alert" className="modal-error">
-              {error}
-            </p>
-          )}
-        </Modal>
-      )}
-      <nav className="server-rail" aria-label="Servidores">
-        <div className="brand" title="Voxy">
-          <AudioLines size={28} />
-        </div>
-        <div className="rail-divider" />
-        {room.servers.map((s) => (
-          <button
-            key={s.id}
-            className={"server-icon " + (s.id === serverId ? "selected" : "")}
-            title={s.name}
-            onClick={() => setServerId(s.id)}
-          >
-            {s.name.slice(0, 2).toUpperCase()}
-          </button>
-        ))}
-        <button
-          className="rail-action"
-          title={online ? "Criar servidor" : "Hospedar sala"}
-          onClick={() => void open(online ? "server" : "host")}
-          disabled={online && !me?.host}
-        >
-          <Plus />
-        </button>
-        <button
-          className="rail-action"
-          title="Entrar em sala"
-          onClick={() => void open("join")}
-        >
-          <LogIn />
-        </button>
-        <span className="rail-label">Voxy</span>
-      </nav>
-      <aside className="channel-panel">
-        <header className="server-header">
-          <div>
-            <small>Sua sala privada</small>
-            <h2>{server?.name ?? "Seu espaço"}</h2>
-          </div>
-          {server && (
-            <button
-              title="Gerenciar servidor e canais"
-              onClick={() => void open("manage")}
-            >
-              <MoreHorizontal />
-            </button>
-          )}
-        </header>
-        <div className="channel-scroll">
-          {online ? (
-            <>
-              <div className="room-badge">
-                <i className="status-dot" /> {room.participants.length}/
-                {MAX_PARTICIPANTS} amigos conectados
-              </div>
-              {(["text", "voice"] as const).map((type) => (
-                <section className="channel-group" key={type}>
-                  <div className="category">
-                    <span>
-                      {type === "text" ? "Conversas" : "Salas de voz"}
-                    </span>
-                    {me?.host && (
-                      <button
-                        title={
-                          "Criar canal de " +
-                          (type === "voice" ? "voz" : "texto")
-                        }
-                        onClick={() => {
-                          setKind(type);
-                          void open("channel");
-                        }}
-                      >
-                        <Plus size={16} />
-                      </button>
-                    )}
-                  </div>
-                  {room.channels
-                    .filter((c) => c.serverId === serverId && c.kind === type)
-                    .map((c) => (
-                      <div key={c.id}>
-                        <button
-                          className={
-                            "channel " +
-                            (c.id === channelId ? "active" : "") +
-                            (c.id === me?.channelId ? " connected-channel" : "")
-                          }
-                          onClick={() =>
-                            c.kind === "voice"
-                              ? void joinVoice(c)
-                              : setChannelId(c.id)
-                          }
-                        >
-                          {type === "text" ? (
-                            <Hash size={20} />
-                          ) : (
-                            <Volume2 size={20} />
-                          )}
-                          <span>{c.name}</span>
-                        </button>
-                        {type === "voice" &&
-                          room.participants
-                            .filter((p) => p.channelId === c.id)
-                            .map((p) => (
-                              <div className="channel-person" key={p.id}>
-                                <Avatar
-                                  avatar={p.profile.avatar}
-                                  className={
-                                    "mini-avatar " +
-                                    (media.speaking.has(p.id) ? "speaking" : "")
-                                  }
-                                />
-                                <span>{p.profile.name}</span>
-                                {p.sharing && (
-                                  <span className="live-label">Tela</span>
-                                )}
-                                {p.muted && <MicOff size={13} />}
-                              </div>
-                            ))}
-                      </div>
-                    ))}
-                </section>
+            <h3>{notes.title}</h3>
+            <ul className="release-list">
+              {notes.items.map((item) => (
+                <li key={item}>{item}</li>
               ))}
-            </>
-          ) : (
-            <div className="sidebar-empty">
-              <Radio size={32} />
-              <h3>Perto, mesmo de longe.</h3>
-              <p>Hospede uma sala e traga seus amigos pela rede privada.</p>
-              <button className="primary" onClick={() => void open("host")}>
-                Hospedar sala
+            </ul>
+            <button
+              className="primary"
+              disabled={busy}
+              onClick={() =>
+                void run(async () => {
+                  await window.voxy.markReleaseNotes(notes.version);
+                  setNotes(null);
+                })
+              }
+            >
+              Entendi, vamos lá
+            </button>
+            {error && (
+              <p role="alert" className="modal-error">
+                {error}
+              </p>
+            )}
+          </Modal>
+        )}
+        <nav className="server-rail" aria-label="Servidores">
+          <div className="brand" title="Voxy">
+            <AudioLines size={28} />
+          </div>
+          <div className="rail-divider" />
+          {room.servers.map((s) => (
+            <button
+              key={s.id}
+              className={"server-icon " + (s.id === serverId ? "selected" : "")}
+              title={s.name}
+              onClick={() => setServerId(s.id)}
+            >
+              {s.name.slice(0, 2).toUpperCase()}
+            </button>
+          ))}
+          <button
+            className="rail-action"
+            title={online ? "Criar servidor" : "Hospedar sala"}
+            onClick={() => void open(online ? "server" : "host")}
+            disabled={online && !me?.host}
+          >
+            <Plus />
+          </button>
+          <button
+            className="rail-action"
+            title="Entrar em sala"
+            onClick={() => void open("join")}
+          >
+            <LogIn />
+          </button>
+          <span className="rail-label">Voxy</span>
+        </nav>
+        <aside className="channel-panel">
+          <header className="server-header">
+            <div>
+              <small>Sua sala privada</small>
+              <h2>{server?.name ?? "Seu espaço"}</h2>
+            </div>
+            {server && (
+              <button
+                title="Gerenciar servidor e canais"
+                onClick={() => void open("manage")}
+              >
+                <MoreHorizontal />
               </button>
-              <button onClick={() => void open("join")}>
-                Entrar com convite
+            )}
+          </header>
+          <div className="channel-scroll">
+            {online ? (
+              <>
+                <div className="room-badge">
+                  <i className="status-dot" /> {room.participants.length}/
+                  {MAX_PARTICIPANTS} amigos conectados
+                </div>
+                {(["text", "voice"] as const).map((type) => (
+                  <section className="channel-group" key={type}>
+                    <div className="category">
+                      <span>
+                        {type === "text" ? "Conversas" : "Salas de voz"}
+                      </span>
+                      {me?.host && (
+                        <button
+                          title={
+                            "Criar canal de " +
+                            (type === "voice" ? "voz" : "texto")
+                          }
+                          onClick={() => {
+                            setKind(type);
+                            void open("channel");
+                          }}
+                        >
+                          <Plus size={16} />
+                        </button>
+                      )}
+                    </div>
+                    {room.channels
+                      .filter((c) => c.serverId === serverId && c.kind === type)
+                      .map((c) => (
+                        <div key={c.id}>
+                          <button
+                            className={
+                              "channel " +
+                              (c.id === channelId ? "active" : "") +
+                              (c.id === me?.channelId
+                                ? " connected-channel"
+                                : "")
+                            }
+                            onClick={() =>
+                              c.kind === "voice"
+                                ? void joinVoice(c)
+                                : setChannelId(c.id)
+                            }
+                          >
+                            {type === "text" ? (
+                              <Hash size={20} />
+                            ) : (
+                              <Volume2 size={20} />
+                            )}
+                            <span>{c.name}</span>
+                          </button>
+                          {type === "voice" &&
+                            room.participants
+                              .filter((p) => p.channelId === c.id)
+                              .map((p) => (
+                                <div
+                                  className="channel-person"
+                                  key={p.id}
+                                  onContextMenu={(e) => {
+                                    if (p.id !== selfId) {
+                                      e.preventDefault();
+                                      setParticipantAudio(p.id);
+                                    }
+                                  }}
+                                >
+                                  <Avatar
+                                    avatar={p.profile.avatar}
+                                    className={
+                                      "mini-avatar " +
+                                      (media.speaking.has(p.id)
+                                        ? "speaking"
+                                        : "")
+                                    }
+                                  />
+                                  <span>{p.profile.name}</span>
+                                  {p.sharing && (
+                                    <span className="live-label sidebar-live">
+                                      AO VIVO
+                                    </span>
+                                  )}
+                                  <ParticipantStatus
+                                    muted={p.muted}
+                                    deafened={p.deafened}
+                                    locallyMuted={
+                                      !!profile.mutedParticipants?.[
+                                        p.profile.id
+                                      ]
+                                    }
+                                  />
+                                </div>
+                              ))}
+                        </div>
+                      ))}
+                  </section>
+                ))}
+              </>
+            ) : (
+              <div className="sidebar-empty">
+                <Radio size={32} />
+                <h3>Perto, mesmo de longe.</h3>
+                <p>Hospede uma sala e traga seus amigos pela rede privada.</p>
+                <button className="primary" onClick={() => void open("host")}>
+                  Hospedar sala
+                </button>
+                <button onClick={() => void open("join")}>
+                  Entrar com convite
+                </button>
+              </div>
+            )}
+          </div>
+          {voice && (
+            <div className="voice-status">
+              <div>
+                <i className="status-dot" />
+                <strong>
+                  {peers.length < 2
+                    ? "No canal de voz"
+                    : media.diagnostics.length === peers.length - 1 &&
+                        media.diagnostics.every(
+                          (d) => d.connection === "connected",
+                        )
+                      ? "Voz conectada"
+                      : "Conectando áudio…"}
+                </strong>
+                <small>{voice.name}</small>
+                {profile.pttEnabled && (
+                  <small className={media.micOpen ? "ptt-open" : ""}>
+                    {media.micOpen
+                      ? "Falando"
+                      : "Segure " +
+                        PTT_KEYS[profile.pttKey ?? "KeyV"].label +
+                        " para falar"}{" "}
+                    · PTT
+                  </small>
+                )}
+              </div>
+              <button
+                title="Sair do canal de voz"
+                onClick={() => void run(leaveVoice)}
+              >
+                <PhoneOff size={19} />
               </button>
             </div>
           )}
-        </div>
-        {voice && (
-          <div className="voice-status">
-            <div>
-              <i className="status-dot" />
-              <strong>
-                {peers.length < 2
-                  ? "No canal de voz"
-                  : media.diagnostics.length === peers.length - 1 &&
-                      media.diagnostics.every(
-                        (d) => d.connection === "connected",
-                      )
-                    ? "Voz conectada"
-                    : "Conectando áudio…"}
-              </strong>
-              <small>{voice.name}</small>
-              {profile.pttEnabled && (
-                <small className={media.micOpen ? "ptt-open" : ""}>
-                  {media.micOpen
-                    ? "Falando"
-                    : "Segure " +
-                      PTT_KEYS[profile.pttKey ?? "KeyV"].label +
-                      " para falar"}{" "}
-                  · PTT
+          <footer className="profile-bar">
+            <button
+              className="profile-identity"
+              onClick={() => void open("profile")}
+              title="Editar perfil"
+            >
+              <Avatar avatar={profile.avatar} />
+              <span>
+                <strong>{profile.name}</strong>
+                <small>
+                  {online
+                    ? "Conectado"
+                    : status === "reconnecting"
+                      ? "Reconectando…"
+                      : "Desconectado"}
                 </small>
+              </span>
+            </button>
+            <button
+              className={muted ? "danger-text" : ""}
+              title={muted ? "Ativar microfone" : "Mutar microfone"}
+              onClick={() => void run(toggleMute)}
+            >
+              {muted ? <MicOff size={18} /> : <Mic size={18} />}
+            </button>
+            <button
+              title={deafened ? "Ouvir áudio" : "Silenciar áudio"}
+              onClick={() => void run(toggleDeafen)}
+            >
+              {deafened ? <HeadphoneOff size={18} /> : <Headphones size={18} />}
+            </button>
+            <button title="Configurações" onClick={() => void open("profile")}>
+              <Settings size={18} />
+            </button>
+          </footer>
+        </aside>
+        <main className="workspace">
+          <header className="workspace-header">
+            <div>
+              {channel?.kind === "voice" ? <Volume2 /> : <Hash />}
+              <strong>{channel?.name ?? "Bem-vindo ao Voxy"}</strong>
+              <span className="header-description">
+                {channel?.kind === "voice"
+                  ? "Converse. Mostre. Fique por perto."
+                  : "Um lugar só para vocês."}
+              </span>
+            </div>
+            <div>
+              <button
+                title="Diagnóstico de conexão"
+                onClick={() => void open("diagnostics")}
+              >
+                <Network size={19} />
+              </button>
+              {online && (
+                <button
+                  title="Desconectar da sala"
+                  onClick={() =>
+                    void run(async () => {
+                      engine.leave();
+                      await window.voxy.disconnect();
+                      setHostInfo(undefined);
+                    })
+                  }
+                >
+                  <LogOut size={19} />
+                </button>
               )}
             </div>
-            <button
-              title="Sair do canal de voz"
-              onClick={() => void run(leaveVoice)}
-            >
-              <PhoneOff size={19} />
-            </button>
-          </div>
-        )}
-        <footer className="profile-bar">
-          <button
-            className="profile-identity"
-            onClick={() => void open("profile")}
-            title="Editar perfil"
-          >
-            <Avatar avatar={profile.avatar} />
-            <span>
-              <strong>{profile.name}</strong>
-              <small>
-                {online
-                  ? "Conectado"
-                  : status === "reconnecting"
-                    ? "Reconectando…"
-                    : "Desconectado"}
-              </small>
-            </span>
-          </button>
-          <button
-            className={muted ? "danger-text" : ""}
-            title={muted ? "Ativar microfone" : "Mutar microfone"}
-            onClick={() => void run(toggleMute)}
-          >
-            {muted ? <MicOff size={18} /> : <Mic size={18} />}
-          </button>
-          <button
-            title={deafened ? "Ouvir áudio" : "Silenciar áudio"}
-            onClick={() => void run(toggleDeafen)}
-          >
-            {deafened ? <HeadphoneOff size={18} /> : <Headphones size={18} />}
-          </button>
-          <button title="Configurações" onClick={() => void open("profile")}>
-            <Settings size={18} />
-          </button>
-        </footer>
-      </aside>
-      <main className="workspace">
-        <header className="workspace-header">
-          <div>
-            {channel?.kind === "voice" ? <Volume2 /> : <Hash />}
-            <strong>{channel?.name ?? "Bem-vindo ao Voxy"}</strong>
-            <span className="header-description">
-              {channel?.kind === "voice"
-                ? "Converse. Mostre. Fique por perto."
-                : "Um lugar só para vocês."}
-            </span>
-          </div>
-          <div>
-            <button
-              title="Diagnóstico de conexão"
-              onClick={() => void open("diagnostics")}
-            >
-              <Network size={19} />
-            </button>
-            {online && (
+          </header>
+          {(error || media.error) && (
+            <div className="error-banner" role="alert">
+              <span>{error || media.error}</span>
+              {media.error.includes("Retomar") && (
+                <button onClick={() => engine.resumeAudio()}>
+                  Retomar áudio
+                </button>
+              )}
               <button
-                title="Desconectar da sala"
+                onClick={() => {
+                  setError("");
+                  engine.resumeAudio();
+                }}
+              >
+                Fechar aviso
+              </button>
+            </div>
+          )}
+          {!online ? (
+            <section className="welcome">
+              <div className="welcome-art">
+                <AudioLines size={70} />
+                <span className="orbit one" />
+                <span className="orbit two" />
+              </div>
+              <h1>
+                Seu grupo.
+                <br />
+                Sua frequência.
+              </h1>
+              <p>
+                Voz e tela para estar junto.
+                <br />
+                Uma sala no seu computador, um convite para os amigos.
+              </p>
+              <div className="welcome-actions">
+                <button className="primary" onClick={() => void open("host")}>
+                  <Radio size={18} /> Hospedar sala
+                </button>
+                <button className="secondary" onClick={() => void open("join")}>
+                  <LogIn size={18} /> Entrar em sala
+                </button>
+              </div>
+              <small>
+                Conecte os computadores ao Radmin VPN antes de começar.
+              </small>
+            </section>
+          ) : channel?.kind === "text" ? (
+            <Chat
+              key={channelId}
+              channelId={channelId}
+              name={channel.name}
+              messages={room.messages.filter((m) => m.channelId === channelId)}
+              busy={busy}
+              authorId={profile.id}
+              onEdit={(id, text) => command({ type: "message.edit", id, text })}
+              onDelete={(id) => command({ type: "message.delete", id })}
+              onSend={(text, image) =>
+                command({ type: "message", channelId, text, image })
+              }
+            />
+          ) : channel?.kind === "voice" ? (
+            <section className="call-view">
+              <div className="call-heading">
+                <div>
+                  <span className="eyebrow">Sala de voz</span>
+                  <h1>{channel.name}</h1>
+                </div>
+                <span className="people-count">
+                  <Users size={16} />
+                  {
+                    room.participants.filter((p) => p.channelId === channelId)
+                      .length
+                  }{" "}
+                  por aqui
+                </span>
+              </div>
+              {watched && me?.channelId === channelId ? (
+                <Player
+                  stream={
+                    watched.id === selfId
+                      ? media.local
+                      : media.streams.get(watched.id)
+                  }
+                  name={watched.profile.name}
+                  local={watched.id === selfId}
+                  deafened={deafened}
+                  output={profile.output}
+                  volume={profile.streamVolumes?.[watched.profile.id] ?? 1}
+                  onVolume={(v) => saveParticipantVolume(watched.id, v, true)}
+                  close={() => setWatch(null)}
+                />
+              ) : (
+                <div className="participant-grid">
+                  {room.participants
+                    .filter((p) => p.channelId === channelId)
+                    .map((p) => (
+                      <article
+                        onContextMenu={(e) => {
+                          if (p.id !== selfId) {
+                            e.preventDefault();
+                            setParticipantAudio(p.id);
+                          }
+                        }}
+                        key={p.id}
+                        className={
+                          "participant-card " +
+                          (media.speaking.has(p.id) ? "talking" : "")
+                        }
+                      >
+                        <Avatar
+                          className="large-avatar"
+                          avatar={p.profile.avatar}
+                        />
+                        <div className="participant-name">
+                          <span>
+                            {p.profile.name}
+                            {p.id === selfId ? " (você)" : ""}
+                          </span>
+                          <ParticipantStatus
+                            muted={p.muted}
+                            deafened={p.deafened}
+                            showMicrophone
+                            locallyMuted={
+                              !!profile.mutedParticipants?.[p.profile.id]
+                            }
+                          />
+                        </div>
+                        {p.sharing && (
+                          <button
+                            className="watch-button"
+                            onClick={() => setWatch(p.id)}
+                          >
+                            <MonitorUp size={16} /> Assistir à tela
+                          </button>
+                        )}
+                        {p.id !== selfId && p.channelId === me?.channelId && (
+                          <button
+                            className="local-mute-button"
+                            disabled={busy}
+                            onClick={() =>
+                              void run(() =>
+                                muteParticipant(
+                                  p.id,
+                                  !profile.mutedParticipants?.[p.profile.id],
+                                ),
+                              )
+                            }
+                          >
+                            {profile.mutedParticipants?.[p.profile.id]
+                              ? "Ouvir voz novamente"
+                              : "Mutar voz para mim"}
+                          </button>
+                        )}
+                        {p.id !== selfId && p.channelId === me?.channelId && (
+                          <label className="volume-control">
+                            Volume{" "}
+                            <input
+                              aria-label={"Volume de " + p.profile.name}
+                              type="range"
+                              min="0"
+                              max="1"
+                              step="0.05"
+                              value={profile.volumes?.[p.profile.id] ?? 1}
+                              onChange={(e) =>
+                                saveParticipantVolume(
+                                  p.id,
+                                  Number(e.target.value),
+                                )
+                              }
+                            />
+                          </label>
+                        )}
+                      </article>
+                    ))}
+                  {!room.participants.some(
+                    (p) => p.channelId === channelId,
+                  ) && (
+                    <div className="call-empty">
+                      <Headphones size={54} />
+                      <h2>Uma conversa começa com você.</h2>
+                      <p>Entre para falar e compartilhar sua tela.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              {me?.channelId === channelId && streams.length > 0 && (
+                <div className="stream-list">
+                  {streams.map((p) => (
+                    <button
+                      key={p.id}
+                      className={watch === p.id ? "active" : ""}
+                      onClick={() => setWatch(p.id)}
+                    >
+                      <MonitorUp size={16} />
+                      {p.profile.name}
+                      <span className="live-label">Ao vivo</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="call-controls">
+                {me?.channelId === channelId ? (
+                  <>
+                    <button
+                      className={"control " + (muted ? "muted" : "")}
+                      title={muted ? "Ativar microfone" : "Mutar microfone"}
+                      onClick={() => void run(toggleMute)}
+                    >
+                      {muted ? <MicOff /> : <Mic />}
+                    </button>
+                    <button
+                      className="control"
+                      title={deafened ? "Ouvir áudio" : "Silenciar áudio"}
+                      onClick={() => void run(toggleDeafen)}
+                    >
+                      {deafened ? <HeadphoneOff /> : <Headphones />}
+                    </button>
+                    <button
+                      className={
+                        "share-control " + (media.sharing ? "sharing" : "")
+                      }
+                      disabled={busy}
+                      onClick={() =>
+                        media.sharing
+                          ? void run(() => engine.stopShare())
+                          : void open("share")
+                      }
+                    >
+                      <MonitorUp size={21} />
+                      {media.sharing
+                        ? "Parar transmissão"
+                        : "Compartilhar tela"}
+                    </button>
+                    {media.sharing && (
+                      <select
+                        aria-label="Qualidade da transmissão"
+                        value={quality}
+                        onChange={(e) => {
+                          const q = e.target.value as Quality;
+                          setQuality(q);
+                          void run(() => engine.setQuality(q));
+                        }}
+                      >
+                        {Object.entries(qualities).map(([id, q]) => (
+                          <option key={id} value={id}>
+                            {q.height}p / {q.fps} FPS
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    <button
+                      className="control hangup"
+                      title="Sair do canal de voz"
+                      onClick={() => void run(leaveVoice)}
+                    >
+                      <PhoneOff />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    className="primary"
+                    disabled={busy}
+                    onClick={() => void joinVoice(channel)}
+                  >
+                    <Headphones size={20} />
+                    {busy ? "Conectando…" : "Entrar na conversa"}
+                  </button>
+                )}
+              </div>
+            </section>
+          ) : (
+            <div className="welcome">
+              <h1>Seu servidor está pronto.</h1>
+              <p>Crie um canal para começar.</p>
+              {me?.host && (
+                <button
+                  className="primary"
+                  onClick={() => void open("channel")}
+                >
+                  Criar canal
+                </button>
+              )}
+            </div>
+          )}
+          {online && hostInfo && (
+            <div className="invite-strip">
+              <Radio size={14} />
+              <span>
+                Você está hospedando em {hostInfo.address}:{hostInfo.port}
+              </span>
+              <button
                 onClick={() =>
-                  void run(async () => {
+                  void run(() => window.voxy.copy(hostInfo.invite))
+                }
+              >
+                <Copy size={14} /> Copiar convite
+              </button>
+            </div>
+          )}
+        </main>
+        {selectedParticipant && (
+          <Modal
+            title={"Áudio de " + selectedParticipant.profile.name}
+            close={() => setParticipantAudio(null)}
+          >
+            <p>
+              Esta opção muda somente o que você ouve. O áudio das transmissões
+              tem controle próprio no player.
+            </p>
+            <button
+              className="primary"
+              disabled={busy}
+              onClick={() =>
+                void run(async () => {
+                  await muteParticipant(
+                    selectedParticipant.id,
+                    !profile.mutedParticipants?.[
+                      selectedParticipant.profile.id
+                    ],
+                  );
+                  setParticipantAudio(null);
+                })
+              }
+            >
+              {profile.mutedParticipants?.[selectedParticipant.profile.id]
+                ? "Ouvir voz novamente"
+                : "Mutar voz para mim"}
+            </button>
+            {error && (
+              <p className="modal-error" role="alert">
+                {error}
+              </p>
+            )}
+          </Modal>
+        )}
+        {dialog && (
+          <Modal
+            title={
+              {
+                host: "Hospedar sua sala",
+                join: "Entrar em uma sala",
+                profile: "Seu perfil e áudio",
+                share: "Compartilhar sua tela",
+                server: "Criar servidor",
+                channel: "Criar canal",
+                manage: "Gerenciar este espaço",
+                diagnostics: "Diagnóstico de conexão",
+              }[dialog]
+            }
+            close={() => {
+              if (!busy) setDialog(null);
+            }}
+          >
+            {dialog === "host" && (
+              <form
+                onSubmit={(e) =>
+                  submit(e, async () => {
+                    const info = await window.voxy.host({
+                      address,
+                      port,
+                      name,
+                    });
+                    setHostInfo(info);
+                  })
+                }
+              >
+                <p>
+                  O computador precisa permanecer ligado. Seus amigos usam o
+                  convite e a mesma rede Radmin VPN.
+                </p>
+                <label>
+                  Nome do primeiro servidor
+                  <input
+                    required
+                    maxLength={60}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </label>
+                <label>
+                  Endereço de escuta
+                  <select
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                  >
+                    {addresses.map((a) => (
+                      <option key={a}>{a}</option>
+                    ))}
+                  </select>
+                </label>
+                <small>
+                  {address === "127.0.0.1"
+                    ? "Loopback: apenas este computador. Escolha o IP do Radmin VPN para seus amigos conectarem."
+                    : "Prefira o IP 26.x do Radmin VPN. Configure o firewall somente para os amigos."}
+                </small>
+                <label>
+                  Porta
+                  <input
+                    type="number"
+                    min={1024}
+                    max={65535}
+                    value={port}
+                    onChange={(e) => setPort(Number(e.target.value))}
+                  />
+                </label>
+                <button className="primary" disabled={busy || !name.trim()}>
+                  {busy ? "Iniciando…" : "Criar sala / Hospedar servidor"}
+                </button>
+              </form>
+            )}
+            {dialog === "join" && (
+              <form
+                onSubmit={(e) =>
+                  submit(e, async () => {
                     engine.leave();
-                    await window.voxy.disconnect();
+                    await window.voxy.saveProfile(profile);
+                    await window.voxy.connect(invite.trim());
                     setHostInfo(undefined);
                   })
                 }
               >
-                <LogOut size={19} />
-              </button>
+                <p>
+                  Peça o convite ao host. Os dois computadores devem estar
+                  conectados ao Radmin VPN.
+                </p>
+                <label>
+                  Seu nome
+                  <input
+                    value={profile.name}
+                    maxLength={60}
+                    required
+                    onChange={(e) =>
+                      setProfile({ ...profile, name: e.target.value })
+                    }
+                  />
+                </label>
+                <label>
+                  Convite
+                  <input
+                    value={invite}
+                    required
+                    maxLength={400}
+                    placeholder="voxy://26.x.x.x:43120/segredo"
+                    onChange={(e) => setInvite(e.target.value)}
+                  />
+                </label>
+                <button className="primary" disabled={busy}>
+                  {busy ? "Conectando…" : "Conectar à sala"}
+                </button>
+              </form>
             )}
-          </div>
-        </header>
-        {(error || media.error) && (
-          <div className="error-banner" role="alert">
-            <span>{error || media.error}</span>
-            {media.error.includes("Retomar") && (
-              <button onClick={() => engine.resumeAudio()}>
-                Retomar áudio
-              </button>
-            )}
-            <button
-              onClick={() => {
-                setError("");
-                engine.resumeAudio();
-              }}
-            >
-              Fechar aviso
-            </button>
-          </div>
-        )}
-        {!online ? (
-          <section className="welcome">
-            <div className="welcome-art">
-              <AudioLines size={70} />
-              <span className="orbit one" />
-              <span className="orbit two" />
-            </div>
-            <h1>
-              Seu grupo.
-              <br />
-              Sua frequência.
-            </h1>
-            <p>
-              Voz e tela para estar junto.
-              <br />
-              Uma sala no seu computador, um convite para os amigos.
-            </p>
-            <div className="welcome-actions">
-              <button className="primary" onClick={() => void open("host")}>
-                <Radio size={18} /> Hospedar sala
-              </button>
-              <button className="secondary" onClick={() => void open("join")}>
-                <LogIn size={18} /> Entrar em sala
-              </button>
-            </div>
-            <small>
-              Conecte os computadores ao Radmin VPN antes de começar.
-            </small>
-          </section>
-        ) : channel?.kind === "text" ? (
-          <Chat
-            key={channelId}
-            channelId={channelId}
-            name={channel.name}
-            messages={room.messages.filter((m) => m.channelId === channelId)}
-            busy={busy}
-            onSend={(text, image) =>
-              command({ type: "message", channelId, text, image })
-            }
-          />
-        ) : channel?.kind === "voice" ? (
-          <section className="call-view">
-            <div className="call-heading">
-              <div>
-                <span className="eyebrow">Sala de voz</span>
-                <h1>{channel.name}</h1>
-              </div>
-              <span className="people-count">
-                <Users size={16} />
-                {
-                  room.participants.filter((p) => p.channelId === channelId)
-                    .length
-                }{" "}
-                por aqui
-              </span>
-            </div>
-            {watched && me?.channelId === channelId ? (
-              <Player
-                stream={
-                  watched.id === selfId
-                    ? media.local
-                    : media.streams.get(watched.id)
-                }
-                name={watched.profile.name}
-                local={watched.id === selfId}
-                deafened={deafened}
-                output={profile.output}
-                volume={profile.streamVolumes?.[watched.profile.id] ?? 1}
-                onVolume={(v) => saveParticipantVolume(watched.id, v, true)}
-                close={() => setWatch(null)}
+            {dialog === "profile" && (
+              <ProfileForm
+                profile={profile}
+                setProfile={setProfile}
+                devices={devices}
+                inputLevel={media.micLevelDb}
+                busy={busy}
+                onSave={() => void run(() => savePreferences(profile), true)}
               />
-            ) : (
-              <div className="participant-grid">
-                {room.participants
-                  .filter((p) => p.channelId === channelId)
-                  .map((p) => (
-                    <article
-                      key={p.id}
-                      className={
-                        "participant-card " +
-                        (media.speaking.has(p.id) ? "talking" : "")
+            )}
+            {dialog === "share" && (
+              <ShareForm
+                sources={sources}
+                source={source}
+                setSource={setSource}
+                quality={quality}
+                setQuality={setQuality}
+                systemAudio={systemAudio}
+                setSystemAudio={setSystemAudio}
+                busy={busy}
+                onShare={() =>
+                  void run(async () => {
+                    await engine.share(source, systemAudio, quality);
+                    setWatch(selfId);
+                  }, true)
+                }
+              />
+            )}
+            {(dialog === "server" || dialog === "channel") && (
+              <form
+                onSubmit={(e) =>
+                  submit(e, () =>
+                    dialog === "server"
+                      ? command({ type: "server.create", name })
+                      : command({
+                          type: "channel.create",
+                          serverId,
+                          name,
+                          kind,
+                        }),
+                  )
+                }
+              >
+                <label>
+                  Nome
+                  <input
+                    required
+                    maxLength={60}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    autoFocus
+                  />
+                </label>
+                {dialog === "channel" && (
+                  <label>
+                    Tipo
+                    <select
+                      value={kind}
+                      onChange={(e) =>
+                        setKind(e.target.value as "text" | "voice")
                       }
                     >
-                      <Avatar
-                        className="large-avatar"
-                        avatar={p.profile.avatar}
-                      />
-                      <div className="participant-name">
-                        <span>
-                          {p.profile.name}
-                          {p.id === selfId ? " (você)" : ""}
-                        </span>
-                        {p.muted ? <MicOff size={16} /> : <Mic size={16} />}
-                      </div>
-                      {p.sharing && (
-                        <button
-                          className="watch-button"
-                          onClick={() => setWatch(p.id)}
-                        >
-                          <MonitorUp size={16} /> Assistir à tela
-                        </button>
-                      )}
-                      {p.id !== selfId && p.channelId === me?.channelId && (
-                        <label className="volume-control">
-                          Volume{" "}
-                          <input
-                            aria-label={"Volume de " + p.profile.name}
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.05"
-                            value={profile.volumes?.[p.profile.id] ?? 1}
-                            onChange={(e) =>
-                              saveParticipantVolume(
-                                p.id,
-                                Number(e.target.value),
-                              )
-                            }
-                          />
-                        </label>
-                      )}
-                    </article>
-                  ))}
-                {!room.participants.some((p) => p.channelId === channelId) && (
-                  <div className="call-empty">
-                    <Headphones size={54} />
-                    <h2>Uma conversa começa com você.</h2>
-                    <p>Entre para falar e compartilhar sua tela.</p>
-                  </div>
-                )}
-              </div>
-            )}
-            {me?.channelId === channelId && streams.length > 0 && (
-              <div className="stream-list">
-                {streams.map((p) => (
-                  <button
-                    key={p.id}
-                    className={watch === p.id ? "active" : ""}
-                    onClick={() => setWatch(p.id)}
-                  >
-                    <MonitorUp size={16} />
-                    {p.profile.name}
-                    <span className="live-label">Ao vivo</span>
-                  </button>
-                ))}
-              </div>
-            )}
-            <div className="call-controls">
-              {me?.channelId === channelId ? (
-                <>
-                  <button
-                    className={"control " + (muted ? "muted" : "")}
-                    title={muted ? "Ativar microfone" : "Mutar microfone"}
-                    onClick={() => void run(toggleMute)}
-                  >
-                    {muted ? <MicOff /> : <Mic />}
-                  </button>
-                  <button
-                    className="control"
-                    title={deafened ? "Ouvir áudio" : "Silenciar áudio"}
-                    onClick={() => void run(toggleDeafen)}
-                  >
-                    {deafened ? <HeadphoneOff /> : <Headphones />}
-                  </button>
-                  <button
-                    className={
-                      "share-control " + (media.sharing ? "sharing" : "")
-                    }
-                    disabled={busy}
-                    onClick={() =>
-                      media.sharing
-                        ? void run(() => engine.stopShare())
-                        : void open("share")
-                    }
-                  >
-                    <MonitorUp size={21} />
-                    {media.sharing ? "Parar transmissão" : "Compartilhar tela"}
-                  </button>
-                  {media.sharing && (
-                    <select
-                      aria-label="Qualidade da transmissão"
-                      value={quality}
-                      onChange={(e) => {
-                        const q = e.target.value as Quality;
-                        setQuality(q);
-                        void run(() => engine.setQuality(q));
-                      }}
-                    >
-                      {Object.entries(qualities).map(([id, q]) => (
-                        <option key={id} value={id}>
-                          {q.height}p / {q.fps} FPS
-                        </option>
-                      ))}
+                      <option value="voice">Voz</option>
+                      <option value="text">Texto</option>
                     </select>
-                  )}
-                  <button
-                    className="control hangup"
-                    title="Sair do canal de voz"
-                    onClick={() => void run(leaveVoice)}
-                  >
-                    <PhoneOff />
-                  </button>
-                </>
-              ) : (
-                <button
-                  className="primary"
-                  disabled={busy}
-                  onClick={() => void joinVoice(channel)}
-                >
-                  <Headphones size={20} />
-                  {busy ? "Conectando…" : "Entrar na conversa"}
+                  </label>
+                )}
+                <button className="primary" disabled={busy || !name.trim()}>
+                  Criar {dialog === "server" ? "servidor" : "canal"}
                 </button>
-              )}
-            </div>
-          </section>
-        ) : (
-          <div className="welcome">
-            <h1>Seu servidor está pronto.</h1>
-            <p>Crie um canal para começar.</p>
-            {me?.host && (
-              <button className="primary" onClick={() => void open("channel")}>
-                Criar canal
-              </button>
+              </form>
             )}
-          </div>
-        )}
-        {online && hostInfo && (
-          <div className="invite-strip">
-            <Radio size={14} />
-            <span>
-              Você está hospedando em {hostInfo.address}:{hostInfo.port}
-            </span>
-            <button
-              onClick={() => void run(() => window.voxy.copy(hostInfo.invite))}
-            >
-              <Copy size={14} /> Copiar convite
-            </button>
-          </div>
-        )}
-      </main>
-      {dialog && (
-        <Modal
-          title={
-            {
-              host: "Hospedar sua sala",
-              join: "Entrar em uma sala",
-              profile: "Seu perfil e áudio",
-              share: "Compartilhar sua tela",
-              server: "Criar servidor",
-              channel: "Criar canal",
-              manage: "Gerenciar este espaço",
-              diagnostics: "Diagnóstico de conexão",
-            }[dialog]
-          }
-          close={() => {
-            if (!busy) setDialog(null);
-          }}
-        >
-          {dialog === "host" && (
-            <form
-              onSubmit={(e) =>
-                submit(e, async () => {
-                  const info = await window.voxy.host({ address, port, name });
-                  setHostInfo(info);
-                })
-              }
-            >
-              <p>
-                O computador precisa permanecer ligado. Seus amigos usam o
-                convite e a mesma rede Radmin VPN.
-              </p>
-              <label>
-                Nome do primeiro servidor
-                <input
-                  required
-                  maxLength={60}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </label>
-              <label>
-                Endereço de escuta
-                <select
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                >
-                  {addresses.map((a) => (
-                    <option key={a}>{a}</option>
-                  ))}
-                </select>
-              </label>
-              <small>
-                {address === "127.0.0.1"
-                  ? "Loopback: apenas este computador. Escolha o IP do Radmin VPN para seus amigos conectarem."
-                  : "Prefira o IP 26.x do Radmin VPN. Configure o firewall somente para os amigos."}
-              </small>
-              <label>
-                Porta
-                <input
-                  type="number"
-                  min={1024}
-                  max={65535}
-                  value={port}
-                  onChange={(e) => setPort(Number(e.target.value))}
-                />
-              </label>
-              <button className="primary" disabled={busy || !name.trim()}>
-                {busy ? "Iniciando…" : "Criar sala / Hospedar servidor"}
-              </button>
-            </form>
-          )}
-          {dialog === "join" && (
-            <form
-              onSubmit={(e) =>
-                submit(e, async () => {
-                  engine.leave();
-                  await window.voxy.saveProfile(profile);
-                  await window.voxy.connect(invite.trim());
-                  setHostInfo(undefined);
-                })
-              }
-            >
-              <p>
-                Peça o convite ao host. Os dois computadores devem estar
-                conectados ao Radmin VPN.
-              </p>
-              <label>
-                Seu nome
-                <input
-                  value={profile.name}
-                  maxLength={60}
-                  required
-                  onChange={(e) =>
-                    setProfile({ ...profile, name: e.target.value })
-                  }
-                />
-              </label>
-              <label>
-                Convite
-                <input
-                  value={invite}
-                  required
-                  maxLength={400}
-                  placeholder="voxy://26.x.x.x:43120/segredo"
-                  onChange={(e) => setInvite(e.target.value)}
-                />
-              </label>
-              <button className="primary" disabled={busy}>
-                {busy ? "Conectando…" : "Conectar à sala"}
-              </button>
-            </form>
-          )}
-          {dialog === "profile" && (
-            <ProfileForm
-              profile={profile}
-              setProfile={setProfile}
-              devices={devices}
-              busy={busy}
-              onSave={() => void run(() => savePreferences(profile), true)}
-            />
-          )}
-          {dialog === "share" && (
-            <ShareForm
-              sources={sources}
-              source={source}
-              setSource={setSource}
-              quality={quality}
-              setQuality={setQuality}
-              systemAudio={systemAudio}
-              setSystemAudio={setSystemAudio}
-              busy={busy}
-              onShare={() =>
-                void run(async () => {
-                  await engine.share(source, systemAudio, quality);
-                  setWatch(selfId);
-                }, true)
-              }
-            />
-          )}
-          {(dialog === "server" || dialog === "channel") && (
-            <form
-              onSubmit={(e) =>
-                submit(e, () =>
-                  dialog === "server"
-                    ? command({ type: "server.create", name })
-                    : command({ type: "channel.create", serverId, name, kind }),
-                )
-              }
-            >
-              <label>
-                Nome
-                <input
-                  required
-                  maxLength={60}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  autoFocus
-                />
-              </label>
-              {dialog === "channel" && (
-                <label>
-                  Tipo
-                  <select
-                    value={kind}
-                    onChange={(e) =>
-                      setKind(e.target.value as "text" | "voice")
-                    }
-                  >
-                    <option value="voice">Voz</option>
-                    <option value="text">Texto</option>
-                  </select>
-                </label>
-              )}
-              <button className="primary" disabled={busy || !name.trim()}>
-                Criar {dialog === "server" ? "servidor" : "canal"}
-              </button>
-            </form>
-          )}
-          {dialog === "manage" && (
-            <div className="manage-list">
-              <p>
-                {me?.host
-                  ? "Renomeie ou exclua os espaços da sala. Excluir também remove seu histórico."
-                  : "Somente o host pode editar estes espaços."}
-              </p>
-              {server && (
-                <ManageRow
-                  name={server.name}
-                  disabled={!me?.host || busy}
-                  rename={(name) =>
-                    run(() =>
-                      command({ type: "server.rename", id: server.id, name }),
-                    )
-                  }
-                  remove={() =>
-                    run(
-                      () => command({ type: "server.delete", id: server.id }),
-                      true,
-                    )
-                  }
-                />
-              )}
-              <hr />
-              {room.channels
-                .filter((c) => c.serverId === serverId)
-                .map((c) => (
+            {dialog === "manage" && (
+              <div className="manage-list">
+                <p>
+                  {me?.host
+                    ? "Renomeie ou exclua os espaços da sala. Excluir também remove seu histórico."
+                    : "Somente o host pode editar estes espaços."}
+                </p>
+                {server && (
                   <ManageRow
-                    key={c.id}
-                    name={c.name}
+                    name={server.name}
                     disabled={!me?.host || busy}
                     rename={(name) =>
                       run(() =>
-                        command({ type: "channel.rename", id: c.id, name }),
+                        command({ type: "server.rename", id: server.id, name }),
                       )
                     }
                     remove={() =>
-                      run(() => command({ type: "channel.delete", id: c.id }))
+                      run(
+                        () => command({ type: "server.delete", id: server.id }),
+                        true,
+                      )
                     }
                   />
-                ))}
-            </div>
-          )}
-          {dialog === "diagnostics" && (
-            <div className="diagnostics">
-              <p>
-                Sinalização: <strong>{status}</strong>. Mídia direta, sem
-                STUN/TURN público.
-              </p>
-              {media.diagnostics.map((d) => (
-                <article key={d.id}>
-                  <h3>
-                    {room.participants.find((p) => p.id === d.id)?.profile.name}
-                  </h3>
-                  <dl>
-                    {Object.entries(d)
-                      .filter(([key]) => key !== "id")
-                      .map(([key, v]) => (
-                        <div key={key}>
-                          <dt>{key}</dt>
-                          <dd>
-                            {v ?? "—"}
-                            {key === "rtt"
-                              ? " ms"
-                              : key === "kbps"
-                                ? " kbps"
-                                : ""}
-                          </dd>
-                        </div>
-                      ))}
-                  </dl>
-                </article>
-              ))}
-              {!media.diagnostics.length && (
+                )}
+                <hr />
+                {room.channels
+                  .filter((c) => c.serverId === serverId)
+                  .map((c) => (
+                    <ManageRow
+                      key={c.id}
+                      name={c.name}
+                      disabled={!me?.host || busy}
+                      rename={(name) =>
+                        run(() =>
+                          command({ type: "channel.rename", id: c.id, name }),
+                        )
+                      }
+                      remove={() =>
+                        run(() => command({ type: "channel.delete", id: c.id }))
+                      }
+                    />
+                  ))}
+              </div>
+            )}
+            {dialog === "diagnostics" && (
+              <div className="diagnostics">
                 <p>
-                  Entre no mesmo canal de voz que um amigo para medir a mídia.
+                  Sinalização: <strong>{status}</strong>. Mídia direta, sem
+                  STUN/TURN público.
                 </p>
-              )}
-              <p className="hint">
-                ICE failed: verifique Radmin VPN, ACL e firewall UDP. Sem
-                conexão direta, este MVP não oferece relay. Reconectar a
-                sinalização exige entrar novamente no canal de voz.
+                {media.diagnostics.map((d) => (
+                  <article key={d.id}>
+                    <h3>
+                      {
+                        room.participants.find((p) => p.id === d.id)?.profile
+                          .name
+                      }
+                    </h3>
+                    <dl>
+                      {Object.entries(d)
+                        .filter(([key]) => key !== "id")
+                        .map(([key, v]) => (
+                          <div key={key}>
+                            <dt>{key}</dt>
+                            <dd>
+                              {v ?? "—"}
+                              {key === "rtt"
+                                ? " ms"
+                                : key === "kbps"
+                                  ? " kbps"
+                                  : ""}
+                            </dd>
+                          </div>
+                        ))}
+                    </dl>
+                  </article>
+                ))}
+                {!media.diagnostics.length && (
+                  <p>
+                    Entre no mesmo canal de voz que um amigo para medir a mídia.
+                  </p>
+                )}
+                <p className="hint">
+                  ICE failed: verifique Radmin VPN, ACL e firewall UDP. Sem
+                  conexão direta, este MVP não oferece relay. Reconectar a
+                  sinalização exige entrar novamente no canal de voz.
+                </p>
+              </div>
+            )}
+            {error && (
+              <p className="modal-error" role="alert">
+                {error}
               </p>
-            </div>
-          )}
-          {error && (
-            <p className="modal-error" role="alert">
-              {error}
-            </p>
-          )}
-        </Modal>
-      )}
-    </div>
+            )}
+          </Modal>
+        )}
+      </div>
+    </AvatarImages.Provider>
   );
 }

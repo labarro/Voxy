@@ -200,6 +200,8 @@ app.whenReady().then(async () => {
       nodeIntegration: false,
       sandbox: true,
       webSecurity: true,
+      // Voice detection timers must keep running while minimized or in a game.
+      backgroundThrottling: false,
     },
   });
   win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
@@ -310,6 +312,7 @@ app.whenReady().then(async () => {
       id: profile.id,
       volumes: profile.volumes,
       streamVolumes: profile.streamVolumes,
+      mutedParticipants: profile.mutedParticipants,
     };
     saveProfile();
     updatePtt();
@@ -331,6 +334,14 @@ app.whenReady().then(async () => {
       .parse(raw);
     const key = v.stream ? "streamVolumes" : "volumes";
     profile[key] = { ...profile[key], [v.id]: v.value };
+    saveProfile();
+  });
+  handle("setParticipantMuted", (raw) => {
+    const v = z.object({ id: z.uuid(), muted: z.boolean() }).parse(raw);
+    profile.mutedParticipants = {
+      ...profile.mutedParticipants,
+      [v.id]: v.muted,
+    };
     saveProfile();
   });
   handle("image", async (raw) => {

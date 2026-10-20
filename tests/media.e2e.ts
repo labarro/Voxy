@@ -155,10 +155,28 @@ async function main() {
       if (!peer.audio.muted || !peer.systemAudio.muted)
         throw Error("Deafen failed");
       w.engine.setDeafened(false);
+      w.engine.setWatching("1");
+      w.engine.muteParticipant("1", true);
+      if (
+        !peer.audio.muted ||
+        peer.systemAudio.muted ||
+        peer.audio.volume !== 0.35
+      )
+        throw Error(
+          "Local mute must only silence that voice and preserve volumes",
+        );
+      w.engine.setDeafened(true);
+      w.engine.setDeafened(false);
+      if (!peer.audio.muted || peer.systemAudio.muted)
+        throw Error("Local mute lost after deafen");
+      if (w.engine.peers.get("2").audio.muted)
+        throw Error("Local mute affected another voice");
+      w.engine.muteParticipant("1", false);
+      if (peer.audio.muted) throw Error("Local unmute failed");
       w.engine.configurePreferences({ ...prefs, pttEnabled: false });
     });
     results.push(
-      "PTT abre/fecha a track; mute tem prioridade; voz e transmissão têm volumes independentes.",
+      "PTT abre/fecha a track; mute tem prioridade; volumes independentes; mute local isola uma voz e sobrevive a deafen.",
     );
     for (let cycle = 0; cycle < 2; cycle++) {
       // Only the capture source is substituted in this test. The production engine, SDP, ICE and RTP are unchanged.
@@ -190,23 +208,46 @@ async function main() {
             (window as any).view.streams.get("0")?.getVideoTracks().length ===
             1,
         );
-        const frame = await page.evaluate(async () => {
+        const frame = await page.evaluate(async (cycle) => {
           const stream = (window as any).view.streams.get("0");
           const v = document.createElement("video");
           v.muted = true;
           v.srcObject = stream;
           await v.play();
-          await new Promise<void>((r) =>
-            v.requestVideoFrameCallback(() => r()),
-          );
           const c = document.createElement("canvas");
           c.width = 1;
           c.height = 1;
-          c.getContext("2d")!.drawImage(v, 600, 300, 1, 1, 0, 0, 1, 1);
-          const pixel = [...c.getContext("2d")!.getImageData(0, 0, 1, 1).data];
-          v.srcObject = null;
-          return pixel;
-        });
+          let callback = 0;
+          try {
+            return await new Promise<number[]>((resolve, reject) => {
+              const timeout = setTimeout(() => {
+                v.cancelVideoFrameCallback(callback);
+                reject(Error("Novos pixels não chegaram em 10 segundos"));
+              }, 10000);
+              const next = () => {
+                callback = v.requestVideoFrameCallback(() => {
+                  c.getContext("2d")!.drawImage(v, 600, 300, 1, 1, 0, 0, 1, 1);
+                  const pixel = [
+                    ...c.getContext("2d")!.getImageData(0, 0, 1, 1).data,
+                  ];
+                  // replaceTrack can initially deliver a frame buffered from the previous source.
+                  if (
+                    cycle
+                      ? pixel[0] > 180 && pixel[2] < 150
+                      : pixel[2] > 180 && pixel[0] < 150
+                  ) {
+                    clearTimeout(timeout);
+                    resolve(pixel);
+                  } else next();
+                });
+              };
+              next();
+            });
+          } finally {
+            v.pause();
+            v.srcObject = null;
+          }
+        }, cycle);
         assert(
           cycle
             ? frame[0] > 180 && frame[2] < 150
@@ -321,6 +362,85 @@ async function main() {
     results.push("3 ciclos de saída/reentrada com reconexão dos pares.");
     results.push(
       "Sons distintos de saída/entrada gerados; opção desativada e deafen impedem os efeitos.",
+    );
+    for (const page of pages)
+      await page.evaluate(() => {
+        const w = window as any;
+        w.engine.setDeafened(false);
+        w.engine.configurePreferences({ callSounds: true });
+        w.shareSounds = [];
+        const ctx = w.engine.context;
+        const original = ctx.createOscillator.bind(ctx);
+        ctx.createOscillator = () => {
+          const osc = original(),
+            start = osc.start.bind(osc);
+          osc.start = (time: number) => {
+            w.shareSounds.push(osc.frequency.value);
+            start(time);
+          };
+          return osc;
+        };
+      });
+    const screenState = participants.map((p, i) => ({
+      ...p,
+      sharing: i === 2,
+    }));
+    for (let i = 0; i < pages.length; i++) {
+      const page = pages[i];
+      await page.evaluate(
+        ({ screenState, participants, i }) => {
+          const w = window as any;
+          w.engine.sync(screenState, String(i));
+          w.engine.sync(screenState, String(i)); // repeated snapshots must not replay
+          w.engine.sync(participants, String(i));
+          w.engine.sync(
+            [
+              ...participants,
+              {
+                ...participants[0],
+                id: "outside",
+                sharing: true,
+                channelId: "other",
+              },
+            ],
+            String(i),
+          );
+        },
+        { screenState, participants, i },
+      );
+      const sounds = await page.evaluate(() => (window as any).shareSounds);
+      assert.deepEqual(sounds, [660, 880]);
+      await page.evaluate(
+        ({ screenState, participants, i }) => {
+          const w = window as any;
+          w.engine.configurePreferences({ callSounds: false });
+          w.engine.sync(screenState, String(i));
+          w.engine.sync(participants, String(i));
+          w.engine.configurePreferences({ callSounds: true });
+          w.engine.setDeafened(true);
+          w.engine.sync(screenState, String(i));
+          w.engine.sync(participants, String(i));
+          w.engine.setDeafened(false);
+          w.engine.sync(screenState, String(i));
+        },
+        { screenState, participants, i },
+      );
+      assert.deepEqual(
+        await page.evaluate(() => (window as any).shareSounds),
+        [660, 880, 660, 880],
+      );
+    }
+    for (let i = 0; i < pages.length; i++)
+      await pages[i].evaluate(
+        ({ participants, i }) => {
+          const w = window as any;
+          w.engine.configurePreferences({ callSounds: false });
+          w.engine.sync(participants, String(i));
+        },
+        { participants, i },
+      );
+    results.push(
+      "Início de transmissão notifica os dez participantes, incluindo o transmissor, uma vez por transição.",
     );
     for (const page of pages)
       await page.evaluate(() => {

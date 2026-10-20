@@ -11,8 +11,10 @@ async function main() {
   );
   delete env.ELECTRON_RUN_AS_NODE;
   env.VOXY_DATA_DIR = resolve(`test-results/packaged-${Date.now()}`);
-  const {version}=JSON.parse(readFileSync('package.json','utf8'));
-  const { directory } = JSON.parse(readFileSync(`release/${version}/latest-build.json`, "utf8"));
+  const { version } = JSON.parse(readFileSync("package.json", "utf8"));
+  const { directory } = JSON.parse(
+    readFileSync(`release/${version}/latest-build.json`, "utf8"),
+  );
   const executablePath = resolve(directory, "win-unpacked/Voxy.exe");
   for (let cycle = 0; cycle < 2; cycle++) {
     const app = await electron.launch({ executablePath, args: [], env });
@@ -34,15 +36,23 @@ async function main() {
       const info = await page.evaluate(async (cycle) => {
         const p = await window.voxy.profile();
         if (cycle === 0) {
+          const canvas = document.createElement("canvas");
+          canvas.width = canvas.height = 64;
+          canvas.getContext("2d")!.fillRect(0, 0, 64, 64);
           await window.voxy.saveProfile({
             ...p,
             name: "Perfil persistido",
+            avatar: canvas.toDataURL("image/png"),
             pttEnabled: true,
-            pttKey: "F9",
+            pttKey: "KeyQ",
+            inputVolume: 0.65,
+            voiceDetection: true,
+            voiceThreshold: -38,
             callSounds: false,
           });
           await window.voxy.setVolume(p.id, 0.35, false);
           await window.voxy.setVolume(p.id, 0.15, true);
+          await window.voxy.setParticipantMuted(p.id, true);
         }
         const info = await window.voxy.host({
           address: "127.0.0.1",
@@ -53,8 +63,13 @@ async function main() {
       }, cycle);
       if (cycle === 1) {
         assert.equal(info.p.name, "Perfil persistido");
+        assert(info.p.avatar.startsWith("data:image/png;base64,"));
         assert.equal(info.p.pttEnabled, true);
-        assert.equal(info.p.pttKey, "F9");
+        assert.equal(info.p.pttKey, "KeyQ");
+        assert.equal(info.p.inputVolume, 0.65);
+        assert.equal(info.p.voiceDetection, true);
+        assert.equal(info.p.voiceThreshold, -38);
+        assert.equal(info.p.mutedParticipants?.[info.p.id], true);
         assert.equal(info.p.callSounds, false);
         assert.equal(info.p.volumes?.[info.p.id], 0.35);
         assert.equal(info.p.streamVolumes?.[info.p.id], 0.15);

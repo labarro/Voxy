@@ -1,0 +1,75 @@
+{
+  "name": "voxy-desktop",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Voz e tela entre amigos pela sua rede privada",
+  "author": "Voxy",
+  "license": "MIT",
+  "main": "dist/main/index.cjs",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "tsc --noEmit && node scripts/build.mjs",
+    "start": "electron .",
+    "test": "tsx --test tests/*.test.ts",
+    "test:media": "tsx tests/media.e2e.ts",
+    "test:desktop": "tsx tests/desktop.e2e.ts",
+    "dist": "npm run build && node scripts/package.mjs",
+    "pack": "npm run build && node scripts/package.mjs --dir",
+    "format": "prettier --write src tests scripts vite.config.mts",
+    "test:packaged": "tsx tests/packaged.e2e.ts",
+    "test:dev": "tsx tests/dev.e2e.ts",
+    "test:ptt": "tsx tests/pushToTalk.e2e.ts"
+  },
+  "dependencies": {
+    "lucide-react": "^0.468.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
+    "sql.js": "^1.13.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "latest",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/sql.js": "^1.4.9",
+    "@vitejs/plugin-react": "latest",
+    "electron": "latest",
+    "electron-builder": "latest",
+    "esbuild": "latest",
+    "playwright": "latest",
+    "prettier": "^3.9.10",
+    "tailwindcss": "latest",
+    "tsx": "latest",
+    "typescript": "latest",
+    "vite": "latest"
+  },
+  "build": {
+    "appId": "dev.voxy.desktop",
+    "productName": "Voxy",
+    "directories": {
+      "output": "release/0.2.0"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "electronDist": "node_modules/electron/dist",
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico",
+      "signExecutable": false
+    },
+    "nsis": {
+      "deleteAppDataOnUninstall": false,
+      "perMachine": false,
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "artifactName": "Voxy-Setup-${version}-${arch}.${ext}"
+  }
+}

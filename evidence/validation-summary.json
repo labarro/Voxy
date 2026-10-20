@@ -1,0 +1,10 @@
+{
+  "version": "0.1.0",
+  "environment": {"os": "Windows x64 build 26200", "node": "24.13.0", "electron": "44.9.0"},
+  "passed": ["npm test", "npm run test:media", "npm run build", "npm run test:desktop", "npm run dist", "npm run test:packaged", "npm run test:dev", "npm audit --omit=dev --json"],
+  "artifact": {"path": "release/0.1.0/Voxy-Setup-0.1.0-x64.exe", "bytes": 126923218, "sha256": "B0C4D2DEBE1E9A910C59F78F1BDADCB4DD72DD1E7D145E5B3D435A10B91CD274", "signature": "NotSigned"},
+  "media": {"participants": 3, "audioDirectionsWithPackets": 6, "syntheticScreenCycles": 2, "nativeScreenCycles": 2, "nativeViewers": 2, "rejoinCycles": 3},
+  "pending": ["Three physical computers over Tailscale", "Human listening quality and latency", "Native Windows loopback audible playback", "1080p and 60 FPS performance", "Simultaneous native streams", "Clean Windows 10 install and NSIS installation wizard", "Long calls and physical device changes"],
+  "dependencyAudit": {"runtimeReportedVulnerabilities": 0, "developmentModerate": 8},
+  "privateEvidence": "test-results/ contains local screenshots and runtime records; excluded from git because native capture may include private desktop content."
+}

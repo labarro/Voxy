@@ -5,7 +5,7 @@ O Voxy 0.4.0 inclui atualização automática com **electron-updater + NSIS**, p
 **Estado da entrega:** código, workflow e arquivos de configuração implementados; download diferencial e fallback completo testados localmente com o atualizador real. O ambiente `release` e o segredo de assinatura já foram configurados no GitHub, com política para tags `v*`. Os dois redirects foram publicados na `main` do portfólio (commit `3ac5886`) e verificados em produção. A [release 0.4.1](https://github.com/labarro/Voxy/releases/tag/v0.4.1) foi publicada pelo [workflow concluído com sucesso](https://github.com/labarro/Voxy/actions/runs/39516455777). Os dois endpoints responderam 200 e o atualizador real baixou e verificou o pacote público, chegando a pronto para instalar. Não foi executada uma instalação automática sobre a instalação pessoal deste computador.
 
 
-**Versão pública atual: 0.5.0.** Publicada pelo [Actions](https://github.com/labarro/Voxy/actions/runs/39525732143), com os cinco arquivos verificados. O atualizador real partindo da 0.4.1 detectou, baixou e validou a nova versão pelo domínio até ficar pronto para instalar. Evidência: `evidence/publication-0.5.0.json`. A instalação/reinício NSIS numa máquina separada permanece pendente.
+**Versão pública atual: 0.6.0.** Publicada pelo [Actions](https://github.com/labarro/Voxy/actions/runs/39642305199), com os cinco arquivos verificados. O atualizador real partindo da 0.5.0 detectou, baixou e validou a nova versão pelo domínio até ficar pronto para instalar. Evidência: `evidence/publication-0.6.0.json`. A instalação/reinício NSIS numa máquina separada permanece pendente.
 
 ## Por que esta arquitetura
 
@@ -30,7 +30,7 @@ O suporte NSIS e o fluxo de `latest.yml` são documentados pelo [electron-builde
 
 O canal **Novidades do Voxy** combina o catálogo instalado com o último catálogo remoto cuja assinatura foi validada. Funciona sem servidor de amigos e mantém o histórico em cache para uso offline. Conteúdo remoto é texto estruturado, sem HTML executável.
 
-**Primeira migração:** versões até 0.3.0 não têm este atualizador. Instale a 0.5.0 uma última vez usando `release/0.5.0/Voxy-Setup-0.5.0-x64.exe`, sem desinstalar, ou o seletor de instalador existente. Depois, novas versões podem chegar pelo aplicativo. Todos os participantes precisam migrar, pois a 0.4.0 muda o protocolo para suportar webcam.
+**Primeira migração:** versões até 0.3.0 não têm este atualizador. Instale a 0.6.0 uma última vez usando `release/0.6.0/Voxy-Setup-0.6.0-x64.exe`, sem desinstalar, ou o seletor de instalador existente. Depois, novas versões podem chegar pelo aplicativo. Todos os participantes precisam migrar, pois a 0.4.0 muda o protocolo para suportar webcam.
 
 ## Preparação única: chave de publicação
 
@@ -100,8 +100,8 @@ O domínio serve como ponto de entrada para metadados pequenos. Os instaladores 
    ```powershell
    git switch main
    git pull --ff-only origin main
-   git tag -a v0.5.1 -m "Voxy 0.4.2"
-   git push origin v0.5.1
+   git tag -a v0.6.1 -m "Voxy 0.4.2"
+   git push origin v0.6.1
    ```
 
 6. Acompanhe **Actions → Publicar Voxy para Windows**. O workflow valida tag/versão e ancestralidade na `main`, instala com `npm ci`, roda os testes, gera o instalador, assina os metadados e testa o executável empacotado.

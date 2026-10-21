@@ -1,5 +1,7 @@
 const key = (label: string, vk: number) => ({ label, vk });
 export const PTT_KEYS: Record<string, { label: string; vk: number }> = {
+  Mouse4: key("Mouse 4 (lateral voltar)", 5),
+  Mouse5: key("Mouse 5 (lateral avançar)", 6),
   ...Object.fromEntries(
     Array.from({ length: 26 }, (_, i) => [
       "Key" + String.fromCharCode(65 + i),

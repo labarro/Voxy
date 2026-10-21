@@ -10,6 +10,8 @@ async function main() {
     for (const [code, vk] of [
       ["F9", 120],
       ["KeyQ", 81],
+      ["Mouse4", 5],
+      ["Mouse5", 6],
     ] as const) {
       events.length = 0;
       ptt.configure(true, code);
@@ -38,12 +40,14 @@ async function main() {
     }
     assert.throws(() => ptt.configure(true, "__proto__"));
     console.log(
-      "Windows global PTT: F9 e Q pressionadas/soltas detectadas; reconfiguração, validação e limpeza funcionam.",
+      "Windows global PTT: F9, Q, Mouse 4 e Mouse 5 pressionadas/soltas detectadas; reconfiguração, validação e limpeza funcionam.",
     );
   } finally {
     ptt.stop();
     await key(true);
     await key(true, 81);
+    await key(true, 5);
+    await key(true, 6);
   }
 }
 async function wait(check: () => boolean) {

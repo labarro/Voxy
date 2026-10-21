@@ -3,6 +3,7 @@ import { PTT_KEYS } from "../shared/preferences";
 import { Avatar, AvatarImages } from "./components/Avatar";
 import { ParticipantStatus } from "./components/ParticipantStatus";
 import { Chat } from "./components/Chat";
+import { ParticipantMenu } from "./components/ParticipantMenu";
 import { ProfileForm } from "./components/ProfileForm";
 import { ShareForm } from "./components/ShareForm";
 import { ManageRow } from "./components/ManageRow";
@@ -120,7 +121,13 @@ export function App() {
     [quality, setQuality] = useState<Quality>("720p30"),
     [systemAudio, setSystemAudio] = useState(false),
     [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  const [participantAudio, setParticipantAudio] = useState<string | null>(null);
+  const [participantAudio, setParticipantAudio] = useState<{
+    id: string;
+    x: number;
+    y: number;
+  } | null>(null);
+  const restoreVoice = useRef<string | null>(null);
+  const [reconnectMessage, setReconnectMessage] = useState("");
   const [media, setMedia] = useState<VoiceView>({
     streams: new Map(),
     speaking: new Set(),
@@ -198,6 +205,12 @@ export function App() {
         clearNotice();
       }
       if (event.type === "connection") {
+        setReconnectMessage(
+          event.status === "reconnecting"
+            ? `Reconectando${event.attempt ? ` · tentativa ${event.attempt}/${event.maxAttempts}` : ""}… O canal de voz será restaurado quando possível.`
+            : "",
+        );
+        if (event.message) setError(event.message);
         latest.current.status = event.status;
         setStatus(event.status);
         if (event.status === "connected") setPage("room");
@@ -205,6 +218,12 @@ export function App() {
           latest.current.selfId = event.selfId;
           setSelfId(event.selfId);
         } else {
+          if (event.status === "reconnecting" && !restoreVoice.current)
+            restoreVoice.current =
+              latest.current.room.participants.find(
+                (p) => p.id === latest.current.selfId,
+              )?.channelId ?? null;
+          if (event.status !== "reconnecting") restoreVoice.current = null;
           engine.leave();
           setRoom(empty);
           latest.current.room = empty;
@@ -354,7 +373,30 @@ export function App() {
       }
     });
   }
+  useEffect(() => {
+    if (
+      status !== "connected" ||
+      busy ||
+      !restoreVoice.current ||
+      joining.current ||
+      !room.participants.some((p) => p.id === selfId)
+    )
+      return;
+    const id = restoreVoice.current;
+    restoreVoice.current = null;
+    const previous = room.channels.find(
+      (c) => c.id === id && c.kind === "voice",
+    );
+    if (previous) {
+      setServerId(previous.serverId);
+      void joinVoice(previous);
+    } else
+      setError(
+        "Conexão restaurada. O canal anterior foi removido; escolha outro canal de voz.",
+      );
+  }, [status, selfId, room, busy]);
   async function leaveVoice() {
+    restoreVoice.current = null;
     engine.leave();
     setWatch(null);
     setWatchCamera(null);
@@ -384,7 +426,7 @@ export function App() {
     setProfile(saved);
     engine.configurePreferences(saved);
     await engine.setOutput(saved.output);
-    await engine.setInput(saved.input);
+    await engine.setInput(saved.input, true);
   }
   function saveParticipantVolume(
     socketId: string,
@@ -428,7 +470,7 @@ export function App() {
     );
   }
   const selectedParticipant = room.participants.find(
-    (p) => p.id === participantAudio && p.id !== selfId,
+    (p) => p.id === participantAudio?.id && p.id !== selfId,
   );
   async function reconnectSaved(id: string) {
     const result = await window.voxy.reconnectRoom(id);
@@ -624,7 +666,11 @@ export function App() {
                                   onContextMenu={(e) => {
                                     if (p.id !== selfId) {
                                       e.preventDefault();
-                                      setParticipantAudio(p.id);
+                                      setParticipantAudio({
+                                        id: p.id,
+                                        x: e.clientX,
+                                        y: e.clientY,
+                                      });
                                     }
                                   }}
                                 >
@@ -790,6 +836,18 @@ export function App() {
               <Settings size={18} />
             </button>
           </footer>
+          <a
+            className="creator-credit"
+            href="https://devbarros.com/"
+            onClick={(e) => {
+              e.preventDefault();
+              void window.voxy
+                .openExternal("https://devbarros.com/")
+                .catch((e) => setError(e.message));
+            }}
+          >
+            Criado por devbarros.com
+          </a>
         </aside>
         <main className="workspace">
           <RemoteUpdate compact />
@@ -875,6 +933,11 @@ export function App() {
                 </button>
               </div>
             )}
+          {reconnectMessage && (
+            <div className="reconnect-banner" role="status">
+              {reconnectMessage}
+            </div>
+          )}
           {(error || media.error) && (
             <div className="error-banner" role="alert">
               <span>{error || media.error}</span>
@@ -988,7 +1051,11 @@ export function App() {
                         onContextMenu={(e) => {
                           if (p.id !== selfId) {
                             e.preventDefault();
-                            setParticipantAudio(p.id);
+                            setParticipantAudio({
+                              id: p.id,
+                              x: e.clientX,
+                              y: e.clientY,
+                            });
                           }
                         }}
                         key={p.id}
@@ -1026,40 +1093,19 @@ export function App() {
                         )}
                         {p.id !== selfId && p.channelId === me?.channelId && (
                           <button
-                            className="local-mute-button"
-                            disabled={busy}
-                            onClick={() =>
-                              void run(() =>
-                                muteParticipant(
-                                  p.id,
-                                  !profile.mutedParticipants?.[p.profile.id],
-                                ),
-                              )
-                            }
+                            className="participant-options"
+                            aria-label={"Opções de " + p.profile.name}
+                            onClick={(e) => {
+                              const r = e.currentTarget.getBoundingClientRect();
+                              setParticipantAudio({
+                                id: p.id,
+                                x: r.right,
+                                y: r.bottom,
+                              });
+                            }}
                           >
-                            {profile.mutedParticipants?.[p.profile.id]
-                              ? "Ouvir voz novamente"
-                              : "Mutar voz para mim"}
+                            •••
                           </button>
-                        )}
-                        {p.id !== selfId && p.channelId === me?.channelId && (
-                          <label className="volume-control">
-                            Volume{" "}
-                            <input
-                              aria-label={"Volume de " + p.profile.name}
-                              type="range"
-                              min="0"
-                              max="1"
-                              step="0.05"
-                              value={profile.volumes?.[p.profile.id] ?? 1}
-                              onChange={(e) =>
-                                saveParticipantVolume(
-                                  p.id,
-                                  Number(e.target.value),
-                                )
-                              }
-                            />
-                          </label>
                         )}
                       </article>
                     ))}
@@ -1234,55 +1280,39 @@ export function App() {
             </div>
           )}
         </main>
-        {selectedParticipant && (
-          <Modal
-            title={"Áudio de " + selectedParticipant.profile.name}
+        {selectedParticipant && participantAudio && (
+          <ParticipantMenu
+            x={participantAudio.x}
+            y={participantAudio.y}
+            name={selectedParticipant.profile.name}
+            muted={
+              !!profile.mutedParticipants?.[selectedParticipant.profile.id]
+            }
+            volume={profile.volumes?.[selectedParticipant.profile.id] ?? 1}
             close={() => setParticipantAudio(null)}
-          >
-            <p>
-              Esta opção muda somente o que você ouve. O áudio das transmissões
-              tem controle próprio no player.
-            </p>
-            <button
-              className="secondary"
-              disabled={!inbox.activeScope}
-              onClick={() => {
-                if (inbox.activeScope)
-                  openDirect({
-                    scope: inbox.activeScope,
-                    peer: selectedParticipant.profile.id,
-                  });
-                setParticipantAudio(null);
-              }}
-            >
-              <MessageCircle size={17} />
-              Mensagem privada
-            </button>
-            <button
-              className="primary"
-              disabled={busy}
-              onClick={() =>
-                void run(async () => {
-                  await muteParticipant(
-                    selectedParticipant.id,
-                    !profile.mutedParticipants?.[
-                      selectedParticipant.profile.id
-                    ],
-                  );
-                  setParticipantAudio(null);
-                })
-              }
-            >
-              {profile.mutedParticipants?.[selectedParticipant.profile.id]
-                ? "Ouvir voz novamente"
-                : "Mutar voz para mim"}
-            </button>
-            {error && (
-              <p className="modal-error" role="alert">
-                {error}
-              </p>
-            )}
-          </Modal>
+            toggleMute={() =>
+              void run(() =>
+                muteParticipant(
+                  selectedParticipant.id,
+                  !profile.mutedParticipants?.[selectedParticipant.profile.id],
+                ),
+              )
+            }
+            changeVolume={(value) =>
+              saveParticipantVolume(selectedParticipant.id, value)
+            }
+            direct={
+              inbox.activeScope
+                ? () => {
+                    openDirect({
+                      scope: inbox.activeScope!,
+                      peer: selectedParticipant.profile.id,
+                    });
+                    setParticipantAudio(null);
+                  }
+                : undefined
+            }
+          />
         )}
         {dialog && (
           <Modal
@@ -1403,6 +1433,7 @@ export function App() {
             )}
             {dialog === "profile" && (
               <ProfileForm
+                onMicrophoneTest={(value) => engine.setMicrophoneTesting(value)}
                 presenceSupported={!online || !!room.features?.presence}
                 profile={profile}
                 setProfile={setProfile}
@@ -1608,8 +1639,9 @@ export function App() {
                 )}
                 <p className="hint">
                   ICE failed: verifique Radmin VPN, ACL e firewall UDP. Sem
-                  conexão direta, este MVP não oferece relay. Reconectar a
-                  sinalização exige entrar novamente no canal de voz.
+                  conexão direta, este MVP não oferece relay. Após uma queda
+                  temporária, o canal de voz é restaurado quando possível. Se a
+                  mídia continuar indisponível, saia e entre no canal.
                 </p>
               </div>
             )}

@@ -2,13 +2,13 @@
 
 ## Atualização para 0.5.0
 
-O novo pacote local está em `release/0.5.0/Voxy-Setup-0.5.0-x64.exe`; a release pública ainda é a 0.4.1. Instale por cima, sem desinstalar. O protocolo de mídia permanece 2; para presença e mensagens privadas, atualize o host e os interlocutores. Depois da primeira conexão, a identidade de cada perfil fica vinculada ao dispositivo e clientes antigos desse mesmo perfil podem precisar atualizar.
+A [release pública 0.5.0](https://github.com/labarro/Voxy/releases/tag/v0.5.0) está disponível pelo atualizador e em `release/0.5.0/Voxy-Setup-0.5.0-x64.exe`. Instale por cima, sem desinstalar. O protocolo de mídia permanece 2; para presença e mensagens privadas, atualize o host e os interlocutores. Depois da primeira conexão, a identidade de cada perfil fica vinculada ao dispositivo e clientes antigos desse mesmo perfil podem precisar atualizar.
 
 A migração adiciona contatos, identidade e mensagens privadas ao banco, sem remover servidores ou mensagens de canais. O backup inclui `direct-inbox.json` e `profile-identity.bin`. Não apague ou troque a identidade durante uma atualização. DMs, status e navegação: [CONVERSAS-E-STATUS.md](CONVERSAS-E-STATUS.md).
 
 ## Como funciona
 
-**Publicação inicial: 0.4.1.** A tag 0.4.0 foi preservada no Git, mas seu workflow falhou antes de publicar arquivos. A 0.4.1 prepara explicitamente os binários verificados do Electron em instalações limpas e inclui todos os recursos da linha 0.4. Use o instalador `release/0.4.1/Voxy-Setup-0.4.1-x64.exe`; instalações até 0.3.0 precisam recebê-lo uma última vez manualmente, sem desinstalar. Quem já instalou o pacote local 0.4.0 poderá receber a 0.4.1 pelo atualizador.
+**Publicação inicial: 0.4.1.** A tag 0.4.0 foi preservada no Git, mas seu workflow falhou antes de publicar arquivos. A 0.4.1 prepara explicitamente os binários verificados do Electron em instalações limpas e inclui todos os recursos da linha 0.4. Para instalar hoje, use `release/0.5.0/Voxy-Setup-0.5.0-x64.exe`; instalações até 0.3.0 precisam recebê-lo uma última vez manualmente, sem desinstalar. Quem já instalou o pacote local 0.4.0 poderá receber a 0.4.1 pelo atualizador.
 
 O Voxy usa o mesmo identificador de aplicativo em todas as versões. O instalador novo atualiza os arquivos do programa por cima da instalação existente; não é necessário desinstalar ou apagar pastas.
 
@@ -16,9 +16,9 @@ Perfil, UUID, avatares, volumes, preferências, servidores, mensagens e imagens 
 
 A versão 0.4.0 acrescenta busca e download automáticos pelo domínio devbarros.com e GitHub Releases, com assinatura dos metadados, conferência do pacote e reinício escolhido pelo usuário. A configuração de publicação já está ativa; veja [ATUALIZACOES-REMOTAS.md](ATUALIZACOES-REMOTAS.md). O instalador manual continua disponível para migração inicial e recuperação.
 
-## Atualizar para 0.4.1
+## Atualizar para 0.5.0
 
-Distribua `release/0.4.1/Voxy-Setup-0.4.1-x64.exe` e o `SHA256SUMS.txt` correspondente. No Voxy 0.2.0 ou posterior, abra **Engrenagem → Atualizações → Selecionar novo instalador → Fazer backup e atualizar**, sem desinstalar. Todos devem atualizar: a versão 0.4.0 usa quatro trilhas de mídia e rejeita o protocolo antigo, nos dois sentidos.
+Distribua `release/0.5.0/Voxy-Setup-0.5.0-x64.exe` e o `SHA256SUMS.txt` correspondente. No Voxy 0.2.0 ou posterior, abra **Engrenagem → Atualizações → Selecionar novo instalador → Fazer backup e atualizar**, sem desinstalar. Todos devem atualizar: a versão 0.4.0 usa quatro trilhas de mídia e rejeita o protocolo antigo, nos dois sentidos.
 
 São preservados perfil, volumes, mensagens e imagens. O banco recebe `ownerId` e `icon` nos servidores; o host assume os servidores antigos sem criador. `recent-rooms.json` guarda metadados e convites protegidos pelo Windows e também entra no backup. O histórico de recentes só começa a ser preenchido a partir dos acessos na 0.4.0; versões antigas não guardavam convites.
 
@@ -51,7 +51,7 @@ Se quiser uma cópia adicional antes dessa primeira atualização, feche o Voxy 
 
 ## Atualização automática a partir da 0.4.0
 
-Após a configuração do canal de publicação, o programa verifica ao iniciar e a cada seis horas, baixa em segundo plano e mostra **Reiniciar e atualizar**. Também é possível consultar em **Engrenagem → Atualizações**. Só reinicia ao clicar; a chamada é encerrada, e os dados são salvos e copiados para backup antes de instalar. As novidades ficam no canal global e no aviso único da nova versão. O download pode ser completo se não houver cache diferencial.
+Com o canal de publicação ativo, o programa verifica ao iniciar e a cada seis horas, baixa em segundo plano e mostra **Reiniciar e atualizar**. Também é possível consultar em **Engrenagem → Atualizações**. Só reinicia ao clicar; a chamada é encerrada, e os dados são salvos e copiados para backup antes de instalar. As novidades ficam no canal global e no aviso único da nova versão. O download pode ser completo se não houver cache diferencial.
 
 ## Alternativa manual a partir da versão 0.2.0
 

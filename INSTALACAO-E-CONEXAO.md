@@ -21,19 +21,19 @@ Na versão 0.4.0, a engrenagem também permite escolher Push to Talk, tecla para
 O instalador atualizado está nesta pasta:
 
 ```text
-C:\projects\Voxy\release\0.4.1
+C:\projects\Voxy\release\0.5.0
 ```
 
 O arquivo que você deve instalar no seu computador e enviar aos amigos é:
 
 ```text
-Voxy-Setup-0.4.1-x64.exe
+Voxy-Setup-0.5.0-x64.exe
 ```
 
 Caminho completo:
 
 ```text
-C:\projects\Voxy\release\0.4.1\Voxy-Setup-0.4.1-x64.exe
+C:\projects\Voxy\release\0.5.0\Voxy-Setup-0.5.0-x64.exe
 ```
 
 **Envie somente esse instalador aos amigos.** Não é necessário enviar o código do projeto, a pasta `node_modules`, arquivos `.blockmap`, nem as pastas `build-*` ou `win-unpacked`. Não use o instalador antigo da versão 0.1.0.
@@ -44,7 +44,7 @@ O mesmo instalador serve para quem vai hospedar e para quem vai entrar na sala. 
 
 Cada pessoa deve seguir estes passos no próprio computador Windows 10/11 de 64 bits:
 
-1. Salve o arquivo `Voxy-Setup-0.4.1-x64.exe` em uma pasta do computador.
+1. Salve o arquivo `Voxy-Setup-0.5.0-x64.exe` em uma pasta do computador.
 2. Abra o instalador com dois cliques.
 3. Escolha a pasta de instalação e conclua o assistente.
 4. Abra o Voxy pelo atalho criado ou pelo menu Iniciar.
@@ -178,8 +178,8 @@ A versão 0.4.0 passou nos testes locais com dez clientes WebRTC e nove espectad
 
 ## Próximas versões
 
-A 0.4.0 inclui o atualizador remoto. Depois que o mantenedor configurar o canal, as próximas versões serão verificadas e baixadas automaticamente. Clique em **Reiniciar e atualizar** quando puder encerrar a chamada. Não desinstale o aplicativo. O instalador manual permanece como alternativa. Veja [GUIA-DE-ATUALIZACAO.md](GUIA-DE-ATUALIZACAO.md) para usuários e [ATUALIZACOES-REMOTAS.md](ATUALIZACOES-REMOTAS.md) para configurar publicação e domínio.
+A 0.4.0 inclui o atualizador remoto. O canal já está configurado: novas versões são verificadas e baixadas automaticamente. Clique em **Reiniciar e atualizar** quando puder encerrar a chamada. Não desinstale o aplicativo. O instalador manual permanece como alternativa. Veja [GUIA-DE-ATUALIZACAO.md](GUIA-DE-ATUALIZACAO.md) para usuários e [ATUALIZACOES-REMOTAS.md](ATUALIZACOES-REMOTAS.md) para configurar publicação e domínio.
 
 ## Conversas e presença na 0.5.0
 
-O pacote local desta atualização fica em `C:\projects\Voxy\release\0.5.0\Voxy-Setup-0.5.0-x64.exe`. Instale sobre a versão existente, sem desinstalar. Atualize o host e os interlocutores para compartilhar presença e usar DMs. A barra esquerda agora mantém também os servidores salvos/offline. Veja o passo a passo de [status e mensagens privadas](CONVERSAS-E-STATUS.md).
+O instalador publicado desta atualização fica em `C:\projects\Voxy\release\0.5.0\Voxy-Setup-0.5.0-x64.exe`. Instale sobre a versão existente, sem desinstalar. Atualize o host e os interlocutores para compartilhar presença e usar DMs. A barra esquerda agora mantém também os servidores salvos/offline. Veja o passo a passo de [status e mensagens privadas](CONVERSAS-E-STATUS.md).

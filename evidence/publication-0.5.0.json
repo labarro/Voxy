@@ -1,0 +1,86 @@
+{
+  "date": "2026-10-21T01:12:58.630Z",
+  "version": "0.5.0",
+  "repository": "labarro/Voxy",
+  "gitflow": "feature/presence-dm-navigation -> develop -> release/0.5.0 -> main; release synchronized into develop",
+  "release": {
+    "url": "https://github.com/labarro/Voxy/releases/tag/v0.5.0",
+    "tag": "v0.5.0",
+    "draft": false,
+    "prerelease": false,
+    "publishedAt": "2026-10-21T01:11:45Z",
+    "assets": [
+      {
+        "name": "latest.yml",
+        "size": 345,
+        "digest": "sha256:8f7be9cb218b9d825fae444e6d02baa41eee366e7cc02bdb38f8f7a674a9f339",
+        "url": "https://github.com/labarro/Voxy/releases/download/v0.5.0/latest.yml"
+      },
+      {
+        "name": "SHA256SUMS.txt",
+        "size": 91,
+        "digest": "sha256:6484185bf30e852dc02cbc78dcf6f0aad3f504afc59c4c3691028047fea7f436",
+        "url": "https://github.com/labarro/Voxy/releases/download/v0.5.0/SHA256SUMS.txt"
+      },
+      {
+        "name": "voxy-release.json",
+        "size": 8375,
+        "digest": "sha256:baec3a7525a6e4fa0288e89b61b09436e4698b95de8f35b6e0da8196553fcb1b",
+        "url": "https://github.com/labarro/Voxy/releases/download/v0.5.0/voxy-release.json"
+      },
+      {
+        "name": "Voxy-Setup-0.5.0-x64.exe",
+        "size": 126626487,
+        "digest": "sha256:84a029fec3cf5acdf7c8c87bf217f89058aaae74913179726912cbbe38adab53",
+        "url": "https://github.com/labarro/Voxy/releases/download/v0.5.0/Voxy-Setup-0.5.0-x64.exe"
+      },
+      {
+        "name": "Voxy-Setup-0.5.0-x64.exe.blockmap",
+        "size": 133106,
+        "digest": "sha256:96986b7535456f865549ac77c475d62413f4251110078b26e1d1bd18ecd08ff3",
+        "url": "https://github.com/labarro/Voxy/releases/download/v0.5.0/Voxy-Setup-0.5.0-x64.exe.blockmap"
+      }
+    ]
+  },
+  "workflow": {
+    "id": 39525732143,
+    "url": "https://github.com/labarro/Voxy/actions/runs/39525732143",
+    "status": "completed",
+    "conclusion": "success",
+    "commit": "3847ac24c4d56343dd8ec206aec9e62279a55f25"
+  },
+  "publicUpdate": {
+    "date": "2026-10-21T01:12:24.773Z",
+    "version": "0.5.0",
+    "endpoint": "https://www.devbarros.com/voxy/updates/",
+    "phases": [
+      "checking",
+      "available",
+      "downloading",
+      "ready"
+    ],
+    "signedCatalogVerified": true,
+    "installerHashVerified": true,
+    "size": 126626487,
+    "sha256": "84A029FEC3CF5ACDF7C8C87BF217F89058AAAE74913179726912CBBE38ADAB53",
+    "installerInvoked": false,
+    "releaseHistory": [
+      "0.5.0",
+      "0.4.1",
+      "0.4.0",
+      "0.3.0",
+      "0.2.0"
+    ]
+  },
+  "localPublicArtifacts": "release/0.5.0",
+  "endpointStatus": {
+    "catalog": 200,
+    "manifest": 200
+  },
+  "installationExecuted": false,
+  "remainingManualValidation": [
+    "Actual NSIS update and restart on a separate Windows machine",
+    "Physical webcams and ten physical PCs over Radmin VPN",
+    "Audible audio quality and prolonged calls under constrained upload"
+  ]
+}

@@ -14,7 +14,15 @@ Passaram: `npm test` (**24 testes**), `npm run build`, `npm run test:ptt`, `npm 
 - Regressão desktop: três janelas com imagens, perfis, edição/exclusão, mute/deafen/PTT, volumes, captura desktop nativa, player/HUD e webcam com dispositivo de teste. Uma espera de ícones duplicados foi corrigida no teste, mantendo ambos os indicadores no produto.
 - Pacote: executável abriu duas vezes com SQLite; Mouse 5, ganho/sensibilidade, ruído/eco desativados, volume individual 200%, mute local, recentes, identidade e DMs persistiram. Envelope Ed25519, manifesto e hashes SHA-512 conferidos com a chave pública de produção.
 
-Instalador local: `release/0.6.0/Voxy-Setup-0.6.0-x64.exe`, **126631173 bytes**, SHA-256 `375B4F8FF8B59F1F2688EC0D28B0A2ABEE73E9CEB0CA2F400AAB8E5F95E7C432`. Evidência consolidada em `evidence/validation-0.6.0.json`. A 0.6.0 ainda não foi publicada; o canal público continua na 0.5.0. A verificação pública/diferencial do updater da 0.5.0 é histórica e não foi repetida para esta versão local.
+Build local anterior à publicação: `release/0.6.0/build-1792602244932/Voxy-Setup-0.6.0-x64.exe`, **126631173 bytes**, SHA-256 `375B4F8FF8B59F1F2688EC0D28B0A2ABEE73E9CEB0CA2F400AAB8E5F95E7C432`. Evidência em `evidence/validation-0.6.0.json`. O instalador na raiz `release/0.6.0` agora é a cópia verificada da publicação abaixo. O teste diferencial específico da linha 0.5 é histórico; a validação pública desta versão usou cache vazio e download completo.
+
+### Publicação 0.6.0 — 21/10/2026
+
+O [Actions](https://github.com/labarro/Voxy/actions/runs/39642305199) concluiu com sucesso: 24 testes, build NSIS, assinatura dos metadados, abertura/reabertura do executável e persistência de Mouse 5, ajustes de áudio e volume individual de 200%. A [release 0.6.0](https://github.com/labarro/Voxy/releases/tag/v0.6.0) contém os cinco assets obrigatórios.
+
+O atualizador real, usando versão de origem 0.5.0, cache isolado, transporte HTTPS e chave pública de produção, passou por checking → available → downloading → ready pelo domínio. Catálogo e manifesto responderam 200; assinatura Ed25519, SHA-512, checksum e digests dos cinco assets foram conferidos. O histórico de novidades inclui a 0.6.0, e o crédito do criador permanece fora das notas da versão. Nenhum instalador foi executado.
+
+Instalador público: `release/0.6.0/Voxy-Setup-0.6.0-x64.exe`, **126.631.101 bytes**, SHA-256 `A025A6DBDB55DF7A80367463C3102EF102F3F821F0D6C5A071C9959FB796DA6F`. Evidência: `evidence/publication-0.6.0.json`. O executável continua sem Authenticode; o envelope tem assinatura Ed25519.
 
 Pendentes: avaliação audível com microfones/fones físicos e dos níveis dos efeitos, jogos/anticheat específicos, dez PCs pelo Radmin, chamadas prolongadas e instalação/reinício NSIS real sobre uma instalação existente. Nenhum instalador foi executado na instalação pessoal. Veja [Áudio e conexão](AUDIO-E-CONEXAO.md).
 

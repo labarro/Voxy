@@ -12,7 +12,15 @@ Passaram: `npm test` (**22 testes**), `npm run test:ux`, `npm run test:desktop` 
 - Regressão: dez clientes WebRTC, 45 pares, quatro transceivers por par e voz nos 90 sentidos; tela/webcam para nove espectadores, dois ciclos de tela e três saídas/reentradas. Três janelas Electron exercitaram imagens públicas, edição, mute local, deafen, PTT global, volume, fullscreen e HUD. A execução sem dispositivos de mídia de teste validou captura desktop nativa para dois espectadores; webcams físicas continuam pendentes.
 - Pacote: abriu duas vezes com SQLite e dependências incluídas, preservando perfil, foto, volumes, PTT, filtro de entrada, webcam preferida, servidor, imagem, recentes e aviso de versão. Também preservou presença Ausente, identidade privada, histórico de DMs e marcador de não lidas. Backup inclui cache privado e identidade. O teste de atualização NSIS exercitou diferencial e fallback completo sem executar a instalação.
 
-Instalador local: `release/0.5.0/Voxy-Setup-0.5.0-x64.exe`. Evidência consolidada e hashes em `evidence/validation-0.5.0.json`. A versão 0.5.0 ainda não foi publicada no GitHub Releases; o canal público permanece na 0.4.1.
+Evidência dos testes locais: `evidence/validation-0.5.0.json`. O pacote local original permanece na pasta de staging indicada por `latest-build.json`; o instalador na raiz `release/0.5.0` agora é a cópia verificada da publicação abaixo.
+
+### Publicação 0.5.0 — 20/10/2026
+
+O [GitHub Actions](https://github.com/labarro/Voxy/actions/runs/39525732143) concluiu com sucesso: 22 testes, build NSIS, assinatura Ed25519 dos metadados, abertura/reabertura do executável e persistência, incluindo identidade e DMs. Os cinco assets foram publicados na [release 0.5.0](https://github.com/labarro/Voxy/releases/tag/v0.5.0).
+
+O atualizador real, simulando a versão instalada 0.4.1 em cache isolado, consultou o domínio público e passou por checking → available → downloading → ready. Catálogo e manifesto responderam 200; assinatura de produção, hashes SHA-512, digests dos cinco assets e checksum SHA-256 foram conferidos. Nenhum instalador foi executado.
+
+Instalador publicado: `release/0.5.0/Voxy-Setup-0.5.0-x64.exe`, **126.626.487 bytes**, SHA-256 `84A029FEC3CF5ACDF7C8C87BF217F89058AAAE74913179726912CBBE38ADAB53`. Evidência: `evidence/publication-0.5.0.json`. O executável permanece sem Authenticode.
 
 Pendentes: instalação/reinício NSIS real sobre uma instalação pessoal em Windows de teste, dez computadores físicos pelo Radmin, webcams físicas, áudio audível e chamadas prolongadas sob upload limitado. A notificação nativa depende das permissões e do modo de concentração do Windows; o aviso e os contadores dentro do aplicativo foram testados. DMs não são E2EE: o host é confiável e mantém o banco em texto claro. Os limites de cache e o funcionamento offline estão em [CONVERSAS-E-STATUS.md](CONVERSAS-E-STATUS.md). As seções abaixo são históricas.
 

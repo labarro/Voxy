@@ -21,7 +21,7 @@ import {
   writeFileSync,
   renameSync,
 } from "node:fs";
-import { randomBytes, randomUUID } from "node:crypto";
+import { randomBytes, randomUUID, createHash } from "node:crypto";
 import { io, type Socket } from "socket.io-client";
 import { z } from "zod";
 import { Store } from "../database/store";
@@ -32,17 +32,20 @@ import {
   signalSchema,
   parseInvite,
   privateIPv4,
+  radminIPv4,
 } from "../shared/validation";
 import type { Profile, NetworkEvent, PttEvent, Reply } from "../shared/types";
 import { PushToTalk } from "./pushToTalk";
 import { configureLog, log } from "./log";
 import { roomAddresses } from "./addresses";
-import { RecentRooms } from "./recentRooms";
+import { RecentRooms, probeRoom } from "./recentRooms";
 import releases from "../shared/releases.json";
 import type { RoomState } from "../shared/types";
 import { NsisUpdater } from "electron-updater";
 import { RemoteUpdates } from "./remoteUpdates";
 import updateTrust from "../shared/update-trust.json";
+import { DirectInbox } from "./directInbox";
+import { deviceCredential } from "./deviceIdentity";
 let win: BrowserWindow,
   store: Store,
   host: RoomHost | undefined,
@@ -55,6 +58,7 @@ let recentRooms: RecentRooms;
 let currentInvite = "";
 let currentHosted = false;
 let currentState: RoomState | undefined;
+let inbox: DirectInbox;
 const ptt = new PushToTalk((pressed, error) =>
   emit({ type: "ptt", pressed, error }),
 );
@@ -78,6 +82,12 @@ function emit(e: NetworkEvent | PttEvent) {
 function addresses() {
   return roomAddresses(networkInterfaces());
 }
+function ensurePrivateRoute(address: string) {
+  if (radminIPv4(address) && !addresses().some((ip) => ip.startsWith("26.")))
+    throw Error(
+      "Conecte o Radmin VPN antes de acessar esta sala. Sua conexão atual foi mantida.",
+    );
+}
 function data(name: string) {
   return join(app.getPath("userData"), name);
 }
@@ -92,6 +102,10 @@ async function disconnect() {
   cameraPermissionUntil = 0;
   currentInvite = "";
   currentState = undefined;
+  if (inbox) {
+    inbox.activeScope = undefined;
+    emit({ type: "inbox", inbox: inbox.view() });
+  }
   client?.disconnect();
   client = undefined;
   await host?.close();
@@ -100,20 +114,33 @@ async function disconnect() {
 }
 async function connect(invite: string, ownerKey?: string) {
   const v = parseInvite(invite);
+  ensurePrivateRoute(v.address);
+  const identityKey = deviceCredential(
+    data("profile-identity.bin"),
+    safeStorage,
+    profile.id,
+    v.token,
+  );
+  const scope = createHash("sha256")
+    .update(profile.id + ":" + v.token)
+    .digest("hex");
   client?.disconnect();
   currentInvite = invite;
   currentHosted = !!ownerKey;
   let firstState = true;
+  let firstDirect = true;
   let savedStamp = "";
   const socket = io(`http://${v.address}:${v.port}`, {
     transports: ["websocket"],
     auth: {
       protocol: 2,
       token: v.token,
+      identityKey,
       profile: {
         id: profile.id,
         name: profile.name,
         avatar: profile.avatar,
+        presence: profile.presence ?? "online",
       },
       ownerKey,
     },
@@ -143,6 +170,7 @@ async function connect(invite: string, ownerKey?: string) {
         );
         savedStamp = stamp;
         firstState = false;
+        emit({ type: "saved-rooms" });
       }
     } catch {
       log("recent.save-failed");
@@ -154,21 +182,73 @@ async function connect(invite: string, ownerKey?: string) {
     emit({ type: "state", state });
   });
   socket.on("signal", (signal) => emit({ type: "signal", signal }));
-  socket.on("connect", () =>
-    emit({ type: "connection", status: "connected", selfId: socket.id }),
-  );
+  socket.on("direct", (raw) => {
+    if (socket !== client) return;
+    try {
+      const received = inbox.receive(
+        scope,
+        currentState?.servers[0]?.name ?? "Sala privada",
+        raw,
+      );
+      const last = firstDirect ? undefined : received.at(-1);
+      firstDirect = false;
+      emit({
+        type: "inbox",
+        inbox: inbox.view(),
+        incoming: last
+          ? { scope, peer: last.author, name: last.name }
+          : undefined,
+      });
+      if (
+        last &&
+        !win.isFocused() &&
+        profile.presence !== "busy" &&
+        Notification.isSupported()
+      ) {
+        try {
+          const notice = new Notification({
+            title: "Mensagem privada no Voxy",
+            body: `${last.name} enviou uma mensagem privada.`,
+          });
+          notice.on("click", () => {
+            win.show();
+            win.focus();
+            emit({ type: "open-direct", scope, peer: last.author });
+          });
+          notice.show();
+        } catch {
+          log("direct.notification-unavailable");
+        }
+      }
+    } catch {
+      log("direct.snapshot-invalid");
+      emit({
+        type: "inbox-error",
+        message:
+          "Não foi possível atualizar as conversas privadas. Reconecte à sala e confira se o host está atualizado.",
+      });
+    }
+  });
+  socket.on("connect", () => {
+    if (socket !== client) return;
+    inbox.activeScope = scope;
+    emit({ type: "connection", status: "connected", selfId: socket.id });
+    emit({ type: "inbox", inbox: inbox.view() });
+  });
   socket.on("disconnect", () => {
     if (socket !== client) return;
     inVoice = false;
     ptt.stop();
+    inbox.activeScope = undefined;
+    emit({ type: "inbox", inbox: inbox.view() });
     emit({ type: "connection", status: "disconnected" });
   });
-  socket.io.on("reconnect_attempt", () =>
-    emit({ type: "connection", status: "reconnecting" }),
-  );
-  socket.on("connect_error", () =>
-    emit({ type: "connection", status: "error" }),
-  );
+  socket.io.on("reconnect_attempt", () => {
+    if (socket === client) emit({ type: "connection", status: "reconnecting" });
+  });
+  socket.on("connect_error", () => {
+    if (socket === client) emit({ type: "connection", status: "error" });
+  });
   await new Promise<void>((resolve, reject) => {
     const cleanup = () => {
       clearTimeout(timer);
@@ -250,6 +330,7 @@ app.whenReady().then(async () => {
   }
   store = await Store.open(data("room.sqlite"));
   recentRooms = new RecentRooms(data("recent-rooms.json"), safeStorage);
+  inbox = new DirectInbox(data("direct-inbox.json"), profile.id);
   const updates = new UpdateManager(app.getPath("userData"), app.getVersion());
   let notifiedVersion = "";
   const remoteUpdates = new RemoteUpdates({
@@ -368,6 +449,32 @@ app.whenReady().then(async () => {
     },
   );
   handle("profile", () => profile);
+  handle("inbox", () => inbox.view());
+  handle("markDirectRead", (raw) => {
+    const value = z
+      .object({
+        scope: z.string().regex(/^[a-f0-9]{64}$/),
+        peer: z.uuid(),
+        sequence: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+      })
+      .parse(raw);
+    inbox.markRead(value.scope, value.peer, value.sequence);
+    emit({ type: "inbox", inbox: inbox.view() });
+  });
+  handle("directImage", async (raw) => {
+    const { id, scope } = z
+      .object({ id: z.uuid(), scope: z.string().regex(/^[a-f0-9]{64}$/) })
+      .parse(raw);
+    if (!client?.connected || scope !== inbox.activeScope)
+      throw Error(
+        "Reconecte à sala desta conversa para carregar a imagem privada.",
+      );
+    const reply = (await client
+      .timeout(10000)
+      .emitWithAck("direct-image", id)) as Reply<string>;
+    if (!reply.ok) throw Error(reply.error);
+    return reply.value;
+  });
   handle("authorizeCamera", () => {
     if (!inVoice || !client?.connected)
       throw Error("Entre em um canal de voz antes de ligar a câmera.");
@@ -398,7 +505,10 @@ app.whenReady().then(async () => {
         addresses().some((ip) => ip.startsWith("26.")),
     ),
   );
-  handle("removeRoom", (raw) => recentRooms.remove(z.uuid().parse(raw)));
+  handle("removeRoom", (raw) => {
+    recentRooms.remove(z.uuid().parse(raw));
+    emit({ type: "saved-rooms" });
+  });
   handle("visitServer", (raw) => {
     const id = z.string().max(100).parse(raw),
       server = currentState?.servers.find((s) => s.id === id);
@@ -410,6 +520,7 @@ app.whenReady().then(async () => {
         currentHosted,
         true,
       );
+    emit({ type: "saved-rooms" });
   });
   handle("releaseNotes", () => releaseNotes.notes());
   handle("markReleaseNotes", (raw) =>
@@ -467,6 +578,7 @@ app.whenReady().then(async () => {
         type: "profile",
         name: profile.name,
         avatar: profile.avatar,
+        presence: profile.presence ?? "online",
       });
     return profile;
   });
@@ -533,6 +645,26 @@ app.whenReady().then(async () => {
   handle("reconnectRoom", async (raw) => {
     const saved = recentRooms.get(z.uuid().parse(raw));
     if (currentInvite !== saved.invite || !client?.connected) {
+      if (!saved.hosted) {
+        const invite = parseInvite(saved.invite);
+        ensurePrivateRoute(invite.address);
+        const available = await probeRoom(
+          invite.address,
+          invite.port,
+          invite.token,
+          saved.serverId,
+        );
+        if (available !== "available")
+          throw Error(
+            available === "full"
+              ? "Essa sala está cheia. Sua conexão atual foi mantida."
+              : available === "invalid"
+                ? "O convite salvo não é mais válido. Peça um novo convite."
+                : available === "missing"
+                  ? "Esse servidor foi removido. Sua conexão atual foi mantida."
+                  : "A sala está fora de alcance. Confira o host, o Radmin e o firewall. Sua conexão atual foi mantida.",
+          );
+      }
       if (saved.hosted)
         await startHost({
           address: saved.address,
@@ -563,7 +695,12 @@ app.whenReady().then(async () => {
     await connect(invite);
   });
   handle("disconnect", disconnect);
-  handle("command", (raw) => send("command", commandSchema.parse(raw)));
+  handle("command", (raw) => {
+    const command = commandSchema.parse(raw);
+    if ("scope" in command && command.scope !== inbox.activeScope)
+      throw Error("Reconecte à sala desta conversa antes de enviar.");
+    return send("command", command);
+  });
   handle("signal", (raw) => send("signal", signalSchema.parse(raw)));
   handle("sources", async () => {
     const sources = await desktopCapturer.getSources({

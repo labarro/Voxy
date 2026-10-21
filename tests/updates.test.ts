@@ -33,12 +33,25 @@ test("atualizador confere pacote, hash, alteração posterior e backup sem modif
       hash + "  Voxy-Setup-0.3.0-x64.exe\n",
     );
     const manager = new UpdateManager(data, "0.2.0");
+    await writeFile(join(data, "direct-inbox.json"), '{"rooms":[]}');
+    await writeFile(
+      join(data, "profile-identity.bin"),
+      Buffer.from([1, 2, 3, 4]),
+    );
     const info = await manager.prepare(source);
     assert(info.verified);
     assert.equal(info.version, "0.3.0");
     const staged = await manager.installer(info.id);
     assert.notEqual(staged, source);
     const backup = manager.backup();
+    assert.equal(
+      await readFile(join(backup, "direct-inbox.json"), "utf8"),
+      '{"rooms":[]}',
+    );
+    assert.deepEqual(
+      await readFile(join(backup, "profile-identity.bin")),
+      Buffer.from([1, 2, 3, 4]),
+    );
     assert.equal(
       await readFile(join(backup, "recent-rooms.json"), "utf8"),
       "[]",

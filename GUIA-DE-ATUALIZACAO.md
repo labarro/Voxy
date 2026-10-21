@@ -1,5 +1,11 @@
 # Voxy — distribuir e atualizar sem perder os dados
 
+## Atualização para 0.5.0
+
+O novo pacote local está em `release/0.5.0/Voxy-Setup-0.5.0-x64.exe`; a release pública ainda é a 0.4.1. Instale por cima, sem desinstalar. O protocolo de mídia permanece 2; para presença e mensagens privadas, atualize o host e os interlocutores. Depois da primeira conexão, a identidade de cada perfil fica vinculada ao dispositivo e clientes antigos desse mesmo perfil podem precisar atualizar.
+
+A migração adiciona contatos, identidade e mensagens privadas ao banco, sem remover servidores ou mensagens de canais. O backup inclui `direct-inbox.json` e `profile-identity.bin`. Não apague ou troque a identidade durante uma atualização. DMs, status e navegação: [CONVERSAS-E-STATUS.md](CONVERSAS-E-STATUS.md).
+
 ## Como funciona
 
 **Publicação inicial: 0.4.1.** A tag 0.4.0 foi preservada no Git, mas seu workflow falhou antes de publicar arquivos. A 0.4.1 prepara explicitamente os binários verificados do Electron em instalações limpas e inclui todos os recursos da linha 0.4. Use o instalador `release/0.4.1/Voxy-Setup-0.4.1-x64.exe`; instalações até 0.3.0 precisam recebê-lo uma última vez manualmente, sem desinstalar. Quem já instalou o pacote local 0.4.0 poderá receber a 0.4.1 pelo atualizador.
@@ -68,7 +74,7 @@ Não é preciso redefinir nome, avatar ou volumes depois de uma atualização. T
 %APPDATA%\voxy-desktop\backups\DATA-HORA-vVERSAO\
 ```
 
-O backup contém os arquivos existentes entre `profile.json`, `room.sqlite`, `host-secret.bin`, `release-notes.json`, `recent-rooms.json` e `remote-release-history.json`. O banco inclui o chat e as imagens do host. As notas já lidas também são preservadas.
+O backup contém os arquivos existentes entre `profile.json`, `room.sqlite`, `host-secret.bin`, `release-notes.json`, `recent-rooms.json` e `remote-release-history.json`, `direct-inbox.json` e `profile-identity.bin`. O banco inclui o chat e as imagens do host. As notas já lidas também são preservadas.
 
 Se você usa `VOXY_DATA_DIR` para testes, dados, backups e arquivos de atualização ficam nesse diretório alternativo. O uso normal do aplicativo instalado não exige essa variável.
 

@@ -20,6 +20,7 @@ export const profileSchema = z.object({
   id: z.uuid(),
   name,
   avatar: avatarSchema,
+  presence: z.enum(["online", "away", "busy"]).default("online"),
   input: z.string().max(300),
   output: z.string().max(300),
   cameraDevice: z.string().max(300).default(""),
@@ -37,12 +38,33 @@ export const publicProfileSchema = profileSchema.pick({
   id: true,
   name: true,
   avatar: true,
+  presence: true,
 });
 export const imageSchema = z
   .string()
   .max(Math.ceil(MAX_IMAGE_BYTES / 3) * 4 + 40)
   .regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/);
 export const commandSchema = z.discriminatedUnion("type", [
+  z
+    .object({
+      type: z.literal("direct.message"),
+      scope: z.string().regex(/^[a-f0-9]{64}$/),
+      recipient: z.uuid(),
+      text: z.string().trim().max(4000),
+      image: imageSchema.optional(),
+    })
+    .refine((v) => !!v.text || !!v.image),
+  z.object({
+    type: z.literal("direct.edit"),
+    scope: z.string().regex(/^[a-f0-9]{64}$/),
+    id: z.uuid(),
+    text: z.string().trim().max(4000),
+  }),
+  z.object({
+    type: z.literal("direct.delete"),
+    scope: z.string().regex(/^[a-f0-9]{64}$/),
+    id: z.uuid(),
+  }),
   z.object({ type: z.literal("server.create"), name }),
   z.object({ type: z.literal("server.rename"), id, name }),
   z.object({ type: z.literal("server.delete"), id }),
@@ -85,6 +107,7 @@ export const commandSchema = z.discriminatedUnion("type", [
     type: z.literal("profile"),
     name,
     avatar: avatarSchema,
+    presence: z.enum(["online", "away", "busy"]).optional(),
   }),
 ]);
 export const signalSchema = z

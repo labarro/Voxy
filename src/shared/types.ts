@@ -1,8 +1,10 @@
 import type { PttKey } from "./preferences";
+export type Presence = "online" | "away" | "busy";
 export type Profile = {
   id: string;
   name: string;
   avatar: string;
+  presence?: Presence;
   input: string;
   output: string;
   cameraDevice?: string;
@@ -30,7 +32,7 @@ export type Channel = {
 };
 export type Participant = {
   id: string;
-  profile: Pick<Profile, "id" | "name" | "avatar">;
+  profile: Pick<Profile, "id" | "name" | "avatar" | "presence">;
   channelId: string | null;
   muted: boolean;
   deafened: boolean;
@@ -50,6 +52,7 @@ export type Message = {
   editedAt?: number | null;
 };
 export type RoomState = {
+  features?: { directMessages: boolean; presence: boolean };
   protocol?: number;
   avatars?: Record<string, string>;
   servers: Community[];
@@ -64,6 +67,15 @@ export type Signal = {
   candidate?: RTCIceCandidateInit;
 };
 export type Command =
+  | {
+      type: "direct.message";
+      scope: string;
+      recipient: string;
+      text: string;
+      image?: string;
+    }
+  | { type: "direct.edit"; scope: string; id: string; text: string }
+  | { type: "direct.delete"; scope: string; id: string }
   | { type: "server.create"; name: string }
   | { type: "server.rename"; id: string; name: string }
   | { type: "server.delete"; id: string }
@@ -87,10 +99,41 @@ export type Command =
       sharing: boolean;
       camera?: boolean;
     }
-  | { type: "profile"; name: string; avatar: string };
+  | { type: "profile"; name: string; avatar: string; presence?: Presence };
+export type DirectMessage = Omit<Message, "channelId"> & {
+  recipient: string;
+  sequence: number;
+};
+export type DirectContact = {
+  id: string;
+  name: string;
+  avatar: string;
+  directEnabled: boolean;
+};
+export type DirectSnapshot = {
+  contacts: DirectContact[];
+  messages: DirectMessage[];
+  avatars: Record<string, string>;
+};
+export type DirectRoom = {
+  scope: string;
+  name: string;
+  contacts: DirectContact[];
+  messages: DirectMessage[];
+  read: Record<string, number>;
+};
+export type Inbox = { rooms: DirectRoom[]; activeScope?: string };
 export type Reply<T = unknown> =
   { ok: true; value: T } | { ok: false; error: string };
 export type NetworkEvent =
+  | { type: "inbox-error"; message: string }
+  | { type: "open-direct"; scope: string; peer: string }
+  | {
+      type: "inbox";
+      inbox: Inbox;
+      incoming?: { scope: string; peer: string; name: string };
+    }
+  | { type: "saved-rooms" }
   | { type: "remote-update"; state: RemoteUpdateState }
   | { type: "state"; state: RoomState }
   | { type: "signal"; signal: Signal }
@@ -143,6 +186,9 @@ export type RoomAvailability = {
   status: "available" | "unavailable" | "invalid" | "missing" | "full";
 };
 export interface DesktopAPI {
+  inbox(): Promise<Inbox>;
+  markDirectRead(scope: string, peer: string, sequence: number): Promise<void>;
+  directImage(id: string, scope: string): Promise<string>;
   remoteUpdateState(): Promise<RemoteUpdateState>;
   checkRemoteUpdate(): Promise<void>;
   downloadRemoteUpdate(): Promise<void>;

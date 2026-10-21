@@ -94,6 +94,8 @@ export class UpdateManager {
       "host-secret.bin",
       "release-notes.json",
       "recent-rooms.json",
+      "direct-inbox.json",
+      "profile-identity.bin",
       "remote-release-history.json",
     ]) {
       const source = join(this.dataDir, name);

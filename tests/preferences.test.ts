@@ -28,6 +28,8 @@ test("perfil antigo recebe padrões; UUID, volumes e tecla são validados", () =
   assert.equal(p.pttEnabled, false);
   assert.equal(p.callSounds, true);
   assert.equal(p.inputVolume, 1);
+  assert.equal(p.noiseSuppression, true);
+  assert.equal(p.echoCancellation, true);
   assert.equal(p.voiceDetection, false);
   assert.equal(p.voiceThreshold, -45);
   assert.deepEqual(p.mutedParticipants, {});
@@ -36,6 +38,8 @@ test("perfil antigo recebe padrões; UUID, volumes e tecla são validados", () =
       .success,
   );
   for (const code of [
+    "Mouse4",
+    "Mouse5",
     "KeyQ",
     "Digit7",
     "F24",
@@ -58,7 +62,7 @@ test("perfil antigo recebe padrões; UUID, volumes e tecla são validados", () =
 
   assert.deepEqual(p.volumes, {});
   assert(!profileSchema.safeParse({ ...p, pttKey: "ExecuteCommand" }).success);
-  assert(!profileSchema.safeParse({ ...p, volumes: { [id]: 1.1 } }).success);
+  assert(!profileSchema.safeParse({ ...p, volumes: { [id]: 2.1 } }).success);
   assert.equal(
     profileSchema.parse({
       ...p,

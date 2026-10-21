@@ -121,5 +121,31 @@
       "Canais de texto podem ser abertos diretamente a partir das novidades, Home ou DMs.",
       "Fotos dos servidores ocupam toda a área do ícone e respeitam suas bordas."
     ]
+  },
+  "0.6.0": {
+    "date": "2026-10-21",
+    "title": "Sua voz, do seu jeito",
+    "items": [
+      "Supressão de ruído, cancelamento de eco e teste privado do microfone.",
+      "Push-to-Talk com Mouse 4 e Mouse 5, além das teclas.",
+      "Reconexão automática com retorno ao canal de voz quando possível.",
+      "Volume individual de 0 a 200%, salvo por participante.",
+      "Menu de áudio compacto e sons próprios para início e fim da transmissão.",
+      "Links do chat abrem no navegador padrão."
+    ],
+    "features": [
+      "Teste privado do microfone antes de entrar na chamada, usando o processamento escolhido.",
+      "Botões laterais do mouse como atalhos globais do Push-to-Talk no Windows."
+    ],
+    "improvements": [
+      "Ruído e eco configuráveis, com preferências persistentes.",
+      "Volume individual até 200% com proteção contra picos.",
+      "Menu de participante próximo ao clique e reconexão limitada a cinco tentativas.",
+      "Efeitos de chamada mais audíveis e sons distintos para início/fim da tela.",
+      "Links HTTP/HTTPS clicáveis em canais e conversas privadas."
+    ],
+    "fixes": [
+      "O canal de voz anterior é restaurado após uma queda temporária, quando ainda existe e o microfone está disponível."
+    ]
   }
 }

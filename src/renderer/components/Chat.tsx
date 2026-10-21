@@ -1,3 +1,4 @@
+import { MessageText } from "./MessageText";
 import { useEffect, useRef, useState } from "react";
 import {
   Hash,
@@ -223,7 +224,7 @@ export function Chat({
                   </span>
                 )}
               </div>
-              {m.text && <p>{m.text}</p>}
+              {m.text && <MessageText text={m.text} />}
               {m.imageId && <MessageImage id={m.imageId} scope={directScope} />}
             </div>
           </article>

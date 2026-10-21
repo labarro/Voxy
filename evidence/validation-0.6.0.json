@@ -1,0 +1,128 @@
+{
+  "date": "2026-10-21T17:07:31.768Z",
+  "version": "0.6.0",
+  "published": false,
+  "publicVersion": "0.5.0",
+  "unitTests": {
+    "passed": 24,
+    "failed": 0
+  },
+  "windowsPtt": {
+    "keys": [
+      "F9",
+      "KeyQ",
+      "Mouse4",
+      "Mouse5"
+    ],
+    "pressedReleased": true,
+    "reconfiguration": true,
+    "failClosedOnStop": true,
+    "hardwareInput": "Win32 injected input; individual games and anticheat not verified"
+  },
+  "audio": {
+    "date": "2026-10-21T17:04:56.875Z",
+    "results": [
+      "Teste privado antes da chamada, troca de processamento, preferências salvas e liberação de todas as capturas.",
+      "Link de mensagem e crédito encaminhados ao navegador via IPC; URL file bloqueada. A chamada do shell foi interceptada somente no teste.",
+      "Teste durante chamada pausa o envio e fechar configurações restaura o estado anterior.",
+      "Menu contextual compacto, volume 200% persistido, mute individual e fechamento fora/Escape.",
+      "Queda TCP real restaura servidor e canal de voz automaticamente, sem duplicação e mantendo perfil/volume.",
+      "Saída voluntária cancela reconexão; indisponibilidade prolongada encerra em cinco tentativas e não volta sozinha."
+    ],
+    "errors": []
+  },
+  "media": {
+    "date": "2026-10-21T17:01:54.704Z",
+    "results": [
+      "45 pares mesh conectados; exatamente 4 transceivers por par; pacotes de áudio recebidos nos 90 sentidos.",
+      "Mute/desmute altera track do microfone.",
+      "PTT abre/fecha a track; mute tem prioridade; volumes independentes; mute local isola uma voz e sobrevive a deafen.",
+      "Webcam em slot independente: pixels recebidos pelos nove espectadores.",
+      "Transmissão 1: pixels RTP corretos nos nove espectadores; pacotes de voz continuam crescendo nos 90 sentidos após parar.",
+      "Transmissão 2: pixels RTP corretos nos nove espectadores; pacotes de voz continuam crescendo nos 90 sentidos após parar.",
+      "Webcam e tela simultâneas nos nove espectadores; troca, parada, reinício, permissão negada e track encerrada preservam a voz.",
+      "3 ciclos de saída/reentrada com reconexão dos pares.",
+      "Sons distintos de saída/entrada gerados; opção desativada e deafen impedem os efeitos.",
+      "Início de transmissão notifica os dez participantes, incluindo o transmissor, uma vez por transição.",
+      "Recursos de mídia liberados nos dez clientes."
+    ]
+  },
+  "desktop": {
+    "date": "2026-10-21T17:05:34.847Z",
+    "results": [
+      "Imagem do servidor adicionada/removida pelo criador; outro cliente bloqueado. Home reconecta usando convite salvo.",
+      "Imagem enviada, recebida e ampliada; emoji selecionável e foto do PC redimensionada, salva e exibida nos outros clientes.",
+      "Edição e exclusão da própria mensagem propagadas; confirmação e modais centralizados.",
+      "3 janelas Electron de produção conectadas e no mesmo canal.",
+      "Push to Talk global passa pelo main/IPC e abre/fecha a fala no aplicativo.",
+      "Mute local via clique direito, isolado e persistido após reconexão; voz pode ser restaurada.",
+      "Volume de voz persistido por UUID após desconexão e nova sessão do participante.",
+      "Captura desktop Electron 1: frames recebidos pelos dois clientes; parar e reiniciar sem sair da voz.",
+      "Captura desktop Electron 2: frames recebidos pelos dois clientes; parar e reiniciar sem sair da voz.",
+      "Player ocupa 100% da viewport em fullscreen; volume/mute da transmissão são independentes e persistidos.",
+      "Webcam via getUserMedia no Electron: prévia, recepção, fullscreen, troca, parada e reinício junto da captura nativa de tela.",
+      "Controle de mute responde no aplicativo.",
+      "Ícone de áudio silenciado e mute coexistem; deafen propagado aos cartões e lista do canal.",
+      "Saída de voz nas três janelas.",
+      "Novidades offline preserva histórico por versão; Home permite remover servidor sem apagar os dados da sala."
+    ],
+    "errors": []
+  },
+  "ux": {
+    "date": "2026-10-21T17:06:22.230Z",
+    "results": [
+      "Imagem do servidor preenche o botão inteiro com object-fit cover, sem padding interno.",
+      "Novidades → mesmo canal, outro canal e Home → canal funcionam em um clique e sem seleção presa.",
+      "Tentar um servidor salvo indisponível preserva a conexão e a chamada atuais.",
+      "Online, Ausente e Ocupado salvos e propagados aos participantes sem interromper a voz.",
+      "DM entregue só ao destinatário; notificação e badge de não lidas aparecem e zeram ao abrir; voz permanece ativa na navegação.",
+      "Ocupado mantém o badge sem popup; voltar a Online não reapresenta o aviso silenciado.",
+      "Imagens, edição e exclusão funcionam em DMs; terceiro cliente não pode buscar a imagem privada.",
+      "Reabertura preserva identidade e histórico; reconexão pela lateral entrega mensagem recebida enquanto o destinatário estava offline.",
+      "Host offline mantém DMs legíveis e recentes na lateral; compositor desativado e disponibilidade visual correta em 900×620."
+    ]
+  },
+  "packaged": {
+    "date": "2026-10-21T17:05:41.816Z",
+    "results": [
+      "Executável ASAR abre em produção.",
+      "SQLite WASM e dependências incluídas: host criado.",
+      "Reinício preserva servidor e perfil; segredo DPAPI reutilizado.",
+      "Histórico protegido e imagem do servidor persistem offline; reabrir sala pelo recente funciona; canal global preserva versões.",
+      "Presença Ausente, identidade privada, histórico de DMs e marcador de não lidas sobrevivem à reabertura do pacote."
+    ]
+  },
+  "signalMeasurements": {
+    "method": "Real Web Audio oscillator/analyser; two independent VoicePlayback graphs",
+    "gainAt200Percent": 1.9994,
+    "otherParticipantUnaffected": true,
+    "zeroVolumeSilent": true,
+    "tracksReleased": true,
+    "voiceGateAndInputGainPassed": true
+  },
+  "artifact": {
+    "path": "release/0.6.0/Voxy-Setup-0.6.0-x64.exe",
+    "version": "0.6.0",
+    "installer": "Voxy-Setup-0.6.0-x64.exe",
+    "sha256": "375B4F8FF8B59F1F2688EC0D28B0A2ABEE73E9CEB0CA2F400AAB8E5F95E7C432",
+    "size": 126631173,
+    "ed25519Verified": true,
+    "sha512Verified": true,
+    "installerExecuted": false
+  },
+  "screenshots": [
+    "test-results/audio-menu.png",
+    "test-results/audio-microphone.png"
+  ],
+  "observations": [
+    "One concurrent ten-client run reached the video pixel timeout; complete isolated run passed. No guarantee of sustained network performance."
+  ],
+  "remainingManualValidation": [
+    "Physical microphones/headsets: subjective noise suppression, echo cancellation, monitoring latency and event sound loudness",
+    "Mouse 4/5 during specific games, elevated processes and anticheat",
+    "Ten physical PCs over Radmin and prolonged calls under limited bandwidth",
+    "Real in-place NSIS install and restart; packaged executable and persistence were tested without running installer"
+  ],
+  "packagedFilesMatch": 5,
+  "creatorExcludedFromChangelog": true
+}

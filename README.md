@@ -20,6 +20,10 @@ Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu compu
 
 ---
 
+## Em desenvolvimento: 0.6.0
+
+Áudio avançado com teste privado, PTT por Mouse 4/5, reconexão ao canal de voz, menu compacto e volumes individuais até 200%, novos sons de transmissão e links clicáveis. [Guia de áudio e reconexão](AUDIO-E-CONEXAO.md). O instalador local fica em `release/0.6.0/Voxy-Setup-0.6.0-x64.exe`; esta versão ainda não foi publicada. O canal público e os downloads acima permanecem na 0.5.0.
+
 ## Novidades na versão 0.5.0
 
 Presença Online/Ausente/Ocupado, DMs com histórico local e não lidas, servidores salvos na barra esquerda e navegação direta das novidades para os canais. As fotos dos servidores agora ocupam todo o botão. [Guia de conversas e status](CONVERSAS-E-STATUS.md).

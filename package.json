@@ -1,6 +1,6 @@
 {
   "name": "voxy-desktop",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "description": "Voz e tela entre amigos pela sua rede privada",
   "author": "Voxy",
@@ -24,7 +24,8 @@
     "updates:keygen": "node scripts/update-keys.mjs",
     "updates:export-key": "node scripts/update-keys.mjs --export",
     "test:updater": "node scripts/test-updater.mjs",
-    "test:ux": "tsx tests/ux.e2e.ts"
+    "test:ux": "tsx tests/ux.e2e.ts",
+    "test:audio": "tsx tests/audio.e2e.ts"
   },
   "dependencies": {
     "electron-updater": "6.8.9",
@@ -57,7 +58,7 @@
     "appId": "dev.voxy.desktop",
     "productName": "Voxy",
     "directories": {
-      "output": "release/0.5.0"
+      "output": "release/0.6.0"
     },
     "files": [
       "dist/**/*",

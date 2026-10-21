@@ -27,10 +27,12 @@ export const profileSchema = z.object({
   pttEnabled: z.boolean().default(false),
   pttKey: z.string().max(40).refine(isPttKey).default("KeyV"),
   inputVolume: z.number().min(0).max(2).default(1),
+  noiseSuppression: z.boolean().default(true),
+  echoCancellation: z.boolean().default(true),
   voiceDetection: z.boolean().default(false),
   voiceThreshold: z.number().min(-70).max(-10).default(-45),
   callSounds: z.boolean().default(true),
-  volumes: z.record(z.uuid(), z.number().min(0).max(1)).default({}),
+  volumes: z.record(z.uuid(), z.number().min(0).max(2)).default({}),
   streamVolumes: z.record(z.uuid(), z.number().min(0).max(1)).default({}),
   mutedParticipants: z.record(z.uuid(), z.boolean()).default({}),
 });

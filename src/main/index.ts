@@ -8,7 +8,9 @@ import {
   clipboard,
   dialog,
   Notification,
+  shell,
 } from "electron";
+import { externalUrl } from "../shared/links";
 import { spawn } from "node:child_process";
 import { UpdateManager } from "./updates";
 import { ReleaseNotesStore } from "./releaseNotes";
@@ -148,6 +150,8 @@ async function connect(invite: string, ownerKey?: string) {
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 1500,
+    reconnectionDelayMax: 6000,
+    randomizationFactor: 0.25,
   });
   client = socket;
   socket.on("state", (state) => {
@@ -181,7 +185,9 @@ async function connect(invite: string, ownerKey?: string) {
     updatePtt();
     emit({ type: "state", state });
   });
-  socket.on("signal", (signal) => emit({ type: "signal", signal }));
+  socket.on("signal", (signal) => {
+    if (socket === client) emit({ type: "signal", signal });
+  });
   socket.on("direct", (raw) => {
     if (socket !== client) return;
     try {
@@ -241,13 +247,40 @@ async function connect(invite: string, ownerKey?: string) {
     ptt.stop();
     inbox.activeScope = undefined;
     emit({ type: "inbox", inbox: inbox.view() });
-    emit({ type: "connection", status: "disconnected" });
+    emit({
+      type: "connection",
+      status: socket.active ? "reconnecting" : "disconnected",
+    });
   });
-  socket.io.on("reconnect_attempt", () => {
-    if (socket === client) emit({ type: "connection", status: "reconnecting" });
+  socket.io.on("reconnect_attempt", (attempt) => {
+    if (socket === client)
+      emit({
+        type: "connection",
+        status: "reconnecting",
+        attempt,
+        maxAttempts: 5,
+      });
+  });
+  socket.io.on("reconnect_failed", () => {
+    if (socket === client) {
+      socket.disconnect();
+      emit({
+        type: "connection",
+        status: "error",
+        message:
+          "Reconexão encerrada após 5 tentativas. Confira o Radmin e use Reconectar na lista de servidores.",
+      });
+    }
   });
   socket.on("connect_error", () => {
-    if (socket === client) emit({ type: "connection", status: "error" });
+    if (socket === client)
+      emit({
+        type: "connection",
+        status: socket.active ? "reconnecting" : "error",
+        message: socket.active
+          ? undefined
+          : "A conexão foi recusada. Confira o convite e atualize o aplicativo.",
+      });
   });
   await new Promise<void>((resolve, reject) => {
     const cleanup = () => {
@@ -572,6 +605,16 @@ app.whenReady().then(async () => {
       mutedParticipants: profile.mutedParticipants,
     };
     saveProfile();
+    if (client)
+      client.auth = {
+        ...client.auth,
+        profile: {
+          id: profile.id,
+          name: profile.name,
+          avatar: profile.avatar,
+          presence: profile.presence ?? "online",
+        },
+      };
     updatePtt();
     if (client?.connected)
       await send("command", {
@@ -586,11 +629,13 @@ app.whenReady().then(async () => {
     const v = z
       .object({
         id: z.uuid(),
-        value: z.number().min(0).max(1),
+        value: z.number().min(0).max(2),
         stream: z.boolean(),
       })
       .parse(raw);
     const key = v.stream ? "streamVolumes" : "volumes";
+    if (v.stream && v.value > 1)
+      throw Error("O volume da transmissão deve ser de 0 a 100%.");
     profile[key] = { ...profile[key], [v.id]: v.value };
     saveProfile();
   });
@@ -693,6 +738,9 @@ app.whenReady().then(async () => {
     parseInvite(invite);
     await disconnect();
     await connect(invite);
+  });
+  handle("openExternal", async (raw) => {
+    await shell.openExternal(externalUrl(raw));
   });
   handle("disconnect", disconnect);
   handle("command", (raw) => {

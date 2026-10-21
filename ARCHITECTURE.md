@@ -1,5 +1,14 @@
 # Arquitetura do Voxy
 
+## Áudio e reconexão na 0.6.0
+
+As restrições de microfone são compartilhadas por chamada e teste privado: ruído/eco configuráveis, AGC desativado, ganho e gate antes da track enviada. O teste tem contexto/captura próprios, sem referência a sinalização ou peers; ao ativar, o engine pausa a track de envio e preserva mute/PTT. GainNodes separados por participante permitem amplificar a voz até 200%; um WaveShaper limita picos sem ganho automático. Reprodução continua em elementos de áudio para preservar saída selecionada, deafen e mute local. O áudio da tela permanece independente.
+
+O Socket.IO mantém cinco tentativas com backoff limitado; eventos exibem progresso e falha final. O renderer guarda somente a intenção do canal de voz, encerra a geração anterior de mídia e retorna após receber o novo socket e estado autorizado. Operações em andamento bloqueiam o retorno até terminarem. Saídas voluntárias cancelam a intenção; tela e webcam exigem nova ação. Não há retomada de transmissão sem consentimento nem migração de host.
+
+Mouse 4/5 usam VK_XBUTTON1/2 no mesmo leitor GetAsyncKeyState já usado pelo teclado, com allowlist e heartbeat que fecha a fala se o leitor parar. Links passam por um parser de texto no renderer e validação HTTP/HTTPS sem credenciais no IPC principal antes de shell.openExternal; não há execução de HTML do chat.
+
+
 ## Navegação, presença e DMs — 0.5.0
 
 `AppPage` separa Home, Novidades, sala e DMs. Toda seleção de canal define a página de sala; canais só recebem seleção ativa quando essa página está visível. `ServerRail` combina servidores atuais e salvos sem duplicar os conectados. Home e lateral usam uma única assinatura/polling em `useSavedRooms`, com refresh adicional quando o estado muda durante uma consulta. O ícone do servidor remove o padding do botão e aplica `object-fit: cover`, mantendo proporção e bordas.

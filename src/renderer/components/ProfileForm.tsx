@@ -2,6 +2,7 @@ import type { Profile } from "../../shared/types";
 import { useRef, useState } from "react";
 import { Avatar } from "./Avatar";
 import { PTT_KEYS, isPttKey } from "../../shared/preferences";
+import { MicrophonePreview } from "./MicrophonePreview";
 import { Updates } from "./Updates";
 const avatars = ["🪻", "🦊", "🐳", "🪐", "🐸", "🍄", "🌙", "🎧", "👴"];
 export function ProfileForm({
@@ -12,6 +13,7 @@ export function ProfileForm({
   onSave,
   inputLevel,
   presenceSupported = true,
+  onMicrophoneTest,
 }: {
   profile: Profile;
   setProfile: (profile: Profile) => void;
@@ -20,6 +22,7 @@ export function ProfileForm({
   onSave: () => void;
   inputLevel?: number;
   presenceSupported?: boolean;
+  onMicrophoneTest: (active: boolean) => void;
 }) {
   const [recording, setRecording] = useState(false);
   const [keyError, setKeyError] = useState("");
@@ -171,7 +174,7 @@ export function ProfileForm({
             setProfile({ ...profile, pttEnabled: e.target.checked })
           }
         />{" "}
-        Push to Talk: falar enquanto segura uma tecla
+        Push to Talk: falar enquanto segura uma tecla ou botão lateral
       </label>
       {profile.pttEnabled && (
         <label>
@@ -185,6 +188,17 @@ export function ProfileForm({
               setKeyError("");
             }}
             onBlur={() => setRecording(false)}
+            onPointerDown={(e) => {
+              if (!recording || (e.button !== 3 && e.button !== 4)) return;
+              e.preventDefault();
+              e.stopPropagation();
+              setProfile({
+                ...profile,
+                pttKey: e.button === 3 ? "Mouse4" : "Mouse5",
+              });
+              setRecording(false);
+              setKeyError("");
+            }}
             onKeyDown={(e) => {
               if (!recording) return;
               e.preventDefault();
@@ -201,14 +215,30 @@ export function ProfileForm({
             }}
           >
             {recording
-              ? "Pressione a tecla desejada…"
+              ? "Pressione uma tecla ou Mouse 4/5…"
               : (PTT_KEYS[profile.pttKey ?? "KeyV"]?.label ?? "V") +
                 " — alterar tecla"}
           </button>
+          <select
+            aria-label="Atalho do Push-to-Talk"
+            value={profile.pttKey ?? "KeyV"}
+            onChange={(e) => {
+              setProfile({ ...profile, pttKey: e.target.value });
+              setRecording(false);
+            }}
+          >
+            {Object.entries(PTT_KEYS).map(([code, key]) => (
+              <option key={code} value={code}>
+                {key.label}
+              </option>
+            ))}
+          </select>
           {keyError && <small role="alert">{keyError}</small>}
           <small>
             Funciona também com outros programas em foco. O mute manual continua
-            tendo prioridade.
+            tendo prioridade. Mouse 4/5 são lidos globalmente pelo Windows.
+            Jogos elevados, anticheat e remapeadores podem impedir a leitura;
+            escolha outra tecla nesses casos.
           </small>
         </label>
       )}
@@ -220,8 +250,36 @@ export function ProfileForm({
             setProfile({ ...profile, callSounds: e.target.checked })
           }
         />{" "}
-        Sons de entrada e saída da chamada e início de transmissão
+        Sons de entrada e saída da chamada e início/fim de transmissão
       </label>
+      <fieldset className="audio-processing">
+        <legend>Processamento do microfone</legend>
+        <label className="checkbox">
+          <input
+            type="checkbox"
+            checked={profile.noiseSuppression !== false}
+            onChange={(e) =>
+              setProfile({ ...profile, noiseSuppression: e.target.checked })
+            }
+          />
+          Supressão de ruído
+        </label>
+        <label className="checkbox">
+          <input
+            type="checkbox"
+            checked={profile.echoCancellation !== false}
+            onChange={(e) =>
+              setProfile({ ...profile, echoCancellation: e.target.checked })
+            }
+          />
+          Cancelamento de eco
+        </label>
+        <small>
+          Processamento nativo do Chromium, conforme suporte do dispositivo.
+          Ganho automático desativado para manter o volume previsível.
+        </small>
+      </fieldset>
+      <MicrophonePreview profile={profile} onActive={onMicrophoneTest} />
       <label>
         Volume de entrada: {Math.round((profile.inputVolume ?? 1) * 100)}%
         <input

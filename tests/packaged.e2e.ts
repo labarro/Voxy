@@ -69,15 +69,17 @@ async function main() {
             name: "Perfil persistido",
             avatar: canvas.toDataURL("image/png"),
             pttEnabled: true,
-            pttKey: "KeyQ",
+            pttKey: "Mouse5",
             inputVolume: 0.65,
+            noiseSuppression: false,
+            echoCancellation: false,
             voiceDetection: true,
             voiceThreshold: -38,
             callSounds: false,
             cameraDevice: "camera-persisted",
             presence: "away",
           });
-          await window.voxy.setVolume(p.id, 0.35, false);
+          await window.voxy.setVolume(p.id, 2, false);
           await window.voxy.setVolume(p.id, 0.15, true);
           await window.voxy.setParticipantMuted(p.id, true);
         }
@@ -100,14 +102,16 @@ async function main() {
         assert.equal(info.p.presence, "away");
         assert(info.p.avatar.startsWith("data:image/png;base64,"));
         assert.equal(info.p.pttEnabled, true);
-        assert.equal(info.p.pttKey, "KeyQ");
+        assert.equal(info.p.pttKey, "Mouse5");
         assert.equal(info.p.inputVolume, 0.65);
+        assert.equal(info.p.noiseSuppression, false);
+        assert.equal(info.p.echoCancellation, false);
         assert.equal(info.p.voiceDetection, true);
         assert.equal(info.p.voiceThreshold, -38);
         assert.equal(info.p.mutedParticipants?.[info.p.id], true);
         assert.equal(info.p.callSounds, false);
         assert.equal(info.p.cameraDevice, "camera-persisted");
-        assert.equal(info.p.volumes?.[info.p.id], 0.35);
+        assert.equal(info.p.volumes?.[info.p.id], 2);
         assert.equal(info.p.streamVolumes?.[info.p.id], 0.15);
       }
       await page.getByRole("heading", { name: "Pacote validado" }).waitFor();

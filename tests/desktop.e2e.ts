@@ -349,7 +349,7 @@ async function main() {
       .locator(".participant-card")
       .filter({ hasText: "Amigo 2" });
     await localCard.click({ button: "right" });
-    await centered(pages[1]);
+    await pages[1].locator(".participant-menu").waitFor();
     await pages[1]
       .getByRole("dialog")
       .getByRole("button", { name: "Mutar voz para mim", exact: true })
@@ -384,6 +384,7 @@ async function main() {
     await pages[2]
       .getByRole("button", { name: "Sala dos amigos", exact: true })
       .click();
+    await localCard.click({ button: "right" });
     await pages[1]
       .getByRole("slider", { name: "Volume de Amigo 2", exact: true })
       .waitFor();
@@ -396,7 +397,8 @@ async function main() {
     await localCard
       .getByRole("img", { name: "Voz mutada só para você", exact: true })
       .waitFor();
-    await localCard
+    await pages[1]
+      .locator(".participant-menu")
       .getByRole("button", { name: "Ouvir voz novamente", exact: true })
       .click();
     await localCard
@@ -408,6 +410,7 @@ async function main() {
     results.push(
       "Volume de voz persistido por UUID após desconexão e nova sessão do participante.",
     );
+    await pages[1].keyboard.press("Escape");
     if (testCamera) {
       await a
         .getByRole("button", { name: "Ativar câmera", exact: true })
@@ -624,6 +627,7 @@ async function main() {
     for (const page of pages)
       await page
         .getByRole("img", { name: "Áudio silenciado", exact: true })
+        .first()
         .waitFor({ state: "detached" });
     results.push(
       "Ícone de áudio silenciado e mute coexistem; deafen propagado aos cartões e lista do canal.",

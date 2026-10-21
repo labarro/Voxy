@@ -1,5 +1,24 @@
 # Validação do Voxy
 
+## Versão 0.6.0 — 21/10/2026
+
+Passaram: `npm test` (**24 testes**), `npm run build`, `npm run test:ptt`, `npm run test:microphone`, `npm run test:audio`, `npm run test:media`, `npm run test:desktop`, `npm run test:ux`, `npm run dist` e `npm run test:packaged`.
+
+- Microfone: teste privado antes da call e durante a call, edição de supressão de ruído/eco, ganho, persistência e encerramento de todas as capturas. Durante o teste, o microfone enviado ficou mutado; fechar as configurações restaurou o estado anterior. Os dispositivos de captura dessa suíte são os dispositivos de teste do Chromium. A qualidade acústica em hardware físico não foi aferida.
+- Web Audio: oscilador/analisador reais verificaram ganho proporcional, gate, silêncio em volume zero e liberação de tracks. Dois participantes com grafos separados: 200% dobrou a amplitude de um e manteve o outro inalterado. O limitador é transparente para sinais baixos; não usa makeup gain automático.
+- Windows: injeção Win32 de F9, Q, Mouse 4 e Mouse 5 detectada pelo leitor global, incluindo soltar, reconfigurar, validar entrada e fechar. Jogos elevados/anticheat específicos continuam pendentes.
+- Reconexão: proxy TCP entre cliente Electron e host real interrompeu o transporte. Servidor e canal de voz foram restaurados, sem participantes duplicados e com volume/identidade mantidos. Desconexão voluntária cancelou o retorno. Indisponibilidade persistente encerrou em cinco tentativas e não voltou ao reabrir o transporte. O teste não substitui queda real de internet/Radmin entre máquinas físicas.
+- Menu: cartão sem controles de áudio expostos, menu próximo ao clique, 0–200% salvo, mute local e fechamento ao clicar fora/Esc. Capturas do menu e do teste privado inspecionadas. Novidades/DMs/recentes continuam funcionando, inclusive em 900×620.
+- Links: clicar no link do chat e no crédito chegou ao shell do Electron pelo IPC validado; a chamada ao shell foi interceptada somente no teste para evitar abrir o navegador pessoal. URLs de arquivos e esquemas perigosos foram rejeitados. Parsing preservou pontuação e texto original.
+- Dez clientes: 45 pares e voz nos 90 sentidos, tela/webcam para nove espectadores, dois ciclos de tela, três reentradas e recursos liberados. Sons de início/fim geraram sequências distintas para todos; snapshots repetidos, efeitos desativados, deafen e outros canais não geraram sons extras. Uma execução concorrente atingiu timeout de pixels (10 s); a execução completa isolada passou. As asserções antigas das melodias foram atualizadas para os novos sons.
+- Regressão desktop: três janelas com imagens, perfis, edição/exclusão, mute/deafen/PTT, volumes, captura desktop nativa, player/HUD e webcam com dispositivo de teste. Uma espera de ícones duplicados foi corrigida no teste, mantendo ambos os indicadores no produto.
+- Pacote: executável abriu duas vezes com SQLite; Mouse 5, ganho/sensibilidade, ruído/eco desativados, volume individual 200%, mute local, recentes, identidade e DMs persistiram. Envelope Ed25519, manifesto e hashes SHA-512 conferidos com a chave pública de produção.
+
+Instalador local: `release/0.6.0/Voxy-Setup-0.6.0-x64.exe`, **126631173 bytes**, SHA-256 `375B4F8FF8B59F1F2688EC0D28B0A2ABEE73E9CEB0CA2F400AAB8E5F95E7C432`. Evidência consolidada em `evidence/validation-0.6.0.json`. A 0.6.0 ainda não foi publicada; o canal público continua na 0.5.0. A verificação pública/diferencial do updater da 0.5.0 é histórica e não foi repetida para esta versão local.
+
+Pendentes: avaliação audível com microfones/fones físicos e dos níveis dos efeitos, jogos/anticheat específicos, dez PCs pelo Radmin, chamadas prolongadas e instalação/reinício NSIS real sobre uma instalação existente. Nenhum instalador foi executado na instalação pessoal. Veja [Áudio e conexão](AUDIO-E-CONEXAO.md).
+
+
 ## Versão 0.5.0 — 20/10/2026
 
 Passaram: `npm test` (**22 testes**), `npm run test:ux`, `npm run test:desktop` com webcam de teste, execução separada com `VOXY_TEST_NATIVE_MEDIA=1`, `npm run test:media`, `npm run test:dev`, `npm run dist`, `npm run test:packaged` e `npm run test:updater`.

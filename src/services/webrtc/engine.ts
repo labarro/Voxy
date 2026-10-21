@@ -1,7 +1,8 @@
 import type { Participant, Signal, Profile } from "../../shared/types";
 import { MAX_PARTICIPANTS } from "../../shared/constants";
 import { microphoneMuted } from "../../shared/preferences";
-import { MicrophonePipeline } from "./microphone";
+import { VoicePlayback } from "./voicePlayback";
+import { MicrophonePipeline, microphoneConstraints } from "./microphone";
 export const qualities = {
   "720p15": { width: 1280, height: 720, fps: 15, bitrate: 1800000 },
   "720p30": { width: 1280, height: 720, fps: 30, bitrate: 3000000 },
@@ -39,6 +40,7 @@ type Peer = {
   stream: MediaStream;
   cameraStream: MediaStream;
   monitor?: () => void;
+  playback?: VoicePlayback;
   lastBytes: number;
   lastTime: number;
   counters: Map<string, { bytes: number; time: number }>;
@@ -84,6 +86,7 @@ export class VoiceEngine {
   private streamVolumes = new Map<string, number>();
   private mutedParticipants = new Map<string, boolean>();
   private peerProfiles = new Map<string, string>();
+  private testingMicrophone = false;
   private pttEnabled = false;
   private pressed = false;
   private callSounds = true;
@@ -115,12 +118,7 @@ export class VoiceEngine {
     const generation = ++this.generation;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          deviceId: input ? { exact: input } : undefined,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: false,
-        },
+        audio: microphoneConstraints(this.preferences, input),
         video: false,
       });
       if (generation !== this.generation) {
@@ -166,6 +164,11 @@ export class VoiceEngine {
       [...sharing].some((id) => !this.sharingPeers.has(id))
     )
       this.chime("share");
+    if (
+      this.channel === me.channelId &&
+      [...this.sharingPeers].some((id) => !sharing.has(id))
+    )
+      this.chime("share-stop");
     this.sharingPeers = sharing;
     const ids = new Set(
       participants
@@ -199,7 +202,7 @@ export class VoiceEngine {
     const audio = new Audio();
     audio.autoplay = true;
     audio.muted = this.deafened || this.isParticipantMuted(id);
-    audio.volume = this.getVolume(id);
+    audio.volume = 1;
     const systemAudio = new Audio();
     systemAudio.autoplay = true;
     systemAudio.muted = this.deafened || this.watching !== id;
@@ -225,7 +228,13 @@ export class VoiceEngine {
     };
     pc.ontrack = (e) => {
       if (e.transceiver.mid === "0") {
-        audio.srcObject = new MediaStream([e.track]);
+        peer.playback?.close();
+        peer.playback = new VoicePlayback(
+          this.context!,
+          new MediaStream([e.track]),
+          this.getVolume(id),
+        );
+        audio.srcObject = peer.playback.stream;
         void this.applyOutput(audio).catch((e) => this.error(e));
         void audio
           .play()
@@ -470,7 +479,10 @@ export class VoiceEngine {
     this.applyMicrophone();
   }
   isMuted() {
-    return microphoneMuted(this.muted, this.pttEnabled, this.pressed);
+    return (
+      this.testingMicrophone ||
+      microphoneMuted(this.muted, this.pttEnabled, this.pressed)
+    );
   }
   private applyMicrophone() {
     const muted = this.isMuted();
@@ -496,31 +508,37 @@ export class VoiceEngine {
     this.applyMicrophone();
     for (const [id, peer] of this.peers) {
       peer.audio.muted = this.deafened || this.isParticipantMuted(id);
-      peer.audio.volume = this.getVolume(id);
+      peer.playback?.volume(this.getVolume(id));
       peer.systemAudio.volume = this.getVolume(id, true);
     }
+  }
+  setMicrophoneTesting(value: boolean) {
+    this.testingMicrophone = value;
+    this.applyMicrophone();
   }
   setPttPressed(pressed: boolean) {
     this.pressed = pressed;
     this.applyMicrophone();
   }
-  private chime(kind: "join" | "leave" | "share") {
+  private chime(kind: "join" | "leave" | "share" | "share-stop") {
     if (!this.callSounds || this.deafened || !this.context) return;
     const ctx = this.context;
     const now = ctx.currentTime;
-    for (let i = 0; i < 2; i++) {
-      const oscillator = ctx.createOscillator(),
-        gain = ctx.createGain();
-      oscillator.frequency.value = (
-        kind === "share"
-          ? [660, 880]
+    const notes =
+      kind === "share"
+        ? [523.25, 659.25, 1046.5]
+        : kind === "share-stop"
+          ? [784, 587.33, 392]
           : kind === "join"
             ? [440, 660]
-            : [660, 330]
-      )[i];
+            : [660, 330];
+    for (let i = 0; i < notes.length; i++) {
+      const oscillator = ctx.createOscillator(),
+        gain = ctx.createGain();
+      oscillator.frequency.value = notes[i];
       const start = now + i * 0.1;
       gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(0.06, start + 0.012);
+      gain.gain.linearRampToValueAtTime(0.12, start + 0.012);
       gain.gain.exponentialRampToValueAtTime(0.001, start + 0.09);
       oscillator.connect(gain);
       gain.connect(ctx.destination);
@@ -564,13 +582,16 @@ export class VoiceEngine {
     );
   }
   volume(id: string, value: number, stream = false) {
-    value = Math.min(1, Math.max(0, value));
+    value = Math.min(stream ? 1 : 2, Math.max(0, value));
     (stream ? this.streamVolumes : this.volumes).set(
       this.peerProfiles.get(id) ?? id,
       value,
     );
     const p = this.peers.get(id);
-    if (p) (stream ? p.systemAudio : p.audio).volume = value;
+    if (p) {
+      if (stream) p.systemAudio.volume = value;
+      else p.playback?.volume(value);
+    }
   }
   async setOutput(id: string) {
     this.output = id;
@@ -607,16 +628,11 @@ export class VoiceEngine {
     }
     this.publish({ error: "" });
   }
-  async setInput(id: string) {
-    if (!this.active || id === this.input) return;
+  async setInput(id: string, force = false) {
+    if (!this.active || (!force && id === this.input)) return;
     const generation = this.generation;
     const stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        deviceId: id ? { exact: id } : undefined,
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: false,
-      },
+      audio: microphoneConstraints(this.preferences, id),
       video: false,
     });
     if (generation !== this.generation) {
@@ -863,6 +879,7 @@ export class VoiceEngine {
     p.pc.ontrack = null;
     p.pc.close();
     p.monitor?.();
+    p.playback?.close();
     p.audio.pause();
     p.audio.srcObject = null;
     p.systemAudio.pause();

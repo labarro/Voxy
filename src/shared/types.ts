@@ -11,6 +11,8 @@ export type Profile = {
   pttEnabled?: boolean;
   pttKey?: PttKey;
   inputVolume?: number;
+  noiseSuppression?: boolean;
+  echoCancellation?: boolean;
   voiceDetection?: boolean;
   voiceThreshold?: number;
   callSounds?: boolean;
@@ -137,7 +139,14 @@ export type NetworkEvent =
   | { type: "remote-update"; state: RemoteUpdateState }
   | { type: "state"; state: RoomState }
   | { type: "signal"; signal: Signal }
-  | { type: "connection"; status: string; selfId?: string };
+  | {
+      type: "connection";
+      status: string;
+      selfId?: string;
+      attempt?: number;
+      maxAttempts?: number;
+      message?: string;
+    };
 export type PttEvent = { type: "ptt"; pressed: boolean; error?: string };
 export type HostInfo = { invite: string; address: string; port: number };
 export type Source = { id: string; name: string; thumbnail: string };
@@ -186,6 +195,7 @@ export type RoomAvailability = {
   status: "available" | "unavailable" | "invalid" | "missing" | "full";
 };
 export interface DesktopAPI {
+  openExternal(url: string): Promise<void>;
   inbox(): Promise<Inbox>;
   markDirectRead(scope: string, peer: string, sequence: number): Promise<void>;
   directImage(id: string, scope: string): Promise<string>;

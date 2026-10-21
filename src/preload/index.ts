@@ -11,6 +11,7 @@ async function invoke<T>(method: string, arg?: unknown): Promise<T> {
   return r.value;
 }
 const api: DesktopAPI = {
+  openExternal: url => invoke("openExternal",url),
   inbox: () => invoke("inbox"),
   markDirectRead: (scope, peer, sequence) =>
     invoke("markDirectRead", { scope, peer, sequence }),

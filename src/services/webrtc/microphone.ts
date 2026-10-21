@@ -1,4 +1,17 @@
+import { peakLimiter } from "./peakLimiter";
 import type { Profile } from "../../shared/types";
+
+export function microphoneConstraints(
+  p?: Profile,
+  input = p?.input ?? "",
+): MediaTrackConstraints {
+  return {
+    deviceId: input ? { exact: input } : undefined,
+    echoCancellation: p?.echoCancellation !== false,
+    noiseSuppression: p?.noiseSuppression !== false,
+    autoGainControl: false,
+  };
+}
 
 // Threshold is measured before user gain so boosting the volume cannot open
 // the gate on background noise. Hysteresis and a hold avoid chopping words.
@@ -30,6 +43,7 @@ export class MicrophonePipeline {
   private analyser: AnalyserNode;
   private volume: GainNode;
   private gate: GainNode;
+  private limiter: WaveShaperNode;
   private destination: MediaStreamAudioDestinationNode;
   private timer: ReturnType<typeof setInterval>;
   private settings: Pick<
@@ -48,11 +62,13 @@ export class MicrophonePipeline {
     this.volume = context.createGain();
     this.gate = context.createGain();
     this.gate.gain.value = 0;
+    this.limiter = peakLimiter(context);
     this.destination = context.createMediaStreamDestination();
     this.source.connect(this.analyser);
     this.source
       .connect(this.volume)
       .connect(this.gate)
+      .connect(this.limiter)
       .connect(this.destination);
     this.stream = this.destination.stream;
     const buffer = new Float32Array(this.analyser.fftSize);
@@ -102,6 +118,7 @@ export class MicrophonePipeline {
     this.analyser.disconnect();
     this.volume.disconnect();
     this.gate.disconnect();
+    this.limiter.disconnect();
     this.destination.disconnect();
   }
 }

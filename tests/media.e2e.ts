@@ -193,7 +193,11 @@ async function main() {
       if (w.engine.microphone.getAudioTracks()[0].enabled)
         throw Error("PTT release failed");
       const peer = w.engine.peers.get("1");
-      if (peer.audio.volume !== 0.35 || peer.systemAudio.volume !== 0.2)
+      if (
+        w.engine.getVolume("1") !== 0.35 ||
+        peer.audio.volume !== 1 ||
+        peer.systemAudio.volume !== 0.2
+      )
         throw Error("Independent volumes failed");
       w.engine.setDeafened(true);
       if (!peer.audio.muted || !peer.systemAudio.muted)
@@ -204,7 +208,8 @@ async function main() {
       if (
         !peer.audio.muted ||
         peer.systemAudio.muted ||
-        peer.audio.volume !== 0.35
+        w.engine.getVolume("1") !== 0.35 ||
+        peer.audio.volume !== 1
       )
         throw Error(
           "Local mute must only silence that voice and preserve volumes",
@@ -529,7 +534,7 @@ async function main() {
         { screenState, participants, i },
       );
       const sounds = await page.evaluate(() => (window as any).shareSounds);
-      assert.deepEqual(sounds, [660, 880]);
+      assert.deepEqual(sounds.map(Math.round), [523, 659, 1047, 784, 587, 392]);
       await page.evaluate(
         ({ screenState, participants, i }) => {
           const w = window as any;
@@ -546,8 +551,10 @@ async function main() {
         { screenState, participants, i },
       );
       assert.deepEqual(
-        await page.evaluate(() => (window as any).shareSounds),
-        [660, 880, 660, 880],
+        (await page.evaluate(() => (window as any).shareSounds)).map(
+          Math.round,
+        ),
+        [523, 659, 1047, 784, 587, 392, 523, 659, 1047],
       );
     }
     for (let i = 0; i < pages.length; i++)

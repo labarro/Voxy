@@ -11,10 +11,14 @@ async function invoke<T>(method: string, arg?: unknown): Promise<T> {
   return r.value;
 }
 const api: DesktopAPI = {
-  remoteUpdateState:()=>invoke("remoteUpdateState"),
-  checkRemoteUpdate:()=>invoke("checkRemoteUpdate"),
-  downloadRemoteUpdate:()=>invoke("downloadRemoteUpdate"),
-  installRemoteUpdate:()=>invoke("installRemoteUpdate"),
+  inbox: () => invoke("inbox"),
+  markDirectRead: (scope, peer, sequence) =>
+    invoke("markDirectRead", { scope, peer, sequence }),
+  directImage: (id, scope) => invoke("directImage", { id, scope }),
+  remoteUpdateState: () => invoke("remoteUpdateState"),
+  checkRemoteUpdate: () => invoke("checkRemoteUpdate"),
+  downloadRemoteUpdate: () => invoke("downloadRemoteUpdate"),
+  installRemoteUpdate: () => invoke("installRemoteUpdate"),
   releaseHistory: () => invoke("releaseHistory"),
   savedRooms: () => invoke("savedRooms"),
   roomAvailability: () => invoke("roomAvailability"),

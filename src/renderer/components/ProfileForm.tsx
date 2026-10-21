@@ -11,6 +11,7 @@ export function ProfileForm({
   busy,
   onSave,
   inputLevel,
+  presenceSupported = true,
 }: {
   profile: Profile;
   setProfile: (profile: Profile) => void;
@@ -18,6 +19,7 @@ export function ProfileForm({
   busy: boolean;
   onSave: () => void;
   inputLevel?: number;
+  presenceSupported?: boolean;
 }) {
   const [recording, setRecording] = useState(false);
   const [keyError, setKeyError] = useState("");
@@ -87,6 +89,33 @@ export function ProfileForm({
           maxLength={60}
           onChange={(e) => setProfile({ ...profile, name: e.target.value })}
         />
+      </label>
+      <label>
+        Status
+        <select
+          aria-label="Seu status"
+          value={profile.presence ?? "online"}
+          onChange={(e) =>
+            setProfile({
+              ...profile,
+              presence: e.target.value as Profile["presence"],
+            })
+          }
+        >
+          <option value="online">Online</option>
+          <option value="away">Ausente</option>
+          <option value="busy">Ocupado</option>
+        </select>
+        {!presenceSupported && (
+          <small className="hint">
+            Seu status fica salvo neste computador. Atualize o host para
+            compartilhá-lo com os participantes.
+          </small>
+        )}
+        <small className="hint">
+          Ocupado mantém os indicadores de mensagens não lidas e silencia os
+          avisos de novas DMs.
+        </small>
       </label>
       <div className="avatar-picker">
         {avatars.map((a) => (

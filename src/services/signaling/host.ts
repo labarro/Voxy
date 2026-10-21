@@ -1,5 +1,5 @@
 import { createServer, type Server as HttpServer } from "node:http";
-import { randomUUID, timingSafeEqual } from "node:crypto";
+import { randomUUID, timingSafeEqual, createHash } from "node:crypto";
 import { Server } from "socket.io";
 import { z } from "zod";
 import { Store } from "../../database/store";
@@ -22,12 +22,14 @@ export class RoomHost {
   private http: HttpServer;
   private people = new Map<string, Participant>();
   private ownerKey: string;
+  private identityScope: string;
   constructor(
     private store: Store,
     private token: string,
     ownerKey: string,
   ) {
     this.ownerKey = ownerKey;
+    this.identityScope = createHash("sha256").update(token).digest("hex");
     let probeBudget = 80,
       probeAt = Date.now();
     this.http = createServer((req, res) => {
@@ -123,12 +125,28 @@ export class RoomHost {
       if ([...this.people.values()].some((x) => x.profile.id === p.data.id))
         return next(Error("Este perfil já está conectado."));
       try {
+        if (
+          auth.identityKey !== undefined &&
+          !/^[a-f0-9]{64}$/.test(auth.identityKey)
+        )
+          throw Error("Identidade inválida.");
+        socket.data.privateIdentity = this.store.direct.authorize(
+          p.data.id,
+          this.identityScope,
+          auth.identityKey,
+        );
         socket.data.profile = {
           ...p.data,
           avatar: this.store.registerAvatar(p.data.avatar),
         };
-      } catch {
-        return next(Error("Não foi possível salvar a foto de perfil."));
+      } catch (error) {
+        return next(
+          Error(
+            error instanceof Error
+              ? error.message
+              : "Não foi possível validar o perfil.",
+          ),
+        );
       }
       socket.data.host = auth.ownerKey === this.ownerKey;
       if (socket.data.host) this.store.claimLegacyServers(p.data.id);
@@ -142,6 +160,7 @@ export class RoomHost {
           id: profile.id,
           name: profile.name,
           avatar: profile.avatar,
+          presence: profile.presence,
         },
         channelId: null,
         muted: false,
@@ -150,6 +169,7 @@ export class RoomHost {
         camera: false,
         host: socket.data.host,
       });
+      this.store.direct.remember(profile);
       let budget = 120,
         last = Date.now();
       let lastImage = 0;
@@ -164,14 +184,52 @@ export class RoomHost {
         try {
           limited();
           const c = commandSchema.parse(raw);
-          if (c.type === "message" && c.image) {
+          if (
+            (c.type === "message" || c.type === "direct.message") &&
+            c.image
+          ) {
             if (Date.now() - lastImage < 2000)
               throw Error("Aguarde 2 segundos entre imagens.");
             validateImage(c.image);
             lastImage = Date.now();
           }
-          this.command(socket.id, c);
-          this.broadcast();
+          if (
+            c.type === "direct.message" ||
+            c.type === "direct.edit" ||
+            c.type === "direct.delete"
+          ) {
+            if (!socket.data.privateIdentity)
+              throw Error(
+                "Atualize o aplicativo para usar mensagens privadas.",
+              );
+            const person = this.people.get(socket.id)!;
+            if (
+              c.scope !==
+              createHash("sha256")
+                .update(person.profile.id + ":" + this.token)
+                .digest("hex")
+            )
+              throw Error("Esta conversa pertence a outra sala.");
+            const targets =
+              c.type === "direct.message"
+                ? this.store.direct.message(
+                    person.profile,
+                    c.recipient,
+                    c.text,
+                    this.identityScope,
+                    c.image,
+                  )
+                : this.store.direct.change(
+                    c.id,
+                    person.profile.id,
+                    c.type === "direct.edit" ? c.text : undefined,
+                  );
+            this.broadcastDirect(targets);
+          } else {
+            this.command(socket.id, c);
+            this.broadcast();
+            if (c.type === "profile") this.broadcastDirect();
+          }
           reply({ ok: true, value: null });
         } catch (e) {
           reply({
@@ -213,17 +271,35 @@ export class RoomHost {
           });
         }
       });
+      socket.on("direct-image", (raw: unknown, ack: unknown) => {
+        const reply = typeof ack === "function" ? ack : () => {};
+        try {
+          limited();
+          if (!socket.data.privateIdentity) throw Error();
+          reply({
+            ok: true,
+            value: this.store.direct.image(z.uuid().parse(raw), profile.id),
+          });
+        } catch {
+          reply({
+            ok: false,
+            error: "Imagem privada indisponível para este perfil.",
+          });
+        }
+      });
       socket.on("disconnect", () => {
         this.people.delete(socket.id);
         this.broadcast();
       });
       this.broadcast();
+      this.broadcastDirect();
     });
   }
   state(): RoomState {
     const state = this.store.snapshot();
     return {
       protocol: 2,
+      features: { directMessages: true, presence: true },
       ...state,
       avatars: {
         ...state.avatars,
@@ -236,6 +312,28 @@ export class RoomHost {
   }
   private broadcast() {
     this.io.emit("state", this.state());
+  }
+  private broadcastDirect(targets?: string[]) {
+    for (const socket of this.io.sockets.sockets.values()) {
+      const person = this.people.get(socket.id);
+      if (
+        !person ||
+        !socket.data.privateIdentity ||
+        (targets && !targets.includes(person.profile.id))
+      )
+        continue;
+      const snapshot = this.store.direct.snapshot(
+        person.profile.id,
+        this.identityScope,
+      );
+      socket.emit("direct", {
+        ...snapshot,
+        avatars: this.store.avatarImages([
+          ...snapshot.contacts.map((c) => c.avatar),
+          ...snapshot.messages.map((m) => m.avatar),
+        ]),
+      });
+    }
   }
   private command(socketId: string, c: Command) {
     const p = this.people.get(socketId);
@@ -316,6 +414,8 @@ export class RoomHost {
       case "profile":
         p.profile.name = c.name;
         p.profile.avatar = this.store.registerAvatar(c.avatar);
+        if (c.presence !== undefined) p.profile.presence = c.presence;
+        this.store.direct.remember(p.profile);
         break;
     }
     const ids = new Set(this.store.snapshot().channels.map((x) => x.id));

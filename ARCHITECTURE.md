@@ -1,5 +1,21 @@
 # Arquitetura do Voxy
 
+## Navegação, presença e DMs — 0.5.0
+
+`AppPage` separa Home, Novidades, sala e DMs. Toda seleção de canal define a página de sala; canais só recebem seleção ativa quando essa página está visível. `ServerRail` combina servidores atuais e salvos sem duplicar os conectados. Home e lateral usam uma única assinatura/polling em `useSavedRooms`, com refresh adicional quando o estado muda durante uma consulta. O ícone do servidor remove o padding do botão e aplica `object-fit: cover`, mantendo proporção e bordas.
+
+`Profile.presence` aceita online/away/busy e migra perfis antigos para online. É salvo localmente e enviado no perfil público e nas atualizações do perfil. Offline é derivado da ausência do participante, sem alterar a preferência salva. A presença não modifica mute/deafen nem os slots de mídia.
+
+`DirectStore` adiciona tabelas a SQLite: contatos, vínculos de identidade, mensagens privadas sequenciadas e imagens privadas. DMs não entram em `RoomState`, `messages` ou no endpoint público de imagens. O evento Socket.IO `direct` é montado por perfil; envios/edições/exclusões atualizam apenas remetente e destinatário. O endpoint `direct-image` verifica se o solicitante pertence ao par. Não há exceção de autoria para o host no protocolo de alteração de mensagens.
+
+`profile-identity.bin` contém um segredo aleatório protegido por safeStorage/DPAPI. O main deriva uma credencial HMAC-SHA-256 por perfil e segredo da sala e a envia na autenticação pela rede privada. O host guarda apenas seu hash, vinculado ao UUID e ao hash da sala. Após o primeiro registro, uma conexão com o UUID mas sem essa credencial é recusada. O registro é TOFU: requer confiança no primeiro vínculo e no host. Não implementa identidade global nem E2EE. Clientes antigos sem vínculo podem usar funções anteriores, mas não recebem snapshots privados. A perda da identidade exige recuperação no mesmo Windows/usuário ou um novo perfil.
+
+O protocolo de mídia continua 2, com quatro transceivers. Novos hosts anunciam `features` para presença/DMs; o cliente informa quando o host não oferece esses recursos. Comandos privados carregam o escopo derivado da sala, validado no main e no host, para impedir envio acidental à sala errada após trocar de conexão.
+
+`DirectInbox` valida snapshots e mantém cópia local por escopo e perfil em `direct-inbox.json`. O escopo é um hash que não revela o convite. Guarda contatos/fotos, últimas mensagens e marcador monotônico de leitura por interlocutor; exclusões e edições substituem o snapshot da sala sem ressuscitar mensagens antigas. Cada conversa carrega até 500 mensagens, com teto de 5.000 por snapshot e 40 salas locais. O host preserva as mensagens anteriores no banco; não há paginação no renderer. Texto e thumbnails ficam disponíveis offline, enquanto anexos ainda precisam ser buscados no host.
+
+`DirectConversation` reutiliza `Chat` para preservar imagens, edição/exclusão e aparência. A leitura só avança com a conversa aberta e a janela em foco. Mensagens novas produzem badge e aviso clicável; notificações Windows ocorrem em segundo plano. Ocupado suprime avisos, mas mantém contadores. Não há confirmação de leitura enviada ao outro usuário. Backups incluem identidade e cache privado. Privacidade e uso: [CONVERSAS-E-STATUS.md](CONVERSAS-E-STATUS.md).
+
 ## Atualização 0.4.0
 
 O protocolo de sala passa a 2. Host valida o protocolo no handshake; cliente espera o primeiro snapshot com protocolo compatível antes de confirmar a conexão. Clientes/hosts antigos são rejeitados com orientação para atualizar, evitando misturar contratos de mídia.

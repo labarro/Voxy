@@ -98,5 +98,28 @@
     "fixes": [
       "Preparação explícita dos binários verificados do Electron em instalações limpas e no GitHub Actions."
     ]
+  },
+  "0.5.0": {
+    "date": "2026-10-20",
+    "title": "Cada conversa no seu lugar",
+    "items": [
+      "Navegue das novidades para qualquer canal sem selecionar o servidor novamente.",
+      "Defina seu status como Online, Ausente ou Ocupado.",
+      "Mensagens privadas com histórico local, imagens e indicadores de não lidas.",
+      "Servidores salvos continuam na barra lateral, mesmo offline.",
+      "Fotos de servidores preenchem o botão inteiro, sem distorção."
+    ],
+    "features": [
+      "Status de presença persistente, compartilhado com os participantes.",
+      "Área dedicada a conversas privadas, com histórico, edição, imagens e mensagens não lidas."
+    ],
+    "improvements": [
+      "Reconexão pela barra de servidores e disponibilidade dos acessos salvos.",
+      "Identidade do perfil protegida no Windows para acessar conversas privadas."
+    ],
+    "fixes": [
+      "Canais de texto podem ser abertos diretamente a partir das novidades, Home ou DMs.",
+      "Fotos dos servidores ocupam toda a área do ícone e respeitam suas bordas."
+    ]
   }
 }

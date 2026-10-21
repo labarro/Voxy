@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import {
   AudioLines,
   Radio,
@@ -7,7 +7,8 @@ import {
   Trash2,
   History,
 } from "lucide-react";
-import type { SavedRoom, RoomAvailability } from "../../shared/types";
+import type { RoomAvailability } from "../../shared/types";
+import type { SavedRoomsView } from "../hooks/useSavedRooms";
 const labels: Record<RoomAvailability["status"], string> = {
   available: "Disponível",
   unavailable: "Fora de alcance",
@@ -20,42 +21,16 @@ export function Home({
   host,
   join,
   reconnect,
+  saved,
 }: {
+  saved: SavedRoomsView;
   busy: boolean;
   host: () => void;
   join: () => void;
   reconnect: (id: string) => void;
 }) {
-  const [rooms, setRooms] = useState<SavedRoom[]>([]),
-    [states, setStates] = useState<RoomAvailability[]>([]),
-    [checking, setChecking] = useState(false),
-    [error, setError] = useState("");
-  const pending = useRef(false);
-  async function refresh() {
-    if (pending.current) return;
-    pending.current = true;
-    setChecking(true);
-    setError("");
-    try {
-      setRooms(await window.voxy.savedRooms());
-      setStates(await window.voxy.roomAvailability());
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      pending.current = false;
-      setChecking(false);
-    }
-  }
-  useEffect(() => {
-    void refresh();
-    const timer = setInterval(() => void refresh(), 30000);
-    const focus = () => void refresh();
-    window.addEventListener("focus", focus);
-    return () => {
-      clearInterval(timer);
-      window.removeEventListener("focus", focus);
-    };
-  }, []);
+  const { rooms, states, checking, error, refresh, remove } = saved;
+  const [actionError, setError] = useState("");
   return (
     <div className="home-view">
       <section className="welcome">
@@ -103,9 +78,9 @@ export function Home({
             {checking ? "Verificando…" : "Atualizar"}
           </button>
         </header>
-        {error && (
+        {(error || actionError) && (
           <p role="alert" className="modal-error">
-            {error}
+            {error || actionError}
           </p>
         )}
         {!rooms.length && (
@@ -152,14 +127,7 @@ export function Home({
                     title={"Remover " + room.name + " dos recentes"}
                     disabled={busy}
                     onClick={() => {
-                      void window.voxy
-                        .removeRoom(room.id)
-                        .then(() => {
-                          setRooms((list) =>
-                            list.filter((r) => r.id !== room.id),
-                          );
-                        })
-                        .catch((e) => setError(e.message));
+                      void remove(room.id).catch((e) => setError(e.message));
                     }}
                   >
                     <Trash2 size={17} />

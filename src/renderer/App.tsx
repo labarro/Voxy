@@ -7,6 +7,17 @@ import { ProfileForm } from "./components/ProfileForm";
 import { ShareForm } from "./components/ShareForm";
 import { ManageRow } from "./components/ManageRow";
 import { Home } from "./components/Home";
+import { ServerRail, type AppPage } from "./components/ServerRail";
+import { Presence, presenceLabels } from "./components/Presence";
+import { DirectList, DirectConversation } from "./components/DirectMessages";
+import { useSavedRooms } from "./hooks/useSavedRooms";
+import { useInbox } from "./hooks/useInbox";
+import {
+  findConversation,
+  conversation,
+  unreadTotal,
+  type DirectTarget,
+} from "./directThreads";
 import { ReleaseChannel } from "./components/ReleaseChannel";
 import { ServerImage } from "./components/ServerImage";
 import { CameraTile } from "./components/CameraTile";
@@ -37,6 +48,8 @@ import {
   Video,
   VideoOff,
   Megaphone,
+  MessageCircle,
+  X,
 } from "lucide-react";
 import type {
   RoomState,
@@ -74,7 +87,10 @@ type Dialog =
   | "camera"
   | null;
 export function App() {
-  const [page, setPage] = useState<"home" | "room" | "news">("home");
+  const [page, setPage] = useState<AppPage>("home");
+  const saved = useSavedRooms();
+  const { inbox, notice, clearNotice, error: inboxError } = useInbox();
+  const [directTarget, setDirectTarget] = useState<DirectTarget | null>(null);
   const [watchCamera, setWatchCamera] = useState<string | null>(null);
   const [cameraDevice, setCameraDevice] = useState("");
   const pendingServer = useRef<string | null>(null);
@@ -176,6 +192,11 @@ export function App() {
       })
       .catch((e) => setError(e.message));
     const off = window.voxy.onEvent((event) => {
+      if (event.type === "open-direct") {
+        setDirectTarget({ scope: event.scope, peer: event.peer });
+        setPage("dm");
+        clearNotice();
+      }
       if (event.type === "connection") {
         latest.current.status = event.status;
         setStatus(event.status);
@@ -189,7 +210,7 @@ export function App() {
           latest.current.room = empty;
           setWatch(null);
           setWatchCamera(null);
-          setPage("home");
+          setPage((current) => (current === "room" ? "home" : current));
         }
       }
       if (event.type === "state") {
@@ -410,14 +431,6 @@ export function App() {
     (p) => p.id === participantAudio && p.id !== selfId,
   );
   async function reconnectSaved(id: string) {
-    engine.leave();
-    if (
-      latest.current.status === "connected" &&
-      latest.current.room.participants.some(
-        (p) => p.id === latest.current.selfId && p.channelId,
-      )
-    )
-      await command({ type: "voice", channelId: null });
     const result = await window.voxy.reconnectRoom(id);
     setHostInfo(result.hostInfo);
     if (latest.current.room.servers.some((s) => s.id === result.serverId))
@@ -425,6 +438,29 @@ export function App() {
     else pendingServer.current = result.serverId;
     setPage("room");
   }
+  function openDirect(target: DirectTarget) {
+    setDirectTarget(target);
+    setPage("dm");
+    clearNotice();
+  }
+  useEffect(() => {
+    if (!notice) return;
+    if (profile?.presence === "busy") {
+      clearNotice();
+      return;
+    }
+    const entry = inbox.rooms.find((r) => r.scope === notice.scope);
+    if (
+      entry &&
+      profile &&
+      !conversation(entry, notice.peer, profile.id).unread
+    ) {
+      clearNotice();
+      return;
+    }
+    const timer = setTimeout(clearNotice, 10000);
+    return () => clearTimeout(timer);
+  }, [notice, inbox, profile?.id, profile?.presence]);
   if (!profile)
     return <main className="boot">Abrindo Voxy…{error && <p>{error}</p>}</main>;
   return (
@@ -465,72 +501,41 @@ export function App() {
             )}
           </Modal>
         )}
-        <nav className="server-rail" aria-label="Servidores">
-          <button
-            className={"brand " + (page === "home" ? "active" : "")}
-            title="Home"
-            onClick={() => setPage("home")}
-          >
-            <AudioLines size={28} />
-          </button>
-          <button
-            className={"rail-action " + (page === "news" ? "selected" : "")}
-            title="Novidades do Voxy"
-            onClick={() => setPage("news")}
-          >
-            <Megaphone />
-          </button>
-          <div className="rail-divider" />
-          {room.servers.map((s) => (
-            <button
-              key={s.id}
-              className={
-                "server-icon " +
-                (page === "room" && s.id === serverId ? "selected" : "")
-              }
-              title={s.name}
-              onClick={() => {
-                setServerId(s.id);
-                setPage("room");
-                void window.voxy
-                  .visitServer(s.id)
-                  .catch((e) => setError(e.message));
-              }}
-            >
-              {s.icon ? (
-                <Avatar avatar={s.icon} className="server-photo" />
-              ) : (
-                s.name.slice(0, 2).toUpperCase()
-              )}
-            </button>
-          ))}
-          <button
-            className="rail-action"
-            title={online ? "Criar servidor" : "Hospedar sala"}
-            onClick={() => void open(online ? "server" : "host")}
-            disabled={online && !me?.host}
-          >
-            <Plus />
-          </button>
-          <button
-            className="rail-action"
-            title="Entrar em sala"
-            onClick={() => void open("join")}
-          >
-            <LogIn />
-          </button>
-          <span className="rail-label">Voxy</span>
-        </nav>
+        <ServerRail
+          room={room}
+          page={page}
+          serverId={serverId}
+          saved={saved}
+          busy={busy}
+          online={online}
+          canCreate={!!me?.host}
+          unread={unreadTotal(inbox, profile.id)}
+          navigate={setPage}
+          select={(id) => {
+            setServerId(id);
+            setPage("room");
+            void window.voxy.visitServer(id).catch((e) => setError(e.message));
+          }}
+          reconnect={(id) => void run(() => reconnectSaved(id))}
+          create={() => void open(online ? "server" : "host")}
+          join={() => void open("join")}
+        />
         <aside className="channel-panel">
           <header className="server-header">
-            {server?.icon && (
+            {page !== "dm" && server?.icon && (
               <Avatar avatar={server.icon} className="mini-avatar" />
             )}
             <div>
-              <small>Sua sala privada</small>
-              <h2>{server?.name ?? "Seu espaço"}</h2>
+              <small>
+                {page === "dm" ? "Só entre vocês" : "Sua sala privada"}
+              </small>
+              <h2>
+                {page === "dm"
+                  ? "Mensagens privadas"
+                  : (server?.name ?? "Seu espaço")}
+              </h2>
             </div>
-            {server && (
+            {server && page !== "dm" && (
               <button
                 title="Gerenciar servidor e canais"
                 onClick={() => void open("manage")}
@@ -540,7 +545,16 @@ export function App() {
             )}
           </header>
           <div className="channel-scroll">
-            {online ? (
+            {page === "dm" ? (
+              <DirectList
+                legacyHost={online && !room.features?.directMessages}
+                inbox={inbox}
+                participants={room.participants}
+                owner={profile.id}
+                selected={directTarget}
+                open={openDirect}
+              />
+            ) : online ? (
               <>
                 <div className="room-badge">
                   <i className="status-dot" /> {room.participants.length}/
@@ -574,16 +588,24 @@ export function App() {
                           <button
                             className={
                               "channel " +
-                              (c.id === channelId ? "active" : "") +
+                              (page === "room" && c.id === channelId
+                                ? "active"
+                                : "") +
                               (c.id === me?.channelId
                                 ? " connected-channel"
                                 : "")
                             }
-                            onClick={() =>
+                            aria-current={
+                              page === "room" && c.id === channelId
+                                ? "page"
+                                : undefined
+                            }
+                            onClick={() => {
+                              setPage("room");
                               c.kind === "voice"
                                 ? void joinVoice(c)
-                                : setChannelId(c.id)
-                            }
+                                : setChannelId(c.id);
+                            }}
                           >
                             {type === "text" ? (
                               <Hash size={20} />
@@ -616,6 +638,7 @@ export function App() {
                                     }
                                   />
                                   <span>{p.profile.name}</span>
+                                  <Presence value={p.profile.presence} />
                                   {p.sharing && (
                                     <span className="live-label sidebar-live">
                                       AO VIVO
@@ -641,6 +664,44 @@ export function App() {
                       ))}
                   </section>
                 ))}
+                <section className="member-section">
+                  <h3>
+                    Participantes <span>{room.participants.length}</span>
+                  </h3>
+                  {room.participants.map((p) => (
+                    <button
+                      key={p.id}
+                      className="member-row"
+                      title={
+                        p.id === selfId
+                          ? "Seu perfil"
+                          : "Conversar em privado com " + p.profile.name
+                      }
+                      onClick={() =>
+                        p.id === selfId
+                          ? void open("profile")
+                          : inbox.activeScope &&
+                            openDirect({
+                              scope: inbox.activeScope,
+                              peer: p.profile.id,
+                            })
+                      }
+                    >
+                      <span className="avatar-with-presence">
+                        <Avatar
+                          avatar={p.profile.avatar}
+                          className="mini-avatar"
+                        />
+                        <Presence value={p.profile.presence} />
+                      </span>
+                      <span>
+                        {p.profile.name}
+                        {p.id === selfId ? " (você)" : ""}
+                      </span>
+                      <Presence value={p.profile.presence} label />
+                    </button>
+                  ))}
+                </section>
               </>
             ) : (
               <div className="sidebar-empty">
@@ -696,12 +757,16 @@ export function App() {
               onClick={() => void open("profile")}
               title="Editar perfil"
             >
-              <Avatar avatar={profile.avatar} />
+              <span className="avatar-with-presence">
+                <Avatar avatar={profile.avatar} />
+                <Presence value={online ? profile.presence : "offline"} />
+              </span>
               <span>
                 <strong>{profile.name}</strong>
                 <small>
                   {online
-                    ? "Conectado"
+                    ? presenceLabels[profile.presence ?? "online"] +
+                      " · Conectado"
                     : status === "reconnecting"
                       ? "Reconectando…"
                       : "Desconectado"}
@@ -727,10 +792,12 @@ export function App() {
           </footer>
         </aside>
         <main className="workspace">
-          <RemoteUpdate compact/>
+          <RemoteUpdate compact />
           <header className="workspace-header">
             <div>
-              {page === "news" ? (
+              {page === "dm" ? (
+                <MessageCircle />
+              ) : page === "news" ? (
                 <Megaphone />
               ) : page === "home" ? (
                 <AudioLines />
@@ -740,16 +807,25 @@ export function App() {
                 <Hash />
               )}
               <strong>
-                {page === "news"
-                  ? "Novidades do Voxy"
-                  : page === "home"
-                    ? "Home"
-                    : (channel?.name ?? "Bem-vindo ao Voxy")}
+                {page === "dm"
+                  ? (findConversation(inbox, directTarget).contact?.name ??
+                    "Mensagens privadas")
+                  : page === "news"
+                    ? "Novidades do Voxy"
+                    : page === "home"
+                      ? "Home"
+                      : (channel?.name ?? "Bem-vindo ao Voxy")}
               </strong>
               <span className="header-description">
-                {channel?.kind === "voice"
-                  ? "Converse. Mostre. Fique por perto."
-                  : "Um lugar só para vocês."}
+                {page === "dm"
+                  ? "Conversa privada"
+                  : page === "news"
+                    ? "Versões e novidades"
+                    : page === "home"
+                      ? "Seu ponto de encontro"
+                      : channel?.kind === "voice"
+                        ? "Converse. Mostre. Fique por perto."
+                        : "Um lugar só para vocês."}
               </span>
             </div>
             <div>
@@ -775,6 +851,30 @@ export function App() {
               )}
             </div>
           </header>
+          {notice &&
+            profile.presence !== "busy" &&
+            !(
+              page === "dm" &&
+              directTarget?.scope === notice.scope &&
+              directTarget.peer === notice.peer
+            ) && (
+              <div className="direct-notice" role="status">
+                <MessageCircle size={18} />
+                <span>
+                  Nova mensagem de <strong>{notice.name}</strong>
+                </span>
+                <button
+                  onClick={() =>
+                    openDirect({ scope: notice.scope, peer: notice.peer })
+                  }
+                >
+                  Abrir conversa
+                </button>
+                <button title="Fechar notificação" onClick={clearNotice}>
+                  <X size={16} />
+                </button>
+              </div>
+            )}
           {(error || media.error) && (
             <div className="error-banner" role="alert">
               <span>{error || media.error}</span>
@@ -793,10 +893,28 @@ export function App() {
               </button>
             </div>
           )}
-          {page === "news" ? (
+          {page === "dm" ? (
+            <>
+              <DirectConversation
+                inbox={inbox}
+                target={directTarget}
+                owner={profile.id}
+                online={online}
+                supported={!!room.features?.directMessages}
+                participants={room.participants}
+                command={command}
+              />
+              {inboxError && (
+                <p className="chat-error" role="alert">
+                  {inboxError}
+                </p>
+              )}
+            </>
+          ) : page === "news" ? (
             <ReleaseChannel />
           ) : page === "home" || !online ? (
             <Home
+              saved={saved}
               busy={busy}
               host={() => void open("host")}
               join={() => void open("join")}
@@ -888,6 +1006,7 @@ export function App() {
                             {p.profile.name}
                             {p.id === selfId ? " (você)" : ""}
                           </span>
+                          <Presence value={p.profile.presence} label />
                           <ParticipantStatus
                             muted={p.muted}
                             deafened={p.deafened}
@@ -1125,6 +1244,21 @@ export function App() {
               tem controle próprio no player.
             </p>
             <button
+              className="secondary"
+              disabled={!inbox.activeScope}
+              onClick={() => {
+                if (inbox.activeScope)
+                  openDirect({
+                    scope: inbox.activeScope,
+                    peer: selectedParticipant.profile.id,
+                  });
+                setParticipantAudio(null);
+              }}
+            >
+              <MessageCircle size={17} />
+              Mensagem privada
+            </button>
+            <button
               className="primary"
               disabled={busy}
               onClick={() =>
@@ -1269,6 +1403,7 @@ export function App() {
             )}
             {dialog === "profile" && (
               <ProfileForm
+                presenceSupported={!online || !!room.features?.presence}
                 profile={profile}
                 setProfile={setProfile}
                 devices={devices}

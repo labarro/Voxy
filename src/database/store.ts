@@ -9,11 +9,15 @@ import {
 import { dirname } from "node:path";
 import { randomUUID, createHash } from "node:crypto";
 import type { Channel, Community, Message } from "../shared/types";
+import { DirectStore } from "./direct";
 export class Store {
+  readonly direct: DirectStore;
   private constructor(
     private db: Database,
     private path: string,
-  ) {}
+  ) {
+    this.direct = new DirectStore(db, () => this.flush());
+  }
   static async open(path: string) {
     const SQL = await initSqlJs({
       locateFile: () => require.resolve("sql.js/dist/sql-wasm.wasm"),

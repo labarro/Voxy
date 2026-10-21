@@ -107,7 +107,8 @@ async function main() {
         .fill("Amigo " + pages.indexOf(page));
       await page.getByRole("button", { name: "Conectar à sala" }).click();
       await page
-        .getByText("Conectado", { exact: true })
+        .locator(".profile-identity small")
+        .filter({ hasText: "Conectado" })
         .waitFor({ timeout: 10000 });
     }
     const image = await a.screenshot();
@@ -162,12 +163,16 @@ async function main() {
       .getByRole("button", { name: "Desconectar da sala", exact: true })
       .click();
     await pages[1]
+      .getByRole("main")
       .getByRole("button", {
         name: "Reconectar a Teste de amigos",
         exact: true,
       })
       .click();
-    await pages[1].getByText("Conectado", { exact: true }).waitFor();
+    await pages[1]
+      .locator(".profile-identity small")
+      .filter({ hasText: "Conectado" })
+      .waitFor();
     results.push(
       "Imagem do servidor adicionada/removida pelo criador; outro cliente bloqueado. Home reconecta usando convite salvo.",
     );

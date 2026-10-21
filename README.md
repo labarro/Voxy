@@ -20,6 +20,12 @@ Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu compu
 
 ---
 
+## Novidades no pacote 0.5.0
+
+Presença Online/Ausente/Ocupado, DMs com histórico local e não lidas, servidores salvos na barra esquerda e navegação direta das novidades para os canais. As fotos dos servidores agora ocupam todo o botão. [Guia de conversas e status](CONVERSAS-E-STATUS.md).
+
+O instalador desta branch fica em `release/0.5.0/Voxy-Setup-0.5.0-x64.exe`. Os links públicos acima continuam na release 0.4.1 até a publicação da 0.5.0. Para DMs e presença compartilhada, atualize o host e os participantes que usarão esses recursos.
+
 ## Sua sala, no seu computador
 
 **Na versão 0.4.1:** webcam independente da tela, imagem do servidor administrada pelo criador, Home com servidores recentes, canal global de novidades e atualizações remotas assinadas. Atualize host e amigos para 0.4.1; versões até 0.3.0 não têm o novo contrato de mídia e não podem entrar nesta sala.
@@ -30,19 +36,21 @@ Sem VPS, banco hospedado ou assinatura do Voxy. O host guarda servidores e hist�
 
 ## O que você pode fazer
 
-|                                | Recursos                                                                                                                     |
-| :----------------------------- | :--------------------------------------------------------------------------------------------------------------------------- |
-| 📹 **Usar sua webcam**         | Escolha a câmera, ligue ou desligue, veja os participantes e amplie em fullscreen, sem interromper a tela ou a voz.          |
-| 🏠 **Voltar aos amigos**       | Home com servidores recentes persistentes, disponibilidade e reconexão com convite protegido no Windows.                     |
-| 📰 **Acompanhar as versões**   | Canal global Novidades do Voxy, com data, funcionalidades, melhorias e correções, inclusive offline.                         |
-| 🖥️ **Compartilhar a tela**     | Escolha um monitor ou janela, ajuste a qualidade e transmita enquanto conversa. Pare e reinicie sem sair da chamada.         |
-| 🎙️ **Conversar por voz**       | Push-to-Talk com tecla configurável, mute, seleção de dispositivos, volume de entrada e filtro por sensibilidade.            |
-| 🎧 **Controlar o que ouve**    | Volume salvo por participante, mute local pelo clique direito e volume independente para a transmissão.                      |
-| 💬 **Trocar mensagens**        | Histórico persistente, edição e exclusão das próprias mensagens, imagens com prévia e ampliação.                             |
-| 👤 **Usar seu perfil**         | Nome, foto do computador ou avatar em emoji — incluindo 👴.                                                                  |
-| 🔴 **Acompanhar a chamada**    | Atividade de voz real, ícones de mute e áudio silenciado, selo **AO VIVO** e sons opcionais de entrada, saída e transmissão. |
-| ⛶ **Assistir em fullscreen**   | Player sem bordas, ajuste de enquadramento e HUD que se oculta após 2,5 segundos de inatividade.                             |
-| 📦 **Atualizar sem recomeçar** | Busca e download automáticos, reinício escolhido pelo usuário, backup e novidades por versão.                                |
+|                                   | Recursos                                                                                                                     |
+| :-------------------------------- | :--------------------------------------------------------------------------------------------------------------------------- |
+| 📹 **Usar sua webcam**            | Escolha a câmera, ligue ou desligue, veja os participantes e amplie em fullscreen, sem interromper a tela ou a voz.          |
+| 🏠 **Voltar aos amigos**          | Home com servidores recentes persistentes, disponibilidade e reconexão com convite protegido no Windows.                     |
+| 📰 **Acompanhar as versões**      | Canal global Novidades do Voxy, com data, funcionalidades, melhorias e correções, inclusive offline.                         |
+| 🖥️ **Compartilhar a tela**        | Escolha um monitor ou janela, ajuste a qualidade e transmita enquanto conversa. Pare e reinicie sem sair da chamada.         |
+| 🎙️ **Conversar por voz**          | Push-to-Talk com tecla configurável, mute, seleção de dispositivos, volume de entrada e filtro por sensibilidade.            |
+| 🎧 **Controlar o que ouve**       | Volume salvo por participante, mute local pelo clique direito e volume independente para a transmissão.                      |
+| ✉️ **Conversar em privado (0.5)** | DMs por sala com histórico local, imagens, edição/exclusão e mensagens não lidas.                                            |
+| 🟢 **Definir presença (0.5)**     | Online, Ausente ou Ocupado, com preferência salva e sincronização entre participantes.                                       |
+| 💬 **Trocar mensagens**           | Histórico persistente, edição e exclusão das próprias mensagens, imagens com prévia e ampliação.                             |
+| 👤 **Usar seu perfil**            | Nome, foto do computador ou avatar em emoji — incluindo 👴.                                                                  |
+| 🔴 **Acompanhar a chamada**       | Atividade de voz real, ícones de mute e áudio silenciado, selo **AO VIVO** e sons opcionais de entrada, saída e transmissão. |
+| ⛶ **Assistir em fullscreen**      | Player sem bordas, ajuste de enquadramento e HUD que se oculta após 2,5 segundos de inatividade.                             |
+| 📦 **Atualizar sem recomeçar**    | Busca e download automáticos, reinício escolhido pelo usuário, backup e novidades por versão.                                |
 
 ## Comece com seus amigos
 
@@ -211,21 +219,22 @@ O comando inicia Vite em `127.0.0.1:5173` e abre o Electron. O renderer tem atua
 | `npm run dist`  | Gera o instalador Windows x64 e seu SHA-256.    |
 | `npm run pack`  | Gera a pasta do executável sem instalador.      |
 
-Cada empacotamento usa uma pasta `build-*` nova. `release/0.4.1/latest-build.json` indica a pasta final; para distribuir sem instalador, copie a pasta `win-unpacked` inteira. O ícone original pode ser reproduzido com `node scripts/icon.mjs`.
+Cada empacotamento usa uma pasta `build-*` nova. `release/0.5.0/latest-build.json` indica a pasta final; para distribuir sem instalador, copie a pasta `win-unpacked` inteira. O ícone original pode ser reproduzido com `node scripts/icon.mjs`.
 
 [`.env.example`](.env.example) documenta a variável opcional `VOXY_DATA_DIR`. O aplicativo não carrega `.env` automaticamente. Para publicar atualizações, configure o segredo de assinatura descrito em [ATUALIZACOES-REMOTAS.md](ATUALIZACOES-REMOTAS.md); clientes não precisam de credenciais.
 
 ### Testes e validação
 
-| Comando                   | Cobertura                                                                    |
-| :------------------------ | :--------------------------------------------------------------------------- |
-| `npm test`                | Contratos, persistência, autorização, migrações e atualizações.              |
-| `npm run test:microphone` | Ganho e detecção com Web Audio real e fonte de teste.                        |
-| `npm run test:ptt`        | Pressionar e soltar teclas globais no Windows.                               |
-| `npm run test:media`      | Mesh de dez clientes, áudio, vídeo e reconexões.                             |
-| `npm run test:desktop`    | Integração com três janelas Electron e captura nativa.                       |
-| `npm run test:dev`        | Vite, React Refresh e preload.                                               |
-| `npm run test:packaged`   | Executável empacotado após `npm run dist`, com persistência entre reinícios. |
+| Comando                   | Cobertura                                                                                     |
+| :------------------------ | :-------------------------------------------------------------------------------------------- |
+| `npm test`                | Contratos, persistência, autorização, migrações e atualizações.                               |
+| `npm run test:microphone` | Ganho e detecção com Web Audio real e fonte de teste.                                         |
+| `npm run test:ptt`        | Pressionar e soltar teclas globais no Windows.                                                |
+| `npm run test:ux`         | Navegação, presença, DMs isoladas, notificações, leitura e reconexão offline em três janelas. |
+| `npm run test:media`      | Mesh de dez clientes, áudio, vídeo e reconexões.                                              |
+| `npm run test:desktop`    | Integração com três janelas Electron e captura nativa.                                        |
+| `npm run test:dev`        | Vite, React Refresh e preload.                                                                |
+| `npm run test:packaged`   | Executável empacotado após `npm run dist`, com persistência entre reinícios.                  |
 
 Os testes de navegador usam Microsoft Edge instalado. `test:desktop` utiliza microfone e captura de desktop reais, com perfis isolados em `test-results/`; execute em um desktop de teste sem conteúdo sensível aberto. Fontes sintéticas são usadas somente nos testes.
 
@@ -259,12 +268,14 @@ O MVP exige convite com IPv4 e segredo; não aceita endereço sem segredo, DNS o
 
 Os dados ficam em `%APPDATA%\voxy-desktop`, separados da instalação:
 
-| Arquivo           | Conteúdo                                                            |
-| :---------------- | :------------------------------------------------------------------ |
-| `room.sqlite`     | Servidores, canais, mensagens e imagens do host.                    |
-| `profile.json`    | Perfil e preferências locais.                                       |
-| `host-secret.bin` | Segredo do convite protegido pelo armazenamento seguro do Windows.  |
-| `diagnostics.log` | Logs de conexão sem convites, tokens, SDP ou conteúdo de mensagens. |
+| Arquivo                | Conteúdo                                                              |
+| :--------------------- | :-------------------------------------------------------------------- |
+| `room.sqlite`          | Servidores, canais, mensagens e imagens do host.                      |
+| `direct-inbox.json`    | Histórico local e marcadores de leitura de conversas privadas.        |
+| `profile-identity.bin` | Identidade do dispositivo protegida pelo Windows; incluída no backup. |
+| `profile.json`         | Perfil e preferências locais.                                         |
+| `host-secret.bin`      | Segredo do convite protegido pelo armazenamento seguro do Windows.    |
+| `diagnostics.log`      | Logs de conexão sem convites, tokens, SDP ou conteúdo de mensagens.   |
 
 `VOXY_DATA_DIR` pode substituir a pasta durante testes. Não use duas instâncias no mesmo perfil. Para backup manual, feche o aplicativo e copie a pasta de dados; histórico e perfil não são criptografados. O fluxo de atualização pelo aplicativo também cria backup antes de instalar.
 
@@ -276,6 +287,7 @@ O host recupera os servidores ao hospedar novamente. Clientes mantêm perfil e d
 
 - **O host precisa permanecer aberto.** Fechá-lo encerra a sala; não há migração automática para outro computador.
 - **A conectividade depende da rede.** Não há STUN/TURN ou relay de mídia no aplicativo. Sem caminho ICE entre os pares, a chamada pode falhar.
+- **DMs dependem do host.** O texto fica em cache offline; anexos e novos envios precisam de conexão à sala. O host pode ler as mensagens, e não há criptografia ponta a ponta. Veja [privacidade e identidade](CONVERSAS-E-STATUS.md).
 - **O convite dá acesso à sala.** Compartilhe-o apenas com pessoas confiáveis. Nome e avatar não são identidades verificadas; não há conta individual ou expulsão por usuário.
 - **O histórico pertence ao host.** Clientes não mantêm uma réplica persistente. A interface carrega as últimas 500 mensagens por canal; as anteriores permanecem no SQLite, sem paginação.
 - **Windows 10/11 x64 são os alvos.** A execução foi validada no Windows build 26200, sem teste em uma instalação limpa de Windows 10.

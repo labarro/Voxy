@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Hash,
+  MessageCircle,
   ImagePlus,
   Send,
   X,
@@ -13,7 +14,7 @@ import { MAX_IMAGE_BYTES } from "../../shared/constants";
 import { Avatar } from "./Avatar";
 import { Modal } from "./Modal";
 const cache = new Map<string, Promise<string>>();
-function MessageImage({ id }: { id: string }) {
+function MessageImage({ id, scope }: { id: string; scope?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   useEffect(() => {
@@ -32,14 +33,14 @@ function MessageImage({ id }: { id: string }) {
   return (
     <div ref={ref} className="image-container">
       {visible ? (
-        <LoadedImage id={id} />
+        <LoadedImage id={id} scope={scope} />
       ) : (
         <p className="hint">Imagem do chat</p>
       )}
     </div>
   );
 }
-function LoadedImage({ id }: { id: string }) {
+function LoadedImage({ id, scope }: { id: string; scope?: string }) {
   const [url, setUrl] = useState(""),
     [error, setError] = useState(""),
     [large, setLarge] = useState(false),
@@ -47,10 +48,13 @@ function LoadedImage({ id }: { id: string }) {
   useEffect(() => {
     let alive = true;
     setError("");
-    let promise = cache.get(id);
+    const cacheKey = (scope ?? "public") + ":" + id;
+    let promise = cache.get(cacheKey);
     if (!promise) {
-      promise = window.voxy.image(id);
-      cache.set(id, promise);
+      promise = scope
+        ? window.voxy.directImage(id, scope)
+        : window.voxy.image(id);
+      cache.set(cacheKey, promise);
       if (cache.size > 40) cache.delete(cache.keys().next().value!);
     }
     promise
@@ -58,13 +62,13 @@ function LoadedImage({ id }: { id: string }) {
         if (alive) setUrl(value);
       })
       .catch(() => {
-        cache.delete(id);
+        cache.delete(cacheKey);
         if (alive) setError("Não foi possível carregar a imagem.");
       });
     return () => {
       alive = false;
     };
-  }, [id, retry]);
+  }, [id, scope, retry]);
   if (error)
     return (
       <button type="button" onClick={() => setRetry((v) => v + 1)}>
@@ -101,7 +105,11 @@ export function Chat({
   authorId,
   onEdit,
   onDelete,
+  readOnly = false,
+  directScope,
 }: {
+  readOnly?: boolean;
+  directScope?: string;
   channelId: string;
   name: string;
   messages: Message[];
@@ -153,7 +161,11 @@ export function Chat({
       });
       setImage(url);
     } catch (e) {
-      setError((e as Error).message || "Imagem inválida.");
+      setError(
+        e instanceof DOMException
+          ? "Não foi possível abrir esta imagem. Escolha outro arquivo PNG, JPEG ou WebP."
+          : (e as Error).message || "Imagem inválida.",
+      );
     }
   }
   return (
@@ -161,9 +173,11 @@ export function Chat({
       <div className="message-list">
         <div className="chat-intro">
           <div className="intro-icon">
-            <Hash size={32} />
+            {directScope ? <MessageCircle size={32} /> : <Hash size={32} />}
           </div>
-          <h1>Este é o #{name}</h1>
+          <h1>
+            {directScope ? "Sua conversa com " + name : "Este é o #" + name}
+          </h1>
           <p>O começo da conversa de vocês.</p>
         </div>
         {messages.map((m) => (
@@ -187,7 +201,7 @@ export function Chat({
                   <span className="message-actions">
                     <button
                       title="Editar mensagem"
-                      disabled={busy}
+                      disabled={busy || readOnly}
                       onClick={() => {
                         setAction({ kind: "edit", message: m });
                         setEditText(m.text);
@@ -198,7 +212,7 @@ export function Chat({
                     </button>
                     <button
                       title="Excluir mensagem"
-                      disabled={busy}
+                      disabled={busy || readOnly}
                       onClick={() => {
                         setAction({ kind: "delete", message: m });
                         setActionError("");
@@ -210,7 +224,7 @@ export function Chat({
                 )}
               </div>
               {m.text && <p>{m.text}</p>}
-              {m.imageId && <MessageImage id={m.imageId} />}
+              {m.imageId && <MessageImage id={m.imageId} scope={directScope} />}
             </div>
           </article>
         ))}
@@ -232,6 +246,7 @@ export function Chat({
       <form
         className="composer"
         onPaste={(e) => {
+          if (readOnly) return;
           const file = Array.from(e.clipboardData.files).find((f) =>
             f.type.startsWith("image/"),
           );
@@ -242,7 +257,7 @@ export function Chat({
         }}
         onSubmit={async (e) => {
           e.preventDefault();
-          if (sending || (!text.trim() && !image)) return;
+          if (readOnly || sending || (!text.trim() && !image)) return;
           setSending(true);
           setError("");
           try {
@@ -270,21 +285,28 @@ export function Chat({
         <button
           type="button"
           title="Enviar imagem"
-          disabled={sending || busy}
+          disabled={sending || busy || readOnly}
           onClick={() => input.current?.click()}
         >
           <ImagePlus size={21} />
         </button>
         <input
           aria-label="Mensagem"
-          placeholder={"Conversar em #" + name}
+          placeholder={
+            readOnly
+              ? "Reconecte à sala para enviar"
+              : directScope
+                ? "Mensagem para " + name
+                : "Conversar em #" + name
+          }
+          disabled={readOnly}
           value={text}
           maxLength={4000}
           onChange={(e) => setText(e.target.value)}
         />
         <button
           title="Enviar mensagem"
-          disabled={busy || sending || (!text.trim() && !image)}
+          disabled={busy || readOnly || sending || (!text.trim() && !image)}
         >
           <Send size={21} />
         </button>

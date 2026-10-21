@@ -179,3 +179,7 @@ A versão 0.4.0 passou nos testes locais com dez clientes WebRTC e nove espectad
 ## Próximas versões
 
 A 0.4.0 inclui o atualizador remoto. Depois que o mantenedor configurar o canal, as próximas versões serão verificadas e baixadas automaticamente. Clique em **Reiniciar e atualizar** quando puder encerrar a chamada. Não desinstale o aplicativo. O instalador manual permanece como alternativa. Veja [GUIA-DE-ATUALIZACAO.md](GUIA-DE-ATUALIZACAO.md) para usuários e [ATUALIZACOES-REMOTAS.md](ATUALIZACOES-REMOTAS.md) para configurar publicação e domínio.
+
+## Conversas e presença na 0.5.0
+
+O pacote local desta atualização fica em `C:\projects\Voxy\release\0.5.0\Voxy-Setup-0.5.0-x64.exe`. Instale sobre a versão existente, sem desinstalar. Atualize o host e os interlocutores para compartilhar presença e usar DMs. A barra esquerda agora mantém também os servidores salvos/offline. Veja o passo a passo de [status e mensagens privadas](CONVERSAS-E-STATUS.md).

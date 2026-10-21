@@ -1,5 +1,21 @@
 # Validação do Voxy
 
+## Versão 0.5.0 — 20/10/2026
+
+Passaram: `npm test` (**22 testes**), `npm run test:ux`, `npm run test:desktop` com webcam de teste, execução separada com `VOXY_TEST_NATIVE_MEDIA=1`, `npm run test:media`, `npm run test:dev`, `npm run dist`, `npm run test:packaged` e `npm run test:updater`.
+
+- Navegação: Novidades → mesmo canal, outro canal e servidor; Home → canal; DMs → servidor/canal. Nenhum canal fica ativo enquanto a página de novidades está aberta. Servidores salvos aparecem na mesma barra esquerda e a reconexão funciona. Um servidor temporário foi fechado: tentar reconectar a ele preservou a conexão e a voz da outra sala.
+- Presença: Online/Ausente/Ocupado escolhidos pela interface, salvos e vistos nos outros dois clientes. A voz permaneceu conectada durante as alterações. Perfis antigos recebem Online; valores desconhecidos são rejeitados.
+- DMs: três processos Electron com renderer de produção. Texto, imagem, edição/exclusão, badge, aviso e leitura em foco funcionaram. Ocupado preserva contadores sem popup; voltar a Online não reapresenta o aviso silenciado. Reabrir o destinatário preservou identidade e histórico, e reconectar pela lateral entregou uma mensagem enviada durante sua ausência.
+- Privacidade: o terceiro cliente não recebeu o conteúdo das DMs nem conseguiu buscar sua imagem privada. Autorias e escopos incorretos foram rejeitados; copiar UUID com credencial errada ou ausente foi recusado após o vínculo inicial. O histórico persistiu ao reabrir o SQLite. Cache rejeita mensagens destinadas a outro perfil e mantém leituras separadas por sala; arquivos corrompidos são preservados para diagnóstico. A chave local é protegida e a credencial difere entre salas.
+- Offline/responsividade: host fechado manteve texto e miniaturas locais; envio ficou desativado, com orientação para reconectar. Lista de recentes e disponibilidade continuaram visíveis em 900×620, sem rolagem horizontal. Foto do servidor teve dimensões iguais às do botão e `object-fit: cover`, sem padding interno. Capturas locais foram inspecionadas visualmente.
+- Regressão: dez clientes WebRTC, 45 pares, quatro transceivers por par e voz nos 90 sentidos; tela/webcam para nove espectadores, dois ciclos de tela e três saídas/reentradas. Três janelas Electron exercitaram imagens públicas, edição, mute local, deafen, PTT global, volume, fullscreen e HUD. A execução sem dispositivos de mídia de teste validou captura desktop nativa para dois espectadores; webcams físicas continuam pendentes.
+- Pacote: abriu duas vezes com SQLite e dependências incluídas, preservando perfil, foto, volumes, PTT, filtro de entrada, webcam preferida, servidor, imagem, recentes e aviso de versão. Também preservou presença Ausente, identidade privada, histórico de DMs e marcador de não lidas. Backup inclui cache privado e identidade. O teste de atualização NSIS exercitou diferencial e fallback completo sem executar a instalação.
+
+Instalador local: `release/0.5.0/Voxy-Setup-0.5.0-x64.exe`. Evidência consolidada e hashes em `evidence/validation-0.5.0.json`. A versão 0.5.0 ainda não foi publicada no GitHub Releases; o canal público permanece na 0.4.1.
+
+Pendentes: instalação/reinício NSIS real sobre uma instalação pessoal em Windows de teste, dez computadores físicos pelo Radmin, webcams físicas, áudio audível e chamadas prolongadas sob upload limitado. A notificação nativa depende das permissões e do modo de concentração do Windows; o aviso e os contadores dentro do aplicativo foram testados. DMs não são E2EE: o host é confiável e mantém o banco em texto claro. Os limites de cache e o funcionamento offline estão em [CONVERSAS-E-STATUS.md](CONVERSAS-E-STATUS.md). As seções abaixo são históricas.
+
 ## Publicação 0.4.1 — 20/10/2026
 
 A [execução de publicação](https://github.com/labarro/Voxy/actions/runs/39516455777) terminou com sucesso: instalação limpa de dependências e binários verificados do Electron, 18 testes, build NSIS, assinatura dos metadados, teste de abertura/reabertura do ASAR e publicação dos cinco assets na [release 0.4.1](https://github.com/labarro/Voxy/releases/tag/v0.4.1). A tentativa 0.4.0 falhou antes de publicar porque Electron 44 não inclui mais o download implícito dos binários; a 0.4.1 adiciona o postinstall explícito e a etapa idempotente no workflow, preservando a tag anterior.

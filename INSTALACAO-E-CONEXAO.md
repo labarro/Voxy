@@ -1,8 +1,8 @@
 # Voxy — instalação e conexão com os amigos
 
-Versão atual: **0.4.0**. Para atualizar sem apagar dados, siga [GUIA-DE-ATUALIZACAO.md](GUIA-DE-ATUALIZACAO.md). Não desinstale a versão anterior. Depois desta atualização, as futuras podem ser iniciadas pela seção **Atualizações** da engrenagem.
+Versão atual: **0.7.0**. Para atualizar sem apagar dados, siga [GUIA-DE-ATUALIZACAO.md](GUIA-DE-ATUALIZACAO.md). Não desinstale a versão anterior. Depois desta atualização, as futuras podem ser iniciadas pela seção **Atualizações** da engrenagem.
 
-**Atualize todos os amigos para 0.4.0.** As versões anteriores são incompatíveis com a nova trilha de webcam. Dentro da chamada, **Ativar câmera** permite escolher a fonte; **Trocar câmera** e **Desligar câmera** preservam voz e tela. As webcams podem ser ampliadas em fullscreen. Resolução alvo: até 720p/30, conforme câmera e conexão. O áudio continua vindo do microfone.
+**Atualize o host e todos os amigos para 0.7.0** para usar os recursos novos. Versões até 0.3.0 são incompatíveis com a trilha de webcam. Dentro da chamada, **Ativar câmera** permite escolher a fonte; **Trocar câmera** e **Desligar câmera** preservam voz e tela. As webcams podem ser ampliadas em fullscreen. Resolução alvo: até 720p/30, conforme câmera e conexão. O áudio continua vindo do microfone.
 
 No menu **… → Gerenciar servidor e canais**, somente o criador pode gerenciar a imagem do servidor. Para servidores antigos sem criador registrado, o host assume essa função na migração. A imagem aparece na barra lateral e na Home.
 
@@ -18,22 +18,22 @@ Na versão 0.4.0, a engrenagem também permite escolher Push to Talk, tecla para
 
 ## 1. Qual arquivo instalar e enviar
 
-O instalador atualizado está nesta pasta:
+Baixe o [instalador oficial 0.7.0](https://github.com/labarro/Voxy/releases/download/v0.7.0/Voxy-Setup-0.7.0-x64.exe). Se empacotar localmente, a pasta de saída será:
 
 ```text
-C:\projects\Voxy\release\0.6.0
+C:\projects\Voxy\release\0.7.0
 ```
 
 O arquivo que você deve instalar no seu computador e enviar aos amigos é:
 
 ```text
-Voxy-Setup-0.6.0-x64.exe
+Voxy-Setup-0.7.0-x64.exe
 ```
 
-Caminho completo:
+Caminho completo ao empacotar localmente:
 
 ```text
-C:\projects\Voxy\release\0.6.0\Voxy-Setup-0.6.0-x64.exe
+C:\projects\Voxy\release\0.7.0\Voxy-Setup-0.7.0-x64.exe
 ```
 
 **Envie somente esse instalador aos amigos.** Não é necessário enviar o código do projeto, a pasta `node_modules`, arquivos `.blockmap`, nem as pastas `build-*` ou `win-unpacked`. Não use o instalador antigo da versão 0.1.0.
@@ -44,7 +44,7 @@ O mesmo instalador serve para quem vai hospedar e para quem vai entrar na sala. 
 
 Cada pessoa deve seguir estes passos no próprio computador Windows 10/11 de 64 bits:
 
-1. Salve o arquivo `Voxy-Setup-0.6.0-x64.exe` em uma pasta do computador.
+1. Salve o arquivo `Voxy-Setup-0.7.0-x64.exe` em uma pasta do computador.
 2. Abra o instalador com dois cliques.
 3. Escolha a pasta de instalação e conclua o assistente.
 4. Abra o Voxy pelo atalho criado ou pelo menu Iniciar.
@@ -180,6 +180,6 @@ A versão 0.4.0 passou nos testes locais com dez clientes WebRTC e nove espectad
 
 A 0.4.0 inclui o atualizador remoto. O canal já está configurado: novas versões são verificadas e baixadas automaticamente. Clique em **Reiniciar e atualizar** quando puder encerrar a chamada. Não desinstale o aplicativo. O instalador manual permanece como alternativa. Veja [GUIA-DE-ATUALIZACAO.md](GUIA-DE-ATUALIZACAO.md) para usuários e [ATUALIZACOES-REMOTAS.md](ATUALIZACOES-REMOTAS.md) para configurar publicação e domínio.
 
-## Conversas e presença na 0.6.0
+## Conversas e presença na 0.7.0
 
-O instalador publicado desta atualização fica em `C:\projects\Voxy\release\0.6.0\Voxy-Setup-0.6.0-x64.exe`. Instale sobre a versão existente, sem desinstalar. Atualize o host e os interlocutores para compartilhar presença e usar DMs. A barra esquerda agora mantém também os servidores salvos/offline. Veja o passo a passo de [status e mensagens privadas](CONVERSAS-E-STATUS.md).
+O instalador está na [release publicada 0.7.0](https://github.com/labarro/Voxy/releases/tag/v0.7.0); ao gerar localmente, fica em `C:\projects\Voxy\release\0.7.0\Voxy-Setup-0.7.0-x64.exe`. Instale sobre a versão existente, sem desinstalar. Atualize o host e os interlocutores para compartilhar presença e usar DMs. A barra esquerda agora mantém também os servidores salvos/offline. Veja o passo a passo de [status e mensagens privadas](CONVERSAS-E-STATUS.md).

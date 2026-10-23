@@ -1,6 +1,6 @@
 # Personalização, amigos, chat e visualização em grade
 
-As funcionalidades deste guia pertencem à versão **0.7.0**, em preparação. Para compartilhá-las, host e participantes precisam usar esta compilação. A distribuição publicada continua indicada no README.
+As funcionalidades deste guia pertencem à versão **0.7.0**, publicada. Para compartilhá-las, host e participantes precisam atualizar para esta versão. A distribuição e o Actions da release estão indicados no README.
 
 ## Configurações e identidade
 

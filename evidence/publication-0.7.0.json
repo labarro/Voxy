@@ -1,0 +1,57 @@
+{
+  "version": "0.7.0",
+  "verifiedAt": "2026-10-23T19:57:39.5415310+00:00",
+  "workflow": {
+    "id": 40014696269,
+    "url": "https://github.com/labarro/Voxy/actions/runs/40014696269",
+    "conclusion": "success",
+    "commit": "c764224e08c8429add32d8def7924d1800ad6ec0"
+  },
+  "release": {
+    "url": "https://github.com/labarro/Voxy/releases/tag/v0.7.0",
+    "tag": "v0.7.0",
+    "draft": false,
+    "publishedAt": "2026-10-23T19:53:57Z",
+    "assets": [
+      {
+        "name": "latest.yml",
+        "size": 345,
+        "digest": "sha256:cdd4d7ac7c81cc9e7e3b281ab31359ede0618b82139945c96a9d6e96f80c3a7d"
+      },
+      {
+        "name": "SHA256SUMS.txt",
+        "size": 91,
+        "digest": "sha256:73bb6b82644d66e5f697e91d9fc8ace2386979cc65df241da6466a74d62858c0"
+      },
+      {
+        "name": "voxy-release.json",
+        "size": 13351,
+        "digest": "sha256:ca9459060e612ad10b62c12dd87d485b4944b3203f97ec6a22a30423c33ed03c"
+      },
+      {
+        "name": "Voxy-Setup-0.7.0-x64.exe",
+        "size": 126650599,
+        "digest": "sha256:ce866d8a66e7a848597a4405e5fd62f32fcad31d7fe2f3eb293500cc03a146f8"
+      },
+      {
+        "name": "Voxy-Setup-0.7.0-x64.exe.blockmap",
+        "size": 133179,
+        "digest": "sha256:ef4d14fdd78347da603c70b6c1276f132d34b20d0e9151fe3db25654cd59a4df"
+      }
+    ]
+  },
+  "updater": {
+    "endpoint": "https://www.devbarros.com/voxy/updates/",
+    "version": "0.7.0",
+    "signature": "valid",
+    "manifest": "valid",
+    "releaseNotesCount": 8,
+    "checksumMatchesGitHub": true
+  },
+  "validation": {
+    "unitTests": 29,
+    "packagedExecutable": "passed in GitHub Actions",
+    "personalInstallationExecuted": false,
+    "installerDownloadedLocally": false
+  }
+}

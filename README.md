@@ -9,26 +9,26 @@
 Voz, chat e compartilhamento de tela para o seu grupo de amigos.<br />
 Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu computador.
 
-![Versão em preparação 0.7.0](https://img.shields.io/badge/vers%C3%A3o-0.7.0%20em%20prepara%C3%A7%C3%A3o-b6adff?style=flat-square)
+![Versão 0.7.0](https://img.shields.io/badge/vers%C3%A3o-0.7.0-b6adff?style=flat-square)
 ![Windows 10 e 11 x64](https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-4389e8?style=flat-square)
 ![WebRTC P2P](https://img.shields.io/badge/WebRTC-P2P-68d6b1?style=flat-square)
 ![Até 10 participantes](https://img.shields.io/badge/at%C3%A9-10%20participantes-c9233c?style=flat-square)
 
-[⬇ Baixar Voxy 0.6.0](https://github.com/labarro/Voxy/releases/download/v0.6.0/Voxy-Setup-0.6.0-x64.exe) · [Instalar e conectar](INSTALACAO-E-CONEXAO.md) · [Atualizar o Voxy](GUIA-DE-ATUALIZACAO.md) · [Desenvolvimento](#desenvolvimento) · [Documentação](#documentação)
+[⬇ Baixar Voxy 0.7.0](https://github.com/labarro/Voxy/releases/download/v0.7.0/Voxy-Setup-0.7.0-x64.exe) · [Instalar e conectar](INSTALACAO-E-CONEXAO.md) · [Atualizar o Voxy](GUIA-DE-ATUALIZACAO.md) · [Desenvolvimento](#desenvolvimento) · [Documentação](#documentação)
 
 </div>
 
 ---
 
-## Novidades na versão 0.7.0 — em preparação
+## Novidades na versão 0.7.0
 
 Configurações por categoria, temas e cor principal, capa e cor do nickname, cargos, mini perfis, amigos com chamadas privadas, respostas/menções/reações, histórico paginado e grade simultânea de telas e webcams. A captura passa a solicitar normalização nativa de voz e os avisos do PTT têm sons locais próprios. [Guia dos recursos e das verificações](SOCIAL-E-PERSONALIZACAO.md).
 
-A versão do código é **0.7.0**. As notas já estão cadastradas para o aviso após atualizar e para o canal de novidades. A última distribuição publicada indicada neste README continua sendo a **0.6.0**; o commit e o push não publicam o instalador da 0.7.0. Para usar os recursos novos, host e participantes precisam desta compilação.
+A **0.7.0 está publicada**, com instalador, notas exibidas após atualizar e catálogo assinado disponível no canal automático. [Release e arquivos](https://github.com/labarro/Voxy/releases/tag/v0.7.0) · [Actions concluído com sucesso](https://github.com/labarro/Voxy/actions/runs/40014696269). Para usar os recursos novos, atualize o host e os participantes.
 
 ## Novidades na versão 0.6.0
 
-Áudio avançado com teste privado, PTT por Mouse 4/5, reconexão ao canal de voz, menu compacto e volumes individuais até 200%, novos sons de transmissão e links clicáveis. [Guia de áudio e reconexão](AUDIO-E-CONEXAO.md). A 0.6.0 está publicada e disponível pelo atualizador automático. O instalador publicado também está em `release/0.6.0/Voxy-Setup-0.6.0-x64.exe`.
+Áudio avançado com teste privado, PTT por Mouse 4/5, reconexão ao canal de voz, menu compacto e volumes individuais até 200%, novos sons de transmissão e links clicáveis. [Guia de áudio e reconexão](AUDIO-E-CONEXAO.md). A versão anterior permanece no [histórico de releases](https://github.com/labarro/Voxy/releases/tag/v0.6.0).
 
 ## Novidades na versão 0.5.0
 
@@ -38,7 +38,7 @@ A versão 0.5.0 está publicada no GitHub Releases e disponível pelo atualizado
 
 ## Sua sala, no seu computador
 
-**Na versão publicada 0.6.0:** webcam independente da tela, imagem do servidor administrada pelo criador, Home com servidores recentes, canal global de novidades e atualizações remotas assinadas. Versões até 0.3.0 não têm o novo contrato de mídia e não podem entrar nesta sala. As funcionalidades da 0.7.0 estão descritas acima.
+**Na versão atual 0.7.0:** personalização de perfis e temas, cargos, amigos, chamadas privadas, chat com respostas e reações e grade de telas/webcams, além dos servidores recentes e atualizações remotas assinadas. Versões até 0.3.0 não têm o novo contrato de mídia e não podem entrar nesta sala.
 
 O Voxy reúne conversas e transmissões em servidores privados com canais de texto e voz. Um amigo hospeda a sala, compartilha um convite e os demais entram pela rede Radmin VPN. A mídia circula diretamente entre os participantes, usando WebRTC.
 
@@ -66,16 +66,16 @@ Sem VPS, banco hospedado ou assinatura do Voxy. O host guarda servidores e hist�
 
 ### 1. Instale o Voxy
 
-Baixe o instalador e o checksum na [release oficial 0.6.0](https://github.com/labarro/Voxy/releases/tag/v0.6.0), ou receba os mesmos arquivos de quem mantém o projeto:
+Baixe o instalador e o checksum na [release oficial 0.7.0](https://github.com/labarro/Voxy/releases/tag/v0.7.0), ou receba os mesmos arquivos de quem mantém o projeto:
 
 ```text
-Voxy-Setup-0.6.0-x64.exe
+Voxy-Setup-0.7.0-x64.exe
 SHA256SUMS.txt
 ```
 
 Execute o instalador e conclua a instalação. **Os amigos não precisam instalar Node.js.** Todos devem usar a mesma versão para os recursos novos funcionarem corretamente.
 
-O instalador gerado neste projeto fica em `release/0.6.0/Voxy-Setup-0.6.0-x64.exe`. Essa pasta é local e não é versionada no Git. O executável não tem assinatura digital; o Windows pode mostrar editor desconhecido. Confira a procedência e o SHA-256 do arquivo recebido.
+Ao empacotar localmente, o instalador fica em `release/0.7.0/Voxy-Setup-0.7.0-x64.exe`. Essa pasta é local e não é versionada no Git. O executável não tem assinatura digital; o Windows pode mostrar editor desconhecido. Confira a procedência e o SHA-256 do arquivo recebido.
 
 ### 2. Conecte a rede
 
@@ -111,7 +111,7 @@ A partir da 0.4.0 instalada, o Voxy consulta e baixa versões publicadas automat
 
 Perfil, volumes, preferências e histórico ficam separados dos arquivos do programa. O fluxo iniciado pelo aplicativo cria um backup antes de executar o instalador. **Não é necessário desinstalar a versão anterior.**
 
-O endpoint em **devbarros.com**, na Vercel, aponta para publicações do GitHub Releases. Os metadados são assinados com Ed25519 e o pacote é conferido antes da instalação. O download pode ser diferencial. Ao atualizar o host, a sala será encerrada temporariamente. Versões até 0.3.0 precisam receber a 0.6.0 uma última vez pelo instalador; o seletor manual permanece como alternativa.
+O endpoint em **devbarros.com**, na Vercel, aponta para publicações do GitHub Releases. Os metadados são assinados com Ed25519 e o pacote é conferido antes da instalação. O download pode ser diferencial. Ao atualizar o host, a sala será encerrada temporariamente. Versões até 0.3.0 precisam receber a 0.7.0 uma última vez pelo instalador; o seletor manual permanece como alternativa.
 
 → [Guia para atualizar sem perder dados](GUIA-DE-ATUALIZACAO.md) · [Configurar domínio e publicação automática](ATUALIZACOES-REMOTAS.md)
 
@@ -243,6 +243,8 @@ Cada empacotamento usa uma pasta `build-*` nova. `release/0.7.0/latest-build.jso
 | `npm run test:ux`         | Navegação, presença, DMs isoladas, notificações, leitura e reconexão offline em três janelas. |
 | `npm run test:media`      | Mesh de dez clientes, áudio, vídeo e reconexões.                                              |
 | `npm run test:desktop`    | Integração com três janelas Electron e captura nativa.                                        |
+| `npm run test:social`     | Temas, capas, cargos, amigos, chamadas privadas, respostas, menções, reações e busca.           |
+| `npm run test:gallery`    | Grade simultânea de telas/webcam, ampliação, controles e suspensão em segundo plano.           |
 | `npm run test:dev`        | Vite, React Refresh e preload.                                                                |
 | `npm run test:packaged`   | Executável empacotado após `npm run dist`, com persistência entre reinícios.                  |
 
@@ -250,7 +252,7 @@ Os testes de navegador usam Microsoft Edge instalado. `test:desktop` utiliza mic
 
 **Validado na linha 0.4:** 18 testes de serviço/contratos, 45 pares WebRTC, áudio nos 90 sentidos e vídeo para nove espectadores em dois ciclos. Captura nativa e interface foram verificadas com três instâncias Electron locais; o executável empacotado foi aberto duas vezes para verificar persistência e novidades.
 
-A release 0.6.0 foi gerada e publicada pelo GitHub Actions. O fluxo público pelo domínio chegou ao estado pronto para instalar, com catálogo e pacote verificados, sem executar a instalação.
+A release **0.7.0** foi gerada e publicada pelo GitHub Actions, incluindo teste do executável empacotado e persistência. Os 29 testes de contratos passaram no CI; localmente também passaram as suítes de áudio, PTT, desktop, mídia com dez clientes, funcionalidades sociais e grade. O canal público do atualizador entrega o catálogo 0.7.0 com assinatura Ed25519 e hash do manifesto conferidos, sem executar uma instalação pessoal.
 
 **Validação ainda pendente:** dez computadores físicos pelo Radmin, avaliação humana de áudio em ambiente ruidoso, desempenho prolongado, atalhos com programas elevados e instalação NSIS sobre uma instalação pessoal existente.
 

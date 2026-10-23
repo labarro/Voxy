@@ -1,5 +1,14 @@
 # Validação do Voxy
 
+## Versão 0.7.0 — 23/10/2026
+
+O [Actions da release](https://github.com/labarro/Voxy/actions/runs/40014696269) concluiu com sucesso os 29 testes, a geração do instalador e dos metadados assinados, o teste do executável empacotado e a publicação dos cinco assets. [Release 0.7.0](https://github.com/labarro/Voxy/releases/tag/v0.7.0).
+
+Passaram localmente: build, contratos, microfone Web Audio, PTT global, áudio/reconexão, desktop com captura nativa, três clientes sociais, grade de mídia e dez clientes WebRTC (45 pares / 90 sentidos de voz). O teste da grade verifica duas telas com webcam, foco/retorno, controle individual, segundo plano e liberação de trilhas. O teste social verifica temas, capas, cargos, amizade, aceite de chamada, respostas, menções, reações e busca.
+
+O canal público de atualização entrega 0.7.0; a assinatura Ed25519 e o SHA-512 do manifesto foram conferidos com as funções de produção. O checksum publicado corresponde ao digest do instalador informado pelo GitHub. Evidência: `evidence/publication-0.7.0.json`. O binário não foi instalado na máquina pessoal; o smoke test do executável ocorreu no CI. Validação com os microfones físicos dos usuários e testes prolongados em computadores distintos continuam pendentes.
+
+
 ## Versão 0.6.0 — 21/10/2026
 
 Passaram: `npm test` (**24 testes**), `npm run build`, `npm run test:ptt`, `npm run test:microphone`, `npm run test:audio`, `npm run test:media`, `npm run test:desktop`, `npm run test:ux`, `npm run dist` e `npm run test:packaged`.

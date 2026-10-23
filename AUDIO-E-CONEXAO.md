@@ -1,4 +1,4 @@
-# Áudio e reconexão — Voxy 0.6.0
+# Áudio e reconexão — Voxy 0.7.0
 
 ## Ajustar e testar o microfone
 

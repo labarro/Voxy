@@ -9,6 +9,10 @@ const contact = z.object({
   directEnabled: z.boolean(),
 });
 const message = z.object({
+  replyTo: z.uuid().nullish(),
+  reactions: z
+    .record(z.string().max(16), z.array(z.uuid()).max(1000))
+    .optional(),
   id: z.uuid(),
   sequence: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
   author: z.uuid(),
@@ -21,11 +25,31 @@ const message = z.object({
   editedAt: z.number().nullish(),
 });
 const snapshot = z.object({
+  friendships: z
+    .array(
+      z.object({
+        requester: z.uuid(),
+        recipient: z.uuid(),
+        status: z.enum(["pending", "accepted"]),
+      }),
+    )
+    .max(2000)
+    .default([]),
   contacts: z.array(contact).max(1000),
   messages: z.array(message).max(5000),
   avatars: z.record(z.string().max(100), avatarSchema),
 });
 const room = z.object({
+  friendships: z
+    .array(
+      z.object({
+        requester: z.uuid(),
+        recipient: z.uuid(),
+        status: z.enum(["pending", "accepted"]),
+      }),
+    )
+    .max(2000)
+    .default([]),
   scope: z.string().regex(/^[a-f0-9]{64}$/),
   name: z.string().max(60),
   contacts: z.array(contact).max(1000),
@@ -69,6 +93,7 @@ export class DirectInbox {
     const resolve = (avatar: string) => value.avatars[avatar] ?? avatar;
     const next: DirectRoom = {
       scope,
+      friendships: value.friendships,
       name,
       contacts: value.contacts.map((c) => ({
         ...c,

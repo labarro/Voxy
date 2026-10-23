@@ -63,6 +63,7 @@ export function MicrophonePreview({
     profile.output,
     profile.noiseSuppression,
     profile.echoCancellation,
+    profile.autoGainControl,
   ]);
   useEffect(
     () => () => {

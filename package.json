@@ -25,7 +25,9 @@
     "updates:export-key": "node scripts/update-keys.mjs --export",
     "test:updater": "node scripts/test-updater.mjs",
     "test:ux": "tsx tests/ux.e2e.ts",
-    "test:audio": "tsx tests/audio.e2e.ts"
+    "test:audio": "tsx tests/audio.e2e.ts",
+    "test:social": "tsx tests/social.e2e.ts",
+    "test:gallery": "tsx tests/gallery.e2e.ts"
   },
   "dependencies": {
     "electron-updater": "6.8.9",

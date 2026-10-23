@@ -104,7 +104,12 @@ async function main() {
     }
     const participants = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => ({
       id: String(i),
-      profile: { id: String(i), name: String(i), avatar: "x" },
+      profile: {
+        id: String(i),
+        name: String(i),
+        avatar: "x",
+        mediaSubscriptions: true,
+      },
       channelId: "voice",
       muted: false,
       deafened: false,
@@ -227,6 +232,10 @@ async function main() {
     results.push(
       "PTT abre/fecha a track; mute tem prioridade; volumes independentes; mute local isola uma voz e sobrevive a deafen.",
     );
+    for (const page of pages.slice(1))
+      await page.evaluate(() =>
+        (window as any).engine.setViewing(["0"], ["0"]),
+      );
     await pages[0].evaluate(async () => {
       const w = window as any,
         original = navigator.mediaDevices.getUserMedia.bind(
@@ -344,6 +353,100 @@ async function main() {
             ? frame[0] > 180 && frame[2] < 150
             : frame[2] > 180 && frame[0] < 150,
           `pixel received ${frame}`,
+        );
+      }
+      if (cycle === 0) {
+        const counts = async () =>
+          await pages[0].evaluate(async () => {
+            const stats = await (window as any).engine.peers
+              .get("1")
+              .pc.getStats();
+            let video = 0,
+              audio = 0;
+            stats.forEach((s: any) => {
+              if (s.type === "outbound-rtp") {
+                if (s.kind === "video") video += s.bytesSent || 0;
+                if (s.kind === "audio") audio += s.bytesSent || 0;
+              }
+            });
+            return { video, audio };
+          });
+        const before = await counts();
+        await new Promise((r) => setTimeout(r, 1200));
+        const active = await counts();
+        await pages[1].evaluate(() =>
+          (window as any).engine.setViewing([], []),
+        );
+        await pages[0].waitForFunction(() => {
+          const p = (window as any).engine.peers.get("1");
+          return (
+            !p.video.sender.track &&
+            !p.camera.sender.track &&
+            !p.system.sender.track
+          );
+        });
+        await new Promise((r) => setTimeout(r, 300));
+        const pausedBefore = await counts();
+        await new Promise((r) => setTimeout(r, 1200));
+        const paused = await counts();
+        assert(active.video > before.video);
+        assert(
+          paused.video - pausedBefore.video <
+            (active.video - before.video) * 0.05,
+          JSON.stringify({ before, active, pausedBefore, paused }),
+        );
+        assert(paused.audio > pausedBefore.audio);
+        results.push(
+          `Sem espectador: vídeo ${active.video - before.video} → ${paused.video - pausedBefore.video} bytes / 1,2 s; voz continua (${paused.audio - pausedBefore.audio} bytes).`,
+        );
+        await pages[1].evaluate(() =>
+          (window as any).engine.setViewing(["0", "2"], ["0"]),
+        );
+        await pages[2].evaluate(async () => {
+          const w = window as any;
+          w.voxy = { selectSource: async () => {} };
+          const canvas = document.createElement("canvas");
+          canvas.width = 640;
+          canvas.height = 360;
+          const draw = () => {
+            const ctx = canvas.getContext("2d")!;
+            ctx.fillStyle = "#22bb77";
+            ctx.fillRect(0, 0, 640, 360);
+            ctx.fillStyle = "white";
+            ctx.fillText(String(Date.now()), 10, 20);
+          };
+          draw();
+          w.secondScreenTimer = setInterval(draw, 80);
+          const stream = canvas.captureStream(12);
+          Object.defineProperty(navigator.mediaDevices, "getDisplayMedia", {
+            configurable: true,
+            value: async () => stream,
+          });
+          await w.engine.share("second", false, "720p15");
+        });
+        await pages[1].waitForFunction(async () => {
+          for (const id of ["0", "2"]) {
+            const p = (window as any).engine.peers.get(id);
+            const stats = await p.pc.getStats();
+            let frames = 0;
+            stats.forEach((s: any) => {
+              if (s.type === "inbound-rtp" && s.mid === "1")
+                frames += s.framesDecoded || 0;
+            });
+            if (frames < 3) return false;
+          }
+          return true;
+        });
+        await cameraPixel(pages[1], "green");
+        await pages[2].evaluate(async () => {
+          await (window as any).engine.stopShare();
+          clearInterval((window as any).secondScreenTimer);
+        });
+        await pages[1].evaluate(() =>
+          (window as any).engine.setViewing(["0"], ["0"]),
+        );
+        results.push(
+          "Duas telas de emissores diferentes e webcam simultâneas; retomada após suspensão com quadros decodificados.",
         );
       }
       const audioCounts = await Promise.all(

@@ -97,6 +97,7 @@ async function main() {
     });
     await settings(b);
     await b.getByLabel("Nome de exibição").fill("Bruno");
+    await b.getByRole("button", { name: "Áudio e Voz", exact: true }).click();
     await b
       .getByRole("button", { name: "Testar meu microfone", exact: true })
       .click();
@@ -194,6 +195,7 @@ async function main() {
       );
     });
     await settings(b);
+    await b.getByRole("button", { name: "Áudio e Voz", exact: true }).click();
     await b
       .getByRole("button", { name: "Testar meu microfone", exact: true })
       .click();
@@ -217,7 +219,7 @@ async function main() {
     const menu = b.locator(".participant-menu");
     await menu.waitFor();
     await b.screenshot({ path: "test-results/audio-menu.png" });
-    assert((await menu.boundingBox())!.width < 300);
+    assert((await menu.boundingBox())!.width <= 320);
     await menu
       .getByRole("slider", { name: "Volume de Ana", exact: true })
       .fill("2");

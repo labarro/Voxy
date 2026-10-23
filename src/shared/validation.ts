@@ -16,6 +16,21 @@ export const avatarSchema = z
       return false;
     }
   }, "Escolha um emoji ou uma foto de até 128 px / 32 KB.");
+export const colorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+export const bannerSchema = z
+  .string()
+  .max(180000)
+  .refine((value) => {
+    if (!value) return true;
+    try {
+      const image = validateImage(value);
+      return (
+        image.width <= 960 && image.height <= 360 && image.bytes <= 128 * 1024
+      );
+    } catch {
+      return false;
+    }
+  }, "Escolha uma capa de até 960 × 360 px / 128 KB.");
 export const profileSchema = z.object({
   id: z.uuid(),
   name,
@@ -32,21 +47,71 @@ export const profileSchema = z.object({
   voiceDetection: z.boolean().default(false),
   voiceThreshold: z.number().min(-70).max(-10).default(-45),
   callSounds: z.boolean().default(true),
+  pttSounds: z.boolean().default(true),
+  autoGainControl: z.boolean().default(true),
+  theme: z.enum(["voxy", "ocean", "forest", "kuromi"]).default("voxy"),
+  accentColor: z.union([colorSchema, z.literal("")]).default(""),
+  nicknameColor: z.union([colorSchema, z.literal("")]).default(""),
+  banner: bannerSchema.default(""),
   volumes: z.record(z.uuid(), z.number().min(0).max(2)).default({}),
   streamVolumes: z.record(z.uuid(), z.number().min(0).max(1)).default({}),
   mutedParticipants: z.record(z.uuid(), z.boolean()).default({}),
 });
-export const publicProfileSchema = profileSchema.pick({
-  id: true,
-  name: true,
-  avatar: true,
-  presence: true,
-});
+export const publicProfileSchema = profileSchema
+  .pick({
+    id: true,
+    name: true,
+    avatar: true,
+    presence: true,
+    nicknameColor: true,
+    banner: true,
+  })
+  .extend({ mediaSubscriptions: z.boolean().default(false) });
 export const imageSchema = z
   .string()
   .max(Math.ceil(MAX_IMAGE_BYTES / 3) * 4 + 40)
   .regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/);
 export const commandSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("friend.request"), memberId: z.uuid() }),
+  z.object({
+    type: z.literal("friend.respond"),
+    memberId: z.uuid(),
+    accept: z.boolean(),
+  }),
+  z.object({ type: z.literal("friend.remove"), memberId: z.uuid() }),
+  z.object({ type: z.literal("call.invite"), memberId: z.uuid() }),
+  z.object({
+    type: z.literal("call.respond"),
+    id: z.uuid(),
+    accept: z.boolean(),
+  }),
+  z.object({ type: z.literal("call.end"), id: z.uuid() }),
+  z.object({
+    type: z.literal("message.react"),
+    id: z.uuid(),
+    emoji: z.enum(["👍", "❤️", "😂", "🎉", "👀", "😮", "😢", "🔥"]),
+  }),
+  z.object({
+    type: z.literal("direct.react"),
+    scope: z.string().regex(/^[a-f0-9]{64}$/),
+    id: z.uuid(),
+    emoji: z.enum(["👍", "❤️", "😂", "🎉", "👀", "😮", "😢", "🔥"]),
+  }),
+  z.object({
+    type: z.literal("role.save"),
+    serverId: id,
+    id: id.optional(),
+    name,
+    color: colorSchema,
+  }),
+  z.object({ type: z.literal("role.delete"), serverId: id, id }),
+  z.object({
+    type: z.literal("role.assign"),
+    serverId: id,
+    roleId: id,
+    memberId: z.uuid(),
+    assigned: z.boolean(),
+  }),
   z
     .object({
       type: z.literal("direct.message"),
@@ -54,6 +119,7 @@ export const commandSchema = z.discriminatedUnion("type", [
       recipient: z.uuid(),
       text: z.string().trim().max(4000),
       image: imageSchema.optional(),
+      replyTo: z.uuid().optional(),
     })
     .refine((v) => !!v.text || !!v.image),
   z.object({
@@ -89,6 +155,7 @@ export const commandSchema = z.discriminatedUnion("type", [
       channelId: id,
       text: z.string().trim().max(4000),
       image: imageSchema.optional(),
+      replyTo: z.uuid().optional(),
     })
     .refine((v) => v.text.length > 0 || !!v.image),
   z.object({ type: z.literal("voice"), channelId: id.nullable() }),
@@ -104,16 +171,22 @@ export const commandSchema = z.discriminatedUnion("type", [
     deafened: z.boolean(),
     sharing: z.boolean(),
     camera: z.boolean().optional(),
+    microphoneState: z.enum(["muted", "ptt-waiting", "active"]).optional(),
   }),
   z.object({
     type: z.literal("profile"),
     name,
     avatar: avatarSchema,
     presence: z.enum(["online", "away", "busy"]).optional(),
+    nicknameColor: z.union([colorSchema, z.literal("")]).optional(),
+    banner: bannerSchema.optional(),
   }),
 ]);
 export const signalSchema = z
   .object({
+    subscription: z
+      .object({ screen: z.boolean(), camera: z.boolean() })
+      .optional(),
     to: id,
     description: z
       .object({ type: z.enum(["offer", "answer"]), sdp: z.string().max(64000) })
@@ -127,7 +200,24 @@ export const signalSchema = z
       })
       .optional(),
   })
-  .refine((v) => !!v.description !== !!v.candidate);
+  .refine(
+    (v) =>
+      [v.description, v.candidate, v.subscription].filter(Boolean).length === 1,
+  );
+export const historySchema = z
+  .object({
+    channelId: id.optional(),
+    scope: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
+    peer: z.uuid().optional(),
+    before: z.number().nonnegative().optional(),
+    beforeId: z.uuid().optional(),
+    search: z.string().max(100).optional(),
+    messageId: z.uuid().optional(),
+  })
+  .refine((v) => !!v.channelId !== !!(v.scope && v.peer));
 export function privateIPv4(value: string) {
   const octets = value.split(".").map(Number);
   if (

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Maximize, Minimize, X, Volume2, VolumeX } from "lucide-react";
+import { Maximize, Minimize, X, Volume2, VolumeX, Focus } from "lucide-react";
 export function Player({
   stream,
   name,
@@ -10,6 +10,7 @@ export function Player({
   volume = 1,
   onVolume = () => {},
   kind = "screen",
+  expand,
 }: {
   stream?: MediaStream;
   name: string;
@@ -20,6 +21,7 @@ export function Player({
   volume?: number;
   onVolume?: (value: number) => void;
   kind?: "screen" | "camera";
+  expand?: () => void;
 }) {
   const video = useRef<HTMLVideoElement>(null),
     container = useRef<HTMLDivElement>(null);
@@ -77,6 +79,8 @@ export function Player({
   }, [output]);
   return (
     <section
+      data-kind={kind}
+      aria-label={(kind === "camera" ? "Câmera de " : "Tela de ") + name}
       className={
         "player " +
         (fullscreen ? "is-fullscreen " : "") +
@@ -94,6 +98,11 @@ export function Player({
           {local ? " (sua prévia)" : ""}
         </span>
         <div>
+          {expand && (
+            <button title="Ampliar ou voltar à grade" onClick={expand}>
+              <Focus size={18} />
+            </button>
+          )}
           <button
             title={fit ? "Preencher player" : "Ajustar à janela"}
             onClick={() => setFit(!fit)}
@@ -158,6 +167,7 @@ export function Player({
             setError("");
           }}
           onClick={() => {
+            expand?.();
             void video.current?.play().then(() => setError(""));
           }}
         />

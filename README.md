@@ -20,6 +20,10 @@ Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu compu
 
 ---
 
+## Melhorias em desenvolvimento
+
+Configurações por categoria, temas e cor principal, capa e cor do nickname, cargos, mini perfis, amigos com chamadas privadas, respostas/menções/reações, histórico paginado e grade simultânea de telas e webcams. A captura passa a solicitar normalização nativa de voz e os avisos do PTT têm sons locais próprios. [Guia dos recursos e das verificações](SOCIAL-E-PERSONALIZACAO.md).
+
 ## Novidades na versão 0.6.0
 
 Áudio avançado com teste privado, PTT por Mouse 4/5, reconexão ao canal de voz, menu compacto e volumes individuais até 200%, novos sons de transmissão e links clicáveis. [Guia de áudio e reconexão](AUDIO-E-CONEXAO.md). A 0.6.0 está publicada e disponível pelo atualizador automático. O instalador publicado também está em `release/0.6.0/Voxy-Setup-0.6.0-x64.exe`.
@@ -131,7 +135,7 @@ Na engrenagem, ative o Push-to-Talk, clique em **alterar tecla**, pressione a te
 
 O **Volume de entrada** vai de 0 a 200%. Comece em 100% e use o medidor durante a chamada. Ative a **detecção de voz** e escolha um **Limite de ativação** acima do ruído ambiente e abaixo da sua voz. Mais perto de −70 dBFS é mais sensível; mais perto de −10 exige som forte.
 
-O filtro mede intensidade, sem reconhecer fala: ruídos fortes também podem passar. A detecção vem desligada por padrão para preservar perfis antigos. O ganho automático do Chromium é solicitado como desativado; drivers e melhorias do Windows podem aplicar processamento próprio.
+O filtro mede intensidade, sem reconhecer fala: ruídos fortes também podem passar. A detecção vem desligada por padrão para preservar perfis antigos. Nesta compilação em desenvolvimento, o ajuste automático de voz do Chromium é solicitado como ativado por padrão; pode ser desativado em **Áudio e Voz**. Drivers e melhorias do Windows também podem aplicar processamento próprio.
 
 Alterações são aplicadas ao salvar. Nomes de dispositivos podem aparecer somente após permitir o microfone; a seleção de saída depende do suporte de `setSinkId`.
 

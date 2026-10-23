@@ -16,6 +16,13 @@ export type Profile = {
   voiceDetection?: boolean;
   voiceThreshold?: number;
   callSounds?: boolean;
+  pttSounds?: boolean;
+  autoGainControl?: boolean;
+  theme?: "voxy" | "ocean" | "forest" | "kuromi";
+  accentColor?: string;
+  nicknameColor?: string;
+  banner?: string;
+  mediaSubscriptions?: boolean;
   volumes?: Record<string, number>;
   streamVolumes?: Record<string, number>;
   mutedParticipants?: Record<string, boolean>;
@@ -27,6 +34,7 @@ export type Community = {
   icon?: string | null;
 };
 export type Channel = {
+  privateMembers?: string[];
   id: string;
   serverId: string;
   name: string;
@@ -34,7 +42,17 @@ export type Channel = {
 };
 export type Participant = {
   id: string;
-  profile: Pick<Profile, "id" | "name" | "avatar" | "presence">;
+  profile: Pick<
+    Profile,
+    | "id"
+    | "name"
+    | "avatar"
+    | "presence"
+    | "nicknameColor"
+    | "banner"
+    | "mediaSubscriptions"
+  >;
+  microphoneState?: "muted" | "ptt-waiting" | "active";
   channelId: string | null;
   muted: boolean;
   deafened: boolean;
@@ -43,6 +61,8 @@ export type Participant = {
   host: boolean;
 };
 export type Message = {
+  replyTo?: string | null;
+  reactions?: Record<string, string[]>;
   id: string;
   channelId: string;
   author: string;
@@ -54,7 +74,18 @@ export type Message = {
   editedAt?: number | null;
 };
 export type RoomState = {
-  features?: { directMessages: boolean; presence: boolean };
+  friendships?: Friendship[];
+  calls?: DirectCall[];
+  roles?: ServerRole[];
+  memberRoles?: MemberRole[];
+  profiles?: Record<string, Participant["profile"]>;
+  features?: {
+    directMessages: boolean;
+    presence: boolean;
+    mediaSubscriptions?: boolean;
+    social?: boolean;
+    richChat?: boolean;
+  };
   protocol?: number;
   avatars?: Record<string, string>;
   servers: Community[];
@@ -63,18 +94,43 @@ export type RoomState = {
   messages: Message[];
 };
 export type Signal = {
+  subscription?: { screen: boolean; camera: boolean };
   from?: string;
   to: string;
   description?: RTCSessionDescriptionInit;
   candidate?: RTCIceCandidateInit;
 };
 export type Command =
+  | { type: "friend.request"; memberId: string }
+  | { type: "friend.respond"; memberId: string; accept: boolean }
+  | { type: "friend.remove"; memberId: string }
+  | { type: "call.invite"; memberId: string }
+  | { type: "call.respond"; id: string; accept: boolean }
+  | { type: "call.end"; id: string }
+  | { type: "message.react"; id: string; emoji: string }
+  | { type: "direct.react"; scope: string; id: string; emoji: string }
+  | {
+      type: "role.save";
+      serverId: string;
+      id?: string;
+      name: string;
+      color: string;
+    }
+  | { type: "role.delete"; serverId: string; id: string }
+  | {
+      type: "role.assign";
+      serverId: string;
+      roleId: string;
+      memberId: string;
+      assigned: boolean;
+    }
   | {
       type: "direct.message";
       scope: string;
       recipient: string;
       text: string;
       image?: string;
+      replyTo?: string;
     }
   | { type: "direct.edit"; scope: string; id: string; text: string }
   | { type: "direct.delete"; scope: string; id: string }
@@ -90,7 +146,13 @@ export type Command =
     }
   | { type: "channel.rename"; id: string; name: string }
   | { type: "channel.delete"; id: string }
-  | { type: "message"; channelId: string; text: string; image?: string }
+  | {
+      type: "message";
+      channelId: string;
+      text: string;
+      image?: string;
+      replyTo?: string;
+    }
   | { type: "message.edit"; id: string; text: string }
   | { type: "message.delete"; id: string }
   | { type: "voice"; channelId: string | null }
@@ -100,8 +162,46 @@ export type Command =
       deafened: boolean;
       sharing: boolean;
       camera?: boolean;
+      microphoneState?: Participant["microphoneState"];
     }
-  | { type: "profile"; name: string; avatar: string; presence?: Presence };
+  | {
+      type: "profile";
+      name: string;
+      avatar: string;
+      presence?: Presence;
+      nicknameColor?: string;
+      banner?: string;
+    };
+export type ServerRole = {
+  id: string;
+  serverId: string;
+  name: string;
+  color: string;
+  position: number;
+  permissions: string[];
+};
+export type MemberRole = { serverId: string; roleId: string; memberId: string };
+export type Friendship = {
+  requester: string;
+  recipient: string;
+  status: "pending" | "accepted";
+};
+export type DirectCall = {
+  id: string;
+  caller: string;
+  recipient: string;
+  accepted: boolean;
+  createdAt: number;
+};
+export type HistoryQuery = {
+  channelId?: string;
+  scope?: string;
+  peer?: string;
+  before?: number;
+  beforeId?: string;
+  search?: string;
+  messageId?: string;
+};
 export type DirectMessage = Omit<Message, "channelId"> & {
   recipient: string;
   sequence: number;
@@ -113,11 +213,13 @@ export type DirectContact = {
   directEnabled: boolean;
 };
 export type DirectSnapshot = {
+  friendships?: Friendship[];
   contacts: DirectContact[];
   messages: DirectMessage[];
   avatars: Record<string, string>;
 };
 export type DirectRoom = {
+  friendships?: Friendship[];
   scope: string;
   name: string;
   contacts: DirectContact[];
@@ -128,6 +230,15 @@ export type Inbox = { rooms: DirectRoom[]; activeScope?: string };
 export type Reply<T = unknown> =
   { ok: true; value: T } | { ok: false; error: string };
 export type NetworkEvent =
+  | { type: "activity"; background: boolean }
+  | {
+      type: "message-update";
+      id: string;
+      channelId?: string;
+      scope?: string;
+      peer?: string;
+      message?: Message;
+    }
   | { type: "inbox-error"; message: string }
   | { type: "open-direct"; scope: string; peer: string }
   | {
@@ -195,6 +306,8 @@ export type RoomAvailability = {
   status: "available" | "unavailable" | "invalid" | "missing" | "full";
 };
 export interface DesktopAPI {
+  profileImage(id: string): Promise<string>;
+  chatHistory(query: HistoryQuery): Promise<Message[]>;
   openExternal(url: string): Promise<void>;
   inbox(): Promise<Inbox>;
   markDirectRead(scope: string, peer: string, sequence: number): Promise<void>;

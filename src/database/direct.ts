@@ -16,6 +16,13 @@ export class DirectStore {
       CREATE TABLE IF NOT EXISTS direct_messages(sequence INTEGER PRIMARY KEY AUTOINCREMENT,id TEXT UNIQUE NOT NULL,author TEXT NOT NULL,recipient TEXT NOT NULL,name TEXT NOT NULL,avatar TEXT NOT NULL,text TEXT NOT NULL,time INTEGER NOT NULL,editedAt INTEGER);
       CREATE INDEX IF NOT EXISTS direct_pair ON direct_messages(author,recipient,sequence);
       CREATE TABLE IF NOT EXISTS direct_images(id TEXT PRIMARY KEY,messageId TEXT UNIQUE REFERENCES direct_messages(id) ON DELETE CASCADE,data TEXT NOT NULL);`);
+    const columns =
+      db.exec("PRAGMA table_info(direct_messages)")[0]?.values || [];
+    if (!columns.some((r) => r[1] === "replyTo"))
+      db.run("ALTER TABLE direct_messages ADD COLUMN replyTo TEXT");
+    db.run(
+      "CREATE TABLE IF NOT EXISTS direct_reactions(messageId TEXT NOT NULL REFERENCES direct_messages(id) ON DELETE CASCADE,memberId TEXT NOT NULL,emoji TEXT NOT NULL,PRIMARY KEY(messageId,memberId,emoji))",
+    );
   }
   private rows<T>(sql: string, params: (string | number)[] = []): T[] {
     const stmt = this.db.prepare(sql);
@@ -82,12 +89,12 @@ export class DirectStore {
       [scope, viewer],
     ).map((c) => ({ ...c, directEnabled: !!c.directEnabled }));
     const messages = this.rows<DirectMessage>(
-      `SELECT sequence,id,author,recipient,name,avatar,text,time,editedAt,
+      `SELECT sequence,id,author,recipient,name,avatar,text,time,editedAt,replyTo,
       (SELECT id FROM direct_images WHERE messageId=recent.id) AS imageId FROM
       (SELECT *,ROW_NUMBER() OVER(PARTITION BY CASE WHEN author=? THEN recipient ELSE author END ORDER BY sequence DESC) AS rank FROM direct_messages WHERE author=? OR recipient=?) recent WHERE rank<=500 ORDER BY sequence DESC LIMIT 5000`,
       [viewer, viewer, viewer],
     ).reverse();
-    return { contacts, messages };
+    return { contacts, messages: this.withReactions(messages) };
   }
   message(
     profile: Participant["profile"],
@@ -95,7 +102,16 @@ export class DirectStore {
     text: string,
     scope: string,
     image?: string,
+    replyTo?: string,
   ) {
+    if (
+      replyTo &&
+      !this.rows(
+        "SELECT id FROM direct_messages WHERE id=? AND ((author=? AND recipient=?) OR (author=? AND recipient=?))",
+        [replyTo, profile.id, recipient, recipient, profile.id],
+      ).length
+    )
+      throw Error("A resposta precisa pertencer a esta conversa.");
     if (profile.id === recipient)
       throw Error("Escolha outra pessoa para conversar.");
     if (!this.enabled(recipient, scope))
@@ -106,7 +122,7 @@ export class DirectStore {
     this.db.run("BEGIN");
     try {
       this.db.run(
-        "INSERT INTO direct_messages(id,author,recipient,name,avatar,text,time) VALUES(?,?,?,?,?,?,?)",
+        "INSERT INTO direct_messages(id,author,recipient,name,avatar,text,time,replyTo) VALUES(?,?,?,?,?,?,?,?)",
         [
           id,
           profile.id,
@@ -115,6 +131,7 @@ export class DirectStore {
           profile.avatar,
           text,
           Date.now(),
+          replyTo || null,
         ],
       );
       if (image)
@@ -159,5 +176,71 @@ export class DirectStore {
     )[0];
     if (!row) throw Error("Imagem privada indisponível para este perfil.");
     return row.data;
+  }
+  private withReactions(messages: DirectMessage[]) {
+    if (!messages.length) return messages;
+    const index = new Map(
+      messages.map((m) => [
+        m.id,
+        { ...m, reactions: {} as Record<string, string[]> },
+      ]),
+    );
+    for (const r of this.rows<{
+      messageId: string;
+      memberId: string;
+      emoji: string;
+    }>(
+      `SELECT * FROM direct_reactions WHERE messageId IN (${messages.map(() => "?").join(",")})`,
+      messages.map((m) => m.id),
+    ))
+      (index.get(r.messageId)!.reactions[r.emoji] ||= []).push(r.memberId);
+    return [...index.values()];
+  }
+  react(id: string, actor: string, emoji: string) {
+    const m = this.rows<DirectMessage>(
+      "SELECT * FROM direct_messages WHERE id=? AND (author=? OR recipient=?)",
+      [id, actor, actor],
+    )[0];
+    if (!m) throw Error("Mensagem privada indisponível.");
+    if (
+      this.rows(
+        "SELECT 1 FROM direct_reactions WHERE messageId=? AND memberId=? AND emoji=?",
+        [id, actor, emoji],
+      ).length
+    )
+      this.db.run(
+        "DELETE FROM direct_reactions WHERE messageId=? AND memberId=? AND emoji=?",
+        [id, actor, emoji],
+      );
+    else
+      this.db.run("INSERT INTO direct_reactions VALUES(?,?,?)", [
+        id,
+        actor,
+        emoji,
+      ]);
+    this.flush();
+    return [m.author, m.recipient];
+  }
+  history(viewer: string, q: import("../shared/types").HistoryQuery) {
+    const params: (string | number)[] = [viewer, q.peer!, q.peer!, viewer];
+    let where = "((author=? AND recipient=?) OR (author=? AND recipient=?))";
+    if (q.messageId) {
+      where += " AND id=?";
+      params.push(q.messageId);
+    }
+    if (q.before !== undefined) {
+      where += " AND (time<? OR (time=? AND id<?))";
+      params.push(q.before, q.before, q.beforeId || "");
+    }
+    if (q.search) {
+      where += " AND instr(lower(text),lower(?))>0";
+      params.push(q.search);
+    }
+    return this.withReactions(
+      this.rows<DirectMessage>(
+        `SELECT *,(SELECT id FROM direct_images WHERE messageId=direct_messages.id) AS imageId FROM direct_messages WHERE ${where} ORDER BY time DESC,id DESC LIMIT 100`,
+        params,
+      ).reverse(),
+    ).map((m) => ({ ...m, channelId: q.peer! }));
   }
 }

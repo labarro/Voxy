@@ -4,6 +4,7 @@ import {
   MessageCircle,
   Plus,
   LogIn,
+  Users,
 } from "lucide-react";
 import type { RoomState } from "../../shared/types";
 import type { SavedRoomsView } from "../hooks/useSavedRooms";
@@ -15,7 +16,7 @@ const labels = {
   missing: "Servidor removido",
   full: "Sala cheia",
 };
-export type AppPage = "home" | "room" | "news" | "dm";
+export type AppPage = "home" | "room" | "news" | "dm" | "friends";
 export function ServerRail({
   room,
   page,
@@ -83,6 +84,18 @@ export function ServerRail({
         onClick={() => navigate("news")}
       >
         <Megaphone />
+      </button>
+      <button
+        className={"rail-action " + (page === "friends" ? "selected" : "")}
+        title="Amigos"
+        aria-label="Amigos"
+        aria-current={page === "friends" ? "page" : undefined}
+        onClick={() => navigate("friends")}
+      >
+        <Users />
+        {(room.friendships || []).some((f) => f.status === "pending") && (
+          <i className="status-dot" />
+        )}
       </button>
       <div className="rail-divider" />
       <div className="rail-server-list">

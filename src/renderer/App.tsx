@@ -1,3 +1,8 @@
+import { MediaGallery } from "./components/MediaGallery";
+import { Friends } from "./components/Friends";
+import { memberRoles, nicknameColor } from "../shared/identity";
+import { RoleBadges, Roles } from "./components/Roles";
+import { themes, KuromiMark, accentInk } from "./components/Personalization";
 import { MAX_PARTICIPANTS } from "../shared/constants";
 import { PTT_KEYS } from "../shared/preferences";
 import { Avatar, AvatarImages } from "./components/Avatar";
@@ -21,7 +26,6 @@ import {
 } from "./directThreads";
 import { ReleaseChannel } from "./components/ReleaseChannel";
 import { ServerImage } from "./components/ServerImage";
-import { CameraTile } from "./components/CameraTile";
 import { RemoteUpdate } from "./components/RemoteUpdate";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
@@ -29,8 +33,6 @@ import {
   Plus,
   Hash,
   Volume2,
-  Mic,
-  MicOff,
   Headphones,
   HeadphoneOff,
   Settings,
@@ -68,7 +70,6 @@ import {
   type Quality,
 } from "../services/webrtc/engine";
 import { Modal } from "./components/Modal";
-import { Player } from "./components/Player";
 const empty: RoomState = {
   servers: [],
   channels: [],
@@ -89,6 +90,7 @@ type Dialog =
   | null;
 export function App() {
   const [page, setPage] = useState<AppPage>("home");
+  const [background, setBackground] = useState(false);
   const saved = useSavedRooms();
   const { inbox, notice, clearNotice, error: inboxError } = useInbox();
   const [directTarget, setDirectTarget] = useState<DirectTarget | null>(null);
@@ -114,7 +116,6 @@ export function App() {
     [port, setPort] = useState(43120);
   const [muted, setMuted] = useState(false),
     [deafened, setDeafened] = useState(false),
-    [text, setText] = useState(""),
     [watch, setWatch] = useState<string | null>(null),
     [sources, setSources] = useState<Source[]>([]),
     [source, setSource] = useState(""),
@@ -127,6 +128,7 @@ export function App() {
     y: number;
   } | null>(null);
   const restoreVoice = useRef<string | null>(null);
+  const joinedCalls = useRef(new Set<string>());
   const [reconnectMessage, setReconnectMessage] = useState("");
   const [media, setMedia] = useState<VoiceView>({
     streams: new Map(),
@@ -137,9 +139,21 @@ export function App() {
   });
   const latest = useRef({ room, selfId, status, muted, deafened });
   latest.current = { room, selfId, status, muted, deafened };
+  useEffect(() => {
+    const theme = themes[profile?.theme || "voxy"];
+    const root = document.documentElement;
+    root.dataset.theme = profile?.theme || "voxy";
+    root.style.setProperty("--accent", profile?.accentColor || theme.accent);
+    root.style.setProperty(
+      "--accent-ink",
+      accentInk(profile?.accentColor || theme.accent),
+    );
+    root.style.setProperty("--base", theme.base);
+    root.style.setProperty("--surface", theme.surface);
+    root.style.setProperty("--deep", theme.deep);
+  }, [profile?.theme, profile?.accentColor]);
   const effectiveMuted = useRef(false);
-  const joining = useRef(false),
-    messagesEnd = useRef<HTMLDivElement>(null);
+  const joining = useRef(false);
   const [engine] = useState(
     () =>
       new VoiceEngine(
@@ -154,6 +168,7 @@ export function App() {
             void window.voxy
               .command({
                 type: "status",
+                microphoneState: engine.microphoneState(),
                 muted: effectiveMuted.current,
                 deafened: l.deafened,
                 sharing,
@@ -168,6 +183,7 @@ export function App() {
             void window.voxy
               .command({
                 type: "status",
+                microphoneState: engine.microphoneState(),
                 muted,
                 deafened: l.deafened,
                 sharing: me.sharing,
@@ -181,6 +197,7 @@ export function App() {
             void window.voxy
               .command({
                 type: "status",
+                microphoneState: engine.microphoneState(),
                 muted: effectiveMuted.current,
                 deafened: l.deafened,
                 sharing: me.sharing,
@@ -199,6 +216,7 @@ export function App() {
       })
       .catch((e) => setError(e.message));
     const off = window.voxy.onEvent((event) => {
+      if (event.type === "activity") setBackground(event.background);
       if (event.type === "open-direct") {
         setDirectTarget({ scope: event.scope, peer: event.peer });
         setPage("dm");
@@ -233,6 +251,9 @@ export function App() {
         }
       }
       if (event.type === "state") {
+        engine.setSubscriptionSupport(
+          !!event.state.features?.mediaSubscriptions,
+        );
         latest.current.room = event.state;
         setRoom(event.state);
         if (
@@ -276,9 +297,6 @@ export function App() {
           "",
       );
   }, [room.channels, channelId, serverId]);
-  useEffect(() => {
-    messagesEnd.current?.scrollIntoView({ behavior: "smooth" });
-  }, [room.messages.length, channelId]);
   const me = room.participants.find((p) => p.id === selfId),
     server = room.servers.find((s) => s.id === serverId),
     channel = room.channels.find((c) => c.id === channelId),
@@ -286,25 +304,20 @@ export function App() {
   const peers = room.participants.filter(
       (p) => p.channelId && p.channelId === me?.channelId,
     ),
-    streams = peers.filter((p) => p.sharing),
-    watched = peers.find((p) => p.id === watch && p.sharing);
-  const cameras = room.participants.filter(
-    (p) => p.channelId === channelId && p.camera,
-  );
-  const selectedCamera = cameras.find((p) => p.id === watchCamera);
+    streams = peers.filter((p) => p.sharing);
   const online = status === "connected";
-  useEffect(
-    () =>
-      engine.setWatching(
-        page === "room" &&
-          !selectedCamera &&
-          watched &&
-          me?.channelId === channelId
-          ? watched.id
-          : null,
-      ),
-    [engine, watched?.id, channelId, me?.channelId, page, selectedCamera?.id],
-  );
+  useEffect(() => {
+    const change = () => {
+      const inactive = background || document.hidden;
+      document.documentElement.dataset.background = String(inactive);
+      engine.setBackground(inactive);
+      if (inactive || page !== "room" || channelId !== me?.channelId)
+        engine.setViewing([], []);
+    };
+    change();
+    document.addEventListener("visibilitychange", change);
+    return () => document.removeEventListener("visibilitychange", change);
+  }, [engine, page, channelId, me?.channelId, background]);
   async function run(fn: () => Promise<unknown>, close = false) {
     setError("");
     setBusy(true);
@@ -360,6 +373,7 @@ export function App() {
         await command({ type: "voice", channelId: c.id });
         await command({
           type: "status",
+          microphoneState: engine.microphoneState(),
           muted: engine.isMuted(),
           deafened,
           sharing: false,
@@ -395,6 +409,16 @@ export function App() {
         "Conexão restaurada. O canal anterior foi removido; escolha outro canal de voz.",
       );
   }, [status, selfId, room, busy]);
+  useEffect(() => {
+    const call = room.calls?.find((c) => c.accepted);
+    if (!call || busy || joining.current || joinedCalls.current.has(call.id))
+      return;
+    const c = room.channels.find((c) => c.id === call.id);
+    if (c) {
+      joinedCalls.current.add(call.id);
+      void joinVoice(c);
+    }
+  }, [room.calls, room.channels, busy]);
   async function leaveVoice() {
     restoreVoice.current = null;
     engine.leave();
@@ -416,6 +440,7 @@ export function App() {
     if (voice)
       await command({
         type: "status",
+        microphoneState: engine.microphoneState(),
         muted: engine.isMuted(),
         deafened: v,
         sharing: media.sharing,
@@ -469,9 +494,24 @@ export function App() {
         : p,
     );
   }
-  const selectedParticipant = room.participants.find(
-    (p) => p.id === participantAudio?.id && p.id !== selfId,
-  );
+  const selectedParticipant =
+    room.participants.find((p) => p.id === participantAudio?.id) ??
+    (participantAudio && room.profiles?.[participantAudio.id]
+      ? {
+          id: participantAudio.id,
+          profile: room.profiles[participantAudio.id],
+          channelId: null,
+          muted: false,
+          deafened: false,
+          sharing: false,
+          host: false,
+        }
+      : undefined);
+  function openUserProfile(id: string, x: number, y: number) {
+    const person = room.participants.find((p) => p.profile.id === id);
+    if (person || room.profiles?.[id])
+      setParticipantAudio({ id: person?.id || id, x, y });
+  }
   async function reconnectSaved(id: string) {
     const result = await window.voxy.reconnectRoom(id);
     setHostInfo(result.hostInfo);
@@ -564,6 +604,7 @@ export function App() {
         />
         <aside className="channel-panel">
           <header className="server-header">
+            {profile.theme === "kuromi" && <KuromiMark />}
             {page !== "dm" && server?.icon && (
               <Avatar avatar={server.icon} className="mini-avatar" />
             )}
@@ -589,6 +630,8 @@ export function App() {
           <div className="channel-scroll">
             {page === "dm" ? (
               <DirectList
+                profiles={room.profiles}
+                onProfile={openUserProfile}
                 legacyHost={online && !room.features?.directMessages}
                 inbox={inbox}
                 participants={room.participants}
@@ -683,7 +726,17 @@ export function App() {
                                         : "")
                                     }
                                   />
-                                  <span>{p.profile.name}</span>
+                                  <span
+                                    style={{
+                                      color: nicknameColor(
+                                        room,
+                                        serverId,
+                                        p.profile,
+                                      ),
+                                    }}
+                                  >
+                                    {p.profile.name}
+                                  </span>
                                   <Presence value={p.profile.presence} />
                                   {p.sharing && (
                                     <span className="live-label sidebar-live">
@@ -697,6 +750,8 @@ export function App() {
                                   )}
                                   <ParticipantStatus
                                     muted={p.muted}
+                                    microphoneState={p.microphoneState}
+                                    speaking={media.speaking.has(p.id)}
                                     deafened={p.deafened}
                                     locallyMuted={
                                       !!profile.mutedParticipants?.[
@@ -718,6 +773,14 @@ export function App() {
                     <button
                       key={p.id}
                       className="member-row"
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        setParticipantAudio({
+                          id: p.id,
+                          x: e.clientX,
+                          y: e.clientY,
+                        });
+                      }}
                       title={
                         p.id === selfId
                           ? "Seu perfil"
@@ -740,10 +803,17 @@ export function App() {
                         />
                         <Presence value={p.profile.presence} />
                       </span>
-                      <span>
+                      <span
+                        style={{
+                          color: nicknameColor(room, serverId, p.profile),
+                        }}
+                      >
                         {p.profile.name}
                         {p.id === selfId ? " (você)" : ""}
                       </span>
+                      <RoleBadges
+                        roles={memberRoles(room, serverId, p.profile.id)}
+                      />
                       <Presence value={p.profile.presence} label />
                     </button>
                   ))}
@@ -808,7 +878,11 @@ export function App() {
                 <Presence value={online ? profile.presence : "offline"} />
               </span>
               <span>
-                <strong>{profile.name}</strong>
+                <strong
+                  style={{ color: nicknameColor(room, serverId, profile) }}
+                >
+                  {profile.name}
+                </strong>
                 <small>
                   {online
                     ? presenceLabels[profile.presence ?? "online"] +
@@ -822,9 +896,16 @@ export function App() {
             <button
               className={muted ? "danger-text" : ""}
               title={muted ? "Ativar microfone" : "Mutar microfone"}
+              aria-label={muted ? "Ativar microfone" : "Mutar microfone"}
               onClick={() => void run(toggleMute)}
             >
-              {muted ? <MicOff size={18} /> : <Mic size={18} />}
+              <ParticipantStatus
+                muted={muted}
+                deafened={false}
+                showMicrophone
+                microphoneState={engine.microphoneState()}
+                speaking={media.speaking.has(selfId)}
+              />
             </button>
             <button
               title={deafened ? "Ouvir áudio" : "Silenciar áudio"}
@@ -865,14 +946,16 @@ export function App() {
                 <Hash />
               )}
               <strong>
-                {page === "dm"
-                  ? (findConversation(inbox, directTarget).contact?.name ??
-                    "Mensagens privadas")
-                  : page === "news"
-                    ? "Novidades do Voxy"
-                    : page === "home"
-                      ? "Home"
-                      : (channel?.name ?? "Bem-vindo ao Voxy")}
+                {page === "friends"
+                  ? "Amigos"
+                  : page === "dm"
+                    ? (findConversation(inbox, directTarget).contact?.name ??
+                      "Mensagens privadas")
+                    : page === "news"
+                      ? "Novidades do Voxy"
+                      : page === "home"
+                        ? "Home"
+                        : (channel?.name ?? "Bem-vindo ao Voxy")}
               </strong>
               <span className="header-description">
                 {page === "dm"
@@ -956,9 +1039,75 @@ export function App() {
               </button>
             </div>
           )}
-          {page === "dm" ? (
+          {(room.calls || []).map((call) => (
+            <div className="direct-call-banner" key={call.id} role="status">
+              <span>
+                {call.accepted
+                  ? "Chamada privada"
+                  : call.caller === profile.id
+                    ? "Chamando"
+                    : "Chamada de"}{" "}
+                {room.profiles?.[
+                  call.caller === profile.id ? call.recipient : call.caller
+                ]?.name || "amigo"}
+              </span>
+              {!call.accepted && call.recipient === profile.id && (
+                <>
+                  <button
+                    disabled={busy}
+                    onClick={() =>
+                      void run(() =>
+                        command({
+                          type: "call.respond",
+                          id: call.id,
+                          accept: true,
+                        }),
+                      )
+                    }
+                  >
+                    Aceitar chamada
+                  </button>
+                  <button
+                    disabled={busy}
+                    onClick={() =>
+                      void run(() =>
+                        command({
+                          type: "call.respond",
+                          id: call.id,
+                          accept: false,
+                        }),
+                      )
+                    }
+                  >
+                    Recusar chamada
+                  </button>
+                </>
+              )}
+              <button
+                disabled={busy}
+                onClick={() =>
+                  void run(() => command({ type: "call.end", id: call.id }))
+                }
+              >
+                {call.accepted ? "Encerrar chamada" : "Cancelar chamada"}
+              </button>
+            </div>
+          ))}
+          {page === "friends" ? (
+            <Friends
+              room={room}
+              inbox={inbox}
+              profile={profile}
+              online={online}
+              command={command}
+              open={openDirect}
+              inspect={openUserProfile}
+            />
+          ) : page === "dm" ? (
             <>
               <DirectConversation
+                profiles={room.profiles}
+                onProfile={openUserProfile}
                 inbox={inbox}
                 target={directTarget}
                 owner={profile.id}
@@ -985,6 +1134,15 @@ export function App() {
             />
           ) : channel?.kind === "text" ? (
             <Chat
+              profiles={room.profiles}
+              nameColor={(id) =>
+                nicknameColor(room, serverId, room.profiles?.[id] || { id })
+              }
+              onProfile={(id, x, y) => {
+                const p = room.participants.find((p) => p.profile.id === id);
+                if (p || room.profiles?.[id])
+                  setParticipantAudio({ id: p?.id || id, x, y });
+              }}
               key={channelId}
               channelId={channelId}
               name={channel.name}
@@ -993,8 +1151,11 @@ export function App() {
               authorId={profile.id}
               onEdit={(id, text) => command({ type: "message.edit", id, text })}
               onDelete={(id) => command({ type: "message.delete", id })}
-              onSend={(text, image) =>
-                command({ type: "message", channelId, text, image })
+              onReact={(id, emoji) =>
+                command({ type: "message.react", id, emoji })
+              }
+              onSend={(text, image, replyTo) =>
+                command({ type: "message", channelId, text, image, replyTo })
               }
             />
           ) : channel?.kind === "voice" ? (
@@ -1013,130 +1174,119 @@ export function App() {
                   por aqui
                 </span>
               </div>
-              {selectedCamera && me?.channelId === channelId ? (
-                <Player
-                  stream={
-                    selectedCamera.id === selfId
-                      ? media.localCamera
-                      : media.cameraStreams?.get(selectedCamera.id)
-                  }
-                  name={selectedCamera.profile.name}
-                  kind="camera"
-                  local={selectedCamera.id === selfId}
+              {me?.channelId === channelId && (
+                <MediaGallery
+                  background={background}
+                  participants={peers}
+                  selfId={selfId}
+                  media={media}
+                  profile={profile}
                   deafened={deafened}
-                  output={profile.output}
-                  close={() => setWatchCamera(null)}
-                />
-              ) : watched && me?.channelId === channelId ? (
-                <Player
-                  stream={
-                    watched.id === selfId
-                      ? media.local
-                      : media.streams.get(watched.id)
+                  focus={
+                    watchCamera
+                      ? "camera:" + watchCamera
+                      : watch
+                        ? "screen:" + watch
+                        : null
                   }
-                  name={watched.profile.name}
-                  local={watched.id === selfId}
-                  deafened={deafened}
-                  output={profile.output}
-                  volume={profile.streamVolumes?.[watched.profile.id] ?? 1}
-                  onVolume={(v) => saveParticipantVolume(watched.id, v, true)}
-                  close={() => setWatch(null)}
+                  onFocus={(key) => {
+                    setWatch(key?.startsWith("screen:") ? key.slice(7) : null);
+                    setWatchCamera(
+                      key?.startsWith("camera:") ? key.slice(7) : null,
+                    );
+                  }}
+                  onViewing={(screens, cameras) =>
+                    engine.setViewing(screens, cameras)
+                  }
+                  onVolume={(id, value) =>
+                    saveParticipantVolume(id, value, true)
+                  }
                 />
-              ) : (
-                <div className="participant-grid">
-                  {room.participants
-                    .filter((p) => p.channelId === channelId)
-                    .map((p) => (
-                      <article
-                        onContextMenu={(e) => {
-                          if (p.id !== selfId) {
-                            e.preventDefault();
+              )}
+              <div className="participant-grid">
+                {room.participants
+                  .filter((p) => p.channelId === channelId)
+                  .map((p) => (
+                    <article
+                      onContextMenu={(e) => {
+                        if (p.id !== selfId) {
+                          e.preventDefault();
+                          setParticipantAudio({
+                            id: p.id,
+                            x: e.clientX,
+                            y: e.clientY,
+                          });
+                        }
+                      }}
+                      key={p.id}
+                      className={
+                        "participant-card " +
+                        (media.speaking.has(p.id) ? "talking" : "")
+                      }
+                    >
+                      <Avatar
+                        className="large-avatar"
+                        avatar={p.profile.avatar}
+                      />
+                      <div className="participant-name">
+                        <span
+                          style={{
+                            color: nicknameColor(room, serverId, p.profile),
+                          }}
+                        >
+                          {p.profile.name}
+                          {p.id === selfId ? " (você)" : ""}
+                        </span>
+                        <RoleBadges
+                          roles={memberRoles(room, serverId, p.profile.id)}
+                        />
+                        <Presence value={p.profile.presence} label />
+                        <ParticipantStatus
+                          muted={p.muted}
+                          microphoneState={p.microphoneState}
+                          speaking={media.speaking.has(p.id)}
+                          deafened={p.deafened}
+                          showMicrophone
+                          locallyMuted={
+                            !!profile.mutedParticipants?.[p.profile.id]
+                          }
+                        />
+                      </div>
+                      {p.sharing && (
+                        <button
+                          className="watch-button"
+                          onClick={() => setWatch(p.id)}
+                        >
+                          <MonitorUp size={16} /> Assistir à tela
+                        </button>
+                      )}
+                      {p.id !== selfId && p.channelId === me?.channelId && (
+                        <button
+                          className="participant-options"
+                          aria-label={"Opções de " + p.profile.name}
+                          onClick={(e) => {
+                            const r = e.currentTarget.getBoundingClientRect();
                             setParticipantAudio({
                               id: p.id,
-                              x: e.clientX,
-                              y: e.clientY,
+                              x: r.right,
+                              y: r.bottom,
                             });
-                          }
-                        }}
-                        key={p.id}
-                        className={
-                          "participant-card " +
-                          (media.speaking.has(p.id) ? "talking" : "")
-                        }
-                      >
-                        <Avatar
-                          className="large-avatar"
-                          avatar={p.profile.avatar}
-                        />
-                        <div className="participant-name">
-                          <span>
-                            {p.profile.name}
-                            {p.id === selfId ? " (você)" : ""}
-                          </span>
-                          <Presence value={p.profile.presence} label />
-                          <ParticipantStatus
-                            muted={p.muted}
-                            deafened={p.deafened}
-                            showMicrophone
-                            locallyMuted={
-                              !!profile.mutedParticipants?.[p.profile.id]
-                            }
-                          />
-                        </div>
-                        {p.sharing && (
-                          <button
-                            className="watch-button"
-                            onClick={() => setWatch(p.id)}
-                          >
-                            <MonitorUp size={16} /> Assistir à tela
-                          </button>
-                        )}
-                        {p.id !== selfId && p.channelId === me?.channelId && (
-                          <button
-                            className="participant-options"
-                            aria-label={"Opções de " + p.profile.name}
-                            onClick={(e) => {
-                              const r = e.currentTarget.getBoundingClientRect();
-                              setParticipantAudio({
-                                id: p.id,
-                                x: r.right,
-                                y: r.bottom,
-                              });
-                            }}
-                          >
-                            •••
-                          </button>
-                        )}
-                      </article>
-                    ))}
-                  {!room.participants.some(
-                    (p) => p.channelId === channelId,
-                  ) && (
-                    <div className="call-empty">
-                      <Headphones size={54} />
-                      <h2>Uma conversa começa com você.</h2>
-                      <p>Entre para falar e compartilhar sua tela.</p>
-                    </div>
-                  )}
-                </div>
-              )}
-              {me?.channelId === channelId && cameras.length > 0 && (
-                <div className="camera-grid">
-                  {cameras.map((p) => (
-                    <CameraTile
-                      key={p.id}
-                      stream={
-                        p.id === selfId
-                          ? media.localCamera
-                          : media.cameraStreams?.get(p.id)
-                      }
-                      name={p.profile.name}
-                      local={p.id === selfId}
-                      open={() => setWatchCamera(p.id)}
-                    />
+                          }}
+                        >
+                          •••
+                        </button>
+                      )}
+                    </article>
                   ))}
-                </div>
-              )}
+                {!room.participants.some((p) => p.channelId === channelId) && (
+                  <div className="call-empty">
+                    <Headphones size={54} />
+                    <h2>Uma conversa começa com você.</h2>
+                    <p>Entre para falar e compartilhar sua tela.</p>
+                  </div>
+                )}
+              </div>
+
               {me?.channelId === channelId && streams.length > 0 && (
                 <div className="stream-list">
                   {streams.map((p) => (
@@ -1186,9 +1336,18 @@ export function App() {
                     <button
                       className={"control " + (muted ? "muted" : "")}
                       title={muted ? "Ativar microfone" : "Mutar microfone"}
+                      aria-label={
+                        muted ? "Ativar microfone" : "Mutar microfone"
+                      }
                       onClick={() => void run(toggleMute)}
                     >
-                      {muted ? <MicOff /> : <Mic />}
+                      <ParticipantStatus
+                        muted={muted}
+                        deafened={false}
+                        showMicrophone
+                        microphoneState={engine.microphoneState()}
+                        speaking={media.speaking.has(selfId)}
+                      />
                     </button>
                     <button
                       className="control"
@@ -1285,6 +1444,61 @@ export function App() {
             x={participantAudio.x}
             y={participantAudio.y}
             name={selectedParticipant.profile.name}
+            offline={
+              !room.participants.some(
+                (p) => p.profile.id === selectedParticipant.profile.id,
+              )
+            }
+            addFriend={
+              selectedParticipant.profile.id !== profile.id &&
+              !(room.friendships || []).some((f) =>
+                [f.requester, f.recipient].includes(
+                  selectedParticipant.profile.id,
+                ),
+              )
+                ? () =>
+                    void run(() =>
+                      command({
+                        type: "friend.request",
+                        memberId: selectedParticipant.profile.id,
+                      }),
+                    )
+                : undefined
+            }
+            call={
+              (room.friendships || []).some(
+                (f) =>
+                  f.status === "accepted" &&
+                  [f.requester, f.recipient].includes(
+                    selectedParticipant.profile.id,
+                  ),
+              ) &&
+              room.participants.some(
+                (p) => p.profile.id === selectedParticipant.profile.id,
+              )
+                ? () => {
+                    setParticipantAudio(null);
+                    void run(() =>
+                      command({
+                        type: "call.invite",
+                        memberId: selectedParticipant.profile.id,
+                      }),
+                    );
+                  }
+                : undefined
+            }
+            profile={selectedParticipant.profile}
+            roles={memberRoles(room, serverId, selectedParticipant.profile.id)}
+            color={
+              page === "room"
+                ? nicknameColor(room, serverId, selectedParticipant.profile)
+                : selectedParticipant.profile.nicknameColor || undefined
+            }
+            audioAvailable={
+              selectedParticipant.id !== selfId &&
+              !!me?.channelId &&
+              selectedParticipant.channelId === me.channelId
+            }
             muted={
               !!profile.mutedParticipants?.[selectedParticipant.profile.id]
             }
@@ -1302,7 +1516,7 @@ export function App() {
               saveParticipantVolume(selectedParticipant.id, value)
             }
             direct={
-              inbox.activeScope
+              inbox.activeScope && selectedParticipant.id !== selfId
                 ? () => {
                     openDirect({
                       scope: inbox.activeScope!,
@@ -1320,7 +1534,7 @@ export function App() {
               {
                 host: "Hospedar sua sala",
                 join: "Entrar em uma sala",
-                profile: "Seu perfil e áudio",
+                profile: "Configurações",
                 share: "Compartilhar sua tela",
                 server: "Criar servidor",
                 channel: "Criar canal",
@@ -1547,6 +1761,9 @@ export function App() {
             )}
             {dialog === "manage" && (
               <div className="manage-list">
+                {server?.ownerId === profile.id && (
+                  <Roles room={room} serverId={serverId} command={command} />
+                )}
                 {server && (
                   <ServerImage
                     server={server}

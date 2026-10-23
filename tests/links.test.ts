@@ -27,17 +27,19 @@ test("links preservam texto e pontuação, rejeitando esquemas e credenciais", (
     0,
   );
 });
-test("captura mantém AGC desativado e compartilha os ajustes entre teste e chamada", () => {
+test("captura normaliza voz por padrão e compartilha ajustes entre teste e chamada", () => {
   assert.deepEqual(microphoneConstraints(), {
     deviceId: undefined,
     noiseSuppression: true,
     echoCancellation: true,
-    autoGainControl: false,
+    autoGainControl: true,
+    channelCount: { ideal: 1 },
   });
   const c = microphoneConstraints({
     input: "device",
     noiseSuppression: false,
     echoCancellation: false,
+    autoGainControl: false,
   } as any);
   assert.deepEqual(c.deviceId, { exact: "device" });
   assert.equal(c.noiseSuppression, false);

@@ -6,6 +6,7 @@ export function useSavedRooms() {
     [checking, setChecking] = useState(false),
     [error, setError] = useState("");
   const pending = useRef(false);
+  const background = useRef(false);
   const queued = useRef(false);
   const refresh = useCallback(async (): Promise<void> => {
     if (pending.current) {
@@ -31,10 +32,13 @@ export function useSavedRooms() {
   }, []);
   useEffect(() => {
     void refresh();
-    const timer = setInterval(() => void refresh(), 30000),
+    const timer = setInterval(() => {
+        if (!document.hidden && !background.current) void refresh();
+      }, 30000),
       focus = () => void refresh();
     window.addEventListener("focus", focus);
     const off = window.voxy.onEvent((event) => {
+      if (event.type === "activity") background.current = event.background;
       if (event.type === "saved-rooms" || event.type === "connection") {
         if (event.type === "connection" && event.status !== "connected")
           setStates([]);

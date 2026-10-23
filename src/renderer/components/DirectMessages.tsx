@@ -27,6 +27,8 @@ export function DirectList({
   selected,
   open,
   legacyHost = false,
+  profiles,
+  onProfile,
 }: {
   inbox: Inbox;
   participants: Participant[];
@@ -34,6 +36,8 @@ export function DirectList({
   selected: DirectTarget | null;
   open: (target: DirectTarget) => void;
   legacyHost?: boolean;
+  profiles?: Record<string, Participant["profile"]>;
+  onProfile?: (id: string, x: number, y: number) => void;
 }) {
   const [query, setQuery] = useState("");
   return (
@@ -101,6 +105,12 @@ export function DirectList({
                     : undefined
                 }
                 onClick={() => open({ scope: room.scope, peer: contact.id })}
+                onContextMenu={(e) => {
+                  if (room.scope === inbox.activeScope && onProfile) {
+                    e.preventDefault();
+                    onProfile(contact.id, e.clientX, e.clientY);
+                  }
+                }}
               >
                 <span className="avatar-with-presence">
                   <Avatar avatar={contact.avatar} />
@@ -114,7 +124,16 @@ export function DirectList({
                   />
                 </span>
                 <span className="direct-person-copy">
-                  <strong>{contact.name}</strong>
+                  <strong
+                    style={{
+                      color:
+                        room.scope === inbox.activeScope
+                          ? profiles?.[contact.id]?.nicknameColor || undefined
+                          : undefined,
+                    }}
+                  >
+                    {contact.name}
+                  </strong>
                   <small>
                     {last?.text ||
                       (last?.imageId
@@ -154,6 +173,8 @@ export function DirectConversation({
   supported,
   participants,
   command,
+  profiles,
+  onProfile,
 }: {
   inbox: Inbox;
   target: DirectTarget | null;
@@ -162,6 +183,8 @@ export function DirectConversation({
   supported: boolean;
   participants: Participant[];
   command: (command: Command) => Promise<void>;
+  profiles?: Record<string, Participant["profile"]>;
+  onProfile?: (id: string, x: number, y: number) => void;
 }) {
   const { room, contact } = findConversation(inbox, target),
     [error, setError] = useState("");
@@ -234,6 +257,13 @@ export function DirectConversation({
         </p>
       )}
       <Chat
+        profiles={room.scope === inbox.activeScope ? profiles : undefined}
+        nameColor={(id) =>
+          room.scope === inbox.activeScope
+            ? profiles?.[id]?.nicknameColor || undefined
+            : undefined
+        }
+        onProfile={room.scope === inbox.activeScope ? onProfile : undefined}
         key={room.scope + contact.id}
         channelId={contact.id}
         name={contact.name}
@@ -245,13 +275,17 @@ export function DirectConversation({
         busy={false}
         readOnly={!canSend}
         directScope={room.scope}
-        onSend={(text, image) =>
+        onReact={(id, emoji) =>
+          command({ type: "direct.react", scope: room.scope, id, emoji })
+        }
+        onSend={(text, image, replyTo) =>
           command({
             type: "direct.message",
             scope: room.scope,
             recipient: contact.id,
             text,
             image,
+            replyTo,
           })
         }
         onEdit={(id, text) =>

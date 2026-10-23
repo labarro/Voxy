@@ -143,6 +143,9 @@ async function connect(invite: string, ownerKey?: string) {
         name: profile.name,
         avatar: profile.avatar,
         presence: profile.presence ?? "online",
+        nicknameColor: profile.nicknameColor,
+        mediaSubscriptions: true,
+        banner: profile.banner,
       },
       ownerKey,
     },
@@ -185,6 +188,22 @@ async function connect(invite: string, ownerKey?: string) {
     updatePtt();
     emit({ type: "state", state });
   });
+  socket.on(
+    "message-update",
+    (
+      event: Omit<
+        Extract<NetworkEvent, { type: "message-update" }>,
+        "type" | "scope"
+      >,
+    ) => {
+      if (client !== socket) return;
+      emit({
+        type: "message-update",
+        ...event,
+        scope: event.peer ? inbox.activeScope : undefined,
+      });
+    },
+  );
   socket.on("signal", (signal) => {
     if (socket === client) emit({ type: "signal", signal });
   });
@@ -419,6 +438,17 @@ app.whenReady().then(async () => {
     },
   });
   win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  // Chromium visibility stays visible with backgroundThrottling:false, which
+  // voice needs. Publish native visibility independently for optional work.
+  const activity = () =>
+    emit({
+      type: "activity",
+      background: win.isMinimized() || !win.isVisible(),
+    });
+  win.on("minimize", activity);
+  win.on("restore", activity);
+  win.on("hide", activity);
+  win.on("show", activity);
   win.webContents.on("will-navigate", (e, url) => {
     if (!trusted(url)) e.preventDefault();
   });
@@ -482,6 +512,30 @@ app.whenReady().then(async () => {
     },
   );
   handle("profile", () => profile);
+  handle("profileImage", async (raw) => {
+    const id = z
+      .string()
+      .regex(/^avatar:[a-f0-9]{64}$/)
+      .parse(raw);
+    if (!client?.connected)
+      throw Error("Reconecte à sala para carregar a capa.");
+    const result = (await client
+      .timeout(10000)
+      .emitWithAck("profile-image", id)) as Reply<string>;
+    if (!result.ok) throw Error(result.error);
+    return result.value;
+  });
+  handle("chatHistory", async (raw) => {
+    if (!client?.connected)
+      throw Error("Reconecte à sala para buscar mensagens antigas.");
+    const result = (await client
+      .timeout(10000)
+      .emitWithAck("history", raw)) as Reply<
+      import("../shared/types").Message[]
+    >;
+    if (!result.ok) throw Error(result.error);
+    return result.value;
+  });
   handle("inbox", () => inbox.view());
   handle("markDirectRead", (raw) => {
     const value = z
@@ -613,6 +667,9 @@ app.whenReady().then(async () => {
           name: profile.name,
           avatar: profile.avatar,
           presence: profile.presence ?? "online",
+          nicknameColor: profile.nicknameColor,
+          mediaSubscriptions: true,
+          banner: profile.banner,
         },
       };
     updatePtt();
@@ -622,6 +679,9 @@ app.whenReady().then(async () => {
         name: profile.name,
         avatar: profile.avatar,
         presence: profile.presence ?? "online",
+        nicknameColor: profile.nicknameColor,
+        mediaSubscriptions: true,
+        banner: profile.banner,
       });
     return profile;
   });

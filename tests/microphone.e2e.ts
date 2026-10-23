@@ -81,6 +81,11 @@ async function main() {
     assert(result.noise < 0.00001, JSON.stringify(result));
     assert(result.speech > 0.1, JSON.stringify(result));
     assert(
+      Math.abs(result.speech / (0.2 / Math.sqrt(2)) - 1) < 0.03,
+      "100% deve preservar a amplitude original sem atenuação: " +
+        JSON.stringify(result),
+    );
+    assert(
       Math.abs(result.quieter / result.speech - 0.25) < 0.03,
       JSON.stringify(result),
     );

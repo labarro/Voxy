@@ -9,7 +9,8 @@ export function microphoneConstraints(
     deviceId: input ? { exact: input } : undefined,
     echoCancellation: p?.echoCancellation !== false,
     noiseSuppression: p?.noiseSuppression !== false,
-    autoGainControl: false,
+    autoGainControl: p?.autoGainControl !== false,
+    channelCount: { ideal: 1 },
   };
 }
 
@@ -38,6 +39,10 @@ export class VoiceGate {
 }
 
 export class MicrophonePipeline {
+  private background = false;
+  setBackground(value: boolean) {
+    this.background = value;
+  }
   readonly stream: MediaStream;
   private source: MediaStreamAudioSourceNode;
   private analyser: AnalyserNode;
@@ -64,6 +69,7 @@ export class MicrophonePipeline {
     this.gate.gain.value = 0;
     this.limiter = peakLimiter(context);
     this.destination = context.createMediaStreamDestination();
+    this.destination.channelCount = 1;
     this.source.connect(this.analyser);
     this.source
       .connect(this.volume)
@@ -75,6 +81,17 @@ export class MicrophonePipeline {
     let ticks = 0;
     let gateOpen = false;
     this.timer = setInterval(() => {
+      // Keep the voice gate running in background, but do not sample for a hidden meter.
+      if (
+        (this.background || document.hidden) &&
+        !this.settings.voiceDetection
+      ) {
+        if (!gateOpen) {
+          gateOpen = true;
+          this.gate.gain.setTargetAtTime(1, context.currentTime, 0.005);
+        }
+        return;
+      }
       this.analyser.getFloatTimeDomainData(buffer);
       let sum = 0;
       for (const value of buffer) sum += value * value;
@@ -96,7 +113,7 @@ export class MicrophonePipeline {
           open ? 0.005 : 0.015,
         );
       }
-      if (++ticks % 2 === 0) level(db);
+      if (++ticks % 2 === 0 && !document.hidden && !this.background) level(db);
     }, 50);
   }
   configure(p: Profile) {

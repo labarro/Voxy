@@ -28,6 +28,7 @@ export type Diagnostic = {
   cameraFps?: number;
 };
 type Peer = {
+  subscription: { screen: boolean; camera: boolean };
   pc: RTCPeerConnection;
   mic?: RTCRtpTransceiver;
   video?: RTCRtpTransceiver;
@@ -76,7 +77,11 @@ export class VoiceEngine {
   private active = false;
   private generation = 0;
   private self = "";
-  private watching: string | null = null;
+  private screens = new Set<string>();
+  private cameras = new Set<string>();
+  private background = false;
+  private collectingStats = false;
+  private subscriptionSupport = true;
   private muted = false;
   private deafened = false;
   private output = "";
@@ -140,7 +145,9 @@ export class VoiceEngine {
             "Microfone desconectado. Selecione outra entrada nas configurações.",
           ),
         );
-      this.interval = setInterval(() => void this.stats(), 2000);
+      this.interval = setInterval(() => {
+        if (!this.background) void this.stats();
+      }, 2000);
       this.publish({ error: "" });
     } catch (e) {
       if (generation === this.generation) this.leave();
@@ -184,9 +191,15 @@ export class VoiceEngine {
     if (left) this.chime("leave");
     this.channel = me.channelId;
     for (const id of this.peers.keys()) if (!ids.has(id)) this.remove(id);
-    for (const id of ids) if (!this.peers.has(id)) this.create(id);
+    for (const id of ids)
+      if (!this.peers.has(id))
+        this.create(
+          id,
+          participants.find((p) => p.id === id)?.profile.mediaSubscriptions ===
+            true,
+        );
   }
-  private create(id: string) {
+  private create(id: string, supportsSubscriptions: boolean) {
     const pc = new RTCPeerConnection({
       iceServers: [],
       bundlePolicy: "max-bundle",
@@ -205,9 +218,13 @@ export class VoiceEngine {
     audio.volume = 1;
     const systemAudio = new Audio();
     systemAudio.autoplay = true;
-    systemAudio.muted = this.deafened || this.watching !== id;
+    systemAudio.muted = this.deafened || !this.screens.has(id);
     systemAudio.volume = this.getVolume(id, true);
     const peer: Peer = {
+      subscription: {
+        screen: !supportsSubscriptions,
+        camera: !supportsSubscriptions,
+      },
       pc,
       pending: [],
       queue: Promise.resolve(),
@@ -220,6 +237,14 @@ export class VoiceEngine {
       counters: new Map(),
     };
     this.peers.set(id, peer);
+    if (this.subscriptionSupport)
+      void this.send({
+        to: id,
+        subscription: {
+          screen: this.screens.has(id),
+          camera: this.cameras.has(id),
+        },
+      }).catch((e) => this.error(e));
     pc.onicecandidate = (e) => {
       if (e.candidate)
         void this.send({ to: id, candidate: e.candidate.toJSON() }).catch((e) =>
@@ -325,12 +350,14 @@ export class VoiceEngine {
     await p.mic.sender.replaceTrack(
       this.microphone?.getAudioTracks()[0] ?? null,
     );
-    await p.video.sender.replaceTrack(this.screen?.getVideoTracks()[0] ?? null);
+    await p.video.sender.replaceTrack(
+      p.subscription.screen ? (this.screen?.getVideoTracks()[0] ?? null) : null,
+    );
     await p.system.sender.replaceTrack(
-      this.screen?.getAudioTracks()[0] ?? null,
+      p.subscription.screen ? (this.screen?.getAudioTracks()[0] ?? null) : null,
     );
     await p.camera.sender.replaceTrack(
-      this.camera?.getVideoTracks()[0] ?? null,
+      p.subscription.camera ? (this.camera?.getVideoTracks()[0] ?? null) : null,
     );
   }
   async startCamera(deviceId: string) {
@@ -364,7 +391,7 @@ export class VoiceEngine {
       try {
         await Promise.all(
           [...this.peers.values()].map((p) =>
-            p.camera?.sender.replaceTrack(track),
+            p.camera?.sender.replaceTrack(p.subscription.camera ? track : null),
           ),
         );
       } catch (e) {
@@ -456,6 +483,28 @@ export class VoiceEngine {
       return;
     }
     this.enqueue(p, async () => {
+      if (s.subscription) {
+        p.subscription = s.subscription;
+        if (p.video && p.camera && p.system) {
+          await p.video.sender.replaceTrack(
+            p.subscription.screen
+              ? (this.screen?.getVideoTracks()[0] ?? null)
+              : null,
+          );
+          await p.system.sender.replaceTrack(
+            p.subscription.screen
+              ? (this.screen?.getAudioTracks()[0] ?? null)
+              : null,
+          );
+          await p.camera.sender.replaceTrack(
+            p.subscription.camera
+              ? (this.camera?.getVideoTracks()[0] ?? null)
+              : null,
+          );
+          await this.bitrate(p);
+        }
+        return;
+      }
       if (s.description) {
         await p.pc.setRemoteDescription(s.description);
         if (s.description.type === "offer") {
@@ -516,22 +565,47 @@ export class VoiceEngine {
     this.testingMicrophone = value;
     this.applyMicrophone();
   }
+  microphoneState(): "muted" | "ptt-waiting" | "active" {
+    if (this.muted || this.testingMicrophone) return "muted";
+    return this.pttEnabled && !this.pressed ? "ptt-waiting" : "active";
+  }
   setPttPressed(pressed: boolean) {
+    const changed = pressed !== this.pressed;
     this.pressed = pressed;
+    if (
+      changed &&
+      this.pttEnabled &&
+      this.active &&
+      !this.muted &&
+      !this.testingMicrophone &&
+      this.preferences?.pttSounds !== false
+    )
+      this.chime(pressed ? "ptt-on" : "ptt-off");
     this.applyMicrophone();
   }
-  private chime(kind: "join" | "leave" | "share" | "share-stop") {
-    if (!this.callSounds || this.deafened || !this.context) return;
+  private chime(
+    kind: "join" | "leave" | "share" | "share-stop" | "ptt-on" | "ptt-off",
+  ) {
+    if (
+      (!kind.startsWith("ptt-") && !this.callSounds) ||
+      this.deafened ||
+      !this.context
+    )
+      return;
     const ctx = this.context;
     const now = ctx.currentTime;
     const notes =
-      kind === "share"
-        ? [523.25, 659.25, 1046.5]
-        : kind === "share-stop"
-          ? [784, 587.33, 392]
-          : kind === "join"
-            ? [440, 660]
-            : [660, 330];
+      kind === "ptt-on"
+        ? [620, 880]
+        : kind === "ptt-off"
+          ? [440, 310]
+          : kind === "share"
+            ? [523.25, 659.25, 1046.5]
+            : kind === "share-stop"
+              ? [784, 587.33, 392]
+              : kind === "join"
+                ? [440, 660]
+                : [660, 330];
     for (let i = 0; i < notes.length; i++) {
       const oscillator = ctx.createOscillator(),
         gain = ctx.createGain();
@@ -554,13 +628,36 @@ export class VoiceEngine {
     this.deafened = value;
     for (const [id, p] of this.peers) {
       p.audio.muted = value || this.isParticipantMuted(id);
-      p.systemAudio.muted = value || this.watching !== id;
+      p.systemAudio.muted = value || !this.screens.has(id);
     }
   }
   setWatching(id: string | null) {
-    this.watching = id;
-    for (const [key, p] of this.peers)
-      p.systemAudio.muted = this.deafened || key !== id;
+    this.setViewing(id ? [id] : [], [...this.cameras]);
+  }
+  setViewing(screenIds: string[], cameraIds: string[]) {
+    const screens = new Set(screenIds),
+      cameras = new Set(cameraIds);
+    for (const [id, p] of this.peers) {
+      if (
+        this.subscriptionSupport &&
+        (this.screens.has(id) !== screens.has(id) ||
+          this.cameras.has(id) !== cameras.has(id))
+      )
+        void this.send({
+          to: id,
+          subscription: { screen: screens.has(id), camera: cameras.has(id) },
+        }).catch((e) => this.error(e));
+      p.systemAudio.muted = this.deafened || !screens.has(id);
+    }
+    this.screens = screens;
+    this.cameras = cameras;
+  }
+  setBackground(value: boolean) {
+    this.background = value;
+    this.pipeline?.setBackground(value);
+  }
+  setSubscriptionSupport(value: boolean) {
+    this.subscriptionSupport = value;
   }
   isParticipantMuted(id: string) {
     return this.mutedParticipants.get(this.peerProfiles.get(id) ?? id) === true;
@@ -677,6 +774,7 @@ export class VoiceEngine {
         this.publish({ micLevelDb: db }),
       );
       if (this.preferences) pipeline.configure(this.preferences);
+      pipeline.setBackground(this.background);
       return pipeline;
     } catch (e) {
       raw.getTracks().forEach((t) => t.stop());
@@ -712,9 +810,11 @@ export class VoiceEngine {
       await Promise.all(
         [...this.peers.values()].map(async (p) => {
           await p.queue;
-          await p.video?.sender.replaceTrack(track);
+          await p.video?.sender.replaceTrack(
+            p.subscription.screen ? track : null,
+          );
           await p.system?.sender.replaceTrack(
-            stream.getAudioTracks()[0] ?? null,
+            p.subscription.screen ? (stream.getAudioTracks()[0] ?? null) : null,
           );
           await this.bitrate(p);
         }),
@@ -747,6 +847,14 @@ export class VoiceEngine {
     await Promise.all([...this.peers.values()].map((p) => this.bitrate(p)));
   }
   private async bitrate(p: Peer) {
+    if (p.camera?.sender.track) {
+      const camera = p.camera.sender.getParameters();
+      if (camera.encodings?.length) {
+        camera.encodings[0].maxBitrate = 1500000;
+        camera.encodings[0].maxFramerate = 30;
+        await p.camera.sender.setParameters(camera);
+      }
+    }
     if (!p.video) return;
     const params = p.video.sender.getParameters();
     if (!params.encodings?.length) return;
@@ -785,6 +893,7 @@ export class VoiceEngine {
     const buffer = new Float32Array(analyser.fftSize);
     let hold = 0;
     const timer = setInterval(() => {
+      if (this.background) return;
       analyser.getFloatTimeDomainData(buffer);
       let sum = 0;
       for (const v of buffer) sum += v * v;
@@ -804,71 +913,78 @@ export class VoiceEngine {
     };
   }
   private async stats() {
-    const diagnostics: Diagnostic[] = [];
-    for (const [id, p] of this.peers) {
-      const d: Diagnostic = {
-        id,
-        connection: p.pc.connectionState,
-        ice: p.pc.iceConnectionState,
-        signaling: p.pc.signalingState,
-      };
-      try {
-        const stats = await p.pc.getStats();
-        stats.forEach((s) => {
-          if (s.type === "outbound-rtp" && s.kind === "video") {
-            const camera =
-              s.mid === "3" ||
-              (!!this.camera &&
-                stats.get(s.mediaSourceId)?.trackIdentifier ===
-                  this.camera?.getVideoTracks()[0]?.id);
-            if (s.frameWidth) {
-              if (camera) {
-                d.cameraWidth = s.frameWidth;
-                d.cameraHeight = s.frameHeight;
-                d.cameraFps = s.framesPerSecond;
-              } else {
+    if (this.collectingStats || !this.active || this.background) return;
+    this.collectingStats = true;
+    const generation = this.generation;
+    try {
+      const diagnostics: Diagnostic[] = [];
+      for (const [id, p] of this.peers) {
+        const d: Diagnostic = {
+          id,
+          connection: p.pc.connectionState,
+          ice: p.pc.iceConnectionState,
+          signaling: p.pc.signalingState,
+        };
+        try {
+          const stats = await p.pc.getStats();
+          stats.forEach((s) => {
+            if (s.type === "outbound-rtp" && s.kind === "video") {
+              const camera =
+                s.mid === "3" ||
+                (!!this.camera &&
+                  stats.get(s.mediaSourceId)?.trackIdentifier ===
+                    this.camera?.getVideoTracks()[0]?.id);
+              if (s.frameWidth) {
+                if (camera) {
+                  d.cameraWidth = s.frameWidth;
+                  d.cameraHeight = s.frameHeight;
+                  d.cameraFps = s.framesPerSecond;
+                } else {
+                  d.width = s.frameWidth;
+                  d.height = s.frameHeight;
+                  d.fps = s.framesPerSecond;
+                }
+              }
+              const old = p.counters.get(s.id),
+                elapsed = s.timestamp - (old?.time ?? s.timestamp);
+              if (old && elapsed > 0) {
+                const kbps = Math.round(
+                  Math.max(0, ((s.bytesSent - old.bytes) * 8) / elapsed),
+                );
+                if (camera) d.cameraKbps = kbps;
+                else d.kbps = kbps;
+              }
+              p.counters.set(s.id, { bytes: s.bytesSent, time: s.timestamp });
+              d.codec = stats.get(s.codecId)?.mimeType;
+            }
+            if (s.type === "inbound-rtp") {
+              d.loss = (d.loss ?? 0) + (s.packetsLost ?? 0);
+              if (s.kind === "video" && !d.width) {
                 d.width = s.frameWidth;
                 d.height = s.frameHeight;
                 d.fps = s.framesPerSecond;
+                d.codec = stats.get(s.codecId)?.mimeType;
               }
             }
-            const old = p.counters.get(s.id),
-              elapsed = s.timestamp - (old?.time ?? s.timestamp);
-            if (old && elapsed > 0) {
-              const kbps = Math.round(
-                Math.max(0, ((s.bytesSent - old.bytes) * 8) / elapsed),
-              );
-              if (camera) d.cameraKbps = kbps;
-              else d.kbps = kbps;
-            }
-            p.counters.set(s.id, { bytes: s.bytesSent, time: s.timestamp });
-            d.codec = stats.get(s.codecId)?.mimeType;
-          }
-          if (s.type === "inbound-rtp") {
-            d.loss = (d.loss ?? 0) + (s.packetsLost ?? 0);
-            if (s.kind === "video" && !d.width) {
-              d.width = s.frameWidth;
-              d.height = s.frameHeight;
-              d.fps = s.framesPerSecond;
-              d.codec = stats.get(s.codecId)?.mimeType;
-            }
-          }
-          if (
-            s.type === "candidate-pair" &&
-            s.state === "succeeded" &&
-            s.nominated
-          )
-            d.rtt =
-              typeof s.currentRoundTripTime === "number"
-                ? Math.round(s.currentRoundTripTime * 1000)
-                : undefined;
-        });
-      } catch {
-        /* Closed during stats. */
+            if (
+              s.type === "candidate-pair" &&
+              s.state === "succeeded" &&
+              s.nominated
+            )
+              d.rtt =
+                typeof s.currentRoundTripTime === "number"
+                  ? Math.round(s.currentRoundTripTime * 1000)
+                  : undefined;
+          });
+        } catch {
+          /* Closed during stats. */
+        }
+        diagnostics.push(d);
       }
-      diagnostics.push(d);
+      if (generation === this.generation) this.publish({ diagnostics });
+    } finally {
+      this.collectingStats = false;
     }
-    this.publish({ diagnostics });
   }
   private remove(id: string) {
     const p = this.peers.get(id);
@@ -899,6 +1015,8 @@ export class VoiceEngine {
     ++this.generation;
     this.active = false;
     this.channel = null;
+    this.screens.clear();
+    this.cameras.clear();
     this.sharingPeers.clear();
     this.pressed = false;
     this.earlySignals.clear();

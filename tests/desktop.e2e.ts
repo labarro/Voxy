@@ -76,6 +76,7 @@ async function main() {
     await centered(a);
     await a.getByLabel("Nome de exibição").fill("Amigo 0");
     await a.getByRole("button", { name: "Avatar 👴", exact: true }).click();
+    await a.getByRole("button", { name: "Notificações", exact: true }).click();
     await a.getByLabel("Sons de entrada e saída da chamada").uncheck();
     await a
       .getByRole("button", { name: "Salvar perfil e dispositivos" })
@@ -300,6 +301,7 @@ async function main() {
     );
     await a.getByRole("button", { name: "Configurações", exact: true }).click();
     await centered(a);
+    await a.getByRole("button", { name: "Áudio e Voz", exact: true }).click();
     await a.getByLabel("Volume de entrada", { exact: true }).fill("0.75");
     await a
       .getByLabel("Ativar detecção de voz (filtro por sensibilidade)", {
@@ -307,6 +309,7 @@ async function main() {
       })
       .check();
     await a.getByLabel("Limite de ativação", { exact: true }).fill("-40");
+    await a.getByRole("button", { name: "Atalhos", exact: true }).click();
     await a.getByLabel("Push to Talk: falar enquanto segura uma tecla").check();
     await a
       .getByRole("button", { name: "Configurar tecla para falar" })
@@ -335,6 +338,7 @@ async function main() {
       await globalF9(true);
     }
     await a.getByRole("button", { name: "Configurações", exact: true }).click();
+    await a.getByRole("button", { name: "Atalhos", exact: true }).click();
     await a
       .getByLabel("Push to Talk: falar enquanto segura uma tecla")
       .uncheck();
@@ -420,12 +424,14 @@ async function main() {
         .click();
       for (const page of pages)
         await page.waitForFunction(() => {
-          const v =
-            document.querySelector<HTMLVideoElement>(".camera-tile video");
+          const v = document.querySelector<HTMLVideoElement>(
+            ".player[data-kind=camera] video",
+          );
           return !!v && v.videoWidth > 0 && v.readyState >= 2;
         });
       await pages[1]
-        .getByRole("button", { name: "Ampliar câmera de Amigo 0", exact: true })
+        .locator(".player[data-kind=camera]")
+        .getByRole("button", { name: "Ampliar ou voltar à grade", exact: true })
         .click();
       await pages[1]
         .getByRole("button", { name: "Tela cheia", exact: true })
@@ -434,6 +440,9 @@ async function main() {
       await pages[1].evaluate(() => document.exitFullscreen());
       await pages[1]
         .getByRole("button", { name: "Fechar visualização", exact: true })
+        .click();
+      await pages[1]
+        .getByRole("button", { name: "Mostrar todas", exact: true })
         .click();
       await a
         .getByRole("button", { name: "Trocar câmera", exact: true })
@@ -575,7 +584,9 @@ async function main() {
         .getByRole("button", { name: "Desligar câmera", exact: true })
         .click();
       for (const page of pages)
-        await page.locator(".camera-tile").waitFor({ state: "detached" });
+        await page
+          .locator(".player[data-kind=camera]")
+          .waitFor({ state: "detached" });
       await a
         .getByRole("button", { name: "Ativar câmera", exact: true })
         .click();
@@ -584,8 +595,9 @@ async function main() {
         .click();
       for (const page of pages)
         await page.waitForFunction(() => {
-          const v =
-            document.querySelector<HTMLVideoElement>(".camera-tile video");
+          const v = document.querySelector<HTMLVideoElement>(
+            ".player[data-kind=camera] video",
+          );
           return !!v && v.videoWidth > 0;
         });
       await a

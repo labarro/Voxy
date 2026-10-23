@@ -5,6 +5,56 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { UpdateManager, newerVersion, fileHash } from "../src/main/updates";
 import { ReleaseNotesStore } from "../src/main/releaseNotes";
+import pkg from "../package.json";
+import releases from "../src/shared/releases.json";
+
+test("versão do pacote, lock, saída e README correspondem às notas exibidas após atualizar", async () => {
+  const lock = JSON.parse(await readFile("package-lock.json", "utf8"));
+  assert.equal(lock.version, pkg.version);
+  assert.equal(lock.packages[""].version, pkg.version);
+  assert.equal(pkg.build.directories.output, "release/" + pkg.version);
+  assert(
+    (await readFile("README.md", "utf8")).includes(
+      "## Novidades na versão " + pkg.version,
+    ),
+  );
+  const entry = (
+    releases as Record<
+      string,
+      {
+        date: string;
+        title: string;
+        items: string[];
+        features: string[];
+        improvements: string[];
+        fixes: string[];
+      }
+    >
+  )[pkg.version];
+  assert(entry && /^\d{4}-\d{2}-\d{2}$/.test(entry.date));
+  assert(entry.title && entry.items.length > 0);
+  for (const category of [entry.features, entry.improvements, entry.fixes])
+    assert(Array.isArray(category));
+  const dir = await mkdtemp(join(tmpdir(), "voxy-current-release-"));
+  try {
+    const path = join(dir, "release-notes.json");
+    const previous = Object.keys(releases).filter((v) =>
+      newerVersion(pkg.version, v),
+    );
+    await writeFile(path, JSON.stringify(previous));
+    const store = new ReleaseNotesStore(path, pkg.version);
+    assert.equal(store.notes()?.version, pkg.version);
+    assert.deepEqual(store.notes()?.items, entry.items);
+    store.mark(pkg.version);
+    assert.equal(new ReleaseNotesStore(path, pkg.version).notes(), null);
+    assert.deepEqual(JSON.parse(await readFile(path, "utf8")), [
+      ...previous,
+      pkg.version,
+    ]);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
 test("versões de atualização não permitem downgrade ou reinstalar a mesma versão", () => {
   assert(newerVersion("0.3.0", "0.2.0"));
   assert(newerVersion("0.2.10", "0.2.9"));

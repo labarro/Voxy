@@ -122,6 +122,42 @@
       "Fotos dos servidores ocupam toda a área do ícone e respeitam suas bordas."
     ]
   },
+  "0.7.0": {
+    "date": "2026-10-23",
+    "title": "Seu espaço, seus amigos, mais possibilidades",
+    "items": [
+      "Configurações organizadas em Conta, Áudio e Voz, Vídeo, Aparência, Atalhos e Notificações.",
+      "Temas Voxy, Oceano, Bosque e Kuromi, cor principal personalizada e preferências salvas.",
+      "Mini perfis com capa, cor do nickname e cargos personalizados gerenciados pelo criador do servidor.",
+      "Amigos por ID, solicitações e chamadas privadas com aceite, dentro do mesmo host/sala.",
+      "Respostas, menções com @, reações e busca no histórico de canais e mensagens privadas.",
+      "Duas ou mais telas e webcams em grade, com ampliação e controles individuais.",
+      "Push-to-Talk com indicador de espera e sons locais distintos ao pressionar e soltar.",
+      "Captura mono com normalização nativa de voz e suspensão de vídeos não assistidos, preservando a chamada."
+    ],
+    "features": [
+      "Temas prontos e personalização de cores, avatar, nickname e capa do perfil.",
+      "Cargos com nome, cor, atribuição a membros e autorização validada no host.",
+      "Lista de amigos, solicitações, presença e chamadas privadas com canais temporários restritos aos participantes.",
+      "Respostas vinculadas à mensagem original, sugestões de menções e reações com emojis em canais e DMs.",
+      "Histórico paginado e busca de mensagens antigas sem deslocar quem está lendo conversas anteriores.",
+      "Grade simultânea de telas e webcams com foco, retorno à grade, ocultação e volume por transmissão."
+    ],
+    "improvements": [
+      "Configurações divididas por categorias com navegação lateral.",
+      "Captura mono e ajuste automático nativo de voz ativados por padrão, mantendo o volume manual em 100% e a proteção contra picos.",
+      "Sons locais de ativação e desativação do PTT com opção independente dos demais sons da chamada.",
+      "Vídeos deixam de ser enviados a espectadores que fecharam a fonte, focaram outra visualização ou minimizaram o aplicativo.",
+      "Minimização nativa suspende medidores, estatísticas e consultas periódicas, preservando o áudio e o Push-to-Talk.",
+      "Cache de imagens limitado, capas carregadas sob demanda e snapshots do banco reutilizados enquanto os dados não mudam."
+    ],
+    "fixes": [
+      "PTT aguardando ativação não aparece mais com o ícone de microfone mutado.",
+      "A captura deixa de forçar o ganho automático desativado, que podia manter microfones de entrada baixa sem normalização.",
+      "Cor de cargo tem prioridade consistente sobre a cor pessoal no servidor; DMs e amigos usam a cor pessoal.",
+      "Edições, exclusões e reações também são sincronizadas para mensagens antigas carregadas."
+    ]
+  },
   "0.6.0": {
     "date": "2026-10-21",
     "title": "Sua voz, do seu jeito",

@@ -9,7 +9,7 @@
 Voz, chat e compartilhamento de tela para o seu grupo de amigos.<br />
 Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu computador.
 
-![Versão 0.6.0](https://img.shields.io/badge/vers%C3%A3o-0.6.0-b6adff?style=flat-square)
+![Versão em preparação 0.7.0](https://img.shields.io/badge/vers%C3%A3o-0.7.0%20em%20prepara%C3%A7%C3%A3o-b6adff?style=flat-square)
 ![Windows 10 e 11 x64](https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-4389e8?style=flat-square)
 ![WebRTC P2P](https://img.shields.io/badge/WebRTC-P2P-68d6b1?style=flat-square)
 ![Até 10 participantes](https://img.shields.io/badge/at%C3%A9-10%20participantes-c9233c?style=flat-square)
@@ -20,9 +20,11 @@ Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu compu
 
 ---
 
-## Melhorias em desenvolvimento
+## Novidades na versão 0.7.0 — em preparação
 
 Configurações por categoria, temas e cor principal, capa e cor do nickname, cargos, mini perfis, amigos com chamadas privadas, respostas/menções/reações, histórico paginado e grade simultânea de telas e webcams. A captura passa a solicitar normalização nativa de voz e os avisos do PTT têm sons locais próprios. [Guia dos recursos e das verificações](SOCIAL-E-PERSONALIZACAO.md).
+
+A versão do código é **0.7.0**. As notas já estão cadastradas para o aviso após atualizar e para o canal de novidades. A última distribuição publicada indicada neste README continua sendo a **0.6.0**; o commit e o push não publicam o instalador da 0.7.0. Para usar os recursos novos, host e participantes precisam desta compilação.
 
 ## Novidades na versão 0.6.0
 
@@ -36,7 +38,7 @@ A versão 0.5.0 está publicada no GitHub Releases e disponível pelo atualizado
 
 ## Sua sala, no seu computador
 
-**Na versão atual:** webcam independente da tela, imagem do servidor administrada pelo criador, Home com servidores recentes, canal global de novidades e atualizações remotas assinadas. Atualize host e amigos para 0.6.0; versões até 0.3.0 não têm o novo contrato de mídia e não podem entrar nesta sala.
+**Na versão publicada 0.6.0:** webcam independente da tela, imagem do servidor administrada pelo criador, Home com servidores recentes, canal global de novidades e atualizações remotas assinadas. Versões até 0.3.0 não têm o novo contrato de mídia e não podem entrar nesta sala. As funcionalidades da 0.7.0 estão descritas acima.
 
 O Voxy reúne conversas e transmissões em servidores privados com canais de texto e voz. Um amigo hospeda a sala, compartilha um convite e os demais entram pela rede Radmin VPN. A mídia circula diretamente entre os participantes, usando WebRTC.
 
@@ -227,7 +229,7 @@ O comando inicia Vite em `127.0.0.1:5173` e abre o Electron. O renderer tem atua
 | `npm run dist`  | Gera o instalador Windows x64 e seu SHA-256.    |
 | `npm run pack`  | Gera a pasta do executável sem instalador.      |
 
-Cada empacotamento usa uma pasta `build-*` nova. `release/0.6.0/latest-build.json` indica a pasta final; para distribuir sem instalador, copie a pasta `win-unpacked` inteira. O ícone original pode ser reproduzido com `node scripts/icon.mjs`.
+Cada empacotamento usa uma pasta `build-*` nova. `release/0.7.0/latest-build.json` indicará a pasta final desta versão; para distribuir sem instalador, copie a pasta `win-unpacked` inteira. O ícone original pode ser reproduzido com `node scripts/icon.mjs`. As regras obrigatórias para atualizar README, patch notes e versão estão em [AGENTS.md](AGENTS.md).
 
 [`.env.example`](.env.example) documenta a variável opcional `VOXY_DATA_DIR`. O aplicativo não carrega `.env` automaticamente. Para publicar atualizações, configure o segredo de assinatura descrito em [ATUALIZACOES-REMOTAS.md](ATUALIZACOES-REMOTAS.md); clientes não precisam de credenciais.
 

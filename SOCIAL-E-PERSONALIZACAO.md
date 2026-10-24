@@ -1,8 +1,8 @@
 # Personalização, amigos, chat e visualização em grade
 
-A **0.8.0 em preparação** acrescenta notificações de menções, respostas, DMs e amizades, controles de leitura, PiP e bandeja. Veja [Notificações, PiP e Windows](NOTIFICACOES-E-WINDOWS.md). A descrição abaixo registra a base publicada na 0.7.0; as configurações agora também incluem **Windows**.
+A **0.8.0 publicada** acrescenta notificações de menções, respostas, DMs e amizades, controles de leitura, PiP e bandeja. Veja [Notificações, PiP e Windows](NOTIFICACOES-E-WINDOWS.md). A descrição abaixo registra a base introduzida na 0.7.0; as configurações agora também incluem **Windows**.
 
-As funcionalidades deste guia pertencem à versão **0.7.0**, publicada. Para compartilhá-las, host e participantes precisam atualizar para esta versão. A distribuição e o Actions da release estão indicados no README.
+As funcionalidades deste guia foram introduzidas na **0.7.0** e continuam na **0.8.0**. Para compartilhar os recursos atuais, host e participantes precisam atualizar para 0.8.0. A distribuição e o Actions da release estão indicados no README.
 
 ## Configurações e identidade
 

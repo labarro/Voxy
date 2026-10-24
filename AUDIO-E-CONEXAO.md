@@ -1,4 +1,4 @@
-# Áudio e reconexão — Voxy 0.8.0 em preparação
+# Áudio e reconexão — Voxy 0.8.0
 
 ## Compartilhamento sem retorno da chamada
 

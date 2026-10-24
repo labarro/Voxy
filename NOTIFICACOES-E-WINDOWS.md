@@ -1,4 +1,4 @@
-# Notificações, PiP e Windows — 0.8.0 em preparação
+# Notificações, PiP e Windows — 0.8.0
 
 ## Central e indicadores
 

@@ -1,8 +1,10 @@
 # Validação do Voxy
 
-## Versão 0.8.0 em preparação — 24/10/2026
+## Versão 0.8.0 publicada — 24/10/2026
 
-Passaram `npm test` (34 testes), build e integrações de áudio, controles globais, captura, grade, sistema, UX, desktop com três instâncias e WebRTC com dez clientes. `npm run pack` e `npm run test:packaged` também passaram: o ASAR abre, o host funciona, o ícone da bandeja está incluído e perfil/servidores/DMs/leitura/novidades sobrevivem ao reinício. Foi gerado somente o pacote local, sem instalação ou publicação desta versão.
+Passaram `npm test` (34 testes), build e integrações de áudio, controles globais, captura, grade, sistema, UX, desktop com três instâncias e WebRTC com dez clientes. `npm run pack` e `npm run test:packaged` também passaram: o ASAR abre, o host funciona, o ícone da bandeja está incluído e perfil/servidores/DMs/leitura/novidades sobrevivem ao reinício.
+
+O [Actions da release](https://github.com/labarro/Voxy/actions/runs/40116916004) concluiu testes, geração/assinatura dos metadados, instalador, teste do executável empacotado e [publicação dos cinco assets](https://github.com/labarro/Voxy/releases/tag/v0.8.0). O canal público entrega 0.8.0: assinatura Ed25519, hash do manifesto, notas e checksum do instalador em relação ao digest do GitHub foram conferidos com as funções de produção. Evidência: [publication-0.8.0.json](evidence/publication-0.8.0.json). Não houve instalação NSIS pessoal nem download local do instalador.
 
 - Captura: loopback real do Windows em monitor e janela, sem substituir `getDisplayMedia`. Dois processos geraram tons de 440/880 Hz. A track confirmou `restrictOwnAudio: true`, estéreo a 48 kHz, sem filtros de voz. No ensaio concluído, o tom externo ficou próximo de −44 dB, e o tom do Voxy em −96/−83 dB (piso de ruído). Evidências em `test-results/capture-audio-*/result.json`. Não equivale a avaliação humana de áudio ou teste de microfone físico.
 - Controles: combinação Ctrl+Shift+M e Mouse 4 globais com janela minimizada, ausência de repetição ao segurar, mute anterior restaurado ao sair de Deafen, prioridade sobre PTT, persistência e barra Kuromi. Maximizar/restaurar foram verificados por API nativa.

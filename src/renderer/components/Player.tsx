@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { Maximize, Minimize, X, Volume2, VolumeX, Focus } from "lucide-react";
+import {
+  Maximize,
+  Minimize,
+  X,
+  Volume2,
+  VolumeX,
+  Focus,
+  PictureInPicture2,
+} from "lucide-react";
 export function Player({
   stream,
   name,
@@ -11,6 +19,7 @@ export function Player({
   onVolume = () => {},
   kind = "screen",
   expand,
+  onPictureInPicture,
 }: {
   stream?: MediaStream;
   name: string;
@@ -22,10 +31,35 @@ export function Player({
   onVolume?: (value: number) => void;
   kind?: "screen" | "camera";
   expand?: () => void;
+  onPictureInPicture?: (active: boolean) => void;
 }) {
   const video = useRef<HTMLVideoElement>(null),
     container = useRef<HTMLDivElement>(null);
   const [fullscreen, setFullscreen] = useState(false);
+  const [pip, setPip] = useState(false);
+  const pipChanged = useRef(onPictureInPicture);
+  pipChanged.current = onPictureInPicture;
+  useEffect(() => {
+    const el = video.current!;
+    const enter = () => {
+      setPip(true);
+      pipChanged.current?.(true);
+    };
+    const leave = () => {
+      setPip(false);
+      pipChanged.current?.(false);
+    };
+    el.addEventListener("enterpictureinpicture", enter);
+    el.addEventListener("leavepictureinpicture", leave);
+    return () => {
+      el.removeEventListener("enterpictureinpicture", enter);
+      el.removeEventListener("leavepictureinpicture", leave);
+      if (document.pictureInPictureElement === el) {
+        void document.exitPictureInPicture().catch(() => {});
+        pipChanged.current?.(false);
+      }
+    };
+  }, []);
   const [hudVisible, setHudVisible] = useState(true);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
@@ -58,12 +92,21 @@ export function Player({
     el.srcObject = stream ?? null;
     if (stream)
       void el.play().catch(() => setError("Clique no player para reproduzir."));
+    const ended = () => {
+      if (document.pictureInPictureElement === el)
+        void document.exitPictureInPicture().catch(() => {});
+    };
+    stream?.getVideoTracks().forEach((t) => t.addEventListener("ended", ended));
     const timer = setTimeout(() => {
       if (el.readyState < 2)
         setError("Sem quadros de vídeo. Confira o diagnóstico de conexão.");
     }, 15000);
     return () => {
       clearTimeout(timer);
+      stream
+        ?.getVideoTracks()
+        .forEach((t) => t.removeEventListener("ended", ended));
+      ended();
       el.srcObject = null;
     };
   }, [stream]);
@@ -98,6 +141,28 @@ export function Player({
           {local ? " (sua prévia)" : ""}
         </span>
         <div>
+          {document.pictureInPictureEnabled && (
+            <button
+              title={
+                pip ? "Retornar do PiP" : "Picture-in-Picture (sempre no topo)"
+              }
+              aria-pressed={pip}
+              disabled={!ready}
+              onClick={() => {
+                const el = video.current;
+                if (!el) return;
+                void (
+                  document.pictureInPictureElement === el
+                    ? document.exitPictureInPicture()
+                    : el.requestPictureInPicture()
+                ).catch(() =>
+                  setError("Não foi possível abrir o Picture-in-Picture."),
+                );
+              }}
+            >
+              <PictureInPicture2 size={18} />
+            </button>
+          )}
           {expand && (
             <button title="Ampliar ou voltar à grade" onClick={expand}>
               <Focus size={18} />

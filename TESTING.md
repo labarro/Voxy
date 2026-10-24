@@ -1,5 +1,18 @@
 # Validação do Voxy
 
+## Versão 0.8.0 em preparação — 24/10/2026
+
+Passaram `npm test` (34 testes), build e integrações de áudio, controles globais, captura, grade, sistema, UX, desktop com três instâncias e WebRTC com dez clientes. `npm run pack` e `npm run test:packaged` também passaram: o ASAR abre, o host funciona, o ícone da bandeja está incluído e perfil/servidores/DMs/leitura/novidades sobrevivem ao reinício. Foi gerado somente o pacote local, sem instalação ou publicação desta versão.
+
+- Captura: loopback real do Windows em monitor e janela, sem substituir `getDisplayMedia`. Dois processos geraram tons de 440/880 Hz. A track confirmou `restrictOwnAudio: true`, estéreo a 48 kHz, sem filtros de voz. No ensaio concluído, o tom externo ficou próximo de −44 dB, e o tom do Voxy em −96/−83 dB (piso de ruído). Evidências em `test-results/capture-audio-*/result.json`. Não equivale a avaliação humana de áudio ou teste de microfone físico.
+- Controles: combinação Ctrl+Shift+M e Mouse 4 globais com janela minimizada, ausência de repetição ao segurar, mute anterior restaurado ao sair de Deafen, prioridade sobre PTT, persistência e barra Kuromi. Maximizar/restaurar foram verificados por API nativa.
+- Notificações: menções, respostas, DMs e amizades entre dois clientes, abertura e destaque da mensagem, supressão da conversa visível, leitura persistida. Testes de contrato cobrem reinício, tipos, DND e silêncios. Objetos nativos do Windows foram criados com `show` interceptado para conferir o encaminhamento sem exibir toasts no desktop do usuário.
+- PiP: janela nativa com câmera local e webcam/tela remotas. Quadros continuam aumentando com o Voxy oculto; terminar a fonte fecha o PiP. Sem nova captura ou conexão para destacar o vídeo.
+- Bandeja: callbacks reais de abrir/Deafen/Sair, fechar sem desconectar, restauração da janela e término do processo. Ambientes com `VOXY_DATA_DIR` não alteram a inicialização pessoal do Windows.
+- WebRTC: 45 pares, voz nos 90 sentidos, tela/webcam para nove espectadores, pausa sem espectadores e limpeza dos dez clientes. Os cenários que medem sons da chamada desativam os novos sons de atalhos para isolar as verificações.
+
+Pendentes de verificação manual: inicialização após login real, hover/arraste/redimensionamento nativos, avaliação acústica com hardware físico, jogos elevados/anticheat e uso prolongado em computadores distintos via Radmin. Guias: [áudio](AUDIO-E-CONEXAO.md), [notificações e Windows](NOTIFICACOES-E-WINDOWS.md).
+
 ## Versão 0.7.0 — 23/10/2026
 
 O [Actions da release](https://github.com/labarro/Voxy/actions/runs/40014696269) concluiu com sucesso os 29 testes, a geração do instalador e dos metadados assinados, o teste do executável empacotado e a publicação dos cinco assets. [Release 0.7.0](https://github.com/labarro/Voxy/releases/tag/v0.7.0).

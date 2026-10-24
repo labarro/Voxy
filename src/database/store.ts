@@ -86,7 +86,7 @@ export class Store {
   } {
     if (this.cachedSnapshot) return this.cachedSnapshot;
     const messages = this.rows<Message>(
-      "SELECT id,channelId,author,name,avatar,text,time,editedAt,replyTo,(SELECT id FROM images WHERE messageId=recent.id) AS imageId FROM (SELECT *,ROW_NUMBER() OVER(PARTITION BY channelId ORDER BY time DESC,id DESC) AS rank FROM messages) recent WHERE rank<=100 ORDER BY time,id",
+      "SELECT id,channelId,author,name,avatar,text,time,editedAt,replyTo,(SELECT author FROM messages original WHERE original.id=recent.replyTo AND original.channelId=recent.channelId) AS replyAuthor,(SELECT id FROM images WHERE messageId=recent.id) AS imageId FROM (SELECT *,ROW_NUMBER() OVER(PARTITION BY channelId ORDER BY time DESC,id DESC) AS rank FROM messages) recent WHERE rank<=100 ORDER BY time,id",
     );
     const servers = this.rows<Community>("SELECT * FROM servers");
     return (this.cachedSnapshot = {
@@ -365,7 +365,7 @@ export class Store {
     }
     return this.withReactions(
       this.rows<Message>(
-        `SELECT *,(SELECT id FROM images WHERE messageId=messages.id) AS imageId FROM messages WHERE ${where} ORDER BY time DESC,id DESC LIMIT 100`,
+        `SELECT *,(SELECT author FROM messages original WHERE original.id=messages.replyTo AND original.channelId=messages.channelId) AS replyAuthor,(SELECT id FROM images WHERE messageId=messages.id) AS imageId FROM messages WHERE ${where} ORDER BY time DESC,id DESC LIMIT 100`,
         params,
       ).reverse(),
     );

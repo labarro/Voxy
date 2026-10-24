@@ -1,4 +1,6 @@
 import { MediaGallery } from "./components/MediaGallery";
+import { NotificationCenter } from "./components/NotificationCenter";
+import { useNotifications } from "./hooks/useNotifications";
 import { Friends } from "./components/Friends";
 import { memberRoles, nicknameColor } from "../shared/identity";
 import { RoleBadges, Roles } from "./components/Roles";
@@ -52,6 +54,7 @@ import {
   VideoOff,
   Megaphone,
   MessageCircle,
+  Bell,
   X,
 } from "lucide-react";
 import type {
@@ -89,6 +92,16 @@ type Dialog =
   | "camera"
   | null;
 export function App() {
+  const notificationCenter = useNotifications();
+  const [locatedMessage, setLocatedMessage] = useState<{
+    channelId?: string;
+    peer?: string;
+    scope?: string;
+    id: string;
+  }>();
+  const notificationConnecting = useRef("");
+  const [audioNotice, setAudioNotice] = useState("");
+  const [pipActive, setPipActive] = useState(false);
   const [page, setPage] = useState<AppPage>("home");
   const [background, setBackground] = useState(false);
   const saved = useSavedRooms();
@@ -151,7 +164,23 @@ export function App() {
     root.style.setProperty("--base", theme.base);
     root.style.setProperty("--surface", theme.surface);
     root.style.setProperty("--deep", theme.deep);
+    void window.voxy
+      .titlebarTheme(theme.deep, "#e7edf9")
+      .catch((e) => setError(e.message));
   }, [profile?.theme, profile?.accentColor]);
+  useEffect(() => {
+    void window.voxy
+      .pauseVoiceShortcuts(dialog === "profile")
+      .catch((e) => setError(e.message));
+    return () => {
+      void window.voxy.pauseVoiceShortcuts(false).catch(() => {});
+    };
+  }, [dialog]);
+  useEffect(() => {
+    if (!audioNotice) return;
+    const timer = setTimeout(() => setAudioNotice(""), 2200);
+    return () => clearTimeout(timer);
+  }, [audioNotice]);
   const effectiveMuted = useRef(false);
   const joining = useRef(false);
   const [engine] = useState(
@@ -271,6 +300,17 @@ export function App() {
         engine.setPttPressed(event.pressed);
         if (event.error) setError(event.error);
       }
+      if (event.type === "voice-shortcut") {
+        if (event.error) setError(event.error);
+        else if (
+          latest.current.room.participants.some(
+            (p) => p.id === latest.current.selfId && p.channelId,
+          )
+        ) {
+          if (event.action === "mute") void toggleMute();
+          else void toggleDeafen();
+        }
+      }
     });
     const changed = () => {
       void navigator.mediaDevices.enumerateDevices().then(setDevices);
@@ -307,17 +347,98 @@ export function App() {
     streams = peers.filter((p) => p.sharing);
   const online = status === "connected";
   useEffect(() => {
+    const view =
+      !dialog && page === "room" && channel?.kind === "text"
+        ? { scope: inbox.activeScope, channelId }
+        : !dialog && page === "dm" && directTarget
+          ? { scope: directTarget.scope, peer: directTarget.peer }
+          : page === "friends"
+            ? { scope: inbox.activeScope, friends: true }
+            : {};
+    void window.voxy.notificationView(view).catch((e) => setError(e.message));
+  }, [
+    page,
+    channelId,
+    channel?.kind,
+    inbox.activeScope,
+    directTarget?.scope,
+    directTarget?.peer,
+    dialog,
+  ]);
+  useEffect(() => {
+    const target = notificationCenter.target;
+    if (!target) return;
+    if (target.peer) {
+      openDirect({ scope: target.scope!, peer: target.peer });
+      if (target.messageId)
+        setLocatedMessage({
+          scope: target.scope,
+          peer: target.peer,
+          id: target.messageId,
+        });
+      notificationCenter.setTarget(undefined);
+      return;
+    }
+    if (target.scope !== inbox.activeScope) {
+      const savedRoom = saved.rooms.find((r) => r.serverId === target.serverId);
+      if (!savedRoom) {
+        setError("Reconecte à sala desta notificação para abrir o destino.");
+        notificationCenter.setTarget(undefined);
+        return;
+      }
+      if (notificationConnecting.current === target.id) return;
+      notificationConnecting.current = target.id;
+      void reconnectSaved(savedRoom.id)
+        .catch((e) => {
+          setError(e.message);
+          notificationCenter.setTarget(undefined);
+        })
+        .finally(() => {
+          notificationConnecting.current = "";
+        });
+      return;
+    }
+    if (target.friends) setPage("friends");
+    else if (target.channelId) {
+      const targetChannel = room.channels.find(
+        (c) => c.id === target.channelId,
+      );
+      if (!targetChannel)
+        setError("Este canal foi removido ou não está disponível.");
+      else {
+        setPage("room");
+        setServerId(targetChannel.serverId);
+        setChannelId(target.channelId);
+        if (target.messageId)
+          setLocatedMessage({
+            channelId: target.channelId,
+            id: target.messageId,
+          });
+      }
+    }
+    notificationCenter.setTarget(undefined);
+  }, [
+    notificationCenter.target,
+    inbox.activeScope,
+    room.channels,
+    saved.rooms,
+  ]);
+  useEffect(() => {
     const change = () => {
       const inactive = background || document.hidden;
       document.documentElement.dataset.background = String(inactive);
       engine.setBackground(inactive);
-      if (inactive || page !== "room" || channelId !== me?.channelId)
+      if (
+        (inactive && !pipActive) ||
+        page !== "room" ||
+        channelId !== me?.channelId
+      )
         engine.setViewing([], []);
     };
     change();
     document.addEventListener("visibilitychange", change);
     return () => document.removeEventListener("visibilitychange", change);
-  }, [engine, page, channelId, me?.channelId, background]);
+  }, [engine, page, channelId, me?.channelId, background, pipActive]);
   async function run(fn: () => Promise<unknown>, close = false) {
     setError("");
     setBusy(true);
@@ -427,24 +548,23 @@ export function App() {
     await command({ type: "voice", channelId: null });
   }
   async function toggleMute() {
-    const v = !muted;
+    if (latest.current.deafened) return;
+    const v = !latest.current.muted;
     latest.current.muted = v;
     setMuted(v);
     engine.setMuted(v);
+    setAudioNotice(v ? "Microfone mutado" : "Microfone ativado");
   }
   async function toggleDeafen() {
-    const v = !deafened;
+    const v = !latest.current.deafened;
     latest.current.deafened = v;
     setDeafened(v);
     engine.setDeafened(v);
-    if (voice)
-      await command({
-        type: "status",
-        microphoneState: engine.microphoneState(),
-        muted: engine.isMuted(),
-        deafened: v,
-        sharing: media.sharing,
-      });
+    setAudioNotice(
+      v
+        ? "Deafen ativo · microfone e áudio silenciados"
+        : "Deafen desativado · estados restaurados",
+    );
   }
   async function savePreferences(p: Profile) {
     const saved = await window.voxy.saveProfile(p);
@@ -544,9 +664,24 @@ export function App() {
     return () => clearTimeout(timer);
   }, [notice, inbox, profile?.id, profile?.presence]);
   if (!profile)
-    return <main className="boot">Abrindo Voxy…{error && <p>{error}</p>}</main>;
+    return (
+      <>
+        <header className="window-titlebar">Voxy</header>
+        <main className="boot">Abrindo Voxy…{error && <p>{error}</p>}</main>
+      </>
+    );
   return (
     <AvatarImages.Provider value={room.avatars ?? {}}>
+      <header className="window-titlebar">
+        <AudioLines size={16} />
+        <span>Voxy</span>
+        {deafened && <span className="titlebar-call-state">Deafen ativo</span>}
+      </header>
+      {audioNotice && (
+        <div className="audio-notice" role="status">
+          {audioNotice}
+        </div>
+      )}
       <div className="app-shell">
         {notes && (
           <Modal
@@ -592,6 +727,14 @@ export function App() {
           online={online}
           canCreate={!!me?.host}
           unread={unreadTotal(inbox, profile.id)}
+          notifications={
+            notificationCenter.state.items.filter((n) => !n.read).length
+          }
+          unreadServers={Object.fromEntries(
+            Object.entries(notificationCenter.state.unreadServers).map(
+              ([key, count]) => [key.split(":").at(-1)!, count],
+            ),
+          )}
           navigate={setPage}
           select={(id) => {
             setServerId(id);
@@ -698,6 +841,20 @@ export function App() {
                               <Volume2 size={20} />
                             )}
                             <span>{c.name}</span>
+                            {!!notificationCenter.state.unreadChannels[
+                              inbox.activeScope + ":" + c.id
+                            ] && (
+                              <span
+                                className="unread-badge"
+                                aria-label="Mensagens não lidas"
+                              >
+                                {
+                                  notificationCenter.state.unreadChannels[
+                                    inbox.activeScope + ":" + c.id
+                                  ]
+                                }
+                              </span>
+                            )}
                           </button>
                           {type === "voice" &&
                             room.participants
@@ -894,13 +1051,15 @@ export function App() {
               </span>
             </button>
             <button
-              className={muted ? "danger-text" : ""}
+              className={muted || deafened ? "danger-text" : ""}
+              disabled={deafened}
+              aria-pressed={muted || deafened}
               title={muted ? "Ativar microfone" : "Mutar microfone"}
               aria-label={muted ? "Ativar microfone" : "Mutar microfone"}
               onClick={() => void run(toggleMute)}
             >
               <ParticipantStatus
-                muted={muted}
+                muted={muted || deafened}
                 deafened={false}
                 showMicrophone
                 microphoneState={engine.microphoneState()}
@@ -908,7 +1067,9 @@ export function App() {
               />
             </button>
             <button
-              title={deafened ? "Ouvir áudio" : "Silenciar áudio"}
+              title={deafened ? "Desativar Deafen" : "Silenciar áudio"}
+              aria-label={deafened ? "Desativar Deafen" : "Silenciar áudio"}
+              aria-pressed={deafened}
               onClick={() => void run(toggleDeafen)}
             >
               {deafened ? <HeadphoneOff size={18} /> : <Headphones size={18} />}
@@ -934,7 +1095,9 @@ export function App() {
           <RemoteUpdate compact />
           <header className="workspace-header">
             <div>
-              {page === "dm" ? (
+              {page === "notifications" ? (
+                <Bell />
+              ) : page === "dm" ? (
                 <MessageCircle />
               ) : page === "news" ? (
                 <Megaphone />
@@ -946,16 +1109,18 @@ export function App() {
                 <Hash />
               )}
               <strong>
-                {page === "friends"
-                  ? "Amigos"
-                  : page === "dm"
-                    ? (findConversation(inbox, directTarget).contact?.name ??
-                      "Mensagens privadas")
-                    : page === "news"
-                      ? "Novidades do Voxy"
-                      : page === "home"
-                        ? "Home"
-                        : (channel?.name ?? "Bem-vindo ao Voxy")}
+                {page === "notifications"
+                  ? "Notificações"
+                  : page === "friends"
+                    ? "Amigos"
+                    : page === "dm"
+                      ? (findConversation(inbox, directTarget).contact?.name ??
+                        "Mensagens privadas")
+                      : page === "news"
+                        ? "Novidades do Voxy"
+                        : page === "home"
+                          ? "Home"
+                          : (channel?.name ?? "Bem-vindo ao Voxy")}
               </strong>
               <span className="header-description">
                 {page === "dm"
@@ -992,30 +1157,30 @@ export function App() {
               )}
             </div>
           </header>
-          {notice &&
-            profile.presence !== "busy" &&
-            !(
-              page === "dm" &&
-              directTarget?.scope === notice.scope &&
-              directTarget.peer === notice.peer
-            ) && (
-              <div className="direct-notice" role="status">
-                <MessageCircle size={18} />
-                <span>
-                  Nova mensagem de <strong>{notice.name}</strong>
-                </span>
-                <button
-                  onClick={() =>
-                    openDirect({ scope: notice.scope, peer: notice.peer })
-                  }
-                >
-                  Abrir conversa
-                </button>
-                <button title="Fechar notificação" onClick={clearNotice}>
-                  <X size={16} />
-                </button>
-              </div>
-            )}
+          {notificationCenter.alert && (
+            <div className="direct-notice" role="status">
+              <MessageCircle size={18} />
+              <span>
+                <strong>{notificationCenter.alert.title}</strong>
+              </span>
+              <button
+                onClick={() => {
+                  void window.voxy
+                    .openNotification(notificationCenter.alert!.id)
+                    .catch((e) => setError(e.message));
+                  notificationCenter.setAlert(undefined);
+                }}
+              >
+                Abrir conversa
+              </button>
+              <button
+                title="Fechar notificação"
+                onClick={() => notificationCenter.setAlert(undefined)}
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
           {reconnectMessage && (
             <div className="reconnect-banner" role="status">
               {reconnectMessage}
@@ -1093,7 +1258,9 @@ export function App() {
               </button>
             </div>
           ))}
-          {page === "friends" ? (
+          {page === "notifications" ? (
+            <NotificationCenter state={notificationCenter.state} />
+          ) : page === "friends" ? (
             <Friends
               room={room}
               inbox={inbox}
@@ -1106,6 +1273,12 @@ export function App() {
           ) : page === "dm" ? (
             <>
               <DirectConversation
+                locateMessage={
+                  locatedMessage?.peer === directTarget?.peer &&
+                  locatedMessage?.scope === directTarget?.scope
+                    ? locatedMessage
+                    : undefined
+                }
                 profiles={room.profiles}
                 onProfile={openUserProfile}
                 inbox={inbox}
@@ -1134,6 +1307,11 @@ export function App() {
             />
           ) : channel?.kind === "text" ? (
             <Chat
+              locateMessage={
+                locatedMessage?.channelId === channelId
+                  ? locatedMessage
+                  : undefined
+              }
               profiles={room.profiles}
               nameColor={(id) =>
                 nicknameColor(room, serverId, room.profiles?.[id] || { id })
@@ -1176,6 +1354,7 @@ export function App() {
               </div>
               {me?.channelId === channelId && (
                 <MediaGallery
+                  onPictureInPicture={setPipActive}
                   background={background}
                   participants={peers}
                   selfId={selfId}
@@ -1334,7 +1513,11 @@ export function App() {
                       </button>
                     )}
                     <button
-                      className={"control " + (muted ? "muted" : "")}
+                      className={
+                        "control " + (muted || deafened ? "muted" : "")
+                      }
+                      disabled={deafened}
+                      aria-pressed={muted || deafened}
                       title={muted ? "Ativar microfone" : "Mutar microfone"}
                       aria-label={
                         muted ? "Ativar microfone" : "Mutar microfone"
@@ -1342,7 +1525,7 @@ export function App() {
                       onClick={() => void run(toggleMute)}
                     >
                       <ParticipantStatus
-                        muted={muted}
+                        muted={muted || deafened}
                         deafened={false}
                         showMicrophone
                         microphoneState={engine.microphoneState()}
@@ -1351,7 +1534,11 @@ export function App() {
                     </button>
                     <button
                       className="control"
-                      title={deafened ? "Ouvir áudio" : "Silenciar áudio"}
+                      title={deafened ? "Desativar Deafen" : "Silenciar áudio"}
+                      aria-label={
+                        deafened ? "Desativar Deafen" : "Silenciar áudio"
+                      }
+                      aria-pressed={deafened}
                       onClick={() => void run(toggleDeafen)}
                     >
                       {deafened ? <HeadphoneOff /> : <Headphones />}
@@ -1647,6 +1834,8 @@ export function App() {
             )}
             {dialog === "profile" && (
               <ProfileForm
+                room={room}
+                scope={inbox.activeScope}
                 onMicrophoneTest={(value) => engine.setMicrophoneTesting(value)}
                 presenceSupported={!online || !!room.features?.presence}
                 profile={profile}

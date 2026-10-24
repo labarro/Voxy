@@ -9,12 +9,15 @@ import {
   dialog,
   Notification,
   shell,
+  Tray,
+  Menu,
 } from "electron";
 import { externalUrl } from "../shared/links";
 import { spawn } from "node:child_process";
 import { UpdateManager } from "./updates";
 import { ReleaseNotesStore } from "./releaseNotes";
-import { networkInterfaces } from "node:os";
+import { networkInterfaces, release as osRelease } from "node:os";
+import { safeSystemAudio } from "../shared/capture";
 import { join } from "node:path";
 import {
   existsSync,
@@ -48,6 +51,8 @@ import { RemoteUpdates } from "./remoteUpdates";
 import updateTrust from "../shared/update-trust.json";
 import { DirectInbox } from "./directInbox";
 import { deviceCredential } from "./deviceIdentity";
+import { Notifications, notificationViewSchema } from "./notifications";
+import type { AppNotification, NotificationView } from "../shared/types";
 let win: BrowserWindow,
   store: Store,
   host: RoomHost | undefined,
@@ -61,11 +66,136 @@ let currentInvite = "";
 let currentHosted = false;
 let currentState: RoomState | undefined;
 let inbox: DirectInbox;
+let notifications: Notifications;
+let notificationView: NotificationView = {};
+let tray: Tray | undefined;
+let controls = { muted: false, deafened: false };
+let lastNotificationAlert = 0;
+function showWindow() {
+  if (!win || win.isDestroyed()) return;
+  win.show();
+  if (win.isMinimized()) win.restore();
+  win.focus();
+}
+function updateTray() {
+  tray?.setToolTip(
+    `Voxy${inVoice ? (controls.deafened ? " · Deafen" : controls.muted ? " · Microfone mutado" : " · Em chamada") : ""}`,
+  );
+  tray?.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: "Abrir Voxy", click: showWindow },
+      { type: "separator" },
+      {
+        label: controls.muted ? "Desmutar microfone" : "Mutar microfone",
+        type: "checkbox",
+        checked: controls.muted,
+        enabled: inVoice && !controls.deafened,
+        click: () => emit({ type: "voice-shortcut", action: "mute" }),
+      },
+      {
+        label: "Deafen",
+        type: "checkbox",
+        checked: controls.deafened,
+        enabled: inVoice,
+        click: () => emit({ type: "voice-shortcut", action: "deafen" }),
+      },
+      { type: "separator" },
+      { label: "Sair", click: () => app.quit() },
+    ]),
+  );
+}
+function focused() {
+  return (
+    !!win &&
+    !win.isDestroyed() &&
+    win.isFocused() &&
+    win.isVisible() &&
+    !win.isMinimized()
+  );
+}
+function notificationChanged(item?: AppNotification, alert = false) {
+  if (alert) {
+    const now = Date.now();
+    if (now - lastNotificationAlert < 1200) alert = false;
+    else lastNotificationAlert = now;
+  }
+  const native =
+    alert &&
+    !focused() &&
+    profile.notifications?.native &&
+    Notification.isSupported();
+  emit({
+    type: "notifications",
+    state: notifications.view(),
+    alert: alert ? item : undefined,
+    sound: !!alert && !native && profile.notifications?.sounds,
+  });
+  if (native && item) {
+    try {
+      const notice = new Notification({
+        title: item.title,
+        body: item.body.replace(/@\{[a-f0-9-]{36}\}/gi, "@você"),
+        silent: !profile.notifications?.sounds,
+      });
+      notice.on("click", () => {
+        showWindow();
+        notifications.mark(item.id);
+        notificationChanged();
+        emit({ type: "open-notification", notification: item });
+      });
+      notice.show();
+    } catch {
+      log("notification.unavailable");
+    }
+  }
+}
+function markNotificationView() {
+  if (focused() && notifications?.viewed(notificationView))
+    notificationChanged();
+}
+function applyLoginSettings(p: Profile) {
+  if (
+    process.platform === "win32" &&
+    app.isPackaged &&
+    !process.env.VOXY_DATA_DIR
+  )
+    app.setLoginItemSettings({
+      openAtLogin: !!p.launchAtLogin,
+      path: process.execPath,
+      args: p.startMinimized ? ["--start-minimized"] : [],
+    });
+}
 const ptt = new PushToTalk((pressed, error) =>
   emit({ type: "ptt", pressed, error }),
 );
+let shortcutsPaused = false;
+const voiceShortcuts = (["mute", "deafen"] as const).map((action) => ({
+  action,
+  reader: new PushToTalk((pressed, error) => {
+    if (error)
+      emit({
+        type: "voice-shortcut",
+        action,
+        error: `Atalho ${action} indisponível. Verifique as permissões do Windows.`,
+      });
+    else if (pressed && inVoice && !shortcutsPaused)
+      emit({ type: "voice-shortcut", action });
+  }),
+}));
+const captureAudioAvailable = () =>
+  safeSystemAudio(process.platform, osRelease(), process.versions.electron);
 function updatePtt() {
   ptt.configure(inVoice && !!profile.pttEnabled, profile.pttKey ?? "KeyV");
+  for (const { action, reader } of voiceShortcuts) {
+    const shortcut =
+      action === "mute" ? profile.muteShortcut : profile.deafenShortcut;
+    reader.configure(
+      inVoice && !shortcutsPaused && !!shortcut,
+      shortcut?.key ?? "KeyV",
+      shortcut ?? undefined,
+    );
+  }
+  updateTray();
 }
 const dev = process.env.VOXY_DEV === "1";
 const origin = dev ? "http://127.0.0.1:5173" : "file://";
@@ -97,9 +227,20 @@ function saveProfile() {
   writeFileSync(data("profile.json.tmp"), JSON.stringify(profile));
   renameSync(data("profile.json.tmp"), data("profile.json"));
 }
-async function disconnect() {
+let disconnecting: Promise<void> | undefined;
+function disconnect() {
+  if (!disconnecting)
+    disconnecting = disconnectRoom().finally(() => {
+      disconnecting = undefined;
+    });
+  return disconnecting;
+}
+async function disconnectRoom() {
   inVoice = false;
+  updateTray();
+  notificationView = {};
   ptt.stop();
+  for (const { reader } of voiceShortcuts) reader.stop();
   selected = undefined;
   cameraPermissionUntil = 0;
   currentInvite = "";
@@ -165,6 +306,15 @@ async function connect(invite: string, ownerKey?: string) {
       return;
     }
     currentState = state;
+    notifications.room(
+      scope,
+      state,
+      profile,
+      notificationView,
+      focused(),
+      notificationChanged,
+    );
+    notificationChanged();
     try {
       const stamp = JSON.stringify(state.servers);
       if (firstState || stamp !== savedStamp) {
@@ -210,12 +360,14 @@ async function connect(invite: string, ownerKey?: string) {
   socket.on("direct", (raw) => {
     if (socket !== client) return;
     try {
+      const known = inbox.view().rooms.some((r) => r.scope === scope);
       const received = inbox.receive(
         scope,
         currentState?.servers[0]?.name ?? "Sala privada",
         raw,
       );
-      const last = firstDirect ? undefined : received.at(-1);
+      const incoming = firstDirect && !known ? [] : received;
+      const last = incoming.at(-1);
       firstDirect = false;
       emit({
         type: "inbox",
@@ -224,27 +376,15 @@ async function connect(invite: string, ownerKey?: string) {
           ? { scope, peer: last.author, name: last.name }
           : undefined,
       });
-      if (
-        last &&
-        !win.isFocused() &&
-        profile.presence !== "busy" &&
-        Notification.isSupported()
-      ) {
-        try {
-          const notice = new Notification({
-            title: "Mensagem privada no Voxy",
-            body: `${last.name} enviou uma mensagem privada.`,
-          });
-          notice.on("click", () => {
-            win.show();
-            win.focus();
-            emit({ type: "open-direct", scope, peer: last.author });
-          });
-          notice.show();
-        } catch {
-          log("direct.notification-unavailable");
-        }
-      }
+      notifications.direct(
+        scope,
+        incoming,
+        profile,
+        notificationView,
+        focused(),
+        notificationChanged,
+      );
+      notificationChanged();
     } catch {
       log("direct.snapshot-invalid");
       emit({
@@ -263,7 +403,9 @@ async function connect(invite: string, ownerKey?: string) {
   socket.on("disconnect", () => {
     if (socket !== client) return;
     inVoice = false;
+    updateTray();
     ptt.stop();
+    for (const { reader } of voiceShortcuts) reader.stop();
     inbox.activeScope = undefined;
     emit({ type: "inbox", inbox: inbox.view() });
     emit({
@@ -360,7 +502,12 @@ function handle(name: string, fn: (arg: any) => unknown) {
     }
   });
 }
+if (!process.env.VOXY_DATA_DIR) {
+  if (!app.requestSingleInstanceLock()) app.quit();
+  app.on("second-instance", showWindow);
+}
 app.whenReady().then(async () => {
+  app.setAppUserModelId("dev.voxy.desktop");
   if (process.env.VOXY_DATA_DIR)
     app.setPath("userData", process.env.VOXY_DATA_DIR);
   mkdirSync(app.getPath("userData"), { recursive: true });
@@ -383,6 +530,8 @@ app.whenReady().then(async () => {
   store = await Store.open(data("room.sqlite"));
   recentRooms = new RecentRooms(data("recent-rooms.json"), safeStorage);
   inbox = new DirectInbox(data("direct-inbox.json"), profile.id);
+  notifications = new Notifications(data("notifications.json"), profile.id);
+  applyLoginSettings(profile);
   const updates = new UpdateManager(app.getPath("userData"), app.getVersion());
   let notifiedVersion = "";
   const remoteUpdates = new RemoteUpdates({
@@ -426,6 +575,10 @@ app.whenReady().then(async () => {
     minHeight: 620,
     backgroundColor: "#232b3b",
     title: "Voxy",
+    show:
+      !profile.startMinimized && !process.argv.includes("--start-minimized"),
+    titleBarStyle: "hidden",
+    titleBarOverlay: { color: "#171c28", symbolColor: "#e7edf9", height: 36 },
     autoHideMenuBar: true,
     webPreferences: {
       preload: join(__dirname, "../preload/index.cjs"),
@@ -437,6 +590,26 @@ app.whenReady().then(async () => {
       backgroundThrottling: false,
     },
   });
+  try {
+    tray = new Tray(
+      app.isPackaged
+        ? join(process.resourcesPath, "icon.ico")
+        : join(app.getAppPath(), "build/icon.ico"),
+    );
+    tray.on("double-click", showWindow);
+    tray.on("click", showWindow);
+    updateTray();
+  } catch {
+    log("tray.unavailable");
+    win.show();
+  }
+  win.on("close", (event) => {
+    if (!closing && profile.closeToTray && tray) {
+      event.preventDefault();
+      win.hide();
+    }
+  });
+  win.on("focus", markNotificationView);
   win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   // Chromium visibility stays visible with backgroundThrottling:false, which
   // voice needs. Publish native visibility independently for optional work.
@@ -502,7 +675,7 @@ app.whenReady().then(async () => {
         }
         callback({
           video: source,
-          ...(pick.audio && process.platform === "win32"
+          ...(pick.audio && captureAudioAvailable()
             ? { audio: "loopback" as const }
             : {}),
         });
@@ -512,6 +685,44 @@ app.whenReady().then(async () => {
     },
   );
   handle("profile", () => profile);
+  handle("notifications", () => notifications.view());
+  handle("readNotification", (raw) => {
+    notifications.mark(
+      raw === undefined ? undefined : z.string().max(200).parse(raw),
+    );
+    notificationChanged();
+  });
+  handle("notificationView", (raw) => {
+    notificationView = notificationViewSchema.parse(raw);
+    markNotificationView();
+  });
+  handle("openNotification", (raw) => {
+    const item = notifications.find(z.string().max(200).parse(raw));
+    if (!item) throw Error("Notificação não encontrada.");
+    notifications.mark(item.id);
+    notificationChanged();
+    showWindow();
+    emit({ type: "open-notification", notification: item });
+  });
+  handle("minimizeToTray", () => {
+    if (!tray) throw Error("Bandeja indisponível.");
+    win.hide();
+  });
+  handle("captureAudioAvailable", captureAudioAvailable);
+  handle("pauseVoiceShortcuts", (raw) => {
+    shortcutsPaused = z.boolean().parse(raw);
+    updatePtt();
+  });
+  handle("titlebarTheme", (raw) => {
+    const colors = z
+      .object({
+        color: z.string().regex(/^#[a-fA-F0-9]{6}$/),
+        symbolColor: z.string().regex(/^#[a-fA-F0-9]{6}$/),
+      })
+      .parse(raw);
+    if (process.platform === "win32" || process.platform === "linux")
+      win.setTitleBarOverlay(colors);
+  });
   handle("profileImage", async (raw) => {
     const id = z
       .string()
@@ -651,6 +862,7 @@ app.whenReady().then(async () => {
   });
   handle("saveProfile", async (raw) => {
     const p = profileSchema.parse(raw);
+    applyLoginSettings(p);
     profile = {
       ...p,
       id: profile.id,
@@ -805,6 +1017,10 @@ app.whenReady().then(async () => {
   handle("disconnect", disconnect);
   handle("command", (raw) => {
     const command = commandSchema.parse(raw);
+    if (command.type === "status") {
+      controls = { muted: command.muted, deafened: command.deafened };
+      updateTray();
+    }
     if ("scope" in command && command.scope !== inbox.activeScope)
       throw Error("Reconecte à sala desta conversa antes de enviar.");
     return send("command", command);
@@ -826,6 +1042,10 @@ app.whenReady().then(async () => {
     const v = z
       .object({ id: z.string().max(200), audio: z.boolean() })
       .parse(raw);
+    if (v.audio && !captureAudioAvailable())
+      throw Error(
+        "Este sistema não permite excluir o áudio do Voxy com segurança. Compartilhe sem áudio.",
+      );
     const sources = await desktopCapturer.getSources({
       types: ["screen", "window"],
     });
@@ -856,6 +1076,7 @@ app.on("before-quit", (e) => {
   e.preventDefault();
   closing = true;
   void disconnect().finally(() => {
+    tray?.destroy();
     store?.close();
     app.quit();
   });

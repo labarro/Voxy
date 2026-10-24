@@ -5,6 +5,7 @@ import {
   Plus,
   LogIn,
   Users,
+  Bell,
 } from "lucide-react";
 import type { RoomState } from "../../shared/types";
 import type { SavedRoomsView } from "../hooks/useSavedRooms";
@@ -16,7 +17,8 @@ const labels = {
   missing: "Servidor removido",
   full: "Sala cheia",
 };
-export type AppPage = "home" | "room" | "news" | "dm" | "friends";
+export type AppPage =
+  "home" | "room" | "news" | "dm" | "friends" | "notifications";
 export function ServerRail({
   room,
   page,
@@ -26,6 +28,8 @@ export function ServerRail({
   online,
   canCreate,
   unread,
+  notifications = 0,
+  unreadServers = {},
   navigate,
   select,
   reconnect,
@@ -40,6 +44,8 @@ export function ServerRail({
   online: boolean;
   canCreate: boolean;
   unread: number;
+  notifications?: number;
+  unreadServers?: Record<string, number>;
   navigate: (page: AppPage) => void;
   select: (id: string) => void;
   reconnect: (id: string) => void;
@@ -98,6 +104,22 @@ export function ServerRail({
         )}
       </button>
       <div className="rail-divider" />
+      <button
+        className={
+          "rail-action " + (page === "notifications" ? "selected" : "")
+        }
+        title="Notificações"
+        aria-label="Notificações"
+        aria-current={page === "notifications" ? "page" : undefined}
+        onClick={() => navigate("notifications")}
+      >
+        <Bell />
+        {notifications > 0 && (
+          <span className="unread-badge rail-unread">
+            {notifications > 99 ? "99+" : notifications}
+          </span>
+        )}
+      </button>
       <div className="rail-server-list">
         {room.servers.map((s) => (
           <button
@@ -119,6 +141,14 @@ export function ServerRail({
               s.name.slice(0, 2).toUpperCase()
             )}
             <i className="server-availability available" title="Conectado" />
+            {!!unreadServers[s.id] && (
+              <span
+                className="unread-badge rail-unread"
+                aria-label={unreadServers[s.id] + " mensagens não lidas"}
+              >
+                {unreadServers[s.id] > 99 ? "99+" : unreadServers[s.id]}
+              </span>
+            )}
           </button>
         ))}
         {offline.length > 0 && room.servers.length > 0 && (
@@ -140,6 +170,13 @@ export function ServerRail({
               disabled={busy}
               onClick={() => reconnect(r.id)}
             >
+              {!!unreadServers[r.serverId] && (
+                <span className="unread-badge rail-unread">
+                  {unreadServers[r.serverId] > 99
+                    ? "99+"
+                    : unreadServers[r.serverId]}
+                </span>
+              )}
               {r.icon ? (
                 <Avatar avatar={r.icon} className="server-photo" />
               ) : (

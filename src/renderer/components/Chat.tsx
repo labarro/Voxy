@@ -131,11 +131,13 @@ function ChatView({
   onProfile,
   profiles,
   onReact,
+  locateMessage,
 }: {
   nameColor?: (id: string) => string | undefined;
   onProfile?: (id: string, x: number, y: number) => void;
   profiles?: Record<string, Participant["profile"]>;
   onReact?: (id: string, emoji: string) => Promise<void>;
+  locateMessage?: { id: string };
   readOnly?: boolean;
   directScope?: string;
   channelId: string;
@@ -165,6 +167,9 @@ function ChatView({
     [sending, setSending] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const history = useChatHistory(messages, channelId, directScope);
+  useEffect(() => {
+    if (locateMessage) void history.locate(locateMessage.id);
+  }, [locateMessage]);
   const mention = text.match(/(?:^|\s)@([^@\s{}]{0,60})$/);
   const suggestions =
     mention && !hideMentions
@@ -660,6 +665,7 @@ export const Chat = memo(
   ChatView,
   (a, b) =>
     a.channelId === b.channelId &&
+    a.locateMessage === b.locateMessage &&
     a.name === b.name &&
     a.busy === b.busy &&
     a.readOnly === b.readOnly &&

@@ -76,7 +76,10 @@ async function main() {
     await centered(a);
     await a.getByLabel("Nome de exibição").fill("Amigo 0");
     await a.getByRole("button", { name: "Avatar 👴", exact: true }).click();
-    await a.getByRole("button", { name: "Notificações", exact: true }).click();
+    await a
+      .locator(".settings-nav")
+      .getByRole("button", { name: "Notificações", exact: true })
+      .click();
     await a.getByLabel("Sons de entrada e saída da chamada").uncheck();
     await a
       .getByRole("button", { name: "Salvar perfil e dispositivos" })
@@ -633,7 +636,7 @@ async function main() {
         .waitFor();
     }
     await a
-      .getByRole("button", { name: "Ouvir áudio", exact: true })
+      .getByRole("button", { name: "Desativar Deafen", exact: true })
       .first()
       .click();
     for (const page of pages)

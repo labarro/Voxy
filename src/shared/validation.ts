@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { isPttKey } from "./preferences";
+import {
+  isPttKey,
+  shortcutConflict,
+  DEFAULT_NOTIFICATIONS,
+} from "./preferences";
 import { MAX_IMAGE_BYTES } from "./constants";
 import { validateImage } from "./image";
 const id = z.string().min(1).max(100),
@@ -31,7 +35,7 @@ export const bannerSchema = z
       return false;
     }
   }, "Escolha uma capa de até 960 × 360 px / 128 KB.");
-export const profileSchema = z.object({
+const profileObjectSchema = z.object({
   id: z.uuid(),
   name,
   avatar: avatarSchema,
@@ -41,6 +45,60 @@ export const profileSchema = z.object({
   cameraDevice: z.string().max(300).default(""),
   pttEnabled: z.boolean().default(false),
   pttKey: z.string().max(40).refine(isPttKey).default("KeyV"),
+  muteShortcut: z
+    .object({
+      key: z
+        .string()
+        .max(40)
+        .refine(isPttKey)
+        .refine((k) => !/^(Control|Alt|Shift|Meta)/.test(k)),
+      ctrl: z.boolean(),
+      alt: z.boolean(),
+      shift: z.boolean(),
+    })
+    .nullable()
+    .default(null),
+  deafenShortcut: z
+    .object({
+      key: z
+        .string()
+        .max(40)
+        .refine(isPttKey)
+        .refine((k) => !/^(Control|Alt|Shift|Meta)/.test(k)),
+      ctrl: z.boolean(),
+      alt: z.boolean(),
+      shift: z.boolean(),
+    })
+    .nullable()
+    .default(null),
+  shortcutSounds: z.boolean().default(true),
+  launchAtLogin: z.boolean().default(false),
+  startMinimized: z.boolean().default(false),
+  closeToTray: z.boolean().default(false),
+  notifications: z
+    .object({
+      native: z.boolean().default(true),
+      sounds: z.boolean().default(true),
+      types: z
+        .object({
+          mention: z.boolean().default(true),
+          reply: z.boolean().default(true),
+          direct: z.boolean().default(true),
+          "friend-request": z.boolean().default(true),
+          "friend-accepted": z.boolean().default(true),
+        })
+        .default({
+          mention: true,
+          reply: true,
+          direct: true,
+          "friend-request": true,
+          "friend-accepted": true,
+        }),
+      mutedServers: z.array(z.string().max(210)).max(1000).default([]),
+      mutedChannels: z.array(z.string().max(210)).max(1000).default([]),
+      dndUntil: z.number().nonnegative().finite().default(0),
+    })
+    .default(DEFAULT_NOTIFICATIONS),
   inputVolume: z.number().min(0).max(2).default(1),
   noiseSuppression: z.boolean().default(true),
   echoCancellation: z.boolean().default(true),
@@ -57,7 +115,11 @@ export const profileSchema = z.object({
   streamVolumes: z.record(z.uuid(), z.number().min(0).max(1)).default({}),
   mutedParticipants: z.record(z.uuid(), z.boolean()).default({}),
 });
-export const publicProfileSchema = profileSchema
+export const profileSchema = profileObjectSchema.refine(
+  (p) => !shortcutConflict(p),
+  "Escolha teclas diferentes para PTT, mute e Deafen.",
+);
+export const publicProfileSchema = profileObjectSchema
   .pick({
     id: true,
     name: true,

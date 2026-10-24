@@ -9,7 +9,7 @@
 Voz, chat e compartilhamento de tela para o seu grupo de amigos.<br />
 Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu computador.
 
-![Versão 0.7.0](https://img.shields.io/badge/vers%C3%A3o-0.7.0-b6adff?style=flat-square)
+![Versão 0.8.0 em preparação](https://img.shields.io/badge/vers%C3%A3o-0.8.0_em_preparacao-b6adff?style=flat-square)
 ![Windows 10 e 11 x64](https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-4389e8?style=flat-square)
 ![WebRTC P2P](https://img.shields.io/badge/WebRTC-P2P-68d6b1?style=flat-square)
 ![Até 10 participantes](https://img.shields.io/badge/at%C3%A9-10%20participantes-c9233c?style=flat-square)
@@ -19,6 +19,16 @@ Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu compu
 </div>
 
 ---
+
+## Novidades na versão 0.8.0
+
+**Código em preparação; última versão publicada: 0.7.0.** Os links de download continuam apontando para a versão publicada.
+
+Compartilhamento com exclusão do áudio do Voxy, atalhos globais de mute e Deafen (combinações e Mouse 4/5), restauração do mute anterior e sons/indicadores próprios. A barra de título acompanha o tema e preserva os controles nativos do Windows. Configure em **Configurações → Atalhos** e **Notificações**.
+
+A central reúne menções, respostas, DMs e amizades, com histórico persistente, leitura, indicadores e navegação. Inclui alertas do Windows, tipos/sons configuráveis, silêncio por servidor/canal e Não Perturbe temporário. PiP nativo mantém tela ou webcam sempre no topo. A bandeja preserva a chamada e oferece abrir, mute, Deafen e sair; inicialização automática, início minimizado e comportamento do X ficam em **Configurações → Windows**. [Guia de notificações, PiP e Windows](NOTIFICACOES-E-WINDOWS.md).
+
+O áudio seguro requer Windows build 20348 ou superior (Windows 11). Em sistemas anteriores, compartilhe apenas vídeo. A captura inclui os demais sons do computador: escolher uma janela limita o vídeo, sem isolar o áudio daquele processo. Silencie outros aplicativos no mixer para ouvi-lo isoladamente. [Detalhes, limitações e validação](AUDIO-E-CONEXAO.md).
 
 ## Novidades na versão 0.7.0
 
@@ -75,7 +85,7 @@ SHA256SUMS.txt
 
 Execute o instalador e conclua a instalação. **Os amigos não precisam instalar Node.js.** Todos devem usar a mesma versão para os recursos novos funcionarem corretamente.
 
-Ao empacotar localmente, o instalador fica em `release/0.7.0/Voxy-Setup-0.7.0-x64.exe`. Essa pasta é local e não é versionada no Git. O executável não tem assinatura digital; o Windows pode mostrar editor desconhecido. Confira a procedência e o SHA-256 do arquivo recebido.
+Ao empacotar o código em preparação, o instalador fica em `release/0.8.0/Voxy-Setup-0.8.0-x64.exe`. Essa pasta é local e não é versionada no Git. O executável não tem assinatura digital; o Windows pode mostrar editor desconhecido. Confira a procedência e o SHA-256 do arquivo recebido.
 
 ### 2. Conecte a rede
 
@@ -168,7 +178,7 @@ Resolução e FPS são objetivos, sujeitos à fonte, ao hardware e à conexão. 
 
 No fullscreen, **Ajustar à janela** preserva a imagem inteira; **Preencher player** ocupa a área com recorte quando as proporções diferem. A HUD e o cursor somem após 2,5 segundos sem interação e reaparecem ao mover o mouse.
 
-O áudio do sistema é opcional e vem desligado. No Windows, o loopback captura o sistema inteiro, mesmo ao compartilhar uma janela. Ele pode recapturar as vozes recebidas e causar eco; fones não eliminam essa recaptura digital. Se acontecer, desligue o áudio do sistema ou use roteamento externo. A reprodução audível entre máquinas ainda exige validação manual.
+O áudio compartilhado é opcional e vem desligado. Na 0.8.0 em preparação, o loopback exclui o áudio do Voxy, inclusive as vozes recebidas, em Windows build 20348 ou superior. Inclui os demais aplicativos, mesmo ao escolher uma janela; não isola um processo externo. Sistemas sem suporte ou tracks sem confirmação da exclusão transmitem somente vídeo. A reprodução audível entre máquinas e o eco acústico do microfone ainda exigem validação humana.
 
 Cada pessoa pode transmitir e escolher qual tela assistir. Somente o áudio da tela selecionada é reproduzido; transmissões simultâneas de fontes diferentes ainda precisam de validação manual.
 
@@ -229,7 +239,7 @@ O comando inicia Vite em `127.0.0.1:5173` e abre o Electron. O renderer tem atua
 | `npm run dist`  | Gera o instalador Windows x64 e seu SHA-256.    |
 | `npm run pack`  | Gera a pasta do executável sem instalador.      |
 
-Cada empacotamento usa uma pasta `build-*` nova. `release/0.7.0/latest-build.json` indicará a pasta final desta versão; para distribuir sem instalador, copie a pasta `win-unpacked` inteira. O ícone original pode ser reproduzido com `node scripts/icon.mjs`. As regras obrigatórias para atualizar README, patch notes e versão estão em [AGENTS.md](AGENTS.md).
+Cada empacotamento usa uma pasta `build-*` nova. `release/0.8.0/latest-build.json` indicará a pasta final desta versão; para distribuir sem instalador, copie a pasta `win-unpacked` inteira. O ícone original pode ser reproduzido com `node scripts/icon.mjs`. As regras obrigatórias para atualizar README, patch notes e versão estão em [AGENTS.md](AGENTS.md).
 
 [`.env.example`](.env.example) documenta a variável opcional `VOXY_DATA_DIR`. O aplicativo não carrega `.env` automaticamente. Para publicar atualizações, configure o segredo de assinatura descrito em [ATUALIZACOES-REMOTAS.md](ATUALIZACOES-REMOTAS.md); clientes não precisam de credenciais.
 
@@ -245,6 +255,9 @@ Cada empacotamento usa uma pasta `build-*` nova. `release/0.7.0/latest-build.jso
 | `npm run test:desktop`    | Integração com três janelas Electron e captura nativa.                                        |
 | `npm run test:social`     | Temas, capas, cargos, amigos, chamadas privadas, respostas, menções, reações e busca.           |
 | `npm run test:gallery`    | Grade simultânea de telas/webcam, ampliação, controles e suspensão em segundo plano.           |
+| `npm run test:controls`   | Combinação global, Mouse 4, segundo plano, mute/Deafen e barra Kuromi.                          |
+| `npm run test:capture`    | Loopback real de janela/monitor: tons sintéticos de processos distintos e exclusão do Voxy.   |
+| `npm run test:system`     | Central, navegação, leitura, PiP local/remoto e bandeja em duas instâncias Electron.             |
 | `npm run test:dev`        | Vite, React Refresh e preload.                                                                |
 | `npm run test:packaged`   | Executável empacotado após `npm run dist`, com persistência entre reinícios.                  |
 
@@ -253,6 +266,8 @@ Os testes de navegador usam Microsoft Edge instalado. `test:desktop` utiliza mic
 **Validado na linha 0.4:** 18 testes de serviço/contratos, 45 pares WebRTC, áudio nos 90 sentidos e vídeo para nove espectadores em dois ciclos. Captura nativa e interface foram verificadas com três instâncias Electron locais; o executável empacotado foi aberto duas vezes para verificar persistência e novidades.
 
 A release **0.7.0** foi gerada e publicada pelo GitHub Actions, incluindo teste do executável empacotado e persistência. Os 29 testes de contratos passaram no CI; localmente também passaram as suítes de áudio, PTT, desktop, mídia com dez clientes, funcionalidades sociais e grade. O canal público do atualizador entrega o catálogo 0.7.0 com assinatura Ed25519 e hash do manifesto conferidos, sem executar uma instalação pessoal.
+
+Na **0.8.0 em preparação**, passaram 34 testes, build, captura real com tons sintéticos, controles globais, notificações/PiP/bandeja, áudio/reconexão, UX, desktop, grade e mídia com dez clientes. O pacote local também passou no teste do executável ASAR e de persistência. Não houve instalação ou publicação da 0.8.0. [Evidências e limites das verificações](TESTING.md).
 
 **Validação ainda pendente:** dez computadores físicos pelo Radmin, avaliação humana de áudio em ambiente ruidoso, desempenho prolongado, atalhos com programas elevados e instalação NSIS sobre uma instalação pessoal existente.
 

@@ -11,6 +11,15 @@ async function invoke<T>(method: string, arg?: unknown): Promise<T> {
   return r.value;
 }
 const api: DesktopAPI = {
+  notifications: () => invoke("notifications"),
+  readNotification: (id) => invoke("readNotification", id),
+  notificationView: (view) => invoke("notificationView", view),
+  openNotification: (id) => invoke("openNotification", id),
+  minimizeToTray: () => invoke("minimizeToTray"),
+  captureAudioAvailable: () => invoke("captureAudioAvailable"),
+  pauseVoiceShortcuts: (paused) => invoke("pauseVoiceShortcuts", paused),
+  titlebarTheme: (color, symbolColor) =>
+    invoke("titlebarTheme", { color, symbolColor }),
   profileImage: (id) => invoke("profileImage", id),
   chatHistory: (query) => invoke("chatHistory", query),
   openExternal: (url) => invoke("openExternal", url),

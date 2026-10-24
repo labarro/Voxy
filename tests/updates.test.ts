@@ -84,6 +84,7 @@ test("atualizador confere pacote, hash, alteração posterior e backup sem modif
     );
     const manager = new UpdateManager(data, "0.2.0");
     await writeFile(join(data, "direct-inbox.json"), '{"rooms":[]}');
+    await writeFile(join(data, "notifications.json"), '{"items":[]}');
     await writeFile(
       join(data, "profile-identity.bin"),
       Buffer.from([1, 2, 3, 4]),
@@ -94,6 +95,10 @@ test("atualizador confere pacote, hash, alteração posterior e backup sem modif
     const staged = await manager.installer(info.id);
     assert.notEqual(staged, source);
     const backup = manager.backup();
+    assert.equal(
+      await readFile(join(backup, "notifications.json"), "utf8"),
+      '{"items":[]}',
+    );
     assert.equal(
       await readFile(join(backup, "direct-inbox.json"), "utf8"),
       '{"rooms":[]}',

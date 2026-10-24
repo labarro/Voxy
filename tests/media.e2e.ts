@@ -539,6 +539,7 @@ async function main() {
           input: "",
           output: "",
           callSounds: cycle !== 1,
+          shortcutSounds: false,
         });
         w.engine.setDeafened(cycle === 2);
         if (!w.soundProbe) {
@@ -595,7 +596,10 @@ async function main() {
       await page.evaluate(() => {
         const w = window as any;
         w.engine.setDeafened(false);
-        w.engine.configurePreferences({ callSounds: true });
+        w.engine.configurePreferences({
+          callSounds: true,
+          shortcutSounds: false,
+        });
         w.shareSounds = [];
         const ctx = w.engine.context;
         const original = ctx.createOscillator.bind(ctx);
@@ -641,10 +645,16 @@ async function main() {
       await page.evaluate(
         ({ screenState, participants, i }) => {
           const w = window as any;
-          w.engine.configurePreferences({ callSounds: false });
+          w.engine.configurePreferences({
+            callSounds: false,
+            shortcutSounds: false,
+          });
           w.engine.sync(screenState, String(i));
           w.engine.sync(participants, String(i));
-          w.engine.configurePreferences({ callSounds: true });
+          w.engine.configurePreferences({
+            callSounds: true,
+            shortcutSounds: false,
+          });
           w.engine.setDeafened(true);
           w.engine.sync(screenState, String(i));
           w.engine.sync(participants, String(i));

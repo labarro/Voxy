@@ -261,12 +261,19 @@ async function main() {
     await b
       .getByRole("button", { name: "Enviar mensagem", exact: true })
       .click();
-    await a.locator(".rail-unread").waitFor();
+    await a
+      .locator("button[aria-label='Mensagens privadas'] .rail-unread")
+      .waitFor();
     assert.equal(await a.locator(".direct-notice").count(), 0);
     await settingsPresence(0, "online");
     assert.equal(await a.locator(".direct-notice").count(), 0);
     await openDm(0, "Bruno");
-    await a.waitForFunction(() => !document.querySelector(".rail-unread"));
+    await a.waitForFunction(
+      () =>
+        !document.querySelector(
+          "button[aria-label='Mensagens privadas'] .rail-unread",
+        ),
+    );
     await a
       .getByRole("button", { name: "Novidades do Voxy", exact: true })
       .click();
@@ -277,8 +284,15 @@ async function main() {
     await b
       .getByRole("button", { name: "Enviar mensagem", exact: true })
       .click();
-    await a.locator(".rail-unread").waitFor();
-    assert.equal(await a.locator(".rail-unread").textContent(), "1");
+    await a
+      .locator("button[aria-label='Mensagens privadas'] .rail-unread")
+      .waitFor();
+    assert.equal(
+      await a
+        .locator("button[aria-label='Mensagens privadas'] .rail-unread")
+        .textContent(),
+      "1",
+    );
     await a.locator(".direct-notice").waitFor();
     assert.equal(
       (await c.evaluate(() => window.voxy.inbox())).rooms.flatMap(
@@ -291,7 +305,12 @@ async function main() {
       .locator(".message-list")
       .getByText("Uma mensagem só para Ana", { exact: true })
       .waitFor();
-    await a.waitForFunction(() => !document.querySelector(".rail-unread"));
+    await a.waitForFunction(
+      () =>
+        !document.querySelector(
+          "button[aria-label='Mensagens privadas'] .rail-unread",
+        ),
+    );
     await a.getByLabel("Mensagem", { exact: true }).fill("Resposta reservada");
     await a
       .getByRole("button", { name: "Enviar mensagem", exact: true })
@@ -406,7 +425,12 @@ async function main() {
       .locator(".message-list")
       .getByText("Para quando você voltar", { exact: true })
       .waitFor();
-    await b.waitForFunction(() => !document.querySelector(".rail-unread"));
+    await b.waitForFunction(
+      () =>
+        !document.querySelector(
+          "button[aria-label='Mensagens privadas'] .rail-unread",
+        ),
+    );
     results.push(
       "Reabertura preserva identidade e histórico; reconexão pela lateral entrega mensagem recebida enquanto o destinatário estava offline.",
     );

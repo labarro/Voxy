@@ -1,7 +1,9 @@
-import type { Profile } from "../../shared/types";
+import type { Profile, RoomState } from "../../shared/types";
+import { NotificationSettings } from "./NotificationSettings";
 import { useRef, useState } from "react";
 import { Avatar } from "./Avatar";
-import { PTT_KEYS, isPttKey } from "../../shared/preferences";
+import { PTT_KEYS, isPttKey, shortcutConflict } from "../../shared/preferences";
+import { ShortcutPicker } from "./ShortcutPicker";
 import { MicrophonePreview } from "./MicrophonePreview";
 import { BannerPicker, ThemePicker } from "./Personalization";
 import { Updates } from "./Updates";
@@ -15,6 +17,8 @@ export function ProfileForm({
   inputLevel,
   presenceSupported = true,
   onMicrophoneTest,
+  room,
+  scope,
 }: {
   profile: Profile;
   setProfile: (profile: Profile) => void;
@@ -24,9 +28,13 @@ export function ProfileForm({
   inputLevel?: number;
   presenceSupported?: boolean;
   onMicrophoneTest: (active: boolean) => void;
+  room?: RoomState;
+  scope?: string;
 }) {
   const [category, setCategory] = useState("Conta");
   const [recording, setRecording] = useState(false);
+  const [shortcutRecording, setShortcutRecording] = useState(false);
+  const conflict = shortcutConflict(profile);
   const [keyError, setKeyError] = useState("");
   const photoInput = useRef<HTMLInputElement>(null);
   const [photoBusy, setPhotoBusy] = useState(false);
@@ -84,7 +92,14 @@ export function ProfileForm({
       className="settings-form"
       onSubmit={(e) => {
         e.preventDefault();
-        if (recording || photoBusy || bannerBusy) return;
+        if (
+          recording ||
+          shortcutRecording ||
+          photoBusy ||
+          bannerBusy ||
+          conflict
+        )
+          return;
         onSave();
       }}
     >
@@ -96,6 +111,7 @@ export function ProfileForm({
           "Aparência",
           "Atalhos",
           "Notificações",
+          "Windows",
         ].map((item) => (
           <button
             type="button"
@@ -223,6 +239,32 @@ export function ProfileForm({
           <Updates />
         </section>
         <section hidden={category !== "Atalhos"}>
+          <ShortcutPicker
+            label="Mutar/desmutar microfone"
+            value={profile.muteShortcut}
+            change={(muteShortcut) => setProfile({ ...profile, muteShortcut })}
+            onRecording={setShortcutRecording}
+          />
+          <ShortcutPicker
+            label="Deafen"
+            value={profile.deafenShortcut}
+            change={(deafenShortcut) =>
+              setProfile({ ...profile, deafenShortcut })
+            }
+            onRecording={setShortcutRecording}
+          />
+          <small>
+            Atalhos globais no Windows, inclusive em segundo plano. Use teclas
+            diferentes para mute, Deafen e PTT. Jogos elevados, anticheat e
+            remapeadores podem limitar a leitura. Deafen silencia voz e
+            transmissões recebidas e bloqueia o microfone; ao sair, restaura o
+            mute anterior.
+          </small>
+          {conflict && (
+            <p role="alert">
+              Escolha teclas diferentes para PTT, mute e Deafen antes de salvar.
+            </p>
+          )}
           <label className="checkbox">
             <input
               type="checkbox"
@@ -301,6 +343,22 @@ export function ProfileForm({
           )}
         </section>
         <section hidden={category !== "Notificações"}>
+          <NotificationSettings
+            profile={profile}
+            change={setProfile}
+            room={room}
+            scope={scope}
+          />
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={profile.shortcutSounds !== false}
+              onChange={(e) =>
+                setProfile({ ...profile, shortcutSounds: e.target.checked })
+              }
+            />
+            Sons de mute e Deafen
+          </label>
           <label className="checkbox">
             <input
               type="checkbox"
@@ -325,6 +383,54 @@ export function ProfileForm({
             />{" "}
             Sons de entrada e saída da chamada e início/fim de transmissão
           </label>
+        </section>
+        <section hidden={category !== "Windows"}>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={!!profile.launchAtLogin}
+              onChange={(e) =>
+                setProfile({ ...profile, launchAtLogin: e.target.checked })
+              }
+            />
+            Iniciar com o Windows
+          </label>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={!!profile.startMinimized}
+              onChange={(e) =>
+                setProfile({ ...profile, startMinimized: e.target.checked })
+              }
+            />
+            Iniciar minimizado na bandeja
+          </label>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={!!profile.closeToTray}
+              onChange={(e) =>
+                setProfile({ ...profile, closeToTray: e.target.checked })
+              }
+            />
+            Botão fechar minimiza para a bandeja
+          </label>
+          <small>
+            A inicialização automática é aplicada na versão instalada. As
+            chamadas continuam quando a janela está na bandeja. Use Sair no menu
+            da bandeja para encerrar o Voxy.
+          </small>
+          <button
+            type="button"
+            onClick={() =>
+              void window.voxy
+                .minimizeToTray()
+                .catch((e) => setKeyError(e.message))
+            }
+          >
+            Minimizar para a bandeja agora
+          </button>
+          {keyError && <p role="alert">{keyError}</p>}
         </section>
         <section hidden={category !== "Áudio e Voz"}>
           <fieldset className="audio-processing">
@@ -499,7 +605,14 @@ export function ProfileForm({
         </section>
         <button
           className="primary"
-          disabled={busy || photoBusy || bannerBusy || recording}
+          disabled={
+            busy ||
+            photoBusy ||
+            bannerBusy ||
+            recording ||
+            shortcutRecording ||
+            conflict
+          }
         >
           Salvar perfil e dispositivos
         </button>

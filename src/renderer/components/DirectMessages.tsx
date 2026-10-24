@@ -175,6 +175,7 @@ export function DirectConversation({
   command,
   profiles,
   onProfile,
+  locateMessage,
 }: {
   inbox: Inbox;
   target: DirectTarget | null;
@@ -185,6 +186,7 @@ export function DirectConversation({
   command: (command: Command) => Promise<void>;
   profiles?: Record<string, Participant["profile"]>;
   onProfile?: (id: string, x: number, y: number) => void;
+  locateMessage?: { id: string };
 }) {
   const { room, contact } = findConversation(inbox, target),
     [error, setError] = useState("");
@@ -257,6 +259,7 @@ export function DirectConversation({
         </p>
       )}
       <Chat
+        locateMessage={locateMessage}
         profiles={room.scope === inbox.activeScope ? profiles : undefined}
         nameColor={(id) =>
           room.scope === inbox.activeScope

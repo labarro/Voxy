@@ -1,4 +1,18 @@
 const key = (label: string, vk: number) => ({ label, vk });
+export const DEFAULT_NOTIFICATIONS = {
+  native: true,
+  sounds: true,
+  types: {
+    mention: true,
+    reply: true,
+    direct: true,
+    "friend-request": true,
+    "friend-accepted": true,
+  },
+  mutedServers: [] as string[],
+  mutedChannels: [] as string[],
+  dndUntil: 0,
+};
 export const PTT_KEYS: Record<string, { label: string; vk: number }> = {
   Mouse4: key("Mouse 4 (lateral voltar)", 5),
   Mouse5: key("Mouse 5 (lateral avançar)", 6),
@@ -85,4 +99,40 @@ export function microphoneMuted(
   pressed: boolean,
 ) {
   return manual || (ptt && !pressed);
+}
+
+export type VoiceShortcut = {
+  key: string;
+  ctrl: boolean;
+  alt: boolean;
+  shift: boolean;
+};
+export function shortcutLabel(s?: VoiceShortcut | null) {
+  return s
+    ? [
+        s.ctrl && "Ctrl",
+        s.alt && "Alt",
+        s.shift && "Shift",
+        PTT_KEYS[s.key]?.label,
+      ]
+        .filter(Boolean)
+        .join(" + ")
+    : "Desativado";
+}
+// Reserve the physical key, including aliases (Enter / NumpadEnter), so that
+// holding PTT can never trigger a toggle with an extra modifier.
+export function shortcutConflict(p: {
+  pttEnabled?: boolean;
+  pttKey?: string;
+  muteShortcut?: VoiceShortcut | null;
+  deafenShortcut?: VoiceShortcut | null;
+}) {
+  const keys = [
+    p.pttEnabled ? (p.pttKey ?? "KeyV") : null,
+    p.muteShortcut?.key,
+    p.deafenShortcut?.key,
+  ]
+    .filter((k): k is string => !!k)
+    .map((k) => PTT_KEYS[k]?.vk);
+  return new Set(keys).size !== keys.length;
 }

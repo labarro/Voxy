@@ -1,4 +1,4 @@
-import type { PttKey } from "./preferences";
+import type { PttKey, VoiceShortcut } from "./preferences";
 export type Presence = "online" | "away" | "busy";
 export type Profile = {
   id: string;
@@ -10,6 +10,13 @@ export type Profile = {
   cameraDevice?: string;
   pttEnabled?: boolean;
   pttKey?: PttKey;
+  muteShortcut?: VoiceShortcut | null;
+  deafenShortcut?: VoiceShortcut | null;
+  shortcutSounds?: boolean;
+  notifications?: NotificationPreferences;
+  launchAtLogin?: boolean;
+  startMinimized?: boolean;
+  closeToTray?: boolean;
   inputVolume?: number;
   noiseSuppression?: boolean;
   echoCancellation?: boolean;
@@ -61,6 +68,7 @@ export type Participant = {
   host: boolean;
 };
 export type Message = {
+  replyAuthor?: string | null;
   replyTo?: string | null;
   reactions?: Record<string, string[]>;
   id: string;
@@ -230,6 +238,13 @@ export type Inbox = { rooms: DirectRoom[]; activeScope?: string };
 export type Reply<T = unknown> =
   { ok: true; value: T } | { ok: false; error: string };
 export type NetworkEvent =
+  | {
+      type: "notifications";
+      state: NotificationState;
+      alert?: AppNotification;
+      sound?: boolean;
+    }
+  | { type: "open-notification"; notification: AppNotification }
   | { type: "activity"; background: boolean }
   | {
       type: "message-update";
@@ -258,7 +273,9 @@ export type NetworkEvent =
       maxAttempts?: number;
       message?: string;
     };
-export type PttEvent = { type: "ptt"; pressed: boolean; error?: string };
+export type PttEvent =
+  | { type: "ptt"; pressed: boolean; error?: string }
+  | { type: "voice-shortcut"; action: "mute" | "deafen"; error?: string };
 export type HostInfo = { invite: string; address: string; port: number };
 export type Source = { id: string; name: string; thumbnail: string };
 export type UpdatePackage = {
@@ -306,6 +323,11 @@ export type RoomAvailability = {
   status: "available" | "unavailable" | "invalid" | "missing" | "full";
 };
 export interface DesktopAPI {
+  notifications(): Promise<NotificationState>;
+  readNotification(id?: string): Promise<void>;
+  notificationView(view: NotificationView): Promise<void>;
+  openNotification(id: string): Promise<void>;
+  minimizeToTray(): Promise<void>;
   profileImage(id: string): Promise<string>;
   chatHistory(query: HistoryQuery): Promise<Message[]>;
   openExternal(url: string): Promise<void>;
@@ -345,9 +367,44 @@ export interface DesktopAPI {
   signal(signal: Signal): Promise<void>;
   sources(): Promise<Source[]>;
   selectSource(id: string, audio: boolean): Promise<void>;
+  captureAudioAvailable(): Promise<boolean>;
+  pauseVoiceShortcuts(paused: boolean): Promise<void>;
+  titlebarTheme(color: string, symbolColor: string): Promise<void>;
   copy(text: string): Promise<void>;
   onEvent(fn: (event: NetworkEvent | PttEvent) => void): () => void;
 }
+
+export type NotificationKind =
+  "mention" | "reply" | "direct" | "friend-request" | "friend-accepted";
+export type NotificationPreferences = {
+  native: boolean;
+  sounds: boolean;
+  types: Record<NotificationKind, boolean>;
+  mutedServers: string[];
+  mutedChannels: string[];
+  dndUntil: number;
+};
+export type NotificationView = {
+  scope?: string;
+  channelId?: string;
+  peer?: string;
+  friends?: boolean;
+};
+export type AppNotification = NotificationView & {
+  id: string;
+  kind: NotificationKind;
+  title: string;
+  body: string;
+  time: number;
+  read: boolean;
+  serverId?: string;
+  messageId?: string;
+};
+export type NotificationState = {
+  items: AppNotification[];
+  unreadChannels: Record<string, number>;
+  unreadServers: Record<string, number>;
+};
 declare global {
   interface Window {
     voxy: DesktopAPI;

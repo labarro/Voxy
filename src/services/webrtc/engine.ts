@@ -1,6 +1,7 @@
 import type { Participant, Signal, Profile } from "../../shared/types";
 import { MAX_PARTICIPANTS } from "../../shared/constants";
 import { microphoneMuted } from "../../shared/preferences";
+import { shareAudioConstraints } from "../../shared/capture";
 import { VoicePlayback } from "./voicePlayback";
 import { MicrophonePipeline, microphoneConstraints } from "./microphone";
 export const qualities = {
@@ -524,12 +525,14 @@ export class VoiceEngine {
     });
   }
   setMuted(value: boolean) {
+    if (this.muted !== value) this.controlSound(value ? "mute" : "unmute");
     this.muted = value;
     this.applyMicrophone();
   }
   isMuted() {
     return (
       this.testingMicrophone ||
+      this.deafened ||
       microphoneMuted(this.muted, this.pttEnabled, this.pressed)
     );
   }
@@ -566,7 +569,7 @@ export class VoiceEngine {
     this.applyMicrophone();
   }
   microphoneState(): "muted" | "ptt-waiting" | "active" {
-    if (this.muted || this.testingMicrophone) return "muted";
+    if (this.muted || this.deafened || this.testingMicrophone) return "muted";
     return this.pttEnabled && !this.pressed ? "ptt-waiting" : "active";
   }
   setPttPressed(pressed: boolean) {
@@ -577,6 +580,7 @@ export class VoiceEngine {
       this.pttEnabled &&
       this.active &&
       !this.muted &&
+      !this.deafened &&
       !this.testingMicrophone &&
       this.preferences?.pttSounds !== false
     )
@@ -584,28 +588,49 @@ export class VoiceEngine {
     this.applyMicrophone();
   }
   private chime(
-    kind: "join" | "leave" | "share" | "share-stop" | "ptt-on" | "ptt-off",
+    kind:
+      | "join"
+      | "leave"
+      | "share"
+      | "share-stop"
+      | "ptt-on"
+      | "ptt-off"
+      | "mute"
+      | "unmute"
+      | "deafen"
+      | "undeafen",
   ) {
+    const control = ["mute", "unmute", "deafen", "undeafen"].includes(kind);
     if (
-      (!kind.startsWith("ptt-") && !this.callSounds) ||
-      this.deafened ||
+      (control
+        ? this.preferences?.shortcutSounds === false
+        : !kind.startsWith("ptt-") && !this.callSounds) ||
+      (this.deafened && !control) ||
       !this.context
     )
       return;
     const ctx = this.context;
     const now = ctx.currentTime;
     const notes =
-      kind === "ptt-on"
-        ? [620, 880]
-        : kind === "ptt-off"
-          ? [440, 310]
-          : kind === "share"
-            ? [523.25, 659.25, 1046.5]
-            : kind === "share-stop"
-              ? [784, 587.33, 392]
-              : kind === "join"
-                ? [440, 660]
-                : [660, 330];
+      kind === "mute"
+        ? [380, 260]
+        : kind === "unmute"
+          ? [520, 760]
+          : kind === "deafen"
+            ? [480, 320, 200]
+            : kind === "undeafen"
+              ? [320, 520, 820]
+              : kind === "ptt-on"
+                ? [620, 880]
+                : kind === "ptt-off"
+                  ? [440, 310]
+                  : kind === "share"
+                    ? [523.25, 659.25, 1046.5]
+                    : kind === "share-stop"
+                      ? [784, 587.33, 392]
+                      : kind === "join"
+                        ? [440, 660]
+                        : [660, 330];
     for (let i = 0; i < notes.length; i++) {
       const oscillator = ctx.createOscillator(),
         gain = ctx.createGain();
@@ -624,8 +649,19 @@ export class VoiceEngine {
       };
     }
   }
+  private controlSound(kind: "mute" | "unmute" | "deafen" | "undeafen") {
+    if (this.active && this.preferences?.shortcutSounds !== false) {
+      void this.context
+        ?.resume()
+        .then(() => this.chime(kind))
+        .catch(() => {});
+    }
+  }
   setDeafened(value: boolean) {
+    if (this.deafened !== value)
+      this.controlSound(value ? "deafen" : "undeafen");
     this.deafened = value;
+    this.applyMicrophone();
     for (const [id, p] of this.peers) {
       p.audio.muted = value || this.isParticipantMuted(id);
       p.systemAudio.muted = value || !this.screens.has(id);
@@ -796,11 +832,24 @@ export class VoiceEngine {
           height: { ideal: q.height },
           frameRate: { ideal: q.fps, max: q.fps },
         },
-        audio,
+        audio: shareAudioConstraints(audio),
       });
       if (generation !== this.generation) {
         stream.getTracks().forEach((t) => t.stop());
         return;
+      }
+      // A silently ignored constraint must never reintroduce call loopback.
+      for (const audioTrack of stream.getAudioTracks()) {
+        if (
+          (
+            audioTrack.getSettings() as MediaTrackSettings & {
+              restrictOwnAudio?: boolean;
+            }
+          ).restrictOwnAudio !== true
+        ) {
+          audioTrack.stop();
+          stream.removeTrack(audioTrack);
+        }
       }
       this.screen = stream;
       this.quality = quality;
@@ -824,7 +873,7 @@ export class VoiceEngine {
         local: stream,
         error:
           audio && !stream.getAudioTracks().length
-            ? "A fonte não forneceu áudio do sistema. A tela está sendo transmitida."
+            ? "Áudio indisponível ou sem confirmação da exclusão do Voxy. Somente o vídeo está sendo transmitido."
             : "",
       });
       this.sharingChanged(true);

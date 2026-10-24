@@ -1,15 +1,22 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { join } from "node:path";
-import { PTT_KEYS, isPttKey, type PttKey } from "../shared/preferences";
+import {
+  PTT_KEYS,
+  isPttKey,
+  type PttKey,
+  type VoiceShortcut,
+} from "../shared/preferences";
 export class PushToTalk {
   private child?: ChildProcessWithoutNullStreams;
   private key?: PttKey;
   private timer?: ReturnType<typeof setInterval>;
   private pressed = false;
   private generation = 0;
+  private signature = "";
   constructor(private changed: (pressed: boolean, error?: string) => void) {}
-  configure(enabled: boolean, key: PttKey) {
-    if (enabled && key === this.key && this.child) return;
+  configure(enabled: boolean, key: PttKey, chord?: VoiceShortcut) {
+    const signature = JSON.stringify([key, chord]);
+    if (enabled && signature === this.signature && this.child) return;
     this.stop();
     if (!enabled) return;
     if (process.platform !== "win32") {
@@ -20,9 +27,24 @@ export class PushToTalk {
     if (!vk) throw Error("Tecla de Push to Talk inválida.");
     const generation = ++this.generation;
     this.key = key;
+    this.signature = signature;
+    const modifiers = chord
+      ? [
+          [17, chord.ctrl],
+          [18, chord.alt],
+          [16, chord.shift],
+          [91, false],
+          [92, false],
+        ]
+          .map(
+            ([code, held]) =>
+              `([VoxyKey]::GetAsyncKeyState(${code}) -${held ? "lt" : "ge"} 0)`,
+          )
+          .join(" -and ")
+      : "$true";
     // Only a validated numeric virtual-key code is interpolated. No renderer code,
     // file path or shell command is accepted. High bit means held, not toggle.
-    const script = `$ErrorActionPreference='Stop'; Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class VoxyKey { [DllImport("user32.dll")] public static extern short GetAsyncKeyState(int key); }'; $parentProcess=[System.Diagnostics.Process]::GetProcessById(${process.pid}); $lastState=$null; $clock=[System.Diagnostics.Stopwatch]::StartNew(); while(-not $parentProcess.HasExited){ $held=([VoxyKey]::GetAsyncKeyState(${vk}) -lt 0); if($held -ne $lastState -or $clock.ElapsedMilliseconds -gt 500){ if($held){[Console]::WriteLine('1')}else{[Console]::WriteLine('0')}; [Console]::Out.Flush(); $lastState=$held; $clock.Restart() }; Start-Sleep -Milliseconds 15 }`;
+    const script = `$ErrorActionPreference='Stop'; Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class VoxyKey { [DllImport("user32.dll")] public static extern short GetAsyncKeyState(int key); }'; $parentProcess=[System.Diagnostics.Process]::GetProcessById(${process.pid}); $lastState=$null; $armed=$false; $clock=[System.Diagnostics.Stopwatch]::StartNew(); while(-not $parentProcess.HasExited){ $keyHeld=([VoxyKey]::GetAsyncKeyState(${vk}) -lt 0); if(-not $keyHeld){$armed=$true}; $held=$keyHeld -and (${modifiers})${chord ? " -and $armed" : ""}; if($held -ne $lastState -or $clock.ElapsedMilliseconds -gt 500){ if($held){[Console]::WriteLine('1')}else{[Console]::WriteLine('0')}; [Console]::Out.Flush(); $lastState=$held; $clock.Restart() }; Start-Sleep -Milliseconds 15 }`;
     const executable = join(
       process.env.SystemRoot ?? "C:\\Windows",
       "System32",

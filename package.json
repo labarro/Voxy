@@ -1,6 +1,6 @@
 {
   "name": "voxy-desktop",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "description": "Voz e tela entre amigos pela sua rede privada",
   "author": "Voxy",
@@ -27,7 +27,10 @@
     "test:ux": "tsx tests/ux.e2e.ts",
     "test:audio": "tsx tests/audio.e2e.ts",
     "test:social": "tsx tests/social.e2e.ts",
-    "test:gallery": "tsx tests/gallery.e2e.ts"
+    "test:gallery": "tsx tests/gallery.e2e.ts",
+    "test:controls": "tsx tests/voiceControls.e2e.ts",
+    "test:capture": "tsx tests/captureAudio.e2e.ts",
+    "test:system": "tsx tests/systemFeatures.e2e.ts"
   },
   "dependencies": {
     "electron-updater": "6.8.9",
@@ -46,7 +49,7 @@
     "@types/react-dom": "^19.2.0",
     "@types/sql.js": "^1.4.9",
     "@vitejs/plugin-react": "latest",
-    "electron": "latest",
+    "electron": "44.9.0",
     "electron-builder": "latest",
     "esbuild": "latest",
     "playwright": "latest",
@@ -60,11 +63,17 @@
     "appId": "dev.voxy.desktop",
     "productName": "Voxy",
     "directories": {
-      "output": "release/0.7.0"
+      "output": "release/0.8.0"
     },
     "files": [
       "dist/**/*",
       "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "build/icon.ico",
+        "to": "icon.ico"
+      }
     ],
     "asar": true,
     "electronDist": "node_modules/electron/dist",

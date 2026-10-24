@@ -1,5 +1,11 @@
 # Voxy — distribuir e atualizar sem perder os dados
 
+## Versão 0.8.0 em preparação
+
+A 0.8.0 reúne captura com exclusão do áudio do Voxy, mute/Deafen globais, barra temática, notificações persistentes, PiP e bandeja. A última versão publicada continua sendo 0.7.0. O pacote local em preparação usa `release/0.8.0/`; não distribua seus metadados como uma release publicada antes do workflow obrigatório.
+
+O backup passa a incluir `notifications.json`, além do perfil, banco, caixa de DMs e identidades. Preferências de notificações, atalhos e Windows migram com padrões compatíveis. Atualize também o host para identificar respostas antigas nas notificações. [Áudio e limitações](AUDIO-E-CONEXAO.md) · [Notificações, PiP e Windows](NOTIFICACOES-E-WINDOWS.md).
+
 ## Atualização para 0.7.0
 
 Inclui temas, capas, cargos, amigos e chamadas privadas, respostas/menções/reações e grade simultânea de telas e webcams. O áudio usa captura mono e normalização nativa, com estados e sons locais do PTT. Veja [Personalização e recursos sociais](SOCIAL-E-PERSONALIZACAO.md) e [Áudio e conexão](AUDIO-E-CONEXAO.md).

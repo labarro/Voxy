@@ -13,6 +13,7 @@ export function MediaGallery({
   onViewing,
   onVolume,
   background = false,
+  onPictureInPicture,
 }: {
   participants: Participant[];
   selfId: string;
@@ -24,8 +25,10 @@ export function MediaGallery({
   onViewing: (screens: string[], cameras: string[]) => void;
   onVolume: (id: string, value: number) => void;
   background?: boolean;
+  onPictureInPicture?: (active: boolean) => void;
 }) {
   const [hidden, setHidden] = useState<Set<string>>(() => new Set());
+  const [pip, setPip] = useState<string | null>(null);
   const [visible, setVisible] = useState(!document.hidden);
   const callbacks = useRef({ onViewing, onFocus });
   callbacks.current = { onViewing, onFocus };
@@ -40,9 +43,10 @@ export function MediaGallery({
   const expanded = focus && sources.some((s) => s.key === focus) ? focus : null;
   const shown = sources.filter(
     (s) =>
-      visible &&
-      !background &&
-      (expanded ? s.key === expanded : !hidden.has(s.key)),
+      s.key === pip ||
+      (visible &&
+        !background &&
+        (expanded ? s.key === expanded : !hidden.has(s.key))),
   );
   const screens = shown
     .filter((s) => s.kind === "screen" && s.p.id !== selfId)
@@ -86,6 +90,12 @@ export function MediaGallery({
       >
         {shown.map(({ p, kind, key }) => (
           <Player
+            onPictureInPicture={(active) => {
+              setPip((current) =>
+                active ? key : current === key ? null : current,
+              );
+              onPictureInPicture?.(active);
+            }}
             key={key}
             stream={
               kind === "camera"
@@ -113,7 +123,9 @@ export function MediaGallery({
       </div>
       {(!visible || background) && (
         <p className="hint">
-          Vídeos pausados enquanto o aplicativo está minimizado.
+          {pip
+            ? "Picture-in-Picture ativo · sempre no topo. Os demais vídeos estão pausados."
+            : "Vídeos pausados enquanto o aplicativo está minimizado."}
         </p>
       )}
     </section>

@@ -95,6 +95,7 @@ export class UpdateManager {
       "release-notes.json",
       "recent-rooms.json",
       "direct-inbox.json",
+      "notifications.json",
       "profile-identity.bin",
       "remote-release-history.json",
     ]) {

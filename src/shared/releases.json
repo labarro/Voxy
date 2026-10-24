@@ -183,5 +183,38 @@
     "fixes": [
       "O canal de voz anterior é restaurado após uma queda temporária, quando ainda existe e o microfone está disponível."
     ]
+  },
+  "0.8.0": {
+    "date": "2026-10-24",
+    "title": "Áudio sem retorno, notificações e Voxy sempre por perto",
+    "items": [
+      "Compartilhamento com exclusão do áudio do Voxy em Windows compatível, para janelas e tela inteira.",
+      "Atalhos globais configuráveis de mute e Deafen, incluindo combinações e Mouse 4/5.",
+      "Deafen bloqueia o microfone e o áudio recebido, restaurando o mute anterior ao desativar.",
+      "Indicadores discretos e sons distintos para mute e Deafen.",
+      "Barra de título integrada aos temas, com controles nativos da janela.",
+      "Central persistente de menções, respostas, DMs e amizades, com leitura e navegação ao destino.",
+      "Indicadores de não lidas, alertas do Windows, sons configuráveis, silêncios por servidor/canal e Não Perturbe temporário.",
+      "Picture-in-Picture nativo para tela e webcam, com vídeo contínuo na bandeja.",
+      "Bandeja com controles da chamada, opções de inicialização no Windows e fechamento configurável."
+    ],
+    "features": [
+      "Atalhos de mute e Deafen persistentes, com bloqueio de conflitos com o Push-to-Talk.",
+      "Sons locais opcionais e aviso visual ao alternar os estados.",
+      "Central de notificações com histórico local de até 500 entradas e leitura individual ou em lote.",
+      "PiP móvel e redimensionável, sempre no topo, reutilizando a mídia já recebida.",
+      "Menu da bandeja para abrir, mute, Deafen e sair, mantendo chamadas enquanto a janela está oculta."
+    ],
+    "improvements": [
+      "Barra de título acompanha os temas, inclusive Kuromi e cor personalizada, mantendo arraste, duplo clique e controles nativos.",
+      "Seleção de compartilhamento explica o escopo do áudio e as limitações do sistema.",
+      "Deduplicação persistente de notificações e supressão de alertas para conversas já visíveis.",
+      "Histórico de notificações incluído no backup de atualização e retomada da janela pela instância existente."
+    ],
+    "fixes": [
+      "O áudio compartilhado solicita a exclusão do Voxy e descarta tracks sem confirmação dessa proteção.",
+      "Deafen também corta o envio do microfone e preserva o mute manual anterior.",
+      "PiP mantém a assinatura de vídeo em segundo plano e fecha quando a fonte termina."
+    ]
   }
 }

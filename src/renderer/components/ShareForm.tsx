@@ -1,4 +1,5 @@
 import type { Source } from "../../shared/types";
+import { useEffect, useState } from "react";
 import { qualities, type Quality } from "../../services/webrtc/engine";
 export function ShareForm({
   sources,
@@ -21,6 +22,24 @@ export function ShareForm({
   busy: boolean;
   onShare: () => void;
 }) {
+  const [audioAvailable, setAudioAvailable] = useState(false);
+  useEffect(() => {
+    let disposed = false;
+    void window.voxy
+      .captureAudioAvailable()
+      .then((available) => {
+        if (!disposed) {
+          setAudioAvailable(available);
+          if (!available) setSystemAudio(false);
+        }
+      })
+      .catch(() => {
+        if (!disposed) setSystemAudio(false);
+      });
+    return () => {
+      disposed = true;
+    };
+  }, [setSystemAudio]);
   return (
     <form
       onSubmit={(e) => {
@@ -63,13 +82,16 @@ export function ShareForm({
         <input
           type="checkbox"
           checked={systemAudio}
+          disabled={!audioAvailable}
           onChange={(e) => setSystemAudio(e.target.checked)}
         />{" "}
-        Incluir áudio do sistema (Windows)
+        Incluir áudio do computador sem o Voxy
       </label>
       <small>
-        Captura o áudio de todo o sistema, inclusive vozes reproduzidas. Use
-        fones; desative se houver eco. FPS e resolução dependem do hardware.
+        {audioAvailable
+          ? "Inclui jogos, navegadores e outros sons do computador; exclui o áudio do Voxy, inclusive a chamada. Escolher uma janela limita somente o vídeo. Para transmitir apenas um aplicativo, silencie os demais no mixer do Windows."
+          : "Áudio seguro indisponível neste sistema. Compartilhe somente o vídeo. A exclusão do Voxy requer Windows build 20348 ou superior (Windows 11)."}{" "}
+        FPS e resolução dependem do hardware.
       </small>
       <button className="primary" disabled={busy || !source}>
         {busy ? "Iniciando captura…" : "Iniciar transmissão"}

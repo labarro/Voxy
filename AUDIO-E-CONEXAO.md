@@ -1,4 +1,26 @@
-# Áudio e reconexão — Voxy 0.7.0
+# Áudio e reconexão — Voxy 0.8.0 em preparação
+
+## Compartilhamento sem retorno da chamada
+
+Marque **Incluir áudio do computador sem o Voxy** ao compartilhar uma janela ou monitor. O Electron 44.9 usa `restrictOwnAudio` para excluir a reprodução do Voxy. Isso retira as vozes recebidas, transmissões assistidas e sons locais da captura; o microfone continua sendo enviado separadamente pelo canal de voz. A captura de jogos e músicas não solicita filtros de voz, ganho automático nem supressão de ruído.
+
+Esta API não oferece captura isolada de um processo externo. Escolher uma janela restringe o vídeo, mas o áudio inclui os outros aplicativos do computador. Para compartilhar apenas um jogo ou navegador, silencie os demais no mixer do Windows. Não use o mixer para silenciar o Voxy: a exclusão é automática. Esta é a alternativa compatível implementada, sem driver virtual ou binário nativo adicional.
+
+O modo seguro requer Windows build 20348 ou superior (inclui Windows 11) e o Electron fixado nesta versão. No Windows 10 comum (build 19045), o áudio fica desativado na seleção. Se a captura não confirmar `restrictOwnAudio` na track, a track é descartada e o compartilhamento continua somente com vídeo, acompanhado de aviso. Nunca há fallback para captura irrestrita. Fones continuam recomendados para evitar eco acústico do microfone.
+
+Referências: [correção do Electron para restrictOwnAudio](https://releases.electronjs.org/pr/52455), [limitação da captura de aplicações externas](https://github.com/electron/electron/issues/54628) e [requisitos do loopback por processo no Windows](https://learn.microsoft.com/en-us/windows/win32/api/audioclientactivationparams/ne-audioclientactivationparams-process_loopback_mode).
+
+## Mute e Deafen por atalho
+
+Em **Configurações → Atalhos**, clique em **Configurar Mutar/desmutar microfone** ou **Configurar Deafen**. Pressione uma tecla, combinação com Ctrl/Alt/Shift ou Mouse 4/5; Esc cancela. Salve o perfil. **Remover atalho** desativa a ação global. Atalhos ficam pausados enquanto as configurações estão abertas para permitir a gravação sem alternar a chamada. Eles não bloqueiam a função original das teclas em outros programas.
+
+O aplicativo impede usar a mesma tecla física em PTT, mute e Deafen, mesmo com modificadores diferentes. Os atalhos funcionam enquanto você está em um canal de voz, inclusive com a janela minimizada; as mesmas limitações de anticheat, privilégios e remapeamento do PTT se aplicam.
+
+Deafen silencia voz e transmissões recebidas e bloqueia o envio do microfone. Durante Deafen, mute não altera o estado anterior. Ao desativar, o mute manual e a regra do PTT voltam a valer, sem alterar volumes ou mutes individuais. Um aviso breve confirma a ação; o indicador de Deafen permanece na barra superior. **Notificações → Sons de mute e Deafen** controla os quatro efeitos locais, inclusive a confirmação ao ativar Deafen.
+
+## Barra da janela
+
+A barra superior usa as cores do tema, incluindo Kuromi e a cor principal personalizada. Os botões de minimizar, maximizar/restaurar e fechar continuam nativos, com suas áreas de hover e suporte ao Snap do Windows. Arraste e duplo clique na área de título e redimensionamento pelas bordas permanecem disponíveis.
 
 ## Ajustar e testar o microfone
 
@@ -33,6 +55,8 @@ Se o canal foi excluído, a autorização foi recusada ou a entrada de áudio fa
 ## Sons de eventos
 
 Entrada e saída usam melodias de duas notas, com nível maior que na 0.5.0. Início e fim de tela usam melodias distintas de três notas. Snapshots repetidos não repetem o efeito; outros canais não disparam o som. A opção **Sons de entrada e saída da chamada e início/fim de transmissão** controla todos os efeitos; deafen também os silencia. O volume percebido depende da saída e do mixer do Windows.
+
+Na 0.8.0, os quatro sons de mute/Deafen e os sons de notificações têm preferências separadas. A confirmação de ativar/desativar Deafen continua audível quando habilitada, mesmo enquanto a recepção da chamada está silenciada.
 
 ## Links no chat
 

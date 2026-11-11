@@ -22,6 +22,13 @@ async function main() {
   const apps: ElectronApplication[] = [],
     pages: Page[] = [],
     errors: string[] = [];
+  const activate = async (index: number) => {
+    await apps[index].evaluate(({ BrowserWindow }) => {
+      const window = BrowserWindow.getAllWindows()[0];
+      window.show();
+      window.focus();
+    });
+  };
   try {
     for (let i = 0; i < 2; i++) {
       const env = Object.fromEntries(
@@ -48,6 +55,15 @@ async function main() {
         env,
       });
       apps.push(app);
+      await app.evaluate(({ BrowserWindow }, index) => {
+        // Two desktop processes must remain partially visible on a single CI display.
+        // Playwright input injection alone does not activate native Electron windows.
+        BrowserWindow.getAllWindows()[0].setPosition(
+          60 + index * 90,
+          40 + index * 70,
+        );
+      }, i);
+      await activate(i);
       const page = await app.firstWindow();
       pages.push(page);
       page.on("pageerror", (e) => errors.push(e.message));
@@ -117,17 +133,20 @@ async function main() {
       .locator("dialog[open]")
       .getByRole("button", { name: "Fechar", exact: true })
       .click();
-    for (const page of pages) {
+    for (const [index, page] of pages.entries()) {
+      await activate(index);
       await page
         .getByRole("button", { name: "Sala dos amigos", exact: true })
         .click();
       await page.locator(".room3d canvas").waitFor({ timeout: 30000 });
     }
+    await activate(0);
     await a.waitForFunction(() =>
       document
         .querySelector(".room-identity")
         ?.textContent?.includes("2 no ambiente"),
     );
+    await activate(1);
     const canvas = b.locator(".room3d canvas");
     await canvas.focus();
     await b.keyboard.down("KeyD");
@@ -192,6 +211,7 @@ async function main() {
       (await b.evaluate(() => window.voxy.profile())).avatar3d?.outfitStyle,
       "hoodie",
     );
+    await activate(0);
     await a.waitForFunction(
       () =>
         (window as any).latestAvatarProfiles?.find(
@@ -199,6 +219,7 @@ async function main() {
         )?.avatar3d?.hairStyle === "curly",
     );
     await a.evaluate(() => (window as any).avatarOff());
+    await activate(1);
     await b
       .getByRole("button", { name: "Tela cheia da sala", exact: true })
       .click();
@@ -242,6 +263,7 @@ async function main() {
         return stream;
       };
     });
+    await activate(0);
     await a
       .locator(".room-dock")
       .getByRole("button", { name: "Compartilhar tela", exact: true })
@@ -250,6 +272,7 @@ async function main() {
       .locator("dialog[open]")
       .getByRole("button", { name: "Iniciar transmissão", exact: true })
       .click();
+    await activate(1);
     await b
       .getByRole("button", { name: "Assistir na TV", exact: true })
       .click();
@@ -291,6 +314,7 @@ async function main() {
     assert.equal(await b.locator(".room-tv-expanded").count(), 0);
     await b.waitForTimeout(250);
     await b.screenshot({ path: join(root, "integrated-tv.png") });
+    await activate(0);
     await a
       .locator(".room-dock")
       .getByRole("button", { name: "Parar transmissão", exact: true })

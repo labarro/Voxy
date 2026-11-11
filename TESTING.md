@@ -4,7 +4,7 @@
 
 Correção local confirmada pelo usuário: os atalhos de Menu Iniciar e Desktop apontam ao Voxy instalado, com ícone explícito de `resources/icon.ico` e AppUserModelID `dev.voxy.desktop`. O atalho Electron que apontava ao runtime do projeto foi guardado em backup, e sua entrada inválida retirada do Menu Iniciar. A interface instalada foi observada aberta com o título Voxy. Não houve troca do executável instalado ou remoção dos dados pessoais.
 
-O código da próxima versão separa desenvolvimento/produção, mantém os dados instalados em `voxy-desktop`, define ícone e comando de reabertura da janela e recria o atalho do Menu Iniciar no instalador. Abertura manual e retorno após atualizar mostram a janela. O lançamento está adiado; não houve tag, push ou publicação da 0.8.1.
+As correções separaram desenvolvimento/produção, mantiveram os dados instalados em `voxy-desktop`, definiram ícone e comando de reabertura da janela e recriaram o atalho do Menu Iniciar no instalador. Abertura manual e retorno após atualizar mostram a janela. A preparação 0.8.1 não foi publicada separadamente; essas correções integram a 1.0.0.
 
 ## Versão 0.8.0 publicada — 24/10/2026
 
@@ -229,7 +229,9 @@ Para a versão 0.1.1, repita o roteiro com A, B, C, D e E na mesma rede Radmin, 
 
 `test:desktop` e `test:packaged` usam diretórios isolados dentro de `test-results/`. O teste de sinalização usa uma pasta temporária que ele mesmo cria e remove. Nenhum teste deve apontar para `%APPDATA%/voxy-desktop`. Feche janelas e capture somente conteúdo de teste; o teste desktop usa a fonte nativa selecionada e pode registrar seu monitor em screenshots locais.
 
-## Verificações das salas 3D (1.0.0 em preparação)
+## Verificações das salas 3D (1.0.0 publicada)
+
+A [publicação 1.0.0](https://github.com/labarro/Voxy/releases/tag/v1.0.0) concluiu o [workflow 43038013587](https://github.com/labarro/Voxy/actions/runs/43038013587) com sucesso. Passaram os 40 testes, a geração do instalador e catálogo assinado, a persistência no executável ASAR e o fluxo 3D/TV em dois executáveis empacotados. Instalador, blockmap, manifesto, checksum e catálogo foram baixados; SHA-256/SHA-512, assinatura Ed25519 e notas correspondem à tag e ao pacote 1.0.0. O endpoint público entrega a mesma versão e o mesmo manifesto. Evidência: [publication-1.0.0.json](evidence/publication-1.0.0.json). O instalador foi baixado, mas não executado sobre a instalação pessoal.
 
 `npm test` inclui geometria/colisões, atenuação e direção espacial, validação de perfil, host real com três clientes Socket.IO, permissões, entrada sem sobreposição, reserva concorrente de assentos, isolamento das posições por canal, seleção compartilhada da TV com troca ao encerrar uma fonte, liberação de assentos, persistência do ambiente e aviso de novidades uma vez. `npm run test:rooms3d` exercita renderização WebGL, movimento, assentos, TV com MediaStream sintético, personalização e fallback gráfico. `npm run test:rooms3d:app` usa duas instâncias isoladas do Electron com sinalização, captura sintética e WebRTC reais: configuração do canal, perfil persistente, entrada automática, movimento, participantes, troca de visualização sem nova captura de microfone, mute, Deafen, vídeo remoto decodificado na TV/player e mudança simultânea de ambiente. Depois de `npm run pack`, `npm run test:rooms3d:packaged` repete esse fluxo usando dois processos do executável ASAR, incluindo o carregamento do módulo 3D pelo protocolo de arquivo.
 

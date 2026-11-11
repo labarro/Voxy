@@ -1,4 +1,4 @@
-# Notificações, PiP e Windows — 0.8.0
+# Notificações, PiP e Windows — 1.0.0
 
 ## Central e indicadores
 
@@ -39,7 +39,7 @@ Em **Configurações → Windows**:
 
 **Sair** encerra conexões, host, leitores de atalhos e a bandeja e salva o banco. Abrir novamente restaura a instância existente. A inicialização automática não é aplicada em desenvolvimento ou com `VOXY_DATA_DIR`, para não alterar o login pessoal durante os testes. As preferências podem ser desfeitas nas configurações. [API de inicialização do Electron](https://www.electronjs.org/docs/latest/api/app#appsetloginitemsettingssettings-macos-windows).
 
-Na **1.0.0 em preparação**, incluindo as correções locais da 0.8.1, abrir manualmente mostra a janela mesmo com início minimizado configurado. A janela só começa oculta com `--start-minimized`, usado pelo login automático; o retorno de uma atualização mostra o aplicativo. O instalador recria a entrada Voxy no Menu Iniciar, e o aplicativo instalado repara seu alvo e ícone ao iniciar. A execução de desenvolvimento usa identidade e dados separados em `voxy-desktop-development`; os dados instalados permanecem em `voxy-desktop`.
+Na **1.0.0**, incluindo as correções que estavam em preparação para 0.8.1, abrir manualmente mostra a janela mesmo com início minimizado configurado. A janela só começa oculta com `--start-minimized`, usado pelo login automático; o retorno de uma atualização mostra o aplicativo. O instalador recria a entrada Voxy no Menu Iniciar, e o aplicativo instalado repara seu alvo e ícone ao iniciar. A execução de desenvolvimento usa identidade e dados separados em `voxy-desktop-development`; os dados instalados permanecem em `voxy-desktop`.
 
 ## Verificação
 

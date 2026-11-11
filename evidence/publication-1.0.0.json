@@ -1,0 +1,66 @@
+{
+  "version": "1.0.0",
+  "verifiedAt": "2026-11-11T14:27:09.738Z",
+  "workflow": {
+    "id": 43038013587,
+    "url": "https://github.com/labarro/Voxy/actions/runs/43038013587",
+    "conclusion": "success",
+    "commit": "80b221979f6282d84a10cf791ff47ef8adc2f188",
+    "packaged3d": "passed in GitHub Actions"
+  },
+  "release": {
+    "url": "https://github.com/labarro/Voxy/releases/tag/v1.0.0",
+    "tag": "v1.0.0",
+    "draft": false,
+    "publishedAt": "2026-11-11T14:26:04Z",
+    "assets": [
+      {
+        "name": "latest.yml",
+        "size": 345,
+        "digest": "sha256:010c1070966e4406b8de7febd8cb3236f11f9985ce0df8aa75a5bf302f1c241c",
+        "verifiedSha256": "010c1070966e4406b8de7febd8cb3236f11f9985ce0df8aa75a5bf302f1c241c"
+      },
+      {
+        "name": "SHA256SUMS.txt",
+        "size": 91,
+        "digest": "sha256:01ab06a0d720da6c55a9a526badc50b38fb3b3cd83d8ffa4078f3de792c0d5f6",
+        "verifiedSha256": "01ab06a0d720da6c55a9a526badc50b38fb3b3cd83d8ffa4078f3de792c0d5f6"
+      },
+      {
+        "name": "voxy-release.json",
+        "size": 19783,
+        "digest": "sha256:85180ff883471d3b4c9b7224e0273c58f7cd00cb77739cb9aff2e7b8bf836844",
+        "verifiedSha256": "85180ff883471d3b4c9b7224e0273c58f7cd00cb77739cb9aff2e7b8bf836844"
+      },
+      {
+        "name": "Voxy-Setup-1.0.0-x64.exe",
+        "size": 126787591,
+        "digest": "sha256:7782469f880e335fcf5dc1bd253346fbd822ada41b682699f12782a103fe064c",
+        "verifiedSha256": "7782469f880e335fcf5dc1bd253346fbd822ada41b682699f12782a103fe064c"
+      },
+      {
+        "name": "Voxy-Setup-1.0.0-x64.exe.blockmap",
+        "size": 134051,
+        "digest": "sha256:1d85f99f63a89e22851ea6c4b384aadf3df738b5f4f637f3979e50938fe86323",
+        "verifiedSha256": "1d85f99f63a89e22851ea6c4b384aadf3df738b5f4f637f3979e50938fe86323"
+      }
+    ]
+  },
+  "updater": {
+    "endpoint": "https://www.devbarros.com/voxy/updates/",
+    "version": "1.0.0",
+    "signature": "valid",
+    "manifest": "valid",
+    "releaseNotesCount": 10,
+    "checksumMatchesGitHub": true,
+    "installerAndBlockmapSha512": "valid"
+  },
+  "validation": {
+    "unitTests": 40,
+    "packagedExecutable": "passed in GitHub Actions",
+    "packaged3dWithTwoClients": "passed in GitHub Actions",
+    "personalInstallationExecuted": false,
+    "installerDownloadedLocally": true,
+    "physicalMicrophonesTested": false
+  }
+}

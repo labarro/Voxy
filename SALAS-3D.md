@@ -1,4 +1,4 @@
-# Salas 3D · Voxy 1.0.0 em preparação
+# Salas 3D · Voxy 1.0.0
 
 O host escolhe **Lounge 3D**, **Cinema 3D** ou **Tradicional** para cada canal de voz em **Gerenciar servidor**. Os ambientes são prontos: não há editor nem construção livre. Atualize host e participantes para 1.0.0 para compartilhar este recurso; hosts anteriores continuam oferecendo chamadas tradicionais.
 
@@ -14,4 +14,4 @@ A TV mostra o compartilhamento existente, sem nova captura ou nova conexão WebR
 
 O 3D requer WebGL 2/aceleração gráfica disponível no Chromium. Em falhas de inicialização ou perda do contexto gráfico, o aplicativo retorna ao modo tradicional e mantém a chamada. A renderização pausa quando a janela está oculta ou há um diálogo; posições e áudio continuam sendo atualizados. As geometrias são locais e leves, sem download de modelos. Posições são enviadas apenas quando mudam, até cerca de nove vezes por segundo, e interpoladas nos outros clientes. O host valida limites, colisões, velocidade e ocupação. Posições/assentos são transitórios; ambiente do canal e personalização são persistentes.
 
-A implementação é local e está em preparação, sem publicação de instalador 1.0.0. O pacote para avaliação fica em `release/1.0.0/`; `latest-build.json` identifica a pasta `build-*`, onde `win-unpacked/Voxy.exe` pode ser aberto junto aos demais arquivos da pasta. Testes automatizados usam mídia sintética em navegador e em processos reais do Electron. Validação entre computadores reais, microfones físicos, GPUs integradas, VPN e sessões prolongadas continua necessária antes de declarar prontidão para lançamento. Veja [TESTING.md](TESTING.md).
+A [versão 1.0.0 está publicada](https://github.com/labarro/Voxy/releases/tag/v1.0.0), com instalador e catálogo de atualização verificados após a conclusão do [Actions](https://github.com/labarro/Voxy/actions/runs/43038013587). O pacote local fica em `release/1.0.0/`; `latest-build.json` identifica a pasta `build-*`, onde `win-unpacked/Voxy.exe` pode ser aberto junto aos demais arquivos da pasta. Testes automatizados usam mídia sintética em navegador e em processos reais do Electron, incluindo dois executáveis empacotados no CI. Validação acústica com microfones físicos, desempenho em GPUs integradas, VPN entre computadores distintos e sessões prolongadas continuam dependendo de testes manuais. Veja [TESTING.md](TESTING.md).

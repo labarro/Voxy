@@ -1,2 +1,2 @@
 # Preserve original license bytes covered by the room asset SHA-256 manifest.
-src/renderer/public/assets/room3d/**/LICENSE.txt -text
+src/renderer/public/assets/room3d/**/LICENSE.txt -text -whitespace

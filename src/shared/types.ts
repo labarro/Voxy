@@ -1,6 +1,33 @@
 import type { PttKey, VoiceShortcut } from "./preferences";
 export type Presence = "online" | "away" | "busy";
+export type RoomPreset = "lounge" | "cinema";
+export type RoomPose = {
+  x: number;
+  z: number;
+  yaw: number;
+  seat: string | null;
+  moving: boolean;
+};
+export type Avatar3D = {
+  hair: "short" | "long" | "crest";
+  hairColor: string;
+  skin: string;
+  outfit: "sweater" | "jacket";
+  color: string;
+  accessory: "none" | "glasses" | "headphones";
+};
+export type RoomSettings = {
+  entry: "always" | "ask" | "traditional";
+  quality: "low" | "medium" | "high";
+  proximity: boolean;
+  volume: number;
+  range: number;
+  sensitivity: number;
+  names: boolean;
+};
 export type Profile = {
+  avatar3d?: Avatar3D;
+  room3d?: RoomSettings;
   id: string;
   name: string;
   avatar: string;
@@ -41,6 +68,7 @@ export type Community = {
   icon?: string | null;
 };
 export type Channel = {
+  roomPreset?: RoomPreset | null;
   privateMembers?: string[];
   id: string;
   serverId: string;
@@ -48,6 +76,7 @@ export type Channel = {
   kind: "text" | "voice";
 };
 export type Participant = {
+  roomPose?: RoomPose;
   id: string;
   profile: Pick<
     Profile,
@@ -58,6 +87,7 @@ export type Participant = {
     | "nicknameColor"
     | "banner"
     | "mediaSubscriptions"
+    | "avatar3d"
   >;
   microphoneState?: "muted" | "ptt-waiting" | "active";
   channelId: string | null;
@@ -82,6 +112,7 @@ export type Message = {
   editedAt?: number | null;
 };
 export type RoomState = {
+  televisions?: Record<string, string>;
   friendships?: Friendship[];
   calls?: DirectCall[];
   roles?: ServerRole[];
@@ -93,6 +124,7 @@ export type RoomState = {
     mediaSubscriptions?: boolean;
     social?: boolean;
     richChat?: boolean;
+    rooms3d?: boolean;
   };
   protocol?: number;
   avatars?: Record<string, string>;
@@ -109,6 +141,9 @@ export type Signal = {
   candidate?: RTCIceCandidateInit;
 };
 export type Command =
+  | { type: "room.tv"; participantId: string }
+  | { type: "room.pose"; pose: RoomPose | null }
+  | { type: "channel.room"; id: string; preset: RoomPreset | null }
   | { type: "friend.request"; memberId: string }
   | { type: "friend.respond"; memberId: string; accept: boolean }
   | { type: "friend.remove"; memberId: string }
@@ -174,6 +209,7 @@ export type Command =
     }
   | {
       type: "profile";
+      avatar3d?: Avatar3D;
       name: string;
       avatar: string;
       presence?: Presence;
@@ -238,6 +274,7 @@ export type Inbox = { rooms: DirectRoom[]; activeScope?: string };
 export type Reply<T = unknown> =
   { ok: true; value: T } | { ok: false; error: string };
 export type NetworkEvent =
+  | { type: "room-pose"; id: string; channelId: string; pose: RoomPose | null }
   | {
       type: "notifications";
       state: NotificationState;

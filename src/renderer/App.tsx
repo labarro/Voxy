@@ -29,7 +29,16 @@ import {
 import { ReleaseChannel } from "./components/ReleaseChannel";
 import { ServerImage } from "./components/ServerImage";
 import { RemoteUpdate } from "./components/RemoteUpdate";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
+import { RoomBoundary } from "./room3d/RoomBoundary";
+const RoomView = lazy(() => import("./room3d/RoomView"));
 import {
   AudioLines,
   Plus,
@@ -101,6 +110,10 @@ export function App() {
   }>();
   const notificationConnecting = useRef("");
   const [audioNotice, setAudioNotice] = useState("");
+  const [roomMode, setRoomMode] = useState(false);
+  const [profileSection, setProfileSection] = useState("Conta");
+  const [roomPrompt, setRoomPrompt] = useState(false);
+  const [tvSource, setTvSource] = useState<string | null>(null);
   const [pipActive, setPipActive] = useState(false);
   const [page, setPage] = useState<AppPage>("home");
   const [background, setBackground] = useState(false);
@@ -279,6 +292,12 @@ export function App() {
           setPage((current) => (current === "room" ? "home" : current));
         }
       }
+      if (event.type === "room-pose") {
+        const p = latest.current.room.participants.find(
+          (p) => p.id === event.id && p.channelId === event.channelId,
+        );
+        if (p) p.roomPose = event.pose ?? undefined;
+      }
       if (event.type === "state") {
         engine.setSubscriptionSupport(
           !!event.state.features?.mediaSubscriptions,
@@ -345,6 +364,13 @@ export function App() {
       (p) => p.channelId && p.channelId === me?.channelId,
     ),
     streams = peers.filter((p) => p.sharing);
+  useEffect(() => {
+    const eligible = !!voice?.roomPreset && !!room.features?.rooms3d;
+    const entry = profile?.room3d?.entry ?? "ask";
+    setRoomMode(eligible && entry === "always");
+    setRoomPrompt(eligible && entry === "ask");
+    setTvSource(null);
+  }, [me?.channelId, voice?.roomPreset, room.features?.rooms3d]);
   const online = status === "connected";
   useEffect(() => {
     const view =
@@ -454,10 +480,11 @@ export function App() {
   function command(c: Command) {
     return window.voxy.command(c);
   }
-  async function open(d: Dialog) {
+  async function open(d: Dialog, section = "Conta") {
     setError("");
     setName("");
     setDialog(d);
+    if (d === "profile") setProfileSection(section);
     if (d === "host")
       await run(async () => {
         const list = await window.voxy.addresses();
@@ -1352,8 +1379,76 @@ export function App() {
                   por aqui
                 </span>
               </div>
+              {me?.channelId === channelId &&
+                channel.roomPreset &&
+                room.features?.rooms3d && (
+                  <div className="room-mode-switch">
+                    <button
+                      aria-pressed={!roomMode}
+                      onClick={() => {
+                        setRoomMode(false);
+                        setRoomPrompt(false);
+                      }}
+                    >
+                      Visualização tradicional
+                    </button>
+                    <button
+                      aria-pressed={roomMode}
+                      onClick={() => {
+                        setRoomMode(true);
+                        setRoomPrompt(false);
+                      }}
+                    >
+                      Entrar na sala 3D
+                    </button>
+                    <button onClick={() => void open("profile", "Salas 3D")}>
+                      Personagem e opções 3D
+                    </button>
+                  </div>
+                )}
+              {roomPrompt && me?.channelId === channelId && (
+                <p className="room-invitation">
+                  Este canal tem um ambiente 3D pronto. Entre na sala ou
+                  continue na chamada tradicional.
+                </p>
+              )}
+              {roomMode &&
+                me?.channelId === channelId &&
+                channel.roomPreset && (
+                  <RoomBoundary
+                    fallback={() => {
+                      setRoomMode(false);
+                      setError("A sala 3D não carregou. A chamada continua.");
+                    }}
+                  >
+                    <Suspense fallback={<p role="status">Abrindo sala 3D…</p>}>
+                      <RoomView
+                        key={channel.id + channel.roomPreset}
+                        preset={channel.roomPreset}
+                        selfId={selfId}
+                        people={peers}
+                        profile={profile}
+                        media={media}
+                        engine={engine}
+                        command={command}
+                        paused={background || !!dialog}
+                        fallback={(message) => {
+                          setRoomMode(false);
+                          setError(message);
+                        }}
+                        focus={(id) => {
+                          setWatchCamera(null);
+                          setWatch(id);
+                        }}
+                        onSource={setTvSource}
+                        sourceId={room.televisions?.[channel.id]}
+                      />
+                    </Suspense>
+                  </RoomBoundary>
+                )}
               {me?.channelId === channelId && (
                 <MediaGallery
+                  television={roomMode ? tvSource : undefined}
                   onPictureInPicture={setPipActive}
                   background={background}
                   participants={peers}
@@ -1382,7 +1477,14 @@ export function App() {
                   }
                 />
               )}
-              <div className="participant-grid">
+              <div
+                className={
+                  "participant-grid " +
+                  (roomMode && me?.channelId === channelId
+                    ? "room-participants"
+                    : "")
+                }
+              >
                 {room.participants
                   .filter((p) => p.channelId === channelId)
                   .map((p) => (
@@ -1834,6 +1936,7 @@ export function App() {
             )}
             {dialog === "profile" && (
               <ProfileForm
+                initialCategory={profileSection}
                 room={room}
                 scope={inbox.activeScope}
                 onMicrophoneTest={(value) => engine.setMicrophoneTesting(value)}
@@ -1989,19 +2092,46 @@ export function App() {
                 {room.channels
                   .filter((c) => c.serverId === serverId)
                   .map((c) => (
-                    <ManageRow
-                      key={c.id}
-                      name={c.name}
-                      disabled={!me?.host || busy}
-                      rename={(name) =>
-                        run(() =>
-                          command({ type: "channel.rename", id: c.id, name }),
-                        )
-                      }
-                      remove={() =>
-                        run(() => command({ type: "channel.delete", id: c.id }))
-                      }
-                    />
+                    <div key={c.id}>
+                      {c.kind === "voice" && room.features?.rooms3d && (
+                        <label>
+                          Ambiente de {c.name}
+                          <select
+                            aria-label={"Ambiente de " + c.name}
+                            disabled={!me?.host || busy}
+                            value={c.roomPreset ?? ""}
+                            onChange={(e) =>
+                              void run(() =>
+                                command({
+                                  type: "channel.room",
+                                  id: c.id,
+                                  preset: (e.target.value || null) as
+                                    "lounge" | "cinema" | null,
+                                }),
+                              )
+                            }
+                          >
+                            <option value="">Tradicional</option>
+                            <option value="lounge">Lounge 3D</option>
+                            <option value="cinema">Cinema 3D</option>
+                          </select>
+                        </label>
+                      )}
+                      <ManageRow
+                        name={c.name}
+                        disabled={!me?.host || busy}
+                        rename={(name) =>
+                          run(() =>
+                            command({ type: "channel.rename", id: c.id, name }),
+                          )
+                        }
+                        remove={() =>
+                          run(() =>
+                            command({ type: "channel.delete", id: c.id }),
+                          )
+                        }
+                      />
+                    </div>
                   ))}
               </div>
             )}

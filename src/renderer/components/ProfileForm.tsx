@@ -1,3 +1,4 @@
+import { RoomSettings } from "../room3d/RoomSettings";
 import type { Profile, RoomState } from "../../shared/types";
 import { NotificationSettings } from "./NotificationSettings";
 import { useRef, useState } from "react";
@@ -19,6 +20,7 @@ export function ProfileForm({
   onMicrophoneTest,
   room,
   scope,
+  initialCategory = "Conta",
 }: {
   profile: Profile;
   setProfile: (profile: Profile) => void;
@@ -30,8 +32,9 @@ export function ProfileForm({
   onMicrophoneTest: (active: boolean) => void;
   room?: RoomState;
   scope?: string;
+  initialCategory?: string;
 }) {
-  const [category, setCategory] = useState("Conta");
+  const [category, setCategory] = useState(initialCategory);
   const [recording, setRecording] = useState(false);
   const [shortcutRecording, setShortcutRecording] = useState(false);
   const conflict = shortcutConflict(profile);
@@ -112,6 +115,7 @@ export function ProfileForm({
           "Atalhos",
           "Notificações",
           "Windows",
+          "Salas 3D",
         ].map((item) => (
           <button
             type="button"
@@ -128,6 +132,9 @@ export function ProfileForm({
       </nav>
       <div className="settings-content">
         <h3>{category}</h3>
+        <section hidden={category !== "Salas 3D"}>
+          <RoomSettings profile={profile} change={setProfile} />
+        </section>
         <section hidden={category !== "Conta"}>
           <label>
             Nome de exibição

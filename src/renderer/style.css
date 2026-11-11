@@ -2614,3 +2614,151 @@ dialog .checkbox input {
   text-decoration: underline;
   overflow-wrap: anywhere;
 }
+/* Social rooms use the same controls and palette as the voice channel. */
+.room-mode-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.room-mode-switch [aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+.room-invitation {
+  padding: 12px;
+  border-left: 3px solid var(--accent);
+}
+.room3d {
+  position: relative;
+  width: 100%;
+  height: clamp(330px, 46vh, 600px);
+  overflow: hidden;
+  border-radius: 16px;
+  background: #171d2b;
+  border: 1px solid #7d71854d;
+  flex-shrink: 0;
+}
+.room3d-canvas {
+  position: absolute;
+  inset: 0;
+}
+.room3d canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+.room3d canvas:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -3px;
+}
+.room3d-top,
+.room3d-tv {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: #1c2135e8;
+  border: 1px solid #aaa1be33;
+  border-radius: 10px;
+  padding: 8px 12px;
+  color: #f4efff;
+  font-size: 12px;
+}
+.room3d-top {
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  justify-content: space-between;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  pointer-events: none;
+}
+.room3d-top > span,
+.room3d-top > button {
+  padding: 8px 12px;
+  border: 1px solid #aaa1be33;
+  border-radius: 10px;
+  background: #1c2135e8;
+}
+.room3d-top > button {
+  pointer-events: auto;
+}
+.room3d-tv {
+  bottom: 40px;
+  right: 12px;
+  max-width: calc(100% - 24px);
+}
+.room3d-tv label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.room3d-tv select {
+  max-width: 180px;
+}
+.room3d-help {
+  position: absolute;
+  bottom: 10px;
+  left: 12px;
+  right: 12px;
+  text-align: center;
+  color: #eee7fa;
+  font-size: 11px;
+  pointer-events: none;
+  text-shadow: 0 1px 3px #000;
+}
+.room3d-notice {
+  position: absolute;
+  top: 64px;
+  left: 12px;
+  right: 12px;
+  padding: 8px;
+  background: #30293deb;
+  border-radius: 8px;
+}
+.room-participants {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 8px !important;
+  margin-top: 12px;
+  flex: none;
+}
+.room-participants .participant-card {
+  min-height: 0;
+  padding: 10px;
+  flex: 1 1 160px;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  align-items: center;
+}
+.call-view .room-participants .participant-card {
+  min-height: 0;
+}
+.room-participants .large-avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 22px;
+}
+.room-settings {
+  display: grid;
+  gap: 14px;
+}
+.room-settings h4 {
+  margin: 10px 0 0;
+}
+@media (max-width: 800px) {
+  .room3d {
+    height: 380px;
+  }
+  .room3d-top {
+    font-size: 11px;
+  }
+  .room3d-help {
+    font-size: 10px;
+  }
+}

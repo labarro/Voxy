@@ -41,6 +41,11 @@ import {
 } from "../shared/validation";
 import type { Profile, NetworkEvent, PttEvent, Reply } from "../shared/types";
 import { PushToTalk } from "./pushToTalk";
+import {
+  desktopIdentity,
+  startHidden,
+  repairShortcut,
+} from "./desktopIdentity";
 import { configureLog, log } from "./log";
 import { roomAddresses } from "./addresses";
 import { RecentRooms, probeRoom } from "./recentRooms";
@@ -53,6 +58,15 @@ import { DirectInbox } from "./directInbox";
 import { deviceCredential } from "./deviceIdentity";
 import { Notifications, notificationViewSchema } from "./notifications";
 import type { AppNotification, NotificationView } from "../shared/types";
+const identity = desktopIdentity(
+  app.isPackaged,
+  app.getPath("appData"),
+  app.getAppPath(),
+  process.resourcesPath,
+);
+app.setName(identity.name);
+app.setPath("userData", process.env.VOXY_DATA_DIR || identity.userData);
+let revealRequested = false;
 let win: BrowserWindow,
   store: Store,
   host: RoomHost | undefined,
@@ -72,6 +86,7 @@ let tray: Tray | undefined;
 let controls = { muted: false, deafened: false };
 let lastNotificationAlert = 0;
 function showWindow() {
+  revealRequested = true;
   if (!win || win.isDestroyed()) return;
   win.show();
   if (win.isMinimized()) win.restore();
@@ -287,6 +302,7 @@ async function connect(invite: string, ownerKey?: string) {
         nicknameColor: profile.nicknameColor,
         mediaSubscriptions: true,
         banner: profile.banner,
+        avatar3d: profile.avatar3d,
       },
       ownerKey,
     },
@@ -298,6 +314,14 @@ async function connect(invite: string, ownerKey?: string) {
     randomizationFactor: 0.25,
   });
   client = socket;
+  socket.on("room-pose", (event) => {
+    if (socket !== client) return;
+    const person = currentState?.participants.find(
+      (p) => p.id === event.id && p.channelId === event.channelId,
+    );
+    if (person) person.roomPose = event.pose ?? undefined;
+    emit({ ...event, type: "room-pose" });
+  });
   socket.on("state", (state) => {
     if (socket !== client) return;
     if (state.protocol !== 2) {
@@ -507,7 +531,7 @@ if (!process.env.VOXY_DATA_DIR) {
   app.on("second-instance", showWindow);
 }
 app.whenReady().then(async () => {
-  app.setAppUserModelId("dev.voxy.desktop");
+  app.setAppUserModelId(identity.appId);
   if (process.env.VOXY_DATA_DIR)
     app.setPath("userData", process.env.VOXY_DATA_DIR);
   mkdirSync(app.getPath("userData"), { recursive: true });
@@ -575,8 +599,8 @@ app.whenReady().then(async () => {
     minHeight: 620,
     backgroundColor: "#232b3b",
     title: "Voxy",
-    show:
-      !profile.startMinimized && !process.argv.includes("--start-minimized"),
+    icon: identity.icon,
+    show: !startHidden(process.argv),
     titleBarStyle: "hidden",
     titleBarOverlay: { color: "#171c28", symbolColor: "#e7edf9", height: 36 },
     autoHideMenuBar: true,
@@ -590,12 +614,44 @@ app.whenReady().then(async () => {
       backgroundThrottling: false,
     },
   });
+  if (process.platform === "win32") {
+    win.setAppDetails({
+      appId: identity.appId,
+      appIconPath: identity.icon,
+      appIconIndex: 0,
+      relaunchCommand: app.isPackaged
+        ? `"${process.execPath}"`
+        : `"${process.execPath}" "${app.getAppPath()}"`,
+      relaunchDisplayName: identity.name,
+    });
+    // Repair the installed shortcut, including its explicit icon and AppUserModelID.
+    // Isolated tests and development must never register the Electron runtime.
+    if (app.isPackaged && !process.env.VOXY_DATA_DIR) {
+      const shortcut = join(
+        app.getPath("appData"),
+        "Microsoft",
+        "Windows",
+        "Start Menu",
+        "Programs",
+        "Voxy.lnk",
+      );
+      try {
+        if (
+          !repairShortcut(
+            shortcut,
+            process.execPath,
+            identity.icon,
+            shell.writeShortcutLink,
+          )
+        )
+          log("shortcut.repair-failed");
+      } catch {
+        log("shortcut.repair-failed");
+      }
+    }
+  }
   try {
-    tray = new Tray(
-      app.isPackaged
-        ? join(process.resourcesPath, "icon.ico")
-        : join(app.getAppPath(), "build/icon.ico"),
-    );
+    tray = new Tray(identity.icon);
     tray.on("double-click", showWindow);
     tray.on("click", showWindow);
     updateTray();
@@ -882,6 +938,7 @@ app.whenReady().then(async () => {
           nicknameColor: profile.nicknameColor,
           mediaSubscriptions: true,
           banner: profile.banner,
+          avatar3d: profile.avatar3d,
         },
       };
     updatePtt();
@@ -894,6 +951,7 @@ app.whenReady().then(async () => {
         nicknameColor: profile.nicknameColor,
         mediaSubscriptions: true,
         banner: profile.banner,
+        avatar3d: profile.avatar3d,
       });
     return profile;
   });
@@ -1056,6 +1114,7 @@ app.whenReady().then(async () => {
   handle("copy", (raw) => clipboard.writeText(z.string().max(4000).parse(raw)));
   if (dev) await win.loadURL(origin);
   else await win.loadFile(join(__dirname, "../renderer/index.html"));
+  if (revealRequested) showWindow();
   if (app.isPackaged) {
     const timer = setTimeout(() => void remoteUpdates.check(), 10000);
     timer.unref();

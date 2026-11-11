@@ -1,5 +1,11 @@
 # Validação do Voxy
 
+## Correções de identidade incorporadas à 1.0.0 — 24/10/2026
+
+Correção local confirmada pelo usuário: os atalhos de Menu Iniciar e Desktop apontam ao Voxy instalado, com ícone explícito de `resources/icon.ico` e AppUserModelID `dev.voxy.desktop`. O atalho Electron que apontava ao runtime do projeto foi guardado em backup, e sua entrada inválida retirada do Menu Iniciar. A interface instalada foi observada aberta com o título Voxy. Não houve troca do executável instalado ou remoção dos dados pessoais.
+
+O código da próxima versão separa desenvolvimento/produção, mantém os dados instalados em `voxy-desktop`, define ícone e comando de reabertura da janela e recria o atalho do Menu Iniciar no instalador. Abertura manual e retorno após atualizar mostram a janela. O lançamento está adiado; não houve tag, push ou publicação da 0.8.1.
+
 ## Versão 0.8.0 publicada — 24/10/2026
 
 Passaram `npm test` (34 testes), build e integrações de áudio, controles globais, captura, grade, sistema, UX, desktop com três instâncias e WebRTC com dez clientes. `npm run pack` e `npm run test:packaged` também passaram: o ASAR abre, o host funciona, o ícone da bandeja está incluído e perfil/servidores/DMs/leitura/novidades sobrevivem ao reinício.
@@ -222,3 +228,13 @@ Para a versão 0.1.1, repita o roteiro com A, B, C, D e E na mesma rede Radmin, 
 ## Reproduzir sem contaminar o perfil pessoal
 
 `test:desktop` e `test:packaged` usam diretórios isolados dentro de `test-results/`. O teste de sinalização usa uma pasta temporária que ele mesmo cria e remove. Nenhum teste deve apontar para `%APPDATA%/voxy-desktop`. Feche janelas e capture somente conteúdo de teste; o teste desktop usa a fonte nativa selecionada e pode registrar seu monitor em screenshots locais.
+
+## Verificações das salas 3D (1.0.0 em preparação)
+
+`npm test` inclui geometria/colisões, atenuação e direção espacial, validação de perfil, host real com três clientes Socket.IO, permissões, entrada sem sobreposição, reserva concorrente de assentos, isolamento das posições por canal, seleção compartilhada da TV com troca ao encerrar uma fonte, liberação de assentos, persistência do ambiente e aviso de novidades uma vez. `npm run test:rooms3d` exercita renderização WebGL, movimento, assentos, TV com MediaStream sintético, personalização e fallback gráfico. `npm run test:rooms3d:app` usa duas instâncias isoladas do Electron com sinalização, captura sintética e WebRTC reais: configuração do canal, perfil persistente, entrada automática, movimento, participantes, troca de visualização sem nova captura de microfone, mute, Deafen, vídeo remoto decodificado na TV/player e mudança simultânea de ambiente. Depois de `npm run pack`, `npm run test:rooms3d:packaged` repete esse fluxo usando dois processos do executável ASAR, incluindo o carregamento do módulo 3D pelo protocolo de arquivo.
+
+Em 11/11/2026 passaram: build, 40 testes da suíte principal, salas 3D em navegador, salas integradas em dois clientes Electron, o mesmo fluxo em dois executáveis empacotados, galeria, áudio/reconexão, atalhos globais e mídia em dez clientes. O teste geral do pacote também confirmou abertura ASAR, identidade, dependências e persistência de perfil/servidor/DMs. O teste de mídia confirmou 45 pares, recepção de voz nos 90 sentidos, telas/webcams para nove espectadores e liberação dos recursos. O teste espacial mediu a saída estéreo de uma fonte sintética: atenuação a zero, direção e restauração do áudio. Capturas e resultados locais ficam em `test-results/room3d-*` e `test-results/room3d-results.json`.
+
+`npm run test:gallery`, `npm run test:audio`, `npm run test:controls` e `npm run test:media` verificam os caminhos de mídia e controles preservados. Execute `npm run build` antes dos testes de navegador.
+
+Antes do lançamento, testar em dois ou mais computadores reais: proximidade com fones e alto-falantes, PTT/mute/Deafen, assistir à TV com áudio, webcams simultâneas, reconexão pela VPN, troca de ambiente, GPU integrada em qualidade baixa e sessão prolongada com dez participantes. Testes automatizados e capturas em navegador não comprovam essas condições físicas.

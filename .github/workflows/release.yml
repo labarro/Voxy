@@ -45,6 +45,8 @@ jobs:
           npm run dist
       - name: Verificar executável empacotado e persistência
         run: npm run test:packaged
+      - name: Verificar salas 3D e TV em dois executáveis empacotados
+        run: npm run test:rooms3d:packaged
       - name: Publicar arquivos completos antes de disponibilizar a versão
         env:
           GH_TOKEN: ${{ github.token }}

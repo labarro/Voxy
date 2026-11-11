@@ -1,4 +1,34 @@
 {
+  "1.0.0": {
+    "date": "2026-11-11",
+    "title": "Espaços para ficar por perto",
+    "items": [
+      "Lounge e cinema 3D opcionais nos canais de voz, com retorno à chamada tradicional sem desconectar.",
+      "Personagens personalizáveis, movimento, câmera, assentos e voz por proximidade.",
+      "TV virtual integrada ao compartilhamento existente, com ampliação e webcams na galeria."
+    ],
+    "features": [
+      "Ambientes prontos lounge e cinema selecionados pelo host nos canais de voz.",
+      "Avatar com cabelo, cores, pele, roupa e acessórios salvo no perfil.",
+      "Movimento WASD/setas, câmera com rotação e zoom, colisões e assentos exclusivos.",
+      "Voz com atenuação por distância e panorama estéreo, preservando PTT, mute, Deafen e volumes individuais.",
+      "TV com seleção de transmissão sincronizada para o canal e ampliação usando a mídia existente."
+    ],
+    "improvements": [
+      "Preferências de entrada, qualidade gráfica, alcance, volume, câmera e nomes.",
+      "Carregamento 3D sob demanda, limites de resolução/FPS e pausa de renderização em segundo plano.",
+      "Sincronização leve de posições restrita ao canal, sem reenviar mensagens a cada movimento.",
+      "Verificação do nome do executável e dos dados do atalho Windows no teste do pacote."
+    ],
+    "fixes": [
+      "Retorno ao modo tradicional em falha gráfica sem encerrar a voz.",
+      "A TV usa vídeo mudo e mantém o áudio da transmissão no caminho existente, evitando reprodução duplicada.",
+      "Identidade da janela e ícone explícitos para evitar associação ao runtime Electron.",
+      "Reparo do atalho Voxy com alvo, ícone e identificação do aplicativo corretos.",
+      "Preferência de início minimizado não oculta a abertura manual nem o retorno após atualizar.",
+      "Dados e perfis da instalação continuam na pasta voxy-desktop."
+    ]
+  },
   "0.2.0": {
     "date": "2026-10-20",
     "features": [
@@ -182,6 +212,26 @@
     ],
     "fixes": [
       "O canal de voz anterior é restaurado após uma queda temporária, quando ainda existe e o microfone está disponível."
+    ]
+  },
+  "0.8.1": {
+    "date": "2026-10-24",
+    "title": "Correção da identidade e abertura do Voxy no Windows",
+    "items": [
+      "Nome, ícone e comando de reabertura definidos explicitamente como Voxy.",
+      "Instalador recria o atalho do Menu Iniciar mesmo em atualizações que preservam atalhos.",
+      "Abertura manual mostra a janela; início oculto é reservado ao comando de inicialização minimizada.",
+      "Ambiente de desenvolvimento separado da identidade e dos dados da versão instalada."
+    ],
+    "features": [],
+    "improvements": [
+      "Verificação do nome do executável e dos dados do atalho Windows no teste do pacote."
+    ],
+    "fixes": [
+      "Identidade da janela e ícone explícitos para evitar associação ao runtime Electron.",
+      "Reparo do atalho Voxy com alvo, ícone e identificação do aplicativo corretos.",
+      "Preferência de início minimizado não oculta a abertura manual nem o retorno após atualizar.",
+      "Dados e perfis da instalação continuam na pasta voxy-desktop."
     ]
   },
   "0.8.0": {

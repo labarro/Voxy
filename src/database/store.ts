@@ -62,6 +62,12 @@ export class Store {
       db.run("ALTER TABLE servers ADD COLUMN ownerId TEXT");
     if (!serverColumns.some((row) => row[1] === "icon"))
       db.run("ALTER TABLE servers ADD COLUMN icon TEXT");
+    if (
+      !(db.exec("PRAGMA table_info(channels)")[0]?.values ?? []).some(
+        (row) => row[1] === "roomPreset",
+      )
+    )
+      db.run("ALTER TABLE channels ADD COLUMN roomPreset TEXT");
     return new Store(db, path);
   }
   private rows<T>(sql: string, params: string[] = []): T[] {
@@ -235,12 +241,20 @@ export class Store {
     this.flush();
   }
   createChannel(serverId: string, name: string, kind: string) {
-    this.db.run("INSERT INTO channels VALUES(?,?,?,?)", [
+    this.db.run("INSERT INTO channels(id,serverId,name,kind) VALUES(?,?,?,?)", [
       randomUUID(),
       serverId,
       name,
       kind,
     ]);
+    this.flush();
+  }
+  setRoomPreset(id: string, preset: string | null) {
+    if (
+      !this.snapshot().channels.some((c) => c.id === id && c.kind === "voice")
+    )
+      throw Error("Canal de voz inexistente.");
+    this.db.run("UPDATE channels SET roomPreset=? WHERE id=?", [preset, id]);
     this.flush();
   }
   rename(table: "servers" | "channels", id: string, name: string) {

@@ -1,5 +1,11 @@
 # Voxy — distribuir e atualizar sem perder os dados
 
+## Versão 1.0.0 em preparação local
+
+Sem publicação: a versão pública continua sendo 0.8.0. O código em preparação usa 1.0.0, com pasta `release/1.0.0/`. Inclui [salas 3D opcionais](SALAS-3D.md) e as correções de identidade/atalhos que estavam em preparação para 0.8.1. O instalador restaura a entrada do Menu Iniciar mesmo quando uma atualização preserva atalhos. Não altera a pasta dos dados instalados.
+
+A migração adiciona `roomPreset` aos canais, preservando os canais existentes no modo tradicional. Personagem e preferências ficam no perfil; posições e assentos não entram no backup porque são transitórios. Atualize host e participantes para usar 3D. As notas da 1.0.0 aparecem uma vez e o download público permanece na 0.8.0 até uma publicação validada.
+
 ## Versão 0.8.0 publicada
 
 A 0.8.0 reúne captura com exclusão do áudio do Voxy, mute/Deafen globais, barra temática, notificações persistentes, PiP e bandeja. É a última versão publicada, com instalador e metadados assinados na [release oficial](https://github.com/labarro/Voxy/releases/tag/v0.8.0). O [workflow obrigatório](https://github.com/labarro/Voxy/actions/runs/40116916004) concluiu com sucesso, incluindo teste do executável empacotado. O canal público de atualização foi conferido; veja `evidence/publication-0.8.0.json`.

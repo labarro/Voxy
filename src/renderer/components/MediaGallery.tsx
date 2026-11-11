@@ -3,6 +3,7 @@ import type { Participant, Profile } from "../../shared/types";
 import type { VoiceView } from "../../services/webrtc/engine";
 import { Player } from "./Player";
 export function MediaGallery({
+  television,
   participants,
   selfId,
   media,
@@ -15,6 +16,7 @@ export function MediaGallery({
   background = false,
   onPictureInPicture,
 }: {
+  television?: string | null;
   participants: Participant[];
   selfId: string;
   media: VoiceView;
@@ -46,11 +48,20 @@ export function MediaGallery({
       s.key === pip ||
       (visible &&
         !background &&
-        (expanded ? s.key === expanded : !hidden.has(s.key))),
+        (expanded
+          ? s.key === expanded
+          : !hidden.has(s.key) &&
+            (television === undefined || s.kind === "camera"))),
   );
-  const screens = shown
-    .filter((s) => s.kind === "screen" && s.p.id !== selfId)
-    .map((s) => s.p.id)
+  const screens = [
+    ...new Set([
+      ...(television && visible && !background ? [television] : []),
+      ...shown
+        .filter((s) => s.kind === "screen" && s.p.id !== selfId)
+        .map((s) => s.p.id),
+    ]),
+  ]
+    .filter((id) => id !== selfId)
     .sort()
     .join(",");
   const cameras = shown

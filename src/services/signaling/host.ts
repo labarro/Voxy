@@ -19,10 +19,12 @@ import type {
   DirectCall,
 } from "../../shared/types";
 import { validateImage } from "../../shared/image";
+import { seats, walkable, spawnPose } from "../../shared/room3d";
 export class RoomHost {
   private io: Server;
   private http: HttpServer;
   private people = new Map<string, Participant>();
+  private televisions = new Map<string, string>();
   private ownerKey: string;
   private identityScope: string;
   private calls = new Map<string, DirectCall>();
@@ -169,6 +171,7 @@ export class RoomHost {
           nicknameColor: profile.nicknameColor,
           banner: profile.banner,
           mediaSubscriptions: profile.mediaSubscriptions,
+          avatar3d: profile.avatar3d,
         },
         channelId: null,
         muted: false,
@@ -182,6 +185,7 @@ export class RoomHost {
       let budget = 120,
         last = Date.now();
       let lastImage = 0;
+      let lastPose = 0;
       const limited = () => {
         const now = Date.now();
         budget = Math.min(120, budget + (now - last) * 0.06);
@@ -193,6 +197,93 @@ export class RoomHost {
         try {
           limited();
           const c = commandSchema.parse(raw);
+          if (c.type === "room.pose") {
+            const person = this.people.get(socket.id)!;
+            const channel = this.store
+              .snapshot()
+              .channels.find((c) => c.id === person.channelId);
+            if (!channel?.roomPreset)
+              throw Error("Este canal não possui sala 3D.");
+            const now = Date.now();
+            if (c.pose && now - lastPose < 75)
+              throw Error("Aguarde o próximo movimento.");
+            const pose = c.pose;
+            if (pose) {
+              if (!person.roomPose && !pose.seat) {
+                const occupied = [...this.people.values()]
+                  .filter(
+                    (p) =>
+                      p.id !== person.id &&
+                      p.channelId === person.channelId &&
+                      p.roomPose,
+                  )
+                  .map((p) => p.roomPose!);
+                if (
+                  occupied.some(
+                    (p) => Math.hypot(p.x - pose.x, p.z - pose.z) < 0.9,
+                  )
+                ) {
+                  const free = Array.from({ length: 10 }, (_, i) =>
+                    spawnPose(i),
+                  ).find((slot) =>
+                    occupied.every(
+                      (p) => Math.hypot(p.x - slot.x, p.z - slot.z) >= 0.9,
+                    ),
+                  );
+                  if (free) Object.assign(pose, free);
+                }
+              }
+              const seat = seats(channel.roomPreset).find(
+                (s) => s.id === pose.seat,
+              );
+              if (
+                pose.seat &&
+                (!seat ||
+                  [...this.people.values()].some(
+                    (p) =>
+                      p.id !== person.id &&
+                      p.channelId === person.channelId &&
+                      p.roomPose?.seat === pose.seat,
+                  ))
+              )
+                throw Error("Assento ocupado ou indisponível.");
+              if (seat) {
+                if (
+                  Math.hypot(
+                    (person.roomPose?.x ?? 0) - seat.x,
+                    (person.roomPose?.z ?? 6) - seat.z,
+                  ) > 2.5
+                )
+                  throw Error("Aproxime-se do assento.");
+                pose.x = seat.x;
+                pose.z = seat.z;
+                pose.yaw = seat.yaw;
+                pose.moving = false;
+              } else if (!walkable(channel.roomPreset, pose.x, pose.z))
+                throw Error("Posição fora da área disponível.");
+              const old = person.roomPose;
+              if (
+                old &&
+                !old.seat &&
+                !pose.seat &&
+                Math.hypot(old.x - pose.x, old.z - pose.z) >
+                  Math.min(20, 1 + (now - lastPose) * 0.006)
+              )
+                throw Error("Movimento inválido.");
+            }
+            lastPose = now;
+            person.roomPose = pose ?? undefined;
+            for (const target of this.io.sockets.sockets.values()) {
+              if (this.people.get(target.id)?.channelId === person.channelId)
+                target.emit("room-pose", {
+                  id: person.id,
+                  channelId: person.channelId,
+                  pose,
+                });
+            }
+            reply({ ok: true, value: null });
+            return;
+          }
           if (
             (c.type.startsWith("friend.") || c.type.startsWith("call.")) &&
             !socket.data.privateIdentity
@@ -403,6 +494,19 @@ export class RoomHost {
   }
   state(viewer?: string, state = this.store.snapshot()): RoomState {
     return {
+      televisions: Object.fromEntries(
+        state.channels
+          .filter((c) => c.roomPreset)
+          .flatMap((c) => {
+            const sources = [...this.people.values()]
+              .filter((p) => p.channelId === c.id && p.sharing)
+              .sort((a, b) => a.profile.id.localeCompare(b.profile.id));
+            const selected =
+              sources.find((p) => p.id === this.televisions.get(c.id)) ??
+              sources[0];
+            return selected ? [[c.id, selected.id]] : [];
+          }),
+      ),
       protocol: 2,
       features: {
         directMessages: true,
@@ -410,6 +514,7 @@ export class RoomHost {
         mediaSubscriptions: true,
         social: true,
         richChat: true,
+        rooms3d: true,
       },
       ...state,
       friendships: viewer ? this.store.social.snapshot(viewer) : [],
@@ -482,6 +587,16 @@ export class RoomHost {
     )
       throw Error("Somente o host pode gerenciar servidores e canais.");
     switch (c.type) {
+      case "room.tv": {
+        const channel = state.channels.find(
+          (c) => c.id === p.channelId && c.roomPreset,
+        );
+        const source = this.people.get(c.participantId);
+        if (!channel || !source?.sharing || source.channelId !== channel.id)
+          throw Error("Escolha uma transmissão ativa neste ambiente.");
+        this.televisions.set(channel.id, source.id);
+        break;
+      }
       case "friend.request":
       case "friend.respond":
       case "friend.remove":
@@ -571,7 +686,14 @@ export class RoomHost {
       case "channel.rename":
         this.store.rename("channels", c.id, c.name);
         break;
+      case "channel.room":
+        this.store.setRoomPreset(c.id, c.preset);
+        this.televisions.delete(c.id);
+        for (const person of this.people.values())
+          if (person.channelId === c.id) person.roomPose = undefined;
+        break;
       case "channel.delete":
+        this.televisions.delete(c.id);
         this.store.delete("channels", c.id);
         break;
       case "message":
@@ -617,6 +739,7 @@ export class RoomHost {
         )
           throw Error("Canal de voz inexistente.");
         p.channelId = c.channelId;
+        p.roomPose = undefined;
         p.sharing = false;
         p.camera = false;
         break;
@@ -628,6 +751,7 @@ export class RoomHost {
         if (c.camera !== undefined) p.camera = !!p.channelId && c.camera;
         break;
       case "profile":
+        if (c.avatar3d !== undefined) p.profile.avatar3d = c.avatar3d;
         p.profile.name = c.name;
         p.profile.avatar = this.store.registerAvatar(c.avatar);
         if (c.presence !== undefined) p.profile.presence = c.presence;

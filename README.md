@@ -9,7 +9,7 @@
 Voz, chat e compartilhamento de tela para o seu grupo de amigos.<br />
 Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu computador.
 
-![Versão 0.8.0](https://img.shields.io/badge/vers%C3%A3o-0.8.0-b6adff?style=flat-square)
+![Versão 1.0.0 em preparação](https://img.shields.io/badge/vers%C3%A3o-1.0.0_em_preparacao-b6adff?style=flat-square)
 ![Windows 10 e 11 x64](https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-4389e8?style=flat-square)
 ![WebRTC P2P](https://img.shields.io/badge/WebRTC-P2P-68d6b1?style=flat-square)
 ![Até 10 participantes](https://img.shields.io/badge/at%C3%A9-10%20participantes-c9233c?style=flat-square)
@@ -20,9 +20,29 @@ Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu compu
 
 ---
 
+## Novidades na versão 1.0.0 em preparação
+
+**Código em preparação: 1.0.0. Última versão publicada: 0.8.0.** Os links de download continuam na versão publicada. A 1.0.0 ainda não foi lançada.
+
+Salas 3D opcionais integradas aos canais de voz: lounge com sofás, cadeiras, puffs e iluminação aconchegante, e cinema com assentos em fileiras e tela grande. O host escolhe o ambiente ao gerenciar os canais. Alterne entre 3D e visualização tradicional sem sair da chamada. Personagens têm cabelo, pele, roupa, cores e acessórios salvos no perfil, movimento por teclado, câmera com rotação/zoom, animações e assentos exclusivos.
+
+A voz recebida usa atenuação por distância e panorama estéreo configuráveis, preservando mute, Deafen, PTT e volumes individuais. A TV utiliza o compartilhamento existente, com seletor e ampliação; webcams ficam na galeria integrada. Qualidade baixa/média/alta, carregamento sob demanda e fallback gráfico mantêm o modo tradicional disponível. [Como usar, arquitetura e limitações](SALAS-3D.md).
+
+Requer WebGL 2 para o 3D. Testes sintéticos não substituem validação com GPUs, microfones e computadores reais. A rede continua sendo P2P pela rede privada/VPN; esta atualização não implementa conexão pública sem VPN. Saída de distribuição: `release/1.0.0/`.
+
+## Correções anteriores incluídas na preparação
+
+O [plano da versão 1.0](PLANO-1.0.md) reúne os critérios de estabilidade e a proposta de conexão pela internet sem VPN, com pesquisa de cotas gratuitas e benefícios estudantis. É planejamento, sem implementação ou lançamento dessas propostas.
+
+As correções locais que estavam em preparação para 0.8.1 estão incluídas no código 1.0.0. A entrada anterior permanece no histórico de notas.
+
+Identidade, ícone e comando de reabertura explícitos no Windows, reparo do atalho Voxy e recriação da entrada do Menu Iniciar pelo instalador. A abertura manual mostra a janela mesmo com início minimizado configurado; o login automático continua usando `--start-minimized`. Desenvolvimento usa nome, identificação e pasta de dados próprios, preservando os dados da instalação em `%APPDATA%/voxy-desktop`.
+
+O teste do pacote passa a conferir os metadados do executável, nome em execução e alvo/ícone/AppUserModelID de um atalho Windows isolado. [Verificações](TESTING.md).
+
 ## Novidades na versão 0.8.0
 
-**Código e última versão publicada: 0.8.0.** O [Actions da release](https://github.com/labarro/Voxy/actions/runs/40116916004) concluiu com sucesso os testes, o instalador, os metadados assinados e o teste do executável empacotado. [Release e arquivos](https://github.com/labarro/Voxy/releases/tag/v0.8.0). O canal público de atualização já entrega a 0.8.0.
+**Última versão publicada: 0.8.0.** O [Actions da release](https://github.com/labarro/Voxy/actions/runs/40116916004) concluiu com sucesso os testes, o instalador, os metadados assinados e o teste do executável empacotado. [Release e arquivos](https://github.com/labarro/Voxy/releases/tag/v0.8.0). O canal público de atualização entrega a 0.8.0.
 
 Compartilhamento com exclusão do áudio do Voxy, atalhos globais de mute e Deafen (combinações e Mouse 4/5), restauração do mute anterior e sons/indicadores próprios. A barra de título acompanha o tema e preserva os controles nativos do Windows. Configure em **Configurações → Atalhos** e **Notificações**.
 
@@ -85,7 +105,7 @@ SHA256SUMS.txt
 
 Execute o instalador e conclua a instalação. **Os amigos não precisam instalar Node.js.** Todos devem usar a mesma versão para os recursos novos funcionarem corretamente.
 
-Ao empacotar localmente, o instalador fica em `release/0.8.0/Voxy-Setup-0.8.0-x64.exe`. Essa pasta é local e não é versionada no Git. O executável não tem assinatura digital; o Windows pode mostrar editor desconhecido. Confira a procedência e o SHA-256 do arquivo recebido.
+Ao empacotar o código em preparação, o instalador fica em `release/1.0.0/Voxy-Setup-1.0.0-x64.exe`. Essa pasta é local e não é versionada no Git. O executável não tem assinatura digital; o Windows pode mostrar editor desconhecido. Confira a procedência e o SHA-256 do arquivo recebido.
 
 ### 2. Conecte a rede
 
@@ -239,7 +259,7 @@ O comando inicia Vite em `127.0.0.1:5173` e abre o Electron. O renderer tem atua
 | `npm run dist`  | Gera o instalador Windows x64 e seu SHA-256.    |
 | `npm run pack`  | Gera a pasta do executável sem instalador.      |
 
-Cada empacotamento usa uma pasta `build-*` nova. `release/0.8.0/latest-build.json` indicará a pasta final desta versão; para distribuir sem instalador, copie a pasta `win-unpacked` inteira. O ícone original pode ser reproduzido com `node scripts/icon.mjs`. As regras obrigatórias para atualizar README, patch notes e versão estão em [AGENTS.md](AGENTS.md).
+Cada empacotamento usa uma pasta `build-*` nova. `release/1.0.0/latest-build.json` indicará a pasta final da versão em preparação; para distribuir sem instalador, copie a pasta `win-unpacked` inteira. O ícone original pode ser reproduzido com `node scripts/icon.mjs`. As regras obrigatórias para atualizar README, patch notes e versão estão em [AGENTS.md](AGENTS.md).
 
 [`.env.example`](.env.example) documenta a variável opcional `VOXY_DATA_DIR`. O aplicativo não carrega `.env` automaticamente. Para publicar atualizações, configure o segredo de assinatura descrito em [ATUALIZACOES-REMOTAS.md](ATUALIZACOES-REMOTAS.md); clientes não precisam de credenciais.
 

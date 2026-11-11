@@ -62,6 +62,14 @@ export type VoiceView = {
   localCamera?: MediaStream;
 };
 export class VoiceEngine {
+  private spatialMix = new Map<string, { gain: number; pan: number }>();
+  setSpatialMix(mix: Map<string, { gain: number; pan: number }>) {
+    this.spatialMix = mix;
+    for (const [id, peer] of this.peers) {
+      const value = mix.get(id);
+      peer.playback?.spatial(value?.gain ?? 1, value?.pan ?? 0);
+    }
+  }
   private peers = new Map<string, Peer>();
   private earlySignals = new Map<string, Signal[]>();
   private microphone?: MediaStream;
@@ -261,6 +269,8 @@ export class VoiceEngine {
           this.getVolume(id),
         );
         audio.srcObject = peer.playback.stream;
+        const spatial = this.spatialMix.get(id);
+        peer.playback.spatial(spatial?.gain ?? 1, spatial?.pan ?? 0);
         void this.applyOutput(audio).catch((e) => this.error(e));
         void audio
           .play()

@@ -5,6 +5,8 @@ import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { io, type Socket } from "socket.io-client";
 import { randomUUID, randomBytes, createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
+import { join } from "node:path";
 async function main() {
   const env: Record<string, string> = Object.fromEntries(
     Object.entries(process.env).filter(
@@ -18,6 +20,25 @@ async function main() {
     readFileSync(`release/${version}/latest-build.json`, "utf8"),
   );
   const executablePath = resolve(directory, "win-unpacked/Voxy.exe");
+  const metadata = JSON.parse(
+    execFileSync(
+      "powershell.exe",
+      [
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "(Get-Item -LiteralPath $env:VOXY_VERIFY_EXE).VersionInfo | Select-Object ProductName,FileDescription,FileVersion | ConvertTo-Json",
+      ],
+      {
+        env: { ...env, VOXY_VERIFY_EXE: executablePath },
+        encoding: "utf8",
+        windowsHide: true,
+      },
+    ),
+  );
+  assert.equal(metadata.ProductName, "Voxy");
+  assert.equal(metadata.FileDescription, "Voxy");
+  assert.equal(metadata.FileVersion, version);
   const peer = { id: randomUUID(), name: "Amigo privado", avatar: "👴" },
     identityKey = randomBytes(32).toString("hex");
   let readSequence = 0;
@@ -184,8 +205,33 @@ async function main() {
       const runtime = await app.evaluate(({ app }) => ({
         packaged: app.isPackaged,
         version: app.getVersion(),
+        name: app.getName(),
       }));
       assert(runtime.packaged);
+      assert.equal(runtime.name, "Voxy");
+      assert.equal(runtime.version, version);
+      const shortcut = await app.evaluate(({ app, shell }, target) => {
+        const path = app.getPath("userData") + "/Voxy-test.lnk";
+        const icon = target.replace(/Voxy\.exe$/, "resources/icon.ico");
+        if (
+          !shell.writeShortcutLink(path, "create", {
+            target,
+            args: "",
+            icon,
+            iconIndex: 0,
+            appUserModelId: "dev.voxy.desktop",
+          })
+        )
+          throw Error("Atalho não foi criado");
+        return shell.readShortcutLink(path);
+      }, executablePath);
+      assert.equal(shortcut.target.toLowerCase(), executablePath.toLowerCase());
+      assert.equal(shortcut.appUserModelId, "dev.voxy.desktop");
+      assert.equal(shortcut.args, "");
+      assert.equal(
+        shortcut.icon ? resolve(shortcut.icon).toLowerCase() : undefined,
+        join(directory, "win-unpacked/resources/icon.ico").toLowerCase(),
+      );
       await page.screenshot({ path: `test-results/packaged-${cycle}.png` });
       await page.evaluate(() => window.voxy.disconnect());
     } finally {
@@ -197,6 +243,7 @@ async function main() {
     date: new Date().toISOString(),
     results: [
       "Executável ASAR abre em produção.",
+      "Executável e runtime identificados como Voxy; atalho Windows aponta ao executável e ao ícone corretos.",
       "SQLite WASM e dependências incluídas: host criado.",
       "Reinício preserva servidor e perfil; segredo DPAPI reutilizado.",
       "Histórico protegido e imagem do servidor persistem offline; reabrir sala pelo recente funciona; canal global preserva versões.",

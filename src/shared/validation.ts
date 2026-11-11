@@ -36,6 +36,27 @@ export const bannerSchema = z
     }
   }, "Escolha uma capa de até 960 × 360 px / 128 KB.");
 const profileObjectSchema = z.object({
+  avatar3d: z
+    .object({
+      hair: z.enum(["short", "long", "crest"]),
+      hairColor: colorSchema,
+      skin: colorSchema,
+      outfit: z.enum(["sweater", "jacket"]),
+      color: colorSchema,
+      accessory: z.enum(["none", "glasses", "headphones"]),
+    })
+    .optional(),
+  room3d: z
+    .object({
+      entry: z.enum(["always", "ask", "traditional"]),
+      quality: z.enum(["low", "medium", "high"]),
+      proximity: z.boolean(),
+      volume: z.number().min(0).max(1),
+      range: z.number().min(3).max(20),
+      sensitivity: z.number().min(0.2).max(3),
+      names: z.boolean(),
+    })
+    .optional(),
   id: z.uuid(),
   name,
   avatar: avatarSchema,
@@ -127,6 +148,7 @@ export const publicProfileSchema = profileObjectSchema
     presence: true,
     nicknameColor: true,
     banner: true,
+    avatar3d: true,
   })
   .extend({ mediaSubscriptions: z.boolean().default(false) });
 export const imageSchema = z
@@ -134,6 +156,24 @@ export const imageSchema = z
   .max(Math.ceil(MAX_IMAGE_BYTES / 3) * 4 + 40)
   .regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/);
 export const commandSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("room.tv"), participantId: id }),
+  z.object({
+    type: z.literal("channel.room"),
+    id,
+    preset: z.enum(["lounge", "cinema"]).nullable(),
+  }),
+  z.object({
+    type: z.literal("room.pose"),
+    pose: z
+      .object({
+        x: z.number().finite().min(-7).max(7),
+        z: z.number().finite().min(-6).max(7),
+        yaw: z.number().finite().min(-100).max(100),
+        seat: z.string().max(40).nullable(),
+        moving: z.boolean(),
+      })
+      .nullable(),
+  }),
   z.object({ type: z.literal("friend.request"), memberId: z.uuid() }),
   z.object({
     type: z.literal("friend.respond"),
@@ -237,6 +277,7 @@ export const commandSchema = z.discriminatedUnion("type", [
   }),
   z.object({
     type: z.literal("profile"),
+    avatar3d: profileObjectSchema.shape.avatar3d,
     name,
     avatar: avatarSchema,
     presence: z.enum(["online", "away", "busy"]).optional(),

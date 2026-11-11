@@ -37,6 +37,9 @@ async function main() {
           ...(packed ? [] : ["."]),
           "--use-fake-device-for-media-stream",
           "--use-fake-ui-for-media-stream",
+          ...(process.env.CI || process.env.VOXY_TEST_SOFTWARE_GL
+            ? ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"]
+            : []),
         ],
         env,
       });
@@ -110,7 +113,7 @@ async function main() {
       await page
         .getByRole("button", { name: "Sala dos amigos", exact: true })
         .click();
-      await page.locator(".room3d canvas").waitFor({ timeout: 15000 });
+      await page.locator(".room3d canvas").waitFor({ timeout: 30000 });
     }
     await a.waitForFunction(() =>
       document
@@ -346,6 +349,35 @@ async function main() {
       ),
     );
     console.log("Integrated 3D rooms passed in two Electron clients. " + root);
+  } catch (error) {
+    const diagnostics = [];
+    for (const [index, page] of pages.entries()) {
+      if (page.isClosed()) continue;
+      await page
+        .screenshot({ path: join(root, `failure-${index}.png`) })
+        .catch(() => {});
+      diagnostics.push(
+        await page
+          .evaluate(() => ({
+            errors: [...document.querySelectorAll('.error,[role="alert"]')].map(
+              (el) => el.textContent,
+            ),
+            room: document.querySelector(".room3d")?.getAttribute("aria-label"),
+            invitation: document.querySelector(".room-invitation")?.textContent,
+            voice: document.querySelector(".voice-status")?.textContent,
+            canvas: document
+              .querySelector(".room3d canvas")
+              ?.getAttribute("data-ready"),
+          }))
+          .catch(() => ({ errors: ["Page unavailable"] })),
+      );
+    }
+    await writeFile(
+      join(root, "failure.json"),
+      JSON.stringify({ diagnostics, errors, error: String(error) }, null, 2),
+    );
+    console.error(JSON.stringify({ diagnostics, errors }));
+    throw error;
   } finally {
     for (const app of apps.reverse()) await app.close();
   }

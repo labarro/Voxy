@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: voxy-stable-release
+  group: voxy-stable-publication
   cancel-in-progress: false
 
 jobs:

@@ -21,6 +21,7 @@ export function ProfileForm({
   room,
   scope,
   initialCategory = "Conta",
+  onCustomize,
 }: {
   profile: Profile;
   setProfile: (profile: Profile) => void;
@@ -33,6 +34,7 @@ export function ProfileForm({
   room?: RoomState;
   scope?: string;
   initialCategory?: string;
+  onCustomize?: () => void;
 }) {
   const [category, setCategory] = useState(initialCategory);
   const [recording, setRecording] = useState(false);
@@ -133,7 +135,11 @@ export function ProfileForm({
       <div className="settings-content">
         <h3>{category}</h3>
         <section hidden={category !== "Salas 3D"}>
-          <RoomSettings profile={profile} change={setProfile} />
+          <RoomSettings
+            profile={profile}
+            change={setProfile}
+            onCustomize={onCustomize}
+          />
         </section>
         <section hidden={category !== "Conta"}>
           <label>

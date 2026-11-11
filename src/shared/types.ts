@@ -10,11 +10,16 @@ export type RoomPose = {
 };
 export type Avatar3D = {
   hair: "short" | "long" | "crest";
+  hairStyle?: "short" | "long" | "crest" | "bob" | "curly";
   hairColor: string;
   skin: string;
   outfit: "sweater" | "jacket";
+  outfitStyle?: "sweater" | "jacket" | "hoodie" | "tee";
   color: string;
   accessory: "none" | "glasses" | "headphones";
+  accessoryStyle?: "none" | "glasses" | "headphones" | "beanie" | "earrings";
+  body?: "classic" | "soft";
+  face?: "friendly" | "calm" | "bright";
 };
 export type RoomSettings = {
   entry: "always" | "ask" | "traditional";
@@ -24,6 +29,7 @@ export type RoomSettings = {
   range: number;
   sensitivity: number;
   names: boolean;
+  cameraMode?: "follow" | "free";
 };
 export type Profile = {
   avatar3d?: Avatar3D;

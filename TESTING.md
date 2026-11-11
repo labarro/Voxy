@@ -1,5 +1,39 @@
 # Validação do Voxy
 
+## Versão 1.1.0 em preparação — 11/11/2026
+
+Passaram `npm test` (**46 testes**), `npm run build`, `test:rooms3d`, `test:rooms3d:app`, `test:gallery`, `test:audio`, `test:controls`, `test:ptt` e `test:media`. O build mantém um aviso de tamanho do chunk Three.js, carregado sob demanda. Não houve empacotamento, instalador, tag, push, workflow de release ou publicação da 1.1.0; a última versão distribuída continua sendo a 1.0.0.
+
+- **Salas e câmera:** renderização dos dois ambientes com GLB locais, caminhada real por teclado, sentar/levantar, reserva de assento no host, modos acompanhar/explorar, zoom/rotação com limites e amortecimento, colisão com obstáculos e recuperação. Testes de câmera verificam o enquadramento completo da TV em proporções largas e verticais e a restauração do ângulo/zoom/foco anterior após assistir.
+- **Criador:** preview WebGL do mesmo avatar da sala, categorias/cards/paletas, roupas e cabelo independentes, animação, aplicar/cancelar/restaurar sem persistir o rascunho antes de aplicar. Perda de contexto gráfico induzida e recarga do preview preservaram as escolhas. Hashes, CC0, arquivos e clips idle/walk/sit dos assets foram conferidos.
+- **Dois processos Electron reais:** configuração do preset pelo host, entrada automática, ocupação remota, movimento e troca tradicional/3D sem nova chamada a `getUserMedia`. Mudanças de cabelo/roupa foram salvas e recebidas no outro cliente durante a chamada, também sem recapturar o microfone. Fullscreen da sala, Esc nativo, abertura do criador a partir do fullscreen, mute/Deafen e mudança lounge/cinema passaram.
+- **TV:** fonte sintética enviada por WebRTC entre os processos; pixels decodificados no player, enquadramento assistir, ampliação, fullscreen da transmissão, Esc e retorno. A TV usa a assinatura existente e o vídeo da textura é mudo; o áudio permanece no caminho de reprodução original. A webcam continua na galeria. A suíte espacial mede atenuação e panorama com oscilador/analisador Web Audio e restaura a mistura tradicional no fallback.
+- **Regressões:** 45 pares mesh, pacotes de voz nos 90 sentidos, tela/webcam para nove espectadores, suspensão/retomada de vídeo sem cortar voz, dois ciclos de transmissão e três ciclos de saída/reentrada. Ganho, teste privado, reconexão TCP, volumes individuais, atalhos globais e Deafen passaram. PTT global verificou pressionar/soltar F9, Q, Mouse 4 e Mouse 5. A galeria verificou ampliação, controles, responsividade e liberação. Contratos confirmam novidades uma vez por versão, persistência após reinício e igualdade entre notas, README, pacote, lock e diretório de saída.
+
+Capturas inspecionadas do aplicativo Electron: [lounge](evidence/rooms3d-1.1.0/lounge.png), [cinema](evidence/rooms3d-1.1.0/cinema.png) e [criador](evidence/rooms3d-1.1.0/character-creator.png). Foram refinados a iluminação, os estofados, o mapeamento de cores/cabelos, a orientação do preview, a altura de sentar e o piso sob a câmera após avaliar as imagens. O teste de caminhada espera a instrução contextual aparecer, evitando depender de uma duração fixa em renderização por software.
+
+### Desempenho antes/depois
+
+`test:rooms3d:performance` compara a cena da tag **v1.0.0** com a implementação atual. Execuções isoladas e sequenciais, Edge/ANGLE, viewport **1024×600**, **dez avatares**, cinco caminhando, sem transmissão, aquecimento de 2 s e amostragem de 4 s por qualidade. Draw calls e triângulos são médias dos quadros, incluindo atualizações do mapa de sombra. É um ensaio curto e reproduzível, não um teste de duração nem de computadores medianos.
+
+GPU real desta máquina: **NVIDIA GeForce RTX 5060 Ti / D3D11**.
+
+| Qualidade | FPS 1.0 → 1.1 | Draw calls 1.0 → 1.1 | Triângulos 1.0 → 1.1 |
+| :-- | :-- | :-- | :-- |
+| Baixo | 23,0 → 23,0 | 240 → 145 | 42.156 → 25.850 |
+| Médio | 37,5 → 37,5 | 240 → 172,6 | 42.156 → 31.888 |
+| Alto | 54,7 → 54,7 | 240 → 163,4 | 42.156 → 29.877 |
+
+Os limites configurados são 24/40/60 FPS; o agendamento real não garante alcançar esses tetos. No baixo houve cerca de **40% menos draw calls** e **39% menos triângulos**, apesar do ambiente mais detalhado. O número de geometrias caiu de 230 para 124–125; as texturas subiram de 12 para 36–39 com materiais, modelos e skeletons. Os contadores de geometrias/texturas retornaram a zero ao descartar cada cena; isso não mede a RAM do processo nem a VRAM total.
+
+**Limite encontrado:** com SwiftShader, sem GPU acelerada, baixo manteve 23,0 FPS, mas médio caiu de 37,5 para **10,2 FPS**, e alto de 42,3 para **9,2 FPS**. Sombras, iluminação e materiais custam mais na emulação. Use **Baixo** ou a visualização tradicional nesse cenário; a 1.1 não deve ser apresentada como mais rápida em todo hardware. Medições completas, identificação do renderer, CPU de submissão e verificações estão em [validation-1.1.0.json](evidence/validation-1.1.0.json).
+
+### Limites e verificação manual pendente
+
+As fontes de mídia são sintéticas; estes resultados não equivalem a escuta humana ou microfones físicos. Faltam sessões prolongadas com PCs distintos pela VPN, GPUs integradas/de entrada, webcam e transmissões de alta resolução simultâneas, além de avaliação acústica. O modo tradicional permanece disponível e a perda de contexto da sala foi testada sem encerrar a chamada. Webcams ficam fora do fullscreen exclusivo do ambiente. Não foi executado um instalador nem um novo binário empacotado; o atualizador e sua assinatura não foram alterados.
+
+Antes de autorizar uma publicação, validar esses cenários nos computadores de destino e revisar o acabamento visual com o grupo. O fluxo de distribuição permanece o de [AGENTS.md](AGENTS.md), após autorização específica.
+
 ## Correções de identidade incorporadas à 1.0.0 — 24/10/2026
 
 Correção local confirmada pelo usuário: os atalhos de Menu Iniciar e Desktop apontam ao Voxy instalado, com ícone explícito de `resources/icon.ico` e AppUserModelID `dev.voxy.desktop`. O atalho Electron que apontava ao runtime do projeto foi guardado em backup, e sua entrada inválida retirada do Menu Iniciar. A interface instalada foi observada aberta com o título Voxy. Não houve troca do executável instalado ou remoção dos dados pessoais.

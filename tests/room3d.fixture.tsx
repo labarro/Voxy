@@ -152,6 +152,7 @@ function Fixture() {
     if (c.type === "room.tv") setTvSelection(c.participantId);
   };
   w.pose = () => people[0].roomPose;
+  w.profile = () => profile;
   return (
     <main style={{ padding: 16 }}>
       <button onClick={() => setActive((v) => !v)}>

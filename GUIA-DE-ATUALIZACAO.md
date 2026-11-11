@@ -1,5 +1,11 @@
 # Voxy — distribuir e atualizar sem perder os dados
 
+## Versão 1.1.0 em preparação
+
+O código prepara o redesenho das salas e o criador visual de personagens. Versões do pacote/lock e saída prevista estão em 1.1.0 (`release/1.1.0/`), com notas completas no catálogo. A publicação foi autorizada e será considerada concluída após verificar o workflow, os artefatos e a assinatura. Até essa confirmação, o download e o atualizador continuam apontando para a 1.0.0 publicada abaixo.
+
+Os novos estilos são extensões opcionais do avatar; os campos básicos permanecem compatíveis. O banco e o protocolo de voz não são substituídos. O processo de atualização, backup e validação de assinatura é preservado. [Uso das salas e do editor](SALAS-3D.md).
+
 ## Versão 1.0.0 publicada
 
 A [release 1.0.0](https://github.com/labarro/Voxy/releases/tag/v1.0.0) está publicada e é entregue pelo canal de atualização. O [workflow obrigatório](https://github.com/labarro/Voxy/actions/runs/43038013587) concluiu os testes, geração do instalador e metadados assinados, persistência do pacote e salas 3D em dois executáveis. Os cinco arquivos foram baixados e verificados; assinatura Ed25519, hashes SHA-512 e checksum SHA-256 conferem com o catálogo e o GitHub. Evidência: `evidence/publication-1.0.0.json`.

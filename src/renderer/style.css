@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./room3d/rooms.css";
 .notification-center {
   padding: 28px;
   overflow-y: auto;

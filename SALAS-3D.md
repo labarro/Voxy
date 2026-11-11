@@ -1,17 +1,51 @@
-# Salas 3D · Voxy 1.0.0
+# Salas 3D · Voxy 1.1.0 em preparação
 
-O host escolhe **Lounge 3D**, **Cinema 3D** ou **Tradicional** para cada canal de voz em **Gerenciar servidor**. Os ambientes são prontos: não há editor nem construção livre. Atualize host e participantes para 1.0.0 para compartilhar este recurso; hosts anteriores continuam oferecendo chamadas tradicionais.
+O código 1.1.0 está em desenvolvimento local, sem release ou instalador. A última versão publicada continua sendo [1.0.0](https://github.com/labarro/Voxy/releases/tag/v1.0.0). Execute `npm run build` e `npm start` para avaliar o código local; o perfil de desenvolvimento é separado da instalação. Não há editor de mapas nem construção livre.
 
-Entre no canal de voz normalmente e use **Entrar na sala 3D**. **Visualização tradicional** mantém a mesma chamada, microfone e transmissões. Quem prefere a interface tradicional permanece na lista de participantes e pode conversar normalmente; apenas quem abre o 3D ocupa um personagem na sala. A preferência **Perguntar** apresenta o convite na própria chamada, sem interromper a conexão.
+## Entrar no lounge ou cinema
 
-Clique no ambiente para dar foco. Use **WASD ou setas** para andar, **arraste** para girar a câmera e use a **roda** para aproximar/afastar. A câmera segue o personagem. Aproxime-se de um assento e pressione **E** ou **Sentar / levantar**; o host reserva o lugar para uma única pessoa. Pressione novamente para levantar. Digitar em menus não move o personagem. A mudança de canal e o retorno ao modo tradicional liberam o assento.
+O host abre **… ao lado do servidor → Gerenciar servidor e canais** e escolhe **Lounge 3D** ou **Cinema 3D** em **Ambiente de [canal de voz]**. Entre no canal e clique em **Entrar na sala 3D**. Em Configurações → Salas 3D, escolha entrada automática, pergunta ou modo tradicional. Hosts anteriores continuam oferecendo chamadas tradicionais; para os novos estilos compartilhados, atualize o host e os participantes para 1.1.
 
-Em **Configurações → Salas 3D**, personalize cabelo, cor do cabelo, tom de pele, suéter/jaqueta, cor da roupa e óculos/fones. Salve para persistir o personagem neste perfil e compartilhá-lo com os demais participantes. Configure também entrada automática/pergunta/tradicional, nomes, sensibilidade da câmera e qualidade baixa (24 FPS), média (40 FPS) ou alta (60 FPS). Esses valores são limites, não garantias de desempenho.
+**Voltar ao canal**, no topo da sala, mantém o microfone e a mesma chamada. Quem usa o modo tradicional permanece na lista e continua audível normalmente. O carregamento mostra o progresso dos modelos locais; falhas retornam à chamada tradicional sem abrir outra conexão de voz.
 
-A voz por proximidade usa os fluxos WebRTC da própria chamada. Até 1,5 m a voz preserva o ganho; depois diminui até zero no alcance escolhido (3–20 m). A direção acompanha a câmera por panorama estéreo. Ajuste volume/alcance ou desative a proximidade para ouvir todos normalmente. Participantes no modo tradicional continuam audíveis sem atenuação. Volumes individuais, silenciamento local, mute, Deafen e PTT continuam funcionando. A proximidade é uma preferência de reprodução local, não uma barreira de privacidade.
+## Movimento e câmera
 
-A TV mostra o compartilhamento existente, sem nova captura ou nova conexão WebRTC. Todos veem a mesma fonte, escolhida no seletor **TV** por um participante do canal e sincronizada pelo host. Quando a fonte encerra, a TV muda para outra transmissão ativa em ordem estável dos perfis; se não houver nenhuma, fica vazia. **Ampliar TV** abre o player da chamada apenas para você. O áudio fica exclusivamente no mecanismo de transmissão existente; o vídeo da textura é mudo. Webcams continuam disponíveis na galeria abaixo do ambiente. A voz nunca é adicionada ao compartilhamento: permanecem as regras e limitações da [captura segura](AUDIO-E-CONEXAO.md).
+- Clique no ambiente para dar foco. **WASD ou setas** movimentam o personagem com aceleração e desaceleração suaves.
+- **Arraste com o botão esquerdo** para girar; **roda** aproxima e afasta, respeitando os limites da câmera.
+- **C** alterna acompanhamento e exploração. Na exploração, **arraste com o botão direito** para deslocar o foco pelo ambiente.
+- **R** reposiciona a câmera. O menu de câmera no topo oferece as mesmas ações.
+- **F** ou **Tela cheia da sala** abre fullscreen real. **Esc** sai. Redimensionar ou alternar fullscreen preserva personagem e câmera.
 
-O 3D requer WebGL 2/aceleração gráfica disponível no Chromium. Em falhas de inicialização ou perda do contexto gráfico, o aplicativo retorna ao modo tradicional e mantém a chamada. A renderização pausa quando a janela está oculta ou há um diálogo; posições e áudio continuam sendo atualizados. As geometrias são locais e leves, sem download de modelos. Posições são enviadas apenas quando mudam, até cerca de nove vezes por segundo, e interpoladas nos outros clientes. O host valida limites, colisões, velocidade e ocupação. Posições/assentos são transitórios; ambiente do canal e personalização são persistentes.
+A câmera tem amortecimento, limites de inclinação e proteção contra obstáculos. As paredes laterais usam apresentação em corte quando vistas de fora; o modo livre permite inspecionar a arquitetura. A sensibilidade e a câmera inicial ficam em Configurações → Salas 3D.
 
-A [versão 1.0.0 está publicada](https://github.com/labarro/Voxy/releases/tag/v1.0.0), com instalador e catálogo de atualização verificados após a conclusão do [Actions](https://github.com/labarro/Voxy/actions/runs/43038013587). O pacote local fica em `release/1.0.0/`; `latest-build.json` identifica a pasta `build-*`, onde `win-unpacked/Voxy.exe` pode ser aberto junto aos demais arquivos da pasta. Testes automatizados usam mídia sintética em navegador e em processos reais do Electron, incluindo dois executáveis empacotados no CI. Validação acústica com microfones físicos, desempenho em GPUs integradas, VPN entre computadores distintos e sessões prolongadas continuam dependendo de testes manuais. Veja [TESTING.md](TESTING.md).
+Ao se aproximar de um lugar livre, um indicador no chão e a ação **E · Sentar** aparecem. Pressione **E** ou clique na ação contextual. O host reserva o assento; outra pessoa não pode ocupá-lo simultaneamente. Pressione novamente para levantar. O personagem usa transição de animação e procura um ponto livre ao sair. Sair do modo 3D ou mudar de canal libera o lugar. Digitar em menus não move o personagem.
+
+## Seu personagem
+
+Abra o ícone de personagem na HUD ou **Configurações → Salas 3D → Personalizar personagem**. O criador funciona fora de uma chamada e contém preview 3D com iluminação própria; arraste para girar e use Parado/Andando/Sentado para testar as animações.
+
+Corpo, rosto, cabelo, roupas, acessórios e cores têm cards e paletas. Há cinco cabelos, quatro roupas e cinco opções de acessórios, além de proporções e expressões. Uma cor personalizada continua disponível. **Aplicar personagem** salva e sincroniza o visual, sem reiniciar o microfone. **Cancelar** descarta o rascunho; **Restaurar padrão** altera apenas o rascunho até aplicar. O preview pode ser recarregado após uma interrupção gráfica sem perder as escolhas.
+
+Os campos básicos da 1.0 são preservados junto das extensões de estilo. Assim, conectar a um host antigo continua possível; ele pode mostrar apenas a personalização básica. O mesmo renderer de avatar atende preview e ambiente. [Modelos e licenças](ASSETS-3D.md).
+
+## Assistir na TV
+
+Compartilhe pelo botão da HUD. A TV exibe o fluxo já recebido no WebRTC. A escolha no seletor é sincronizada pelo host para todo o canal; se uma fonte encerra, outra ativa é escolhida de forma estável. Quando não há transmissão, a tela mostra sua apresentação de espera.
+
+**Assistir na TV** faz uma transição suave para o enquadramento da tela. **Ampliar TV** abre o player na própria sala, ocupando a área disponível; o player tem fullscreen e controles existentes. **Voltar à sala** ou **Esc** retorna à exploração. A proporção do vídeo é preservada. Nenhuma captura nem conexão WebRTC adicional é criada; durante a ampliação, a renderização do ambiente e o vídeo da textura pausam para reduzir trabalho. O áudio continua no mecanismo existente, preservando saída selecionada, volume da transmissão e Deafen.
+
+Webcams continuam na galeria da chamada, abaixo do ambiente. Em fullscreen da sala, volte ao layout do canal para ver essa galeria. A voz não é adicionada ao compartilhamento; continuam as regras de [captura segura](AUDIO-E-CONEXAO.md).
+
+## Voz, HUD e qualidade
+
+A HUD reúne mute, Deafen, transmissão, webcam, personagem, configurações e saída. O menu de participantes preserva o acesso ao mini perfil. Informações secundárias ficam mais discretas após alguns segundos de inatividade; os controles reaparecem ao interagir. Os temas continuam sendo aplicados à interface.
+
+A voz por proximidade usa as tracks da mesma chamada: ganho integral até 1,5 m, atenuação até o alcance escolhido e panorama estéreo conforme a câmera. A opção é local; não é uma barreira de privacidade. Mute, Deafen, PTT e volumes individuais mantêm prioridade. Quem usa a interface tradicional continua audível sem atenuação.
+
+Baixo limita a 24 FPS, desliga luzes adicionais/sombras dinâmicas e mantém contatos leves; médio limita a 40 FPS com sombras suaves; alto limita a 60 FPS e permite maior resolução. São tetos, não garantias. A antisserrilha é escolhida ao abrir o ambiente; reentre para reaplicá-la após mudar de nível. A renderização pausa com a janela oculta, minimizada, com diálogo aberto ou com o player ampliado, mantendo atualização de posição/áudio. Geometrias, materiais, texturas, skeletons e listeners são liberados ao sair.
+
+Os cenários usam assets locais pequenos, instancing nos elementos repetidos e mapas de sombra atualizados em frequência reduzida. A posição continua sendo enviada somente quando muda, até cerca de nove vezes por segundo, com validação de limites/ocupação no host e interpolação nos demais clientes. Posições e assentos são transitórios; perfil e ambiente do canal são persistentes.
+
+## Limites da avaliação
+
+O 3D requer WebGL 2. As medições e testes usam mídia sintética e processos reais do navegador/Electron, sem substituir a instalação pessoal. Testes acústicos com microfones físicos, GPUs de entrada, PCs distintos pela VPN e sessões prolongadas continuam necessários. Resultados, capturas e roteiro: [TESTING.md](TESTING.md).

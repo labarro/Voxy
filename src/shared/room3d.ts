@@ -1,4 +1,4 @@
-import type { Avatar3D, RoomPose, RoomPreset } from "./types";
+import type { Avatar3D, RoomPose, RoomPreset, RoomSettings } from "./types";
 
 export const defaultAvatar: Avatar3D = {
   hair: "short",
@@ -8,7 +8,7 @@ export const defaultAvatar: Avatar3D = {
   color: "#7c72df",
   accessory: "none",
 };
-export const defaultRoomSettings = {
+export const defaultRoomSettings: RoomSettings = {
   entry: "ask" as const,
   quality: "medium" as const,
   proximity: true,

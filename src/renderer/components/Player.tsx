@@ -177,7 +177,7 @@ export function Player({
           <button
             title="Tela cheia"
             onClick={() => {
-              if (document.fullscreenElement) {
+              if (document.fullscreenElement === container.current) {
                 void document.exitFullscreen();
                 return;
               }

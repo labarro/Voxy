@@ -1,91 +1,48 @@
+import { lazy, Suspense, useState } from "react";
+import { PersonStanding, ArrowRight } from "lucide-react";
 import type { Profile } from "../../shared/types";
-import { defaultAvatar, defaultRoomSettings } from "../../shared/room3d";
+import { defaultRoomSettings } from "../../shared/room3d";
+import { Modal } from "../components/Modal";
+const AvatarCreator = lazy(() => import("./AvatarCreator"));
 export function RoomSettings({
   profile,
   change,
+  onCustomize,
 }: {
   profile: Profile;
-  change: (p: Profile) => void;
+  change: (profile: Profile) => void;
+  onCustomize?: () => void;
 }) {
-  const a = profile.avatar3d ?? defaultAvatar,
-    s = profile.room3d ?? defaultRoomSettings;
-  const avatar = (value: Partial<typeof a>) =>
-    change({ ...profile, avatar3d: { ...a, ...value } });
-  const settings = (value: Partial<typeof s>) =>
-    change({ ...profile, room3d: { ...s, ...value } });
+  const settings = profile.room3d ?? defaultRoomSettings,
+    [editor, setEditor] = useState(false);
+  const update = (value: Partial<typeof settings>) =>
+    change({ ...profile, room3d: { ...settings, ...value } });
   return (
     <div className="room-settings">
-      <h4>Seu personagem</h4>
-      <label>
-        Cabelo
-        <select
-          aria-label="Cabelo"
-          value={a.hair}
-          onChange={(e) => avatar({ hair: e.target.value as typeof a.hair })}
-        >
-          <option value="short">Curto</option>
-          <option value="long">Longo</option>
-          <option value="crest">Topete</option>
-        </select>
-      </label>
-      <label>
-        Cor do cabelo
-        <input
-          type="color"
-          value={a.hairColor}
-          onChange={(e) => avatar({ hairColor: e.target.value })}
-        />
-      </label>
-      <label>
-        Tom de pele
-        <input
-          type="color"
-          value={a.skin}
-          onChange={(e) => avatar({ skin: e.target.value })}
-        />
-      </label>
-      <label>
-        Roupa
-        <select
-          aria-label="Roupa"
-          value={a.outfit}
-          onChange={(e) =>
-            avatar({ outfit: e.target.value as typeof a.outfit })
-          }
-        >
-          <option value="sweater">Suéter</option>
-          <option value="jacket">Jaqueta</option>
-        </select>
-      </label>
-      <label>
-        Cor da roupa
-        <input
-          type="color"
-          value={a.color}
-          onChange={(e) => avatar({ color: e.target.value })}
-        />
-      </label>
-      <label>
-        Acessório
-        <select
-          aria-label="Acessório"
-          value={a.accessory}
-          onChange={(e) =>
-            avatar({ accessory: e.target.value as typeof a.accessory })
-          }
-        >
-          <option value="none">Nenhum</option>
-          <option value="glasses">Óculos</option>
-          <option value="headphones">Fones</option>
-        </select>
-      </label>
-      <h4>Salas 3D</h4>
+      <button
+        type="button"
+        className="character-launcher"
+        onClick={() => (onCustomize ? onCustomize() : setEditor(true))}
+      >
+        <span className="character-launcher-art">
+          <PersonStanding size={54} />
+        </span>
+        <span>
+          <strong>Seu personagem, do seu jeito.</strong>
+          <small>Cabelo, roupas, acessórios e um preview 3D ao vivo.</small>
+          <span className="character-launcher-action">
+            Personalizar personagem <ArrowRight size={16} />
+          </span>
+        </span>
+      </button>
+      <h4>Experiência da sala</h4>
       <label>
         Ao entrar em canal compatível
         <select
-          value={s.entry}
-          onChange={(e) =>
-            settings({ entry: e.target.value as typeof s.entry })
+          aria-label="Ao entrar em canal compatível"
+          value={settings.entry}
+          onChange={(event) =>
+            update({ entry: event.target.value as typeof settings.entry })
           }
         >
           <option value="always">Abrir sempre em 3D</option>
@@ -99,70 +56,105 @@ export function RoomSettings({
         Qualidade gráfica
         <select
           aria-label="Qualidade gráfica"
-          value={s.quality}
-          onChange={(e) =>
-            settings({ quality: e.target.value as typeof s.quality })
+          value={settings.quality}
+          onChange={(event) =>
+            update({ quality: event.target.value as typeof settings.quality })
           }
         >
-          <option value="low">Baixo · 24 FPS</option>
-          <option value="medium">Médio · 40 FPS</option>
-          <option value="high">Alto · 60 FPS</option>
+          <option value="low">
+            Baixo · até 24 FPS · sem sombras dinâmicas
+          </option>
+          <option value="medium">Médio · até 40 FPS · sombras suaves</option>
+          <option value="high">Alto · até 60 FPS · maior resolução</option>
         </select>
       </label>
-      <label className="checkbox">
-        <input
-          type="checkbox"
-          checked={s.proximity}
-          onChange={(e) => settings({ proximity: e.target.checked })}
-        />
-        Voz por proximidade
-      </label>
       <label>
-        Volume da voz por proximidade
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step=".05"
-          value={s.volume}
-          onChange={(e) => settings({ volume: +e.target.value })}
-        />
-      </label>
-      <label>
-        Alcance: {s.range} metros
-        <input
-          type="range"
-          min="3"
-          max="20"
-          step="1"
-          value={s.range}
-          onChange={(e) => settings({ range: +e.target.value })}
-        />
+        Câmera inicial
+        <select
+          aria-label="Câmera inicial"
+          value={settings.cameraMode ?? "follow"}
+          onChange={(event) =>
+            update({ cameraMode: event.target.value as "follow" | "free" })
+          }
+        >
+          <option value="follow">Acompanhar personagem</option>
+          <option value="free">Explorar ambiente</option>
+        </select>
       </label>
       <label>
         Sensibilidade da câmera
         <input
+          aria-label="Sensibilidade da câmera"
           type="range"
           min=".2"
           max="3"
           step=".1"
-          value={s.sensitivity}
-          onChange={(e) => settings({ sensitivity: +e.target.value })}
+          value={settings.sensitivity}
+          onChange={(event) => update({ sensitivity: +event.target.value })}
         />
       </label>
       <label className="checkbox">
         <input
           type="checkbox"
-          checked={s.names}
-          onChange={(e) => settings({ names: e.target.checked })}
+          checked={settings.names}
+          onChange={(event) => update({ names: event.target.checked })}
         />
         Mostrar nomes sobre personagens
       </label>
+      <h4>Voz por proximidade</h4>
+      <label className="checkbox">
+        <input
+          type="checkbox"
+          checked={settings.proximity}
+          onChange={(event) => update({ proximity: event.target.checked })}
+        />
+        Ativar voz por proximidade
+      </label>
+      <label>
+        Volume da voz por proximidade
+        <input
+          aria-label="Volume da voz por proximidade"
+          type="range"
+          min="0"
+          max="1"
+          step=".05"
+          value={settings.volume}
+          onChange={(event) => update({ volume: +event.target.value })}
+        />
+      </label>
+      <label>
+        Alcance: {settings.range} metros
+        <input
+          aria-label="Alcance da voz por proximidade"
+          type="range"
+          min="3"
+          max="20"
+          step="1"
+          value={settings.range}
+          onChange={(event) => update({ range: +event.target.value })}
+        />
+      </label>
       <small>
-        Quem usa a visualização tradicional continua audível normalmente. Mute,
-        Deafen, PTT e volumes individuais mantêm prioridade. As alterações são
-        aplicadas ao salvar.
+        Mute, Deafen, PTT e volumes individuais mantêm prioridade. As
+        preferências da sala são aplicadas ao salvar.
       </small>
+      {editor && (
+        <Modal title="Seu personagem" close={() => setEditor(false)}>
+          <Suspense
+            fallback={<p role="status">Abrindo criador de personagens…</p>}
+          >
+            <AvatarCreator
+              value={profile.avatar3d}
+              name={profile.name}
+              onCancel={() => setEditor(false)}
+              onApply={(avatar) => {
+                change({ ...profile, avatar3d: avatar });
+                setEditor(false);
+              }}
+            />
+          </Suspense>
+        </Modal>
+      )}
     </div>
   );
 }

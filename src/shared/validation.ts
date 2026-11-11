@@ -39,11 +39,18 @@ const profileObjectSchema = z.object({
   avatar3d: z
     .object({
       hair: z.enum(["short", "long", "crest"]),
+      hairStyle: z.enum(["short", "long", "crest", "bob", "curly"]).optional(),
       hairColor: colorSchema,
       skin: colorSchema,
       outfit: z.enum(["sweater", "jacket"]),
+      outfitStyle: z.enum(["sweater", "jacket", "hoodie", "tee"]).optional(),
       color: colorSchema,
       accessory: z.enum(["none", "glasses", "headphones"]),
+      accessoryStyle: z
+        .enum(["none", "glasses", "headphones", "beanie", "earrings"])
+        .optional(),
+      body: z.enum(["classic", "soft"]).optional(),
+      face: z.enum(["friendly", "calm", "bright"]).optional(),
     })
     .optional(),
   room3d: z
@@ -55,6 +62,7 @@ const profileObjectSchema = z.object({
       range: z.number().min(3).max(20),
       sensitivity: z.number().min(0.2).max(3),
       names: z.boolean(),
+      cameraMode: z.enum(["follow", "free"]).optional(),
     })
     .optional(),
   id: z.uuid(),

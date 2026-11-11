@@ -1,4 +1,34 @@
 {
+  "1.1.0": {
+    "date": "2026-11-11",
+    "title": "Um espaço com a sua cara",
+    "items": [
+      "Lounge e cinema redesenhados com arquitetura, materiais, iluminação e móveis mais detalhados.",
+      "Criador visual com preview 3D, categorias, paletas, animações e mais opções de personagem.",
+      "Câmera suave, modos de acompanhamento/exploração, tela cheia da sala e modo assistir na TV."
+    ],
+    "features": [
+      "Criador de personagens independente da sala, com preview giratório, cards visuais, aplicação, cancelamento e restauração.",
+      "Novos cabelos, roupas, acessórios, proporções e expressões, persistidos no perfil e sincronizados pelo host.",
+      "Câmeras de acompanhamento e exploração com suavização, deslocamento, limites, colisões e reposicionamento.",
+      "Tela cheia da sala com HUD própria e saída por Esc, preservando personagem e câmera.",
+      "Assistir na TV com enquadramento automático, transição suave, player ampliado e fullscreen da transmissão."
+    ],
+    "improvements": [
+      "Cenários com madeira, tecidos, painéis acústicos, iluminação indireta e sombras suaves nos níveis médio/alto.",
+      "Modelos e animações locais de Kenney sob CC0, com licenças e hashes incluídos no projeto.",
+      "Avatares com esqueleto e transições entre parado, caminhada e sentado, usando o mesmo modelo no preview e na sala.",
+      "HUD agrupada com controles de voz, mídia, câmera, participantes e ações contextuais nos assentos.",
+      "Carregamento com progresso real dos modelos, instancing de elementos repetidos e níveis gráficos com limites de resolução e quadros."
+    ],
+    "fixes": [
+      "Alterar o personagem não reinicia o microfone nem cria outra chamada.",
+      "TV preserva a proporção da transmissão e mantém o áudio no mecanismo existente.",
+      "Renderização da sala e vídeo da textura pausam durante a visualização ampliada, mantendo a assinatura de mídia.",
+      "Preview permite recarregar após falha gráfica sem perder o rascunho do personagem.",
+      "Campos básicos de avatar continuam compatíveis com hosts 1.0; novos estilos são opcionais."
+    ]
+  },
   "1.0.0": {
     "date": "2026-11-11",
     "title": "Espaços para ficar por perto",

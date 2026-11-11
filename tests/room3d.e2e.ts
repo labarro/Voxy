@@ -3,6 +3,7 @@ import { build } from "esbuild";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import assert from "node:assert/strict";
+import { resolve, extname } from "node:path";
 
 async function main() {
   const bundle = await build({
@@ -17,7 +18,25 @@ async function main() {
       (await readdir("dist/renderer/assets")).find((f) => f.endsWith(".css")),
     "utf8",
   );
-  const server = createServer((req, res) => {
+  const publicRoot = resolve("src/renderer/public");
+  const server = createServer(async (req, res) => {
+    if (req.url?.startsWith("/assets/")) {
+      const path = resolve(publicRoot, "." + req.url.split("?")[0]);
+      if (!path.startsWith(publicRoot)) {
+        res.writeHead(403).end();
+        return;
+      }
+      try {
+        res.setHeader(
+          "Content-Type",
+          extname(path) === ".png" ? "image/png" : "model/gltf-binary",
+        );
+        res.end(await readFile(path));
+      } catch {
+        res.writeHead(404).end();
+      }
+      return;
+    }
     res.setHeader(
       "Content-Type",
       req.url === "/bundle.js" ? "application/javascript" : "text/html",
@@ -47,6 +66,7 @@ async function main() {
     page.on("pageerror", (e) => errors.push(e.message));
     await page.addInitScript("window.__name = fn => fn;");
     await page.goto(`http://127.0.0.1:${(server.address() as any).port}`);
+    await page.locator('.room3d canvas[data-ready="true"]').waitFor();
     await page.waitForFunction(() =>
       (window as any).commands.some((c: any) => c.pose),
     );
@@ -58,8 +78,11 @@ async function main() {
     await scene.focus();
     const initial = await page.evaluate(() => (window as any).pose());
     await page.keyboard.down("KeyW");
-    await page.waitForTimeout(560);
-    await page.keyboard.up("KeyW");
+    try {
+      await page.getByRole("button", { name: "Sentar / levantar (E)" }).waitFor();
+    } finally {
+      await page.keyboard.up("KeyW");
+    }
     await page.waitForFunction(
       (z: number) => (window as any).pose()?.z < z - 1,
       initial.z,
@@ -67,10 +90,39 @@ async function main() {
     await page.getByRole("button", { name: "Sentar / levantar (E)" }).click();
     await page.waitForFunction(() => (window as any).pose()?.seat !== null);
     await mkdir("test-results", { recursive: true });
+    await page.getByRole("button", { name: "Opções da câmera" }).click();
+    await page
+      .getByRole("button", { name: "Explorar ambiente", exact: false })
+      .click();
+    await page.waitForTimeout(800);
     await page.screenshot({ path: "test-results/room3d-lounge.png" });
     await page.getByRole("button", { name: "Sentar / levantar (E)" }).click();
     await page.waitForFunction(() => (window as any).pose()?.seat === null);
-    await page.getByRole("button", { name: "Ampliar TV" }).click();
+    await page
+      .getByRole("button", { name: "Assistir na TV", exact: true })
+      .click();
+    await page.waitForFunction(
+      () =>
+        document.querySelector(".room3d")?.getAttribute("data-camera-mode") ===
+        "watch",
+    );
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: "test-results/room3d-watch.png" });
+    const beforeFullscreen = await page.evaluate(() => (window as any).pose());
+    await page
+      .getByRole("button", { name: "Tela cheia da sala", exact: true })
+      .click();
+    await page.waitForFunction(() => !!document.fullscreenElement);
+    assert.deepEqual(
+      await page.evaluate(() => (window as any).pose()),
+      beforeFullscreen,
+    );
+    await page.screenshot({ path: "test-results/room3d-fullscreen.png" });
+    await page
+      .getByRole("button", { name: "Sair da tela cheia da sala", exact: true })
+      .click();
+    await page.waitForFunction(() => !document.fullscreenElement);
+    await page.getByRole("button", { name: "Ampliar TV", exact: true }).click();
     await page.waitForFunction(
       () =>
         document.querySelector('.player[data-kind="screen"] video') instanceof
@@ -83,7 +135,8 @@ async function main() {
       1,
     );
     await page
-      .getByRole("button", { name: "Voltar à grade", exact: true })
+      .getByRole("button", { name: "Voltar à sala", exact: false })
+      .first()
       .click();
     await page
       .getByRole("combobox", { name: "Transmissão na TV" })
@@ -94,17 +147,78 @@ async function main() {
     await page
       .getByRole("button", { name: "Personalizar", exact: true })
       .click();
-    await page.getByLabel("Cabelo", { exact: true }).selectOption("crest");
-    await page.getByLabel("Roupa", { exact: true }).selectOption("jacket");
     await page
-      .getByLabel("Acessório", { exact: true })
-      .selectOption("headphones");
+      .getByRole("button", { name: /Seu personagem, do seu jeito/ })
+      .click();
+    await page.locator('.avatar-studio[data-ready="true"]').waitFor();
+    await page
+      .getByRole("button", { name: "Cabelo Topete", exact: true })
+      .click();
+    await page.getByRole("tab", { name: "Roupas", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Roupa Jaqueta", exact: true })
+      .click();
+    await page.getByRole("tab", { name: "Acessórios", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Acessório Fones", exact: true })
+      .click();
+    await page.getByRole("button", { name: "Andando", exact: true }).click();
+    await page.screenshot({
+      path: "test-results/room3d-character-creator.png",
+    });
+    assert.equal(
+      await page.evaluate(() => (window as any).profile().avatar3d.hair),
+      "short",
+      "preview edits remain a draft",
+    );
+    await page.locator(".avatar-studio canvas").evaluate((canvas) => {
+      (canvas as HTMLCanvasElement)
+        .getContext("webgl2")!
+        .getExtension("WEBGL_lose_context")!
+        .loseContext();
+    });
+    await page
+      .getByRole("button", { name: "Recarregar preview", exact: true })
+      .click();
+    await page.locator('.avatar-studio[data-ready="true"]').waitFor();
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Acessório Fones", exact: true })
+        .getAttribute("aria-pressed"),
+      "true",
+      "context recovery preserves the draft",
+    );
+    await page
+      .getByRole("button", { name: "Aplicar personagem", exact: true })
+      .click();
+    assert.equal(
+      await page.evaluate(() => (window as any).profile().avatar3d.hair),
+      "crest",
+    );
+    await page
+      .getByRole("button", { name: /Seu personagem, do seu jeito/ })
+      .click();
+    await page.locator('.avatar-studio[data-ready="true"]').waitFor();
+    await page
+      .getByRole("button", { name: "Restaurar padrão", exact: true })
+      .click();
+    await page.getByRole("button", { name: "Cancelar", exact: true }).click();
+    assert.equal(
+      await page.evaluate(() => (window as any).profile().avatar3d.hair),
+      "crest",
+      "cancel never persists the reset",
+    );
     await page.getByLabel("Qualidade gráfica").selectOption("low");
     await page
       .getByRole("button", { name: "Personalizar", exact: true })
       .click();
     await page.getByRole("button", { name: "Trocar ambiente" }).click();
     await page.getByRole("region", { name: "Cinema 3D" }).waitFor();
+    await page.locator('.room3d canvas[data-ready="true"]').waitFor();
+    await page.getByRole("button", { name: "Opções da câmera" }).click();
+    await page
+      .getByRole("button", { name: "Explorar ambiente", exact: false })
+      .click();
     await page.waitForTimeout(600);
     await page.screenshot({ path: "test-results/room3d-cinema.png" });
     const mixed = await page.evaluate(() => (window as any).mix);
@@ -159,6 +273,10 @@ async function main() {
             "spatial audio",
             "traditional fallback",
             "context loss",
+            "smooth watch camera",
+            "room fullscreen",
+            "creator live preview",
+            "apply and cancel isolation",
           ],
         },
         null,

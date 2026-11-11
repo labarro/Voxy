@@ -61,10 +61,22 @@ async function main() {
         .getByRole("combobox", { name: "Ao entrar em canal compatível" })
         .selectOption("always");
       await page
-        .getByRole("combobox", { name: "Cabelo", exact: true })
-        .selectOption("long");
-      await page
         .getByRole("button", { name: "Salvar perfil e dispositivos" })
+        .click();
+      await page.locator("dialog[open]").waitFor({ state: "detached" });
+      await page
+        .getByRole("button", { name: "Configurações", exact: true })
+        .click();
+      await page.getByRole("button", { name: "Salas 3D", exact: true }).click();
+      await page
+        .getByRole("button", { name: /Seu personagem, do seu jeito/ })
+        .click();
+      await page.locator('.avatar-studio[data-ready="true"]').waitFor();
+      await page
+        .getByRole("button", { name: "Cabelo Longo", exact: true })
+        .click();
+      await page
+        .getByRole("button", { name: "Aplicar personagem", exact: true })
         .click();
       await page.locator("dialog[open]").waitFor({ state: "detached" });
       assert.equal(
@@ -102,7 +114,7 @@ async function main() {
     }
     await a.waitForFunction(() =>
       document
-        .querySelector(".room3d-top")
+        .querySelector(".room-identity")
         ?.textContent?.includes("2 no ambiente"),
     );
     const canvas = b.locator(".room3d canvas");
@@ -125,39 +137,78 @@ async function main() {
       };
     });
     await b
-      .getByRole("button", { name: "Visualização tradicional", exact: true })
+      .getByRole("button", { name: "Voltar ao canal", exact: true })
       .click();
     assert.equal(await b.locator(".room3d canvas").count(), 0);
     assert(await b.locator(".voice-status").count());
     await b
       .getByRole("button", { name: "Entrar na sala 3D", exact: true })
       .click();
-    await b.locator(".room3d canvas").waitFor();
+    await b.locator('.room3d canvas[data-ready="true"]').waitFor();
     assert.equal(await b.evaluate(() => (window as any).captureCalls), 0);
     await b
-      .getByRole("button", { name: "Personagem e opções 3D", exact: true })
+      .getByRole("button", { name: "Tela cheia da sala", exact: true })
       .click();
+    await b.waitForFunction(() => !!document.fullscreenElement);
     await b
-      .getByRole("heading", { name: "Salas 3D", exact: true, level: 3 })
+      .getByRole("button", { name: "Personalizar personagem", exact: true })
+      .click();
+    await b.waitForFunction(() => !document.fullscreenElement);
+    await b
+      .getByRole("heading", { name: "Do seu jeito.", exact: true })
       .waitFor();
+    await b.locator('.avatar-studio[data-ready="true"]').waitFor();
+    await a.evaluate(() => {
+      const w = window as any;
+      w.avatarOff = window.voxy.onEvent((event) => {
+        if (event.type === "state")
+          w.latestAvatarProfiles = event.state.participants.map(
+            (p) => p.profile,
+          );
+      });
+    });
+    await b.getByRole("button", { name: "Cabelo Coques", exact: true }).click();
+    await b.getByRole("tab", { name: "Roupas", exact: true }).click();
+    await b.getByRole("button", { name: "Roupa Moletom", exact: true }).click();
+    await b.screenshot({
+      path: join(root, "integrated-character-creator.png"),
+    });
     await b
-      .locator("dialog[open]")
-      .getByRole("button", { name: "Fechar", exact: true })
+      .getByRole("button", { name: "Aplicar personagem", exact: true })
       .click();
+    await b.locator("dialog[open]").waitFor({ state: "detached" });
+    assert.equal(
+      (await b.evaluate(() => window.voxy.profile())).avatar3d?.outfitStyle,
+      "hoodie",
+    );
+    await a.waitForFunction(
+      () =>
+        (window as any).latestAvatarProfiles?.find(
+          (p: any) => p.name === "Bruno 3D",
+        )?.avatar3d?.hairStyle === "curly",
+    );
+    await a.evaluate(() => (window as any).avatarOff());
     await b
-      .locator(".call-controls")
+      .getByRole("button", { name: "Tela cheia da sala", exact: true })
+      .click();
+    await b.waitForFunction(() => !!document.fullscreenElement);
+    await b.keyboard.press("Escape");
+    await b.waitForFunction(() => !document.fullscreenElement);
+    assert.equal(await b.evaluate(() => (window as any).captureCalls), 0);
+    await b
+      .locator(".room-dock")
       .getByRole("button", { name: "Mutar microfone", exact: true })
       .click();
     await b
-      .locator(".call-controls")
+      .locator(".room-dock")
       .getByRole("button", { name: "Ativar microfone", exact: true })
       .waitFor();
     await b
-      .locator(".call-controls")
+      .locator(".room-dock")
       .getByRole("button", { name: "Silenciar áudio", exact: true })
       .click();
     await b
-      .locator(".call-controls")
+      .locator(".room-dock")
       .getByRole("button", { name: "Desativar Deafen", exact: true })
       .waitFor();
     await a.evaluate(() => {
@@ -181,13 +232,21 @@ async function main() {
       };
     });
     await a
-      .locator(".call-controls")
+      .locator(".room-dock")
       .getByRole("button", { name: "Compartilhar tela", exact: true })
       .click();
     await a
       .locator("dialog[open]")
       .getByRole("button", { name: "Iniciar transmissão", exact: true })
       .click();
+    await b
+      .getByRole("button", { name: "Assistir na TV", exact: true })
+      .click();
+    await b.waitForFunction(
+      () =>
+        document.querySelector(".room3d")?.getAttribute("data-camera-mode") ===
+        "watch",
+    );
     await b.getByRole("button", { name: "Ampliar TV", exact: true }).click();
     await b.waitForFunction(
       () =>
@@ -207,20 +266,35 @@ async function main() {
       pixel[1] > 140 && pixel[0] < 100,
       "TV must receive the remote synthetic video through WebRTC",
     );
-    await b
-      .getByRole("button", { name: "Voltar à grade", exact: true })
-      .click();
+    await b.getByRole("button", { name: "Tela cheia", exact: true }).click();
+    await b.waitForFunction(() =>
+      document.fullscreenElement?.classList.contains("player"),
+    );
+    await b.keyboard.press("Escape");
+    await b.waitForFunction(() => !document.fullscreenElement);
+    const backToRoom = b.getByRole("button", {
+      name: "Voltar à sala",
+      exact: false,
+    });
+    if (await backToRoom.count()) await backToRoom.first().click();
+    assert.equal(await b.locator(".room-tv-expanded").count(), 0);
     await b.waitForTimeout(250);
     await b.screenshot({ path: join(root, "integrated-tv.png") });
     await a
-      .locator(".call-controls")
+      .locator(".room-dock")
       .getByRole("button", { name: "Parar transmissão", exact: true })
       .click();
     await a.waitForFunction(() =>
       document
-        .querySelector(".room3d-top")
+        .querySelector(".room-identity")
         ?.textContent?.includes("2 no ambiente"),
     );
+    await apps[0].evaluate(({ BrowserWindow }) => {
+      const window = BrowserWindow.getAllWindows()[0];
+      window.show();
+      window.focus();
+    });
+    await a.waitForTimeout(850);
     await a.screenshot({ path: join(root, "integrated-lounge.png") });
     await a
       .getByRole("button", { name: "Gerenciar servidor e canais", exact: true })
@@ -239,6 +313,8 @@ async function main() {
       await page
         .getByRole("region", { name: "Cinema 3D", exact: true })
         .waitFor();
+    await a.locator('.room3d canvas[data-ready="true"]').waitFor();
+    await a.waitForTimeout(850);
     await a.screenshot({ path: join(root, "integrated-cinema.png") });
     assert.deepEqual(errors, []);
     await writeFile(
@@ -258,6 +334,10 @@ async function main() {
             "deafen",
             "remote WebRTC video decoded in TV and expanded player",
             "direct 3D settings shortcut",
+            "character creator apply without microphone recapture",
+            "extended avatar styles synchronized to the other client",
+            "room fullscreen and native Escape",
+            "watch camera and transmission fullscreen",
             "live preset change",
           ],
         },

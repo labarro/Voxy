@@ -39,8 +39,10 @@ import {
 } from "react";
 import { RoomBoundary } from "./room3d/RoomBoundary";
 const RoomView = lazy(() => import("./room3d/RoomView"));
+const AvatarCreator = lazy(() => import("./room3d/AvatarCreator"));
 import {
   AudioLines,
+  PersonStanding,
   Plus,
   Hash,
   Volume2,
@@ -93,6 +95,7 @@ type Dialog =
   | "host"
   | "join"
   | "profile"
+  | "avatar"
   | "share"
   | "server"
   | "channel"
@@ -183,7 +186,7 @@ export function App() {
   }, [profile?.theme, profile?.accentColor]);
   useEffect(() => {
     void window.voxy
-      .pauseVoiceShortcuts(dialog === "profile")
+      .pauseVoiceShortcuts(dialog === "profile" || dialog === "avatar")
       .catch((e) => setError(e.message));
     return () => {
       void window.voxy.pauseVoiceShortcuts(false).catch(() => {});
@@ -1421,7 +1424,15 @@ export function App() {
                       setError("A sala 3D não carregou. A chamada continua.");
                     }}
                   >
-                    <Suspense fallback={<p role="status">Abrindo sala 3D…</p>}>
+                    <Suspense
+                      fallback={
+                        <div className="room-module-loading" role="status">
+                          <PersonStanding size={36} />
+                          <strong>Preparando seu espaço…</strong>
+                          <span>A chamada continua conectada.</span>
+                        </div>
+                      }
+                    >
                       <RoomView
                         key={channel.id + channel.roomPreset}
                         preset={channel.roomPreset}
@@ -1442,6 +1453,31 @@ export function App() {
                         }}
                         onSource={setTvSource}
                         sourceId={room.televisions?.[channel.id]}
+                        muted={muted}
+                        deafened={deafened}
+                        onMute={() => void run(toggleMute)}
+                        onDeafen={() => void run(toggleDeafen)}
+                        onSettings={() => void open("profile", "Salas 3D")}
+                        onCustomize={() => void open("avatar")}
+                        onTraditional={() => {
+                          setRoomMode(false);
+                          setRoomPrompt(false);
+                        }}
+                        onLeave={() => void run(leaveVoice)}
+                        onShare={() =>
+                          media.sharing
+                            ? void run(() => engine.stopShare())
+                            : void open("share")
+                        }
+                        onCamera={() =>
+                          media.cameraActive
+                            ? void run(() => engine.stopCamera())
+                            : void open("camera")
+                        }
+                        onVolume={(id, value) =>
+                          saveParticipantVolume(id, value, true)
+                        }
+                        onParticipant={openUserProfile}
                       />
                     </Suspense>
                   </RoomBoundary>
@@ -1824,6 +1860,7 @@ export function App() {
                 host: "Hospedar sua sala",
                 join: "Entrar em uma sala",
                 profile: "Configurações",
+                avatar: "Seu personagem",
                 share: "Compartilhar sua tela",
                 server: "Criar servidor",
                 channel: "Criar canal",
@@ -1936,6 +1973,7 @@ export function App() {
             )}
             {dialog === "profile" && (
               <ProfileForm
+                onCustomize={() => void open("avatar")}
                 initialCategory={profileSection}
                 room={room}
                 scope={inbox.activeScope}
@@ -1948,6 +1986,27 @@ export function App() {
                 busy={busy}
                 onSave={() => void run(() => savePreferences(profile), true)}
               />
+            )}
+            {dialog === "avatar" && (
+              <Suspense
+                fallback={<p role="status">Abrindo criador de personagens…</p>}
+              >
+                <AvatarCreator
+                  value={profile.avatar3d}
+                  name={profile.name}
+                  onCancel={() => setDialog(null)}
+                  onApply={async (avatar) => {
+                    const base = await window.voxy.profile();
+                    const saved = await window.voxy.saveProfile({
+                      ...base,
+                      avatar3d: avatar,
+                    });
+                    setProfile(saved);
+                    engine.configurePreferences(saved);
+                    setDialog(null);
+                  }}
+                />
+              </Suspense>
             )}
             {dialog === "camera" && (
               <form

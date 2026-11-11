@@ -9,7 +9,7 @@
 Voz, chat e compartilhamento de tela para o seu grupo de amigos.<br />
 Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu computador.
 
-![Versão 1.0.0 publicada](https://img.shields.io/badge/vers%C3%A3o-1.0.0_publicada-b6adff?style=flat-square)
+![Versão 1.1.0 em preparação](https://img.shields.io/badge/vers%C3%A3o-1.1.0_em_preparacao-b6adff?style=flat-square)
 ![Windows 10 e 11 x64](https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-4389e8?style=flat-square)
 ![WebRTC P2P](https://img.shields.io/badge/WebRTC-P2P-68d6b1?style=flat-square)
 ![Até 10 participantes](https://img.shields.io/badge/at%C3%A9-10%20participantes-c9233c?style=flat-square)
@@ -20,9 +20,19 @@ Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu compu
 
 ---
 
+## Novidades na versão 1.1.0 em preparação
+
+**Código em preparação: 1.1.0. Última versão publicada: 1.0.0.** A publicação da 1.1.0 foi autorizada e está em preparação; os downloads continuam apontando para a 1.0.0 existente até a conclusão e verificação do workflow de release.
+
+Lounge e cinema com arquitetura, janela/arte, madeira, tecidos, estofados arredondados, iluminação indireta, sombras suaves e modelos CC0 locais. Os personagens usam esqueleto e animações com transições; o criador visual tem preview 3D giratório, categorias, cards, paletas, expressões, roupas e acessórios, aplicação e cancelamento sem precisar entrar na sala.
+
+A câmera acompanha o personagem ou explora o ambiente, com suavização, zoom limitado, colisões e reposicionamento. A sala oferece fullscreen real, HUD agrupada e instruções contextuais. **Assistir na TV** enquadra a transmissão suavemente; **Ampliar TV** abre o player dentro da experiência, com fullscreen próprio e retorno à sala. Voz, PTT, mute/Deafen, webcam e sincronização usam os serviços existentes. [Guia atualizado](SALAS-3D.md) · [Assets e licenças](ASSETS-3D.md) · [Validação e limites](TESTING.md).
+
+No nível baixo, sombras dinâmicas e luzes adicionais ficam desligadas; médio e alto aumentam o acabamento. A versão exige WebGL 2 para 3D e continua oferecendo o canal tradicional como fallback. Sem aceleração de GPU, use **Baixo** ou o canal tradicional: médio/alto tiveram baixo desempenho na renderização por software. A qualidade depende da GPU; testes sintéticos não substituem avaliação acústica nem sessões prolongadas entre PCs. A futura saída de distribuição é `release/1.1.0/`; nenhum pacote dessa versão foi gerado nesta etapa.
+
 ## Novidades na versão 1.0.0
 
-**Código e última versão publicada: 1.0.0.** O [Actions da release](https://github.com/labarro/Voxy/actions/runs/43038013587) concluiu os testes, a geração do instalador e dos metadados assinados, os testes do executável e de duas instâncias com salas 3D, e a [publicação dos arquivos](https://github.com/labarro/Voxy/releases/tag/v1.0.0). O canal público de atualização entrega a 1.0.0; assinatura Ed25519, manifesto e hashes do instalador e do blockmap foram conferidos. [Evidência da publicação](evidence/publication-1.0.0.json).
+**Última versão publicada: 1.0.0.** O [Actions da release](https://github.com/labarro/Voxy/actions/runs/43038013587) concluiu os testes, a geração do instalador e dos metadados assinados, os testes do executável e de duas instâncias com salas 3D, e a [publicação dos arquivos](https://github.com/labarro/Voxy/releases/tag/v1.0.0). O canal público de atualização entrega a 1.0.0; assinatura Ed25519, manifesto e hashes do instalador e do blockmap foram conferidos. [Evidência da publicação](evidence/publication-1.0.0.json).
 
 Salas 3D opcionais integradas aos canais de voz: lounge com sofás, cadeiras, puffs e iluminação aconchegante, e cinema com assentos em fileiras e tela grande. O host escolhe o ambiente ao gerenciar os canais. Alterne entre 3D e visualização tradicional sem sair da chamada. Personagens têm cabelo, pele, roupa, cores e acessórios salvos no perfil, movimento por teclado, câmera com rotação/zoom, animações e assentos exclusivos.
 
@@ -259,7 +269,7 @@ O comando inicia Vite em `127.0.0.1:5173` e abre o Electron. O renderer tem atua
 | `npm run dist`  | Gera o instalador Windows x64 e seu SHA-256.    |
 | `npm run pack`  | Gera a pasta do executável sem instalador.      |
 
-Cada empacotamento usa uma pasta `build-*` nova. `release/1.0.0/latest-build.json` identifica a pasta final da compilação local; para distribuir sem instalador, copie a pasta `win-unpacked` inteira. O ícone original pode ser reproduzido com `node scripts/icon.mjs`. As regras obrigatórias para atualizar README, patch notes e versão estão em [AGENTS.md](AGENTS.md).
+Cada empacotamento usa uma pasta `build-*` nova. Quando autorizado e executado, `release/1.1.0/latest-build.json` identificará a pasta final da compilação local; nenhum pacote 1.1.0 foi gerado nesta preparação. Para distribuir sem instalador, copie a pasta `win-unpacked` inteira. O ícone original pode ser reproduzido com `node scripts/icon.mjs`. As regras obrigatórias para atualizar README, patch notes e versão estão em [AGENTS.md](AGENTS.md).
 
 [`.env.example`](.env.example) documenta a variável opcional `VOXY_DATA_DIR`. O aplicativo não carrega `.env` automaticamente. Para publicar atualizações, configure o segredo de assinatura descrito em [ATUALIZACOES-REMOTAS.md](ATUALIZACOES-REMOTAS.md); clientes não precisam de credenciais.
 
@@ -275,6 +285,9 @@ Cada empacotamento usa uma pasta `build-*` nova. `release/1.0.0/latest-build.jso
 | `npm run test:desktop`    | Integração com três janelas Electron e captura nativa.                                        |
 | `npm run test:social`     | Temas, capas, cargos, amigos, chamadas privadas, respostas, menções, reações e busca.           |
 | `npm run test:gallery`    | Grade simultânea de telas/webcam, ampliação, controles e suspensão em segundo plano.           |
+| `npm run test:rooms3d` | Cenários, câmera, assentos, criador, TV, fullscreen, áudio espacial e fallback gráfico. |
+| `npm run test:rooms3d:app` | Dois clientes Electron com host, perfis sincronizados, chamada preservada e TV via WebRTC. |
+| `npm run test:rooms3d:performance` | Dez avatares em três qualidades; `-- --gpu` usa a GPU, `-- --baseline` compara com a tag 1.0.0. |
 | `npm run test:controls`   | Combinação global, Mouse 4, segundo plano, mute/Deafen e barra Kuromi.                          |
 | `npm run test:capture`    | Loopback real de janela/monitor: tons sintéticos de processos distintos e exclusão do Voxy.   |
 | `npm run test:system`     | Central, navegação, leitura, PiP local/remoto e bandeja em duas instâncias Electron.             |

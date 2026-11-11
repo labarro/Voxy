@@ -1,11 +1,5 @@
 import initSqlJs, { type Database } from "sql.js";
-import {
-  existsSync,
-  readFileSync,
-  writeFileSync,
-  renameSync,
-  mkdirSync,
-} from "node:fs";
+import { existsSync, readFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { randomUUID, createHash } from "node:crypto";
 import type {
@@ -18,6 +12,7 @@ import type {
 } from "../shared/types";
 import { DirectStore } from "./direct";
 import { SocialStore } from "./social";
+import { writeAtomicFileSync } from "../services/atomicFile";
 export class Store {
   private cachedSnapshot?: ReturnType<Store["snapshot"]>;
   readonly social: SocialStore;
@@ -395,10 +390,10 @@ export class Store {
   flush() {
     this.cachedSnapshot = undefined;
     mkdirSync(dirname(this.path), { recursive: true });
-    writeFileSync(this.path + ".tmp", this.db.export());
+    const bytes = this.db.export();
     // sql.js export reopens its connection and resets PRAGMA settings.
     this.db.run("PRAGMA foreign_keys=ON");
-    renameSync(this.path + ".tmp", this.path);
+    writeAtomicFileSync(this.path, bytes);
   }
   close() {
     this.flush();

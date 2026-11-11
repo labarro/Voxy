@@ -1,5 +1,6 @@
 import { createHmac, randomBytes } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync, renameSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { writeAtomicFileSync } from "../services/atomicFile";
 type Vault = {
   isEncryptionAvailable(): boolean;
   encryptString(value: string): Buffer;
@@ -26,8 +27,7 @@ export function deviceCredential(
       throw Error("Identidade do perfil inválida. Restaure seu backup.");
   } else {
     secret = randomBytes(32).toString("hex");
-    writeFileSync(path + ".tmp", vault.encryptString(secret));
-    renameSync(path + ".tmp", path);
+    writeAtomicFileSync(path, vault.encryptString(secret));
   }
   return createHmac("sha256", Buffer.from(secret, "hex"))
     .update(profileId + ":" + roomSecret)

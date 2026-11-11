@@ -28,6 +28,8 @@ Lounge e cinema com arquitetura, janela/arte, madeira, tecidos, estofados arredo
 
 A câmera acompanha o personagem ou explora o ambiente, com suavização, zoom limitado, colisões e reposicionamento. A sala oferece fullscreen real, HUD agrupada e instruções contextuais. **Assistir na TV** enquadra a transmissão suavemente; **Ampliar TV** abre o player dentro da experiência, com fullscreen próprio e retorno à sala. Voz, PTT, mute/Deafen, webcam e sincronização usam os serviços existentes. [Guia atualizado](SALAS-3D.md) · [Assets e licenças](ASSETS-3D.md) · [Validação e limites](TESTING.md).
 
+A persistência de perfil, banco e preferências tolera bloqueios transitórios de arquivos no Windows com tentativas curtas e limitadas; uma falha persistente preserva o arquivo anterior e é informada ao chamador.
+
 No nível baixo, sombras dinâmicas e luzes adicionais ficam desligadas; médio e alto aumentam o acabamento. A versão exige WebGL 2 para 3D e continua oferecendo o canal tradicional como fallback. Sem aceleração de GPU, use **Baixo** ou o canal tradicional: médio/alto tiveram baixo desempenho na renderização por software. A qualidade depende da GPU; testes sintéticos não substituem avaliação acústica nem sessões prolongadas entre PCs. A futura saída de distribuição é `release/1.1.0/`; nenhum pacote dessa versão foi gerado nesta etapa.
 
 ## Novidades na versão 1.0.0

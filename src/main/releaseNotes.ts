@@ -1,4 +1,5 @@
-import { readFileSync, writeFileSync, renameSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { writeAtomicFileSync } from "../services/atomicFile";
 import releases from "../shared/releases.json";
 import type { ReleaseNotes } from "../shared/types";
 export class ReleaseNotesStore {
@@ -28,7 +29,6 @@ export class ReleaseNotesStore {
     if (version !== this.version) throw Error("Versão de novidades inválida.");
     const seen = this.seen();
     if (!seen.includes(version)) seen.push(version);
-    writeFileSync(this.path + ".tmp", JSON.stringify(seen.slice(-100)));
-    renameSync(this.path + ".tmp", this.path);
+    writeAtomicFileSync(this.path, JSON.stringify(seen.slice(-100)));
   }
 }

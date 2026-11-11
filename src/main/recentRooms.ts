@@ -1,4 +1,5 @@
-import { readFileSync, writeFileSync, renameSync, existsSync } from "node:fs";
+import { readFileSync, renameSync, existsSync } from "node:fs";
+import { writeAtomicFileSync } from "../services/atomicFile";
 import { randomUUID } from "node:crypto";
 import { request } from "node:http";
 import { z } from "zod";
@@ -119,8 +120,7 @@ export class RecentRooms {
     try {
       if (readFileSync(this.path, "utf8") === json) return;
     } catch {}
-    writeFileSync(this.path + ".tmp", json);
-    renameSync(this.path + ".tmp", this.path);
+    writeAtomicFileSync(this.path, json);
   }
   async availability(
     canProbe: (address: string) => boolean = () => true,

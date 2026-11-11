@@ -19,18 +19,13 @@ import { ReleaseNotesStore } from "./releaseNotes";
 import { networkInterfaces, release as osRelease } from "node:os";
 import { safeSystemAudio } from "../shared/capture";
 import { join } from "node:path";
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-  renameSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { randomBytes, randomUUID, createHash } from "node:crypto";
 import { io, type Socket } from "socket.io-client";
 import { z } from "zod";
 import { Store } from "../database/store";
 import { RoomHost } from "../services/signaling/host";
+import { writeAtomicFileSync } from "../services/atomicFile";
 import {
   profileSchema,
   commandSchema,
@@ -239,8 +234,7 @@ function data(name: string) {
   return join(app.getPath("userData"), name);
 }
 function saveProfile() {
-  writeFileSync(data("profile.json.tmp"), JSON.stringify(profile));
-  renameSync(data("profile.json.tmp"), data("profile.json"));
+  writeAtomicFileSync(data("profile.json"), JSON.stringify(profile));
 }
 let disconnecting: Promise<void> | undefined;
 function disconnect() {

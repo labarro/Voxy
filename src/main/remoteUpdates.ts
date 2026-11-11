@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { readFileSync, writeFileSync, renameSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
+import { writeAtomicFileSync } from "../services/atomicFile";
 import type { NsisUpdater } from "electron-updater";
 import type { UpdateInfo } from "builder-util-runtime";
 import type { RemoteUpdateState, ReleasePost } from "../shared/types";
@@ -125,8 +126,7 @@ export class RemoteUpdates {
         newerVersion(release.version, this.cached.version) ||
         release.version === this.cached.version
       ) {
-        writeFileSync(this.options.cachePath + ".tmp", envelope);
-        renameSync(this.options.cachePath + ".tmp", this.options.cachePath);
+        writeAtomicFileSync(this.options.cachePath, envelope);
         this.cached = release;
       }
       if (!newerVersion(release.version, this.options.version)) {

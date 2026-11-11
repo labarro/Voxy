@@ -23,8 +23,23 @@ async function main() {
     pages: Page[] = [],
     errors: string[] = [];
   const activate = async (index: number) => {
+    for (const [other, app] of apps.entries()) {
+      if (
+        other === index ||
+        !(process.env.CI || process.env.VOXY_TEST_SOFTWARE_GL)
+      )
+        continue;
+      await app.evaluate(({ BrowserWindow }) =>
+        BrowserWindow.getAllWindows()[0].minimize(),
+      );
+      if (pages[other])
+        await pages[other].waitForFunction(
+          () => document.documentElement.dataset.background === "true",
+        );
+    }
     await apps[index].evaluate(({ BrowserWindow }) => {
       const window = BrowserWindow.getAllWindows()[0];
+      if (window.isMinimized()) window.restore();
       window.show();
       window.focus();
     });
@@ -138,7 +153,9 @@ async function main() {
       await page
         .getByRole("button", { name: "Sala dos amigos", exact: true })
         .click();
-      await page.locator(".room3d canvas").waitFor({ timeout: 30000 });
+      await page
+        .locator('.room3d canvas[data-ready="true"]')
+        .waitFor({ timeout: 30000 });
     }
     await activate(0);
     await a.waitForFunction(() =>
@@ -359,6 +376,7 @@ async function main() {
           errors,
           checks: [
             "two Electron clients",
+            "native background rendering suspension with call preserved",
             "profile persistence",
             "host preset UI",
             "automatic 3D entry",

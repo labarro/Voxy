@@ -22,6 +22,7 @@
       "Carregamento com progresso real dos modelos, instancing de elementos repetidos e níveis gráficos com limites de resolução e quadros."
     ],
     "fixes": [
+      "Gravações atômicas toleram bloqueios transitórios de arquivos no Windows, preservando o arquivo anterior se o bloqueio persistir.",
       "Alterar o personagem não reinicia o microfone nem cria outra chamada.",
       "TV preserva a proporção da transmissão e mantém o áudio no mecanismo existente.",
       "Renderização da sala e vídeo da textura pausam durante a visualização ampliada, mantendo a assinatura de mídia.",

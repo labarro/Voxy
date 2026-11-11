@@ -1,4 +1,5 @@
-import { existsSync, readFileSync, writeFileSync, renameSync } from "node:fs";
+import { existsSync, readFileSync, renameSync } from "node:fs";
+import { writeAtomicFileSync } from "../services/atomicFile";
 import { z } from "zod";
 import { avatarSchema } from "../shared/validation";
 import type { DirectRoom, DirectSnapshot, Inbox } from "../shared/types";
@@ -127,10 +128,9 @@ export class DirectInbox {
     this.save();
   }
   private save() {
-    writeFileSync(
-      this.path + ".tmp",
+    writeAtomicFileSync(
+      this.path,
       JSON.stringify({ owner: this.owner, rooms: this.rooms }),
     );
-    renameSync(this.path + ".tmp", this.path);
   }
 }

@@ -1,4 +1,5 @@
-import { existsSync, readFileSync, writeFileSync, renameSync } from "node:fs";
+import { existsSync, readFileSync, renameSync } from "node:fs";
+import { writeAtomicFileSync } from "../services/atomicFile";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type {
@@ -308,8 +309,7 @@ export class Notifications {
   private save() {
     const serialized = JSON.stringify(this.state);
     if (serialized === this.serialized) return;
-    writeFileSync(this.path + ".tmp", serialized);
-    renameSync(this.path + ".tmp", this.path);
+    writeAtomicFileSync(this.path, serialized);
     this.serialized = serialized;
   }
 }

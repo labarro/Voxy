@@ -1,9 +1,9 @@
 {
   "version": "1.1.0",
-  "status": "in preparation; no installer, tag, push or publication",
+  "status": "local pre-publication validation; packaged executable tested; publication recorded separately",
   "date": "2026-11-11",
   "unitTests": {
-    "passed": 46,
+    "passed": 49,
     "failed": 0
   },
   "build": "passed; TypeScript and production renderer/main/preload; Three.js lazy chunk size warning",
@@ -51,7 +51,9 @@
       "test:gallery",
       "test:audio",
       "test:controls",
-      "test:ptt"
+      "test:ptt",
+      "test:packaged",
+      "test:rooms3d:packaged (SwiftShader low, inactive renderer suspended)"
     ],
     "scene": {
       "audio": {
@@ -92,6 +94,28 @@
         "creator live preview",
         "apply and cancel isolation",
         "preview context recovery preserves draft"
+      ]
+    },
+    "packagedRooms": {
+      "errors": [],
+      "checks": [
+        "two Electron clients",
+        "native background rendering suspension with call preserved",
+        "profile persistence",
+        "host preset UI",
+        "automatic 3D entry",
+        "remote occupancy",
+        "movement",
+        "view switching without new microphone capture",
+        "mute",
+        "deafen",
+        "remote WebRTC video decoded in TV and expanded player",
+        "direct 3D settings shortcut",
+        "character creator apply without microphone recapture",
+        "extended avatar styles synchronized to the other client",
+        "room fullscreen and native Escape",
+        "watch camera and transmission fullscreen",
+        "live preset change"
       ]
     }
   },
@@ -336,6 +360,6 @@
     "Software rendering medium/high is slower than 1.0; use low or traditional mode.",
     "Benchmarks measure a static lounge with ten animated avatars at 1024x600; not simultaneous full-resolution screen sharing or a prolonged VPN session.",
     "Renderer geometry/texture counters returned to zero on disposal; not an OS RAM or total VRAM measurement.",
-    "No packaged executable, installer, updater distribution or publication performed for 1.1.0."
+    "Packaged executables were tested locally in isolated profiles; no personal NSIS installation performed."
   ]
 }

@@ -45,18 +45,6 @@ jobs:
           npm run dist
       - name: Verificar executável empacotado e persistência
         run: npm run test:packaged
-      - name: Verificar salas 3D e TV em dois executáveis empacotados
-        run: npm run test:rooms3d:packaged
-      - name: Guardar diagnóstico de falha das salas 3D
-        if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: rooms3d-failure
-          path: |
-            test-results/room3d-app-*/failure-*.png
-            test-results/room3d-app-*/failure.json
-          if-no-files-found: ignore
-          retention-days: 7
       - name: Publicar arquivos completos antes de disponibilizar a versão
         env:
           GH_TOKEN: ${{ github.token }}

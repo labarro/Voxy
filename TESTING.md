@@ -14,6 +14,8 @@ Capturas inspecionadas do aplicativo Electron: [lounge](evidence/rooms3d-1.1.0/l
 
 Na prepara??o da release, um bloqueio transit?rio `EPERM` na troca do arquivo SQLite foi reproduzido localmente. A persist?ncia passou a usar tempor?rios exclusivos e tentativas limitadas para EPERM/EACCES/EBUSY, sem excluir o destino. Tr?s testes verificam recupera??o, preserva??o do arquivo anterior em bloqueio persistente e propaga??o imediata de outros erros. O banco restaura as foreign keys ap?s exportar mesmo se a grava??o falhar.
 
+Por decisão do mantenedor, o fluxo de publicação usa a integração 3D empacotada já aprovada localmente e não repete esse ensaio gráfico no runner virtual do GitHub. As tentativas no runner encontraram timeouts e limitações de janela/fullscreen; não são registradas como aprovação. O CI continua obrigatório para contratos, build/assinatura e persistência do executável empacotado. `npm run test:rooms3d:packaged` permanece disponível localmente.
+
 ### Desempenho antes/depois
 
 `test:rooms3d:performance` compara a cena da tag **v1.0.0** com a implementação atual. Execuções isoladas e sequenciais, Edge/ANGLE, viewport **1024×600**, **dez avatares**, cinco caminhando, sem transmissão, aquecimento de 2 s e amostragem de 4 s por qualidade. Draw calls e triângulos são médias dos quadros, incluindo atualizações do mapa de sombra. É um ensaio curto e reproduzível, não um teste de duração nem de computadores medianos.

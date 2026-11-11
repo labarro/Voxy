@@ -70,6 +70,8 @@ async function main() {
         env,
       });
       apps.push(app);
+      const page = await app.firstWindow();
+      pages.push(page);
       await app.evaluate(({ BrowserWindow }, index) => {
         // Two desktop processes must remain partially visible on a single CI display.
         // Playwright input injection alone does not activate native Electron windows.
@@ -79,8 +81,6 @@ async function main() {
         );
       }, i);
       await activate(i);
-      const page = await app.firstWindow();
-      pages.push(page);
       page.on("pageerror", (e) => errors.push(e.message));
       await page
         .getByRole("heading", { name: "Sua frequência.", exact: false })

@@ -38,7 +38,11 @@ async function main() {
           "--use-fake-device-for-media-stream",
           "--use-fake-ui-for-media-stream",
           ...(process.env.CI || process.env.VOXY_TEST_SOFTWARE_GL
-            ? ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"]
+            ? [
+                "--use-angle=swiftshader",
+                "--enable-unsafe-swiftshader",
+                "--disable-features=CalculateNativeWinOcclusion",
+              ]
             : []),
         ],
         env,
@@ -63,6 +67,10 @@ async function main() {
       await page
         .getByRole("combobox", { name: "Ao entrar em canal compatível" })
         .selectOption("always");
+      if (process.env.CI || process.env.VOXY_TEST_SOFTWARE_GL)
+        await page
+          .getByRole("combobox", { name: "Qualidade gráfica", exact: true })
+          .selectOption("low");
       await page
         .getByRole("button", { name: "Salvar perfil e dispositivos" })
         .click();

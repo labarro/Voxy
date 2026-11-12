@@ -9,20 +9,20 @@
 Voz, chat e compartilhamento de tela para o seu grupo de amigos.<br />
 Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu computador.
 
-![Versão 1.2.1 em preparação](https://img.shields.io/badge/vers%C3%A3o-1.2.1_em_preparacao-b6adff?style=flat-square)
+![Versão 1.2.1 publicada](https://img.shields.io/badge/vers%C3%A3o-1.2.1_publicada-b6adff?style=flat-square)
 ![Windows 10 e 11 x64](https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-4389e8?style=flat-square)
 ![WebRTC P2P](https://img.shields.io/badge/WebRTC-P2P-68d6b1?style=flat-square)
 ![Até 10 participantes](https://img.shields.io/badge/at%C3%A9-10%20participantes-c9233c?style=flat-square)
 
-[⬇ Baixar Voxy 1.2.0](https://github.com/labarro/Voxy/releases/download/v1.2.0/Voxy-Setup-1.2.0-x64.exe) · [Instalar e conectar](INSTALACAO-E-CONEXAO.md) · [Atualizar o Voxy](GUIA-DE-ATUALIZACAO.md) · [Desenvolvimento](#desenvolvimento) · [Documentação](#documentação)
+[⬇ Baixar Voxy 1.2.1](https://github.com/labarro/Voxy/releases/download/v1.2.1/Voxy-Setup-1.2.1-x64.exe) · [Instalar e conectar](INSTALACAO-E-CONEXAO.md) · [Atualizar o Voxy](GUIA-DE-ATUALIZACAO.md) · [Desenvolvimento](#desenvolvimento) · [Documentação](#documentação)
 
 </div>
 
 ---
 
-## Novidades na versão 1.2.1 em preparação
+## Novidades na versão 1.2.1 publicada
 
-**Código em preparação: 1.2.1. Última versão publicada: 1.2.0.** Lançamento autorizado, ainda em validação. O download permanece na release existente até verificar a publicação 1.2.1.
+**Versão do código e última versão publicada: 1.2.1.** A [release 1.2.1](https://github.com/labarro/Voxy/releases/tag/v1.2.1) foi publicada pelo [workflow](https://github.com/labarro/Voxy/actions/runs/43330910485). Os cinco arquivos foram baixados; assinatura Ed25519, SHA-512, SHA-256, notas e endpoint público foram conferidos. [Evidência](evidence/publication-1.2.1.json).
 
 A base visual do avatar foi reconstruída: torso com perfis suaves, braços/pernas em malhas contínuas deformadas por ossos, mãos e calçados modelados, cabelos com coberturas e mechas curvas e rosto aderente à cabeça. Aparências e estilos salvos continuam compatíveis.
 

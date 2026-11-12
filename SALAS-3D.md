@@ -1,6 +1,6 @@
-# Salas 3D · Voxy 1.2.1 em preparação
+# Salas 3D · Voxy 1.2.1
 
-A 1.2.1 está em validação para publicação autorizada. O download continua na [1.2.0 publicada](https://github.com/labarro/Voxy/releases/tag/v1.2.0) até conferir os novos arquivos. Execute `npm run build` e `npm start` para avaliar o código local; o perfil de desenvolvimento é separado da instalação. Não há editor de mapas nem construção livre.
+A [release 1.2.1](https://github.com/labarro/Voxy/releases/tag/v1.2.1) foi publicada pelo [workflow](https://github.com/labarro/Voxy/actions/runs/43330910485). Os cinco arquivos foram baixados; assinatura Ed25519, SHA-512, SHA-256, notas e endpoint público foram conferidos. [Evidência](evidence/publication-1.2.1.json). O perfil de desenvolvimento é separado da instalação. Não há editor de mapas nem construção livre.
 
 Atualize o host e os participantes para 1.2.1 para que o layout, as colisões e os novos modelos coincidam entre os clientes. O protocolo e os perfis anteriores continuam compatíveis; versões antigas desenham os modelos e obstáculos antigos.
 

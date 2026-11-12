@@ -2,7 +2,7 @@
 
 ## Versão 1.2.1 — 12/11/2026
 
-**Em validação para publicação autorizada.** Passaram `npm test` (60 testes), `npm run build`, `npm run pack`, `test:rooms3d`, `test:rooms3d:app`, `test:rooms3d:packaged`, `test:rooms3d:visual`, `test:media`, `test:audio`, `test:controls` e `test:ptt`. O workflow externo e os arquivos publicados serão registrados separadamente após sua conclusão.
+Passaram `npm test` (60 testes), `npm run build`, `npm run pack`, `test:rooms3d`, `test:rooms3d:app`, `test:rooms3d:packaged`, `test:rooms3d:visual`, `test:media`, `test:audio`, `test:controls` e `test:ptt`. A [release 1.2.1](https://github.com/labarro/Voxy/releases/tag/v1.2.1) foi publicada pelo [workflow](https://github.com/labarro/Voxy/actions/runs/43330910485). Os cinco arquivos foram baixados; assinatura Ed25519, SHA-512, SHA-256, notas e endpoint público foram conferidos. [Evidência](evidence/publication-1.2.1.json). O CI também verificou persistência no executável empacotado.
 
 - **Inspeção estrutural:** a 1.2 usava esferas/caixas separadas para cabelo e membros, detalhes faciais em malhas independentes e saia rígida substituída ao sentar. A 1.2.1 usa perfis contínuos, malhas com pesos de ossos, cobertura capilar aderente ao formato da cabeça, face conformada e deformação da mesma saia. Testes verificam normais externas, pesos normalizados, deformação real do membro, continuidade dos cabelos e ausência de interseção da raiz com cabeças redondas/ovais/quadradas.
 - **Câmera:** o pivô baixo e o limite mínimo de 60 cm permitiam que um encosto colapsasse a câmera contra o avatar. O novo sistema usa pivô acima do encosto, cinco raios de colisão, busca de órbita livre, limites internos e exclusão do volume corporal, também após suavizar a trajetória. A suíte com os obstáculos reais percorre 168 órbitas de assentos e 7.560 passos, conferindo a distância do avatar em cada passo. Há ensaios separados de parede, TV em proporções diferentes, restauração da exploração e levantar.
@@ -27,6 +27,8 @@ Os FPS permaneceram equivalentes nesta GPU, com mais geometria e menos chamadas 
 Em SwiftShader, com dez avatares e sem GPU acelerada, foram medidos aproximadamente **18,7/7,0/6,2 FPS** em baixo/médio/alto. É uma regressão frente à 1.2.0 nesse cenário de emulação e foi mantida explícita: a modelagem mais detalhada e os esqueletos têm custo. Médio/alto requerem aceleração gráfica; para renderização por software, prefira o canal tradicional ou Baixo conforme a tolerância de uso. Não há alegação de desempenho preservado em todo hardware.
 
 Faltam sessões prolongadas, GPUs integradas/de entrada, dois PCs físicos pela VPN e avaliação acústica humana. Os testes de mídia usam fontes sintéticas. Use Baixo ou o canal tradicional se a aceleração gráfica não estiver disponível. Resultados e capturas: [relatório 1.2.1](evidence/validation-1.2.1.json).
+
+Capturas finais: [Lounge](evidence/rooms3d-1.2.1/lounge-wide.png), [Cinema](evidence/rooms3d-1.2.1/cinema-wide.png), [cabelos de frente](evidence/rooms3d-1.2.1/character-catalog.png), [lado](evidence/rooms3d-1.2.1/catalog-side.png), [costas](evidence/rooms3d-1.2.1/catalog-back.png), [postura sentada](evidence/rooms3d-1.2.1/avatar-sitting.png), [tacos](evidence/rooms3d-1.2.1/pool-cues.png) e [sinuca no aplicativo empacotado](evidence/rooms3d-1.2.1/pool.png).
 
 ## Versão 1.2.0 — 12/11/2026
 

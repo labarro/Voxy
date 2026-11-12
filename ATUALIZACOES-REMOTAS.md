@@ -5,7 +5,7 @@ O Voxy 0.4.0 inclui atualização automática com **electron-updater + NSIS**, p
 **Estado da entrega:** código, workflow e arquivos de configuração implementados; download diferencial e fallback completo testados localmente com o atualizador real. O ambiente `release` e o segredo de assinatura já foram configurados no GitHub, com política para tags `v*`. Os dois redirects foram publicados na `main` do portfólio (commit `3ac5886`) e verificados em produção. A [release 0.4.1](https://github.com/labarro/Voxy/releases/tag/v0.4.1) foi publicada pelo [workflow concluído com sucesso](https://github.com/labarro/Voxy/actions/runs/39516455777). Os dois endpoints responderam 200 e o atualizador real baixou e verificou o pacote público, chegando a pronto para instalar. Não foi executada uma instalação automática sobre a instalação pessoal deste computador.
 
 
-**Versão pública atual: 1.2.0.** Publicada pelo [Actions](https://github.com/labarro/Voxy/actions/runs/43309471907), com os cinco arquivos disponíveis na [release](https://github.com/labarro/Voxy/releases/tag/v1.2.0). Testes, build, geração do catálogo Ed25519 e persistência no executável empacotado passaram no CI. O endpoint público entrega 1.2.0; assinatura, hash do manifesto, notas e SHA-512 do instalador/blockmap foram validados. Todos os arquivos foram baixados e seus SHA-256 conferidos com o GitHub. [Evidência](evidence/publication-1.2.0.json). O NSIS não foi executado sobre a instalação pessoal.
+**Versão pública atual: 1.2.1.** A [release 1.2.1](https://github.com/labarro/Voxy/releases/tag/v1.2.1) foi publicada pelo [workflow](https://github.com/labarro/Voxy/actions/runs/43330910485). Os cinco arquivos foram baixados; assinatura Ed25519, SHA-512, SHA-256, notas e endpoint público foram conferidos. [Evidência](evidence/publication-1.2.1.json). Testes, build e persistência no executável empacotado passaram no CI. O NSIS não foi executado sobre a instalação pessoal.
 
 ## Por que esta arquitetura
 
@@ -30,7 +30,7 @@ O suporte NSIS e o fluxo de `latest.yml` são documentados pelo [electron-builde
 
 O canal **Novidades do Voxy** combina o catálogo instalado com o último catálogo remoto cuja assinatura foi validada. Funciona sem servidor de amigos e mantém o histórico em cache para uso offline. Conteúdo remoto é texto estruturado, sem HTML executável.
 
-**Primeira migração:** versões até 0.3.0 não têm este atualizador. Instale a 1.2.0 uma última vez usando `Voxy-Setup-1.2.0-x64.exe` da release oficial, sem desinstalar, ou o seletor de instalador existente. Depois, novas versões podem chegar pelo aplicativo. Todos os participantes precisam migrar, pois a 0.4.0 muda o protocolo para suportar webcam. Para as salas 3D, host e participantes precisam estar na 1.2.0.
+**Primeira migração:** versões até 0.3.0 não têm este atualizador. Instale a 1.2.1 uma última vez usando `Voxy-Setup-1.2.1-x64.exe` da release oficial, sem desinstalar, ou o seletor de instalador existente. Depois, novas versões podem chegar pelo aplicativo. Todos os participantes precisam migrar, pois a 0.4.0 muda o protocolo para suportar webcam. Para as salas 3D, host e participantes precisam estar na 1.2.1.
 
 ## Preparação única: chave de publicação
 

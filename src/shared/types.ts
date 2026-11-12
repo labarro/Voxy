@@ -1,3 +1,4 @@
+import type { PoolState } from "./pool";
 import type { PttKey, VoiceShortcut } from "./preferences";
 export type Presence = "online" | "away" | "busy";
 export type RoomPreset = "lounge" | "cinema";
@@ -7,18 +8,65 @@ export type RoomPose = {
   yaw: number;
   seat: string | null;
   moving: boolean;
+  emote?: "wave" | "laugh" | "dance" | "celebrate" | "greet" | "smoke" | "none";
+  emoteAt?: number;
 };
 export type Avatar3D = {
   hair: "short" | "long" | "crest";
-  hairStyle?: "short" | "long" | "crest" | "bob" | "curly";
+  hairStyle?:
+    | "short"
+    | "long"
+    | "crest"
+    | "bob"
+    | "curly"
+    | "buzz"
+    | "afro"
+    | "ponytail"
+    | "braids"
+    | "wavy"
+    | "bun"
+    | "bald";
   hairColor: string;
   skin: string;
   outfit: "sweater" | "jacket";
-  outfitStyle?: "sweater" | "jacket" | "hoodie" | "tee";
+  outfitStyle?:
+    | "sweater"
+    | "jacket"
+    | "hoodie"
+    | "tee"
+    | "shirt"
+    | "coat"
+    | "suit"
+    | "varsity";
   color: string;
   accessory: "none" | "glasses" | "headphones";
   accessoryStyle?: "none" | "glasses" | "headphones" | "beanie" | "earrings";
-  body?: "classic" | "soft";
+  body?: "classic" | "soft" | "slim" | "athletic";
+  headShape?: "round" | "oval" | "square";
+  eyes?: "round" | "almond" | "sleepy";
+  brows?: "soft" | "bold" | "arched";
+  nose?: "small" | "round" | "wide";
+  facialHair?: "none" | "stubble" | "beard" | "mustache";
+  height?: number;
+  hairSecondary?: string;
+  bottom?: "trousers" | "shorts" | "skirt";
+  bottomColor?: string;
+  shoes?: "sneakers" | "boots" | "formal";
+  shoeColor?: string;
+  accessories?: (
+    | "glasses"
+    | "sunglasses"
+    | "headphones"
+    | "headset"
+    | "beanie"
+    | "cap"
+    | "hat"
+    | "earrings"
+    | "necklace"
+    | "bracelet"
+    | "backpack"
+  )[];
+  idle?: "relaxed" | "lively" | "confident";
   face?: "friendly" | "calm" | "bright";
 };
 export type RoomSettings = {
@@ -30,6 +78,7 @@ export type RoomSettings = {
   sensitivity: number;
   names: boolean;
   cameraMode?: "follow" | "free";
+  smokeEffects?: boolean;
 };
 export type Profile = {
   avatar3d?: Avatar3D;
@@ -119,6 +168,7 @@ export type Message = {
 };
 export type RoomState = {
   televisions?: Record<string, string>;
+  poolGames?: Record<string, PoolState>;
   friendships?: Friendship[];
   calls?: DirectCall[];
   roles?: ServerRole[];
@@ -147,6 +197,9 @@ export type Signal = {
   candidate?: RTCIceCandidateInit;
 };
 export type Command =
+  | { type: "pool.join" }
+  | { type: "pool.leave" }
+  | { type: "pool.shoot"; angle: number; power: number; revision: number }
   | { type: "room.tv"; participantId: string }
   | { type: "room.pose"; pose: RoomPose | null }
   | { type: "channel.room"; id: string; preset: RoomPreset | null }
@@ -280,6 +333,7 @@ export type Inbox = { rooms: DirectRoom[]; activeScope?: string };
 export type Reply<T = unknown> =
   { ok: true; value: T } | { ok: false; error: string };
 export type NetworkEvent =
+  | { type: "room-pool"; channelId: string; game: PoolState }
   | { type: "room-pose"; id: string; channelId: string; pose: RoomPose | null }
   | {
       type: "notifications";

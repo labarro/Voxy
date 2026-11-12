@@ -1,5 +1,6 @@
 import * as T from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
 export class Resources {
   private entries = new Set<T.BufferGeometry | T.Material | T.Texture>();
@@ -36,7 +37,7 @@ export class Resources {
             w,
             h,
             d,
-            2,
+            1,
             Math.min(radius, Math.min(w, h, d) * 0.3),
           )
         : new T.BoxGeometry(w, h, d),
@@ -60,7 +61,7 @@ export class Resources {
     color: string,
   ) {
     const mesh = new T.Mesh(
-      this.keep(new T.SphereGeometry(r, 16, 12)),
+      this.keep(new T.SphereGeometry(r, r < 0.2 ? 10 : 16, r < 0.2 ? 8 : 12)),
       this.material(color),
     );
     mesh.position.set(x, y, z);
@@ -148,6 +149,43 @@ export class Resources {
     texture.repeat.set(kind === "wood" ? 3 : 4, kind === "wood" ? 5 : 4);
     texture.anisotropy = 2;
     return texture;
+  }
+  // Merge rigid pieces per joint/material, keeping animated pivots separate.
+  // Call before any animation starts; dynamic children opt out explicitly.
+  batch(root: T.Object3D) {
+    for (const child of [...root.children])
+      if (!(child instanceof T.Mesh)) this.batch(child);
+    const buckets = new Map<T.Material, T.Mesh[]>();
+    for (const child of root.children) {
+      if (
+        !(child instanceof T.Mesh) ||
+        Array.isArray(child.material) ||
+        child.userData.dynamic
+      )
+        continue;
+      const meshes = buckets.get(child.material) ?? [];
+      meshes.push(child);
+      buckets.set(child.material, meshes);
+    }
+    for (const [material, meshes] of buckets) {
+      if (meshes.length < 2) continue;
+      const geometries = meshes.map((mesh) => {
+        mesh.updateMatrix();
+        const g = mesh.geometry.clone().applyMatrix4(mesh.matrix);
+        if (!g.index) return g;
+        const flat = g.toNonIndexed();
+        g.dispose();
+        return flat;
+      });
+      const geometry = mergeGeometries(geometries);
+      for (const g of geometries) g.dispose();
+      if (!geometry) continue;
+      const combined = new T.Mesh(this.keep(geometry), material);
+      combined.castShadow = meshes.some((m) => m.castShadow);
+      combined.receiveShadow = true;
+      for (const mesh of meshes) mesh.removeFromParent();
+      root.add(combined);
+    }
   }
   dispose() {
     for (const value of this.entries) value.dispose();

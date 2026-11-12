@@ -31,7 +31,7 @@ export class RoomAssets {
       ...(charactersOnly
         ? []
         : furnitureNames.map((name) => ({ name, folder: "furniture" }))),
-      ...characterNames.map((name) => ({ name, folder: "characters" })),
+      // Current articulated avatars are authored in code; archived GLBs remain licensed in the manifest.
     ];
     await Promise.all(
       entries.map(async ({ name, folder }) => {

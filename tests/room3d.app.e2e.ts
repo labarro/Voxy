@@ -163,6 +163,81 @@ async function main() {
         .querySelector(".room-identity")
         ?.textContent?.includes("2 no ambiente"),
     );
+    // Exercise the playable UI in two real Electron processes and the real host.
+    for (const [index, page] of pages.entries()) {
+      await activate(index);
+      await page.evaluate(() => {
+        const w = window as any;
+        w.poolPackets = [];
+        w.posePackets = [];
+        w.socialOff = window.voxy.onEvent((event) => {
+          if (event.type === "room-pool") {
+            w.poolPackets.push(event.game);
+            w.poolGame = event.game;
+          }
+          if (event.type === "room-pose") {
+            w.posePackets.push(event);
+            if (event.pose?.moving) w.walkedPose = event.pose;
+          }
+        });
+      });
+      await page.locator(".room3d canvas").focus();
+      await page.keyboard.down("KeyD");
+      try {
+        await page.waitForFunction(
+          () => (window as any).walkedPose?.x > 4.4,
+          {},
+          { timeout: 15000 },
+        );
+      } finally {
+        await page.keyboard.up("KeyD");
+      }
+      await page.getByRole("button", { name: "Sinuca", exact: true }).click();
+      await page
+        .getByRole("button", { name: "Entrar na partida", exact: true })
+        .click();
+    }
+    await activate(0);
+    await a.waitForFunction(() => (window as any).poolGame?.phase === "aiming");
+    await a.getByLabel("Força da tacada").fill("0.3");
+    await a.getByRole("button", { name: "Dar tacada", exact: true }).click();
+    await a.waitForFunction(() =>
+      (window as any).poolPackets.some((s: any) => s.phase === "rolling"),
+    );
+    await a.waitForFunction(
+      () => (window as any).poolGame?.phase === "aiming",
+      {},
+      { timeout: 20000 },
+    );
+    const poolResult = await a.evaluate(() => (window as any).poolGame);
+    await activate(1);
+    await b.waitForFunction(
+      (revision) => (window as any).poolGame?.revision === revision,
+      poolResult.revision,
+    );
+    assert.deepEqual(
+      await b.evaluate(() => (window as any).poolGame),
+      poolResult,
+    );
+    await b.screenshot({ path: join(root, "integrated-pool.png") });
+    for (const [index, page] of pages.entries()) {
+      await activate(index);
+      await page
+        .getByRole("button", { name: "Fechar sinuca", exact: true })
+        .click();
+    }
+    await activate(0);
+    await a.getByLabel("Interação social").selectOption("smoke");
+    await activate(1);
+    await b.waitForFunction(() =>
+      (window as any).posePackets.some((p: any) => p.pose?.emote === "smoke"),
+    );
+    await activate(0);
+    await a.getByLabel("Interação social").selectOption("none");
+    for (const [index, page] of pages.entries()) {
+      await activate(index);
+      await page.evaluate(() => (window as any).socialOff());
+    }
     await activate(1);
     const canvas = b.locator(".room3d canvas");
     await canvas.focus();
@@ -214,7 +289,9 @@ async function main() {
           );
       });
     });
-    await b.getByRole("button", { name: "Cabelo Coques", exact: true }).click();
+    await b
+      .getByRole("button", { name: "Cabelo Coques cacheados", exact: true })
+      .click();
     await b.getByRole("tab", { name: "Roupas", exact: true }).click();
     await b.getByRole("button", { name: "Roupa Moletom", exact: true }).click();
     await b.screenshot({
@@ -376,6 +453,8 @@ async function main() {
           errors,
           checks: [
             "two Electron clients",
+            "pool join/aim/power/shot UI and identical authoritative results",
+            "virtual cigarette pose received by the other client",
             "native background rendering suspension with call preserved",
             "profile persistence",
             "host preset UI",

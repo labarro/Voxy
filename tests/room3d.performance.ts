@@ -2,27 +2,44 @@ import { chromium } from "playwright";
 import { build } from "esbuild";
 import { createServer } from "node:http";
 import { readFile, mkdir, writeFile } from "node:fs/promises";
-import { resolve, extname } from "node:path";
+import { resolve, extname, dirname } from "node:path";
 import { execFileSync } from "node:child_process";
 
 async function main() {
   const label =
-    process.argv.find((v) => v.startsWith("--label="))?.slice(8) ?? "1.1.0";
+    process.argv.find((v) => v.startsWith("--label="))?.slice(8) ?? "1.2.0";
   const baseline = process.argv.includes("--baseline"),
     gpu = process.argv.includes("--gpu");
-  const source = baseline
-    ? {
-        stdin: {
-          contents: execFileSync(
-            "git",
-            ["show", "v1.0.0:src/renderer/room3d/scene.ts"],
-            { encoding: "utf8" },
-          ),
-          resolveDir: resolve("src/renderer/room3d"),
-          loader: "ts" as const,
-        },
-      }
-    : { entryPoints: ["src/renderer/room3d/scene.ts"] };
+  // Preserve every historical module, not just scene.ts with current dependencies.
+  const baselineRoot = resolve(".local/performance-v1.1.0");
+  if (baseline) {
+    const files = execFileSync(
+      "git",
+      [
+        "ls-tree",
+        "-r",
+        "--name-only",
+        "v1.1.0",
+        "src/renderer/room3d",
+        "src/shared",
+      ],
+      { encoding: "utf8" },
+    )
+      .trim()
+      .split(/\r?\n/);
+    for (const file of files) {
+      const path = resolve(baselineRoot, file);
+      await mkdir(dirname(path), { recursive: true });
+      await writeFile(path, execFileSync("git", ["show", `v1.1.0:${file}`]));
+    }
+  }
+  const source = {
+    entryPoints: [
+      baseline
+        ? resolve(baselineRoot, "src/renderer/room3d/scene.ts")
+        : "src/renderer/room3d/scene.ts",
+    ],
+  };
   const bundle = await build({
     ...source,
     bundle: true,

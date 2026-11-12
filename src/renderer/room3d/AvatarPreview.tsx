@@ -50,7 +50,7 @@ export function AvatarPreview({
     camera.position.set(2.6, 1.8, 4.8);
     try {
       renderer = new T.WebGLRenderer({
-        alpha: true,
+        alpha: false,
         antialias: true,
         powerPreference: "low-power",
       });
@@ -58,6 +58,7 @@ export function AvatarPreview({
       renderer.outputColorSpace = T.SRGBColorSpace;
       renderer.toneMapping = T.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.1;
+      scene.background = new T.Color("#273337");
       renderer.domElement.tabIndex = 0;
       renderer.domElement.setAttribute(
         "aria-label",
@@ -110,7 +111,9 @@ export function AvatarPreview({
       controls.enableDamping = true;
       controls.dampingFactor = 0.09;
       controls.enablePan = false;
-      controls.enableZoom = false;
+      controls.enableZoom = true;
+      controls.minDistance = 2.4;
+      controls.maxDistance = 7;
       controls.minPolarAngle = 0.65;
       controls.maxPolarAngle = 1.7;
       controls.update();
@@ -162,7 +165,7 @@ export function AvatarPreview({
           dt,
           current.current.pose === "walk",
           current.current.pose === "sit",
-          0.6,
+          0.72,
         );
         renderer!.render(scene, camera);
       };

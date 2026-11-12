@@ -1,0 +1,224 @@
+{
+  "finding": "Imported seats have complete geometry. Version 1.1 added complete cushion/back inserts and an extra PI rotation; these were removed in favor of single authored +Z seat constructions. Facial additions used fixed offsets rather than model surface coordinates; current models derive them from the head ellipsoid.",
+  "models": {
+    "loungeSofa": {
+      "nodes": [
+        {
+          "name": "loungeSofa(Clone)",
+          "mesh": 0,
+          "translation": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "meshes": [
+        {
+          "name": "Mesh loungeSofa",
+          "primitives": [
+            {
+              "position": {
+                "bufferView": 0,
+                "byteOffset": 0,
+                "type": "VEC3",
+                "componentType": 5126,
+                "count": 196,
+                "max": [
+                  0.979999959,
+                  0.46,
+                  0
+                ],
+                "min": [
+                  0,
+                  0,
+                  -0.410000026
+                ],
+                "normalized": false
+              },
+              "material": "carpet"
+            },
+            {
+              "position": {
+                "bufferView": 0,
+                "byteOffset": 0,
+                "type": "VEC3",
+                "componentType": 5126,
+                "count": 196,
+                "max": [
+                  0.979999959,
+                  0.46,
+                  0
+                ],
+                "min": [
+                  0,
+                  0,
+                  -0.410000026
+                ],
+                "normalized": false
+              },
+              "material": "wood"
+            }
+          ]
+        }
+      ]
+    },
+    "loungeChair": {
+      "nodes": [
+        {
+          "name": "loungeChair(Clone)",
+          "mesh": 0,
+          "translation": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "meshes": [
+        {
+          "name": "Mesh loungeChair",
+          "primitives": [
+            {
+              "position": {
+                "bufferView": 0,
+                "byteOffset": 0,
+                "type": "VEC3",
+                "componentType": 5126,
+                "count": 196,
+                "max": [
+                  0.48999998,
+                  0.46,
+                  0
+                ],
+                "min": [
+                  0,
+                  0,
+                  -0.410000026
+                ],
+                "normalized": false
+              },
+              "material": "carpet"
+            },
+            {
+              "position": {
+                "bufferView": 0,
+                "byteOffset": 0,
+                "type": "VEC3",
+                "componentType": 5126,
+                "count": 196,
+                "max": [
+                  0.48999998,
+                  0.46,
+                  0
+                ],
+                "min": [
+                  0,
+                  0,
+                  -0.410000026
+                ],
+                "normalized": false
+              },
+              "material": "wood"
+            }
+          ]
+        }
+      ]
+    },
+    "loungeDesignChair": {
+      "nodes": [
+        {
+          "name": "loungeDesignChair(Clone)",
+          "mesh": 0,
+          "translation": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "meshes": [
+        {
+          "name": "Mesh loungeDesignChair",
+          "primitives": [
+            {
+              "position": {
+                "bufferView": 0,
+                "byteOffset": 0,
+                "type": "VEC3",
+                "componentType": 5126,
+                "count": 184,
+                "max": [
+                  0.7295953,
+                  0.4,
+                  0
+                ],
+                "min": [
+                  0,
+                  0,
+                  -0.410000026
+                ],
+                "normalized": false
+              },
+              "material": "carpetBlue"
+            },
+            {
+              "position": {
+                "bufferView": 0,
+                "byteOffset": 0,
+                "type": "VEC3",
+                "componentType": 5126,
+                "count": 184,
+                "max": [
+                  0.7295953,
+                  0.4,
+                  0
+                ],
+                "min": [
+                  0,
+                  0,
+                  -0.410000026
+                ],
+                "normalized": false
+              },
+              "material": "metal"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

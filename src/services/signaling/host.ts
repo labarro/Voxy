@@ -20,7 +20,10 @@ import type {
 } from "../../shared/types";
 import { validateImage } from "../../shared/image";
 import { seats, walkable, spawnPose } from "../../shared/room3d";
+import { POOL, PoolGame } from "../../shared/pool";
 export class RoomHost {
+  private poolGames = new Map<string, PoolGame>();
+  private poolTimer?: ReturnType<typeof setInterval>;
   private io: Server;
   private http: HttpServer;
   private people = new Map<string, Participant>();
@@ -271,6 +274,13 @@ export class RoomHost {
               )
                 throw Error("Movimento inválido.");
             }
+            if (
+              pose?.emote &&
+              (pose.emote !== person.roomPose?.emote ||
+                !person.roomPose?.emoteAt)
+            )
+              pose.emoteAt = now;
+            else if (pose) pose.emoteAt = person.roomPose?.emoteAt;
             lastPose = now;
             person.roomPose = pose ?? undefined;
             for (const target of this.io.sockets.sockets.values()) {
@@ -494,6 +504,17 @@ export class RoomHost {
   }
   state(viewer?: string, state = this.store.snapshot()): RoomState {
     return {
+      poolGames: Object.fromEntries(
+        [...this.poolGames]
+          .filter(
+            ([channel]) =>
+              !viewer ||
+              [...this.people.values()].some(
+                (p) => p.profile.id === viewer && p.channelId === channel,
+              ),
+          )
+          .map(([id, game]) => [id, game.state]),
+      ),
       televisions: Object.fromEntries(
         state.channels
           .filter((c) => c.roomPreset)
@@ -545,6 +566,34 @@ export class RoomHost {
       participants: [...this.people.values()],
     };
   }
+  private emitPool(channelId: string, game: PoolGame) {
+    for (const socket of this.io.sockets.sockets.values())
+      if (this.people.get(socket.id)?.channelId === channelId)
+        socket.emit("room-pool", { channelId, game: game.state });
+  }
+  private tickPool() {
+    for (const [channelId, game] of this.poolGames) {
+      const channel = this.store
+        .snapshot()
+        .channels.find((c) => c.id === channelId);
+      if (channel?.roomPreset !== "lounge") {
+        this.poolGames.delete(channelId);
+        continue;
+      }
+      let changed = false;
+      for (const id of [...game.state.players]) {
+        const p = this.people.get(id);
+        if (!p?.roomPose || p.channelId !== channelId) {
+          game.leave(id);
+          changed = true;
+        }
+      }
+      // Fixed 12 substeps per 100 ms. Event-loop delays slow time for everyone equally.
+      for (let i = 0; i < 12; i++) changed = game.step() || changed;
+      if (changed) this.emitPool(channelId, game);
+      if (!game.state.players.length) this.poolGames.delete(channelId);
+    }
+  }
   private broadcast() {
     const snapshot = this.store.snapshot();
     for (const socket of this.io.sockets.sockets.values())
@@ -587,6 +636,29 @@ export class RoomHost {
     )
       throw Error("Somente o host pode gerenciar servidores e canais.");
     switch (c.type) {
+      case "pool.join":
+      case "pool.leave":
+      case "pool.shoot": {
+        const channel = state.channels.find(
+          (ch) => ch.id === p.channelId && ch.roomPreset === "lounge",
+        );
+        if (!channel || !p.roomPose)
+          throw Error("Entre no Lounge 3D para jogar.");
+        let game = this.poolGames.get(channel.id);
+        if (!game) {
+          game = new PoolGame();
+          this.poolGames.set(channel.id, game);
+        }
+        if (c.type === "pool.leave") game.leave(p.id);
+        else {
+          if (Math.hypot(p.roomPose.x - POOL.x, p.roomPose.z - POOL.z) > 5)
+            throw Error("Aproxime-se da mesa de sinuca.");
+          if (c.type === "pool.join") game.join(p.id);
+          else game.shoot(p.id, c.angle, c.power, c.revision);
+        }
+        this.emitPool(channel.id, game);
+        break;
+      }
       case "room.tv": {
         const channel = state.channels.find(
           (c) => c.id === p.channelId && c.roomPreset,
@@ -796,9 +868,13 @@ export class RoomHost {
         resolve();
       });
     });
+    this.poolTimer = setInterval(() => this.tickPool(), 100);
+    this.poolTimer.unref();
     return (this.http.address() as { port: number }).port;
   }
   async close() {
+    clearInterval(this.poolTimer);
+    this.poolGames.clear();
     for (const timer of this.callTimers.values()) clearTimeout(timer);
     this.callTimers.clear();
     this.calls.clear();

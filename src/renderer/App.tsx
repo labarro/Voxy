@@ -295,6 +295,17 @@ export function App() {
           setPage((current) => (current === "room" ? "home" : current));
         }
       }
+      if (event.type === "room-pool") {
+        const next = {
+          ...latest.current.room,
+          poolGames: {
+            ...latest.current.room.poolGames,
+            [event.channelId]: event.game,
+          },
+        };
+        latest.current.room = next;
+        setRoom(next);
+      }
       if (event.type === "room-pose") {
         const p = latest.current.room.participants.find(
           (p) => p.id === event.id && p.channelId === event.channelId,
@@ -1453,6 +1464,7 @@ export function App() {
                         }}
                         onSource={setTvSource}
                         sourceId={room.televisions?.[channel.id]}
+                        pool={room.poolGames?.[channel.id]}
                         muted={muted}
                         deafened={deafened}
                         onMute={() => void run(toggleMute)}

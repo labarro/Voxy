@@ -65,7 +65,7 @@ test("watch camera fits the entire television in portrait and wide viewports, th
       [-3.9, 0.95625],
       [3.9, 5.34375],
     ]) {
-      const ndc = new T.Vector3(x, y, -5.59).project(camera);
+      const ndc = new T.Vector3(x, y, -10.59).project(camera);
       assert(Math.abs(ndc.x) < 0.94);
       assert(Math.abs(ndc.y) < 0.94);
     }

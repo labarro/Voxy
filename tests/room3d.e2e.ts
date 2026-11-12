@@ -79,7 +79,9 @@ async function main() {
     const initial = await page.evaluate(() => (window as any).pose());
     await page.keyboard.down("KeyW");
     try {
-      await page.getByRole("button", { name: "Sentar / levantar (E)" }).waitFor();
+      await page
+        .getByRole("button", { name: "Sentar / levantar (E)" })
+        .waitFor();
     } finally {
       await page.keyboard.up("KeyW");
     }
@@ -154,6 +156,45 @@ async function main() {
     await page
       .getByRole("button", { name: "Cabelo Topete", exact: true })
       .click();
+    await page.getByRole("button", { name: /Salvar visual/ }).click();
+    await page
+      .getByRole("button", { name: "Cabelo Afro", exact: true })
+      .click();
+    await page.getByRole("button", { name: "Desfazer", exact: true }).click();
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Cabelo Topete", exact: true })
+        .getAttribute("aria-pressed"),
+      "true",
+    );
+    await page.getByRole("tab", { name: "Rosto", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Formato Quadrado", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Barba Cheia", exact: true })
+      .click();
+    await page.getByRole("tab", { name: "Roupas", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Parte inferior Saia", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Calçados Botas", exact: true })
+      .click();
+    // Applying a saved base look replaces optional fields rather than merging stale pieces.
+    await page.getByRole("button", { name: "Visual 1", exact: true }).click();
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Parte inferior Calça", exact: true })
+        .getAttribute("aria-pressed"),
+      "true",
+    );
+    await page
+      .getByRole("button", { name: "Parte inferior Saia", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Calçados Botas", exact: true })
+      .click();
     await page.getByRole("tab", { name: "Roupas", exact: true }).click();
     await page
       .getByRole("button", { name: "Roupa Jaqueta", exact: true })
@@ -162,7 +203,14 @@ async function main() {
     await page
       .getByRole("button", { name: "Acessório Fones", exact: true })
       .click();
+    await page
+      .getByRole("button", { name: "Acessório Mochila", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Acessório Colar", exact: true })
+      .click();
     await page.getByRole("button", { name: "Andando", exact: true }).click();
+    await page.waitForTimeout(350);
     await page.screenshot({
       path: "test-results/room3d-character-creator.png",
     });
@@ -209,6 +257,11 @@ async function main() {
       "cancel never persists the reset",
     );
     await page.getByLabel("Qualidade gráfica").selectOption("low");
+    await page.getByLabel("Mostrar cigarro virtual e fumaça").uncheck();
+    assert.equal(
+      await page.evaluate(() => (window as any).profile().room3d.smokeEffects),
+      false,
+    );
     await page
       .getByRole("button", { name: "Personalizar", exact: true })
       .click();

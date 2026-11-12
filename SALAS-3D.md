@@ -1,10 +1,27 @@
-# Salas 3D · Voxy 1.1.0 em preparação
+# Salas 3D · Voxy 1.2.0 em preparação
 
-O código 1.1.0 está em desenvolvimento local, sem release ou instalador. A última versão publicada continua sendo [1.0.0](https://github.com/labarro/Voxy/releases/tag/v1.0.0). Execute `npm run build` e `npm start` para avaliar o código local; o perfil de desenvolvimento é separado da instalação. Não há editor de mapas nem construção livre.
+Código 1.2.0 em validação para publicação autorizada. A última versão publicada é [1.1.0](https://github.com/labarro/Voxy/releases/tag/v1.1.0). Execute `npm run build` e `npm start` para avaliar o código local; o perfil de desenvolvimento é separado da instalação. Não há editor de mapas nem construção livre.
+
+Os dois ambientes têm arquitetura de 26 × 24 m. O Lounge tem área de TV, conversa e jogos; o Cinema tem 12 poltronas em três fileiras, com corredores central e laterais. Móveis e personagens mantêm suas proporções. Cada assento tem uma única construção com frente local +Z; o layout e as colisões são compartilhados entre host e renderer.
+
+## Sinuca Rotação 7
+
+Aproxime-se da mesa no Lounge e use **E · Jogar sinuca**, ou abra **Sinuca** e **Entrar na partida**. Dois usuários próximos à mesa iniciam a partida. A interface indica jogador da vez, próxima bola e placar. Clique na representação da mesa ou use **Direção**, ajuste **Força** e escolha **Dar tacada**. Somente o jogador da vez pode jogar, e somente após as bolas pararem.
+
+- Há uma branca e sete bolas numeradas. O primeiro contato deve ser com a menor bola ainda na mesa.
+- Cada bola encaçapada em tacada válida vale um ponto; quem encaçapa continua. Sem encaçapar, passa a vez.
+- Encaçapar a branca, não acertar nenhuma bola ou tocar outra bola primeiro é falta. As bolas encaçapadas nessa tacada voltam a posições livres e a vez passa. Não há bola na mão, regra de tabela obrigatória, efeito ou salto.
+- Vence quem somar mais pontos quando as sete bolas terminarem. **Sair da partida**, desconectar, trocar de canal ou sair do 3D reinicia o placar, preservando o adversário na espera. Para revanche, saia e entre novamente.
+
+O host executa física 2D com passos de 1/120 s, atrito, colisões bola/bola, tabelas e seis caçapas. Snapshots a cada 100 ms vão somente aos participantes do canal; clientes interpolam a apresentação sem recalcular o resultado. Turno, distância, força e revisão são validados no host. Um atraso do processo host desacelera a partida igualmente para todos. Partidas são transitórias, sem salvamento após encerrar o host. Atualize host e participantes para 1.2.0.
+
+## Interações sociais
+
+Em **Interação**, escolha acenar, rir, dançar, comemorar, cumprimentar ou cigarro virtual. **Parar ação** interrompe a ação. Emotes terminam após seis segundos; cigarro virtual termina após dois minutos ou ao parar/sair. A pose e o início são sincronizados pelo host. Cigarro e fumaça são apenas visuais, sem vantagens ou efeitos de gameplay. Em **Configurações → Salas 3D**, desmarque **Mostrar cigarro virtual e fumaça** para ocultar o efeito e sua pose de todos os personagens localmente.
 
 ## Entrar no lounge ou cinema
 
-O host abre **… ao lado do servidor → Gerenciar servidor e canais** e escolhe **Lounge 3D** ou **Cinema 3D** em **Ambiente de [canal de voz]**. Entre no canal e clique em **Entrar na sala 3D**. Em Configurações → Salas 3D, escolha entrada automática, pergunta ou modo tradicional. Hosts anteriores continuam oferecendo chamadas tradicionais; para os novos estilos compartilhados, atualize o host e os participantes para 1.1.
+O host abre **… ao lado do servidor → Gerenciar servidor e canais** e escolhe **Lounge 3D** ou **Cinema 3D** em **Ambiente de [canal de voz]**. Entre no canal e clique em **Entrar na sala 3D**. Em Configurações → Salas 3D, escolha entrada automática, pergunta ou modo tradicional. Hosts anteriores continuam oferecendo chamadas tradicionais; para os novos estilos compartilhados, atualize o host e os participantes para 1.2.
 
 **Voltar ao canal**, no topo da sala, mantém o microfone e a mesma chamada. Quem usa o modo tradicional permanece na lista e continua audível normalmente. O carregamento mostra o progresso dos modelos locais; falhas retornam à chamada tradicional sem abrir outra conexão de voz.
 
@@ -24,7 +41,9 @@ Ao se aproximar de um lugar livre, um indicador no chão e a ação **E · Senta
 
 Abra o ícone de personagem na HUD ou **Configurações → Salas 3D → Personalizar personagem**. O criador funciona fora de uma chamada e contém preview 3D com iluminação própria; arraste para girar e use Parado/Andando/Sentado para testar as animações.
 
-Corpo, rosto, cabelo, roupas, acessórios e cores têm cards e paletas. Há cinco cabelos, quatro roupas e cinco opções de acessórios, além de proporções e expressões. Uma cor personalizada continua disponível. **Aplicar personagem** salva e sincroniza o visual, sem reiniciar o microfone. **Cancelar** descarta o rascunho; **Restaurar padrão** altera apenas o rascunho até aplicar. O preview pode ser recarregado após uma interrupção gráfica sem perder as escolhas.
+Corpo, rosto, cabelo, roupas, acessórios e cores têm cards e paletas. Há quatro tipos físicos com altura ajustável; três formatos de cabeça, olhos, sobrancelhas e nariz; três expressões e opções de barba/bigode. Os 12 cabelos incluem curto, longo, topete, chanel, coques cacheados, raspado, afro, rabo de cavalo, tranças, ondulado, preso e sem cabelo, com cor e mechas opcionais. Combine oito peças superiores com calça/shorts/saia e tênis/botas/sapatos, em cores independentes. Óculos, óculos escuros, fones/headset, gorro/boné/chapéu, brincos, colar, pulseira e mochila podem ser combinados. Chapéus, óculos e fones substituem peças de seu grupo; chapéus também ocultam volumes altos do cabelo para reduzir sobreposição.
+
+Arraste a prévia para girar e use a roda para aproximar os detalhes. **Desfazer** guarda até 30 alterações; **Salvar visual** guarda até seis aparências neste computador, com aplicação e exclusão individuais. Os presets ficam no armazenamento local do renderer; a aparência aplicada fica no perfil e é sincronizada. **Aplicar personagem** salva sem reiniciar o microfone. **Cancelar** descarta o rascunho; **Restaurar padrão** altera apenas o rascunho até aplicar. O preview pode ser recarregado após uma interrupção gráfica sem perder as escolhas.
 
 Os campos básicos da 1.0 são preservados junto das extensões de estilo. Assim, conectar a um host antigo continua possível; ele pode mostrar apenas a personalização básica. O mesmo renderer de avatar atende preview e ambiente. [Modelos e licenças](ASSETS-3D.md).
 

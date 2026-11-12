@@ -82,15 +82,15 @@ export class RoomCamera {
       this.freeTarget.x -
         dx * Math.cos(this.yaw) * scale +
         dy * Math.sin(this.yaw) * scale,
-      -5.5,
-      5.5,
+      -11,
+      11,
     );
     this.freeTarget.z = T.MathUtils.clamp(
       this.freeTarget.z +
         dx * Math.sin(this.yaw) * scale +
         dy * Math.cos(this.yaw) * scale,
-      -4,
-      5.5,
+      -8,
+      11,
     );
   }
   update(dt: number, pose: RoomPose, colliders: T.Object3D[]) {
@@ -104,14 +104,14 @@ export class RoomCamera {
     this.distance = T.MathUtils.lerp(this.distance, this.wantedDistance, alpha);
     let wantedTarget: T.Vector3, wantedPosition: T.Vector3;
     if (this.mode === "watch") {
-      wantedTarget = new T.Vector3(0, 3.15, -5.59);
+      wantedTarget = new T.Vector3(0, 3.15, -10.59);
       const fit =
         Math.max(
           4.3875 / (2 * Math.tan(T.MathUtils.degToRad(48) / 2)),
           7.8 /
             (2 * Math.tan(T.MathUtils.degToRad(48) / 2) * this.camera.aspect),
         ) * 1.1;
-      wantedPosition = new T.Vector3(0, 3.15, -5.59 + fit);
+      wantedPosition = new T.Vector3(0, 3.15, -10.59 + fit);
     } else {
       wantedTarget =
         this.mode === "free"

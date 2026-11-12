@@ -101,6 +101,14 @@ export function RoomSettings({
         />
         Mostrar nomes sobre personagens
       </label>
+      <label className="checkbox">
+        <input
+          type="checkbox"
+          checked={settings.smokeEffects !== false}
+          onChange={(e) => update({ smokeEffects: e.target.checked })}
+        />
+        Mostrar cigarro virtual e fumaça
+      </label>
       <h4>Voz por proximidade</h4>
       <label className="checkbox">
         <input

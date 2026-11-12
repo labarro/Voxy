@@ -1,5 +1,31 @@
 # Validação do Voxy
 
+## Versão 1.2.0 — 12/11/2026
+
+Passaram `npm test` (**53 testes**), `npm run build`, `npm run pack`, `test:rooms3d`, `test:rooms3d:app`, `test:rooms3d:packaged`, `test:rooms3d:visual`, `test:audio`, `test:media`, `test:controls` e `test:ptt`. O build mantém o aviso conhecido do chunk Three.js carregado sob demanda. A publicação externa é registrada separadamente após o workflow.
+
+- **Causas estruturais:** inspeção dos GLB confirmou que os assentos importados já continham geometria completa. O renderer adicionava outro assento/encosto e uma rotação extra de π. Essa composição foi substituída por um único móvel por grupo. O rosto deixou de depender de offsets fixos de modelos diferentes; detalhes acompanham a superfície da cabeça própria. [Dados da inspeção](evidence/rooms3d-1.2.0/model-inspection.json).
+- **Visual:** capturas de frente, lado, costas, rosto aproximado, postura sentada, cigarro e catálogo com 12 cabelos e roupas variadas foram inspecionadas. As inspeções levaram a correções de cabelo cobrindo olhos, mechas salientes, luminária sobre a mesa, drapeado da saia sentada e fumaça. Os ambientes foram capturados em visão ampla e pelo lado frontal dos assentos; caminhada, sentar/levantar, órbitas e enquadramento da TV passaram. As colisões de câmera têm testes geométricos, incluindo recuperação e restauração após assistir.
+- **Sinuca:** testes de física exercitam contato, parada, tacada reproduzível, encaçapada válida, pontuação, vitória, branca encaçapada, contato errado e reposição. Dois clientes Socket.IO recebem o mesmo estado final; turno/revisão inválidos, usuário distante e outro canal são rejeitados. Observador tardio recebe a mesa atual; desconexão reinicia o jogo. Em **dois processos Electron**, também no pacote ASAR, os jogadores caminharam até a mesa, entraram pela interface e executaram uma tacada com mira/força. Os snapshots finais foram comparados integralmente. Isso é multiplayer local real, sem ensaio entre computadores pela VPN.
+- **Criador e interações:** diferenças reais de geometria nas opções; rascunho/aplicar/cancelar/restaurar, desfazer, salvar/aplicar visual substituindo campos opcionais, acessórios combinados e recuperação de contexto gráfico. O segundo processo recebeu a personalização e o cigarro virtual. A preferência de ocultar cigarro/fumaça foi exercitada na interface e no modelo.
+- **Regressões:** TV sintética decodificada por WebRTC, webcam, fullscreen, Esc, modo assistir e tradicional sem recapturar microfone; áudio privado/reconexão, volumes, mute/Deafen e atalhos globais. O ensaio de mídia conectou 45 pares e recebeu voz nos 90 sentidos, tela/webcam para nove espectadores e ciclos de saída/reentrada. PTT global verificou F9, Q, Mouse 4/5. Contratos verificam novidades 1.1 → 1.2 uma vez e igualdade de pacote, lock, saída, README e catálogo.
+
+Capturas e resultados: [lounge](evidence/rooms3d-1.2.0/lounge.png), [cinema](evidence/rooms3d-1.2.0/cinema.png), [catálogo](evidence/rooms3d-1.2.0/character-catalog.png), [criador](evidence/rooms3d-1.2.0/creator.png), [sinuca no pacote](evidence/rooms3d-1.2.0/pool.png) e [relatório](evidence/validation-1.2.0.json).
+
+### Desempenho e limites
+
+Medição isolada, Edge/ANGLE, 1024 × 600, dez avatares (cinco andando), 2 s de aquecimento e 4 s de amostragem. A comparação carrega **todos os módulos da tag v1.1.0**, evitando misturar código antigo e novo. Na NVIDIA GeForce RTX 5060 Ti/D3D11:
+
+| Qualidade | FPS 1.1 → 1.2 | Draw calls 1.1 → 1.2 | Triângulos 1.1 → 1.2 |
+| :-- | :-- | :-- | :-- |
+| Baixo | 23,0 → 23,0 | 145 → 344 | 25.850 → 47.080 |
+| Médio | 37,5 → 37,5 | 171,9 → 423,4 | 31.730 → 58.541 |
+| Alto | 54,2 → 54,7 | 163,6 → 398,4 | 29.914 → 54.930 |
+
+O cenário maior e os avatares articulados custam mais chamadas/geometria; os FPS permaneceram equivalentes nesta GPU, sem afirmar ganho universal. A primeira implementação 1.2 tinha 472 chamadas/99.128 triângulos no baixo; união de peças por pivô/material e subdivisões limitadas reduziram esses custos. Geometrias e texturas registradas pelo renderer retornaram a zero no descarte. Isso não mede toda a RAM/VRAM do processo.
+
+Com SwiftShader, a implementação otimizada mediu cerca de 23/11/11 FPS: mantenha **Baixo** ou o modo tradicional quando não houver aceleração. Faltam GPUs integradas/de entrada, sessões prolongadas, redes entre PCs físicos, microfones reais e avaliação acústica humana. As fontes de mídia são sintéticas. O pacote foi executado em diretórios isolados; o NSIS não foi instalado sobre a instalação pessoal. A sinuca usa regras simplificadas documentadas e não oferece efeitos, salto, persistência da partida ou física de competição.
+
 ## Versão 1.1.0 em preparação — 11/11/2026
 
 Passaram `npm test` (**49 testes**), `npm run build`, `test:rooms3d`, `test:rooms3d:app`, `test:gallery`, `test:audio`, `test:controls`, `test:ptt` e `test:media`. O build mantém um aviso de tamanho do chunk Three.js, carregado sob demanda. Após autorização para publicação, `npm run pack` e `test:rooms3d:packaged` passaram localmente, tanto com GPU quanto com SwiftShader explícito. As primeiras execuções do CI pararam em timeouts e não publicaram. Os diagnósticos mostraram salas renderizadas e reconexão de mídia sob a carga dos dois renderizadores por software. A integração usa SwiftShader no nível Baixo recomendado e minimiza a janela inativa para exercer a pausa gráfica normal do aplicativo, mantendo os dois clientes e a chamada. Isso não equivale a medir dois renderizadores simultâneos em PCs físicos. As medições de médio/alto continuam separadas. A última versão distribuída continua sendo a 1.0.0 até concluir a release 1.1.0.

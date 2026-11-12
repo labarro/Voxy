@@ -12,7 +12,10 @@ import { RoomCamera, type CameraMode } from "./camera";
 import { buildEnvironment, type RoomEnvironment } from "./environment";
 import { Resources } from "./resources";
 
+import { POOL, type PoolState } from "../../shared/pool";
+import { PoolTable } from "./PoolTable";
 export type SceneSnapshot = {
+  pool?: PoolState;
   people: Participant[];
   speaking: Set<string>;
   settings: RoomSettings;
@@ -45,6 +48,7 @@ export class SocialScene {
   private rig = new RoomCamera(this.camera);
   private assets = new RoomAssets();
   private environment?: RoomEnvironment;
+  private poolTable?: PoolTable;
   private models = new Map<string, PersonModel>();
   private keys = new Set<string>();
   private observer: ResizeObserver;
@@ -81,6 +85,7 @@ export class SocialScene {
     private audio: (pose: RoomPose, yaw: number) => void,
     private fail: (message: string) => void,
     private changed: (state: SceneState) => void = () => {},
+    private openPool: () => void = () => {},
   ) {
     this.data = data;
     this.pose =
@@ -141,6 +146,8 @@ export class SocialScene {
       });
       if (this.disposed) return;
       this.environment = buildEnvironment(this.scene, this.preset, this.assets);
+      if (this.preset === "lounge")
+        this.poolTable = new PoolTable(this.scene, this.environment.colliders);
       this.scene.updateMatrixWorld(true);
       this.configureQuality();
       this.progress = 0.96;
@@ -327,6 +334,17 @@ export class SocialScene {
           Math.hypot(b.x - this.pose.x, b.z - this.pose.z),
       )[0];
   }
+  emote(value: NonNullable<RoomPose["emote"]>) {
+    this.pose.emote = value;
+    this.pose.emoteAt = Date.now();
+    this.dirty = true;
+  }
+  private nearPool() {
+    return (
+      this.preset === "lounge" &&
+      Math.hypot(this.pose.x - POOL.x, this.pose.z - POOL.z) < 5
+    );
+  }
   private interaction() {
     if (this.pose.seat) return { label: "Levantar", available: true };
     const seat = this.nearestSeat();
@@ -340,7 +358,9 @@ export class SocialScene {
                 : "Sentar na poltrona",
           available: true,
         }
-      : { label: "Aproxime-se de um assento", available: false };
+      : this.nearPool()
+        ? { label: "Jogar sinuca", available: true }
+        : { label: "Aproxime-se de um assento", available: false };
   }
   interact() {
     if (!this.ready || this.data.paused) return;
@@ -361,6 +381,14 @@ export class SocialScene {
     } else {
       const seat = this.nearestSeat();
       if (
+        this.nearPool() &&
+        (!seat ||
+          Math.hypot(seat.x - this.pose.x, seat.z - this.pose.z) >= 2.35)
+      ) {
+        this.openPool();
+        return;
+      }
+      if (
         !seat ||
         Math.hypot(seat.x - this.pose.x, seat.z - this.pose.z) >= 2.35
       )
@@ -371,6 +399,8 @@ export class SocialScene {
         yaw: seat.yaw,
         seat: seat.id,
         moving: false,
+        emote: this.pose.emote,
+        emoteAt: this.pose.emoteAt,
       };
     }
     this.velocity.set(0, 0);
@@ -463,6 +493,7 @@ export class SocialScene {
       return;
     }
     const environment = this.environment!;
+    this.poolTable?.update(this.data.pool, dt);
     this.configureQuality();
     const ratio = Math.min(
       devicePixelRatio,
@@ -562,7 +593,9 @@ export class SocialScene {
         dt,
         pose.moving,
         !!pose.seat,
-        pose.seat?.startsWith("puff") ? 0.56 : 0.74,
+        pose.seat?.startsWith("puff") ? 0.68 : 0.88,
+        pose,
+        settings.smokeEffects !== false,
       );
       model.seat = pose.seat;
       model.label.visible = settings.names && this.rig.mode !== "watch";
@@ -595,8 +628,8 @@ export class SocialScene {
     for (const wall of environment.walls) {
       const mat = wall.material as T.MeshStandardMaterial;
       const fade =
-        Math.abs(wall.position.x) > 6.5 &&
-        Math.sign(wall.position.x) * this.camera.position.x > 6.5;
+        Math.abs(wall.position.x) > 12.8 &&
+        Math.sign(wall.position.x) * this.camera.position.x > 12.8;
       mat.transparent = fade;
       mat.opacity = fade ? 0.12 : 1;
       mat.depthWrite = !fade;
@@ -648,6 +681,7 @@ export class SocialScene {
       model.resources.dispose();
     }
     this.models.clear();
+    this.poolTable?.dispose();
     this.environment?.dispose();
     this.assets.dispose();
     this.renderer.dispose();

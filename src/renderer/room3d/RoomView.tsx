@@ -37,6 +37,8 @@ import { SocialScene, type SceneState } from "./scene";
 import { Player } from "../components/Player";
 import { Avatar } from "../components/Avatar";
 
+import type { PoolState } from "../../shared/pool";
+import { PoolPanel } from "./PoolPanel";
 type Actions = {
   muted?: boolean;
   deafened?: boolean;
@@ -62,6 +64,7 @@ const initialScene: SceneState = {
 };
 export default function RoomView({
   preset,
+  pool,
   selfId,
   people,
   profile,
@@ -86,6 +89,7 @@ export default function RoomView({
   onParticipant,
 }: {
   preset: RoomPreset;
+  pool?: PoolState;
   selfId: string;
   people: Participant[];
   profile: Profile;
@@ -101,6 +105,8 @@ export default function RoomView({
   const mount = useRef<HTMLDivElement>(null),
     root = useRef<HTMLElement>(null),
     scene = useRef<SocialScene | undefined>(undefined);
+  const [poolOpen, setPoolOpen] = useState(false);
+  const [emote, setEmote] = useState("none");
   const [notice, setNotice] = useState(""),
     [occupancy, setOccupancy] = useState(1),
     [state, setState] = useState(initialScene),
@@ -123,6 +129,7 @@ export default function RoomView({
     : undefined;
   const current = useRef({
     people,
+    pool,
     settings,
     stream,
     media,
@@ -132,6 +139,7 @@ export default function RoomView({
   });
   current.current = {
     people,
+    pool,
     settings,
     stream,
     media,
@@ -146,6 +154,7 @@ export default function RoomView({
   useEffect(() => {
     const data = () => ({
       people: current.current.people,
+      pool: current.current.pool,
       settings: current.current.settings,
       stream: current.current.stream,
       speaking: current.current.media.speaking,
@@ -203,6 +212,7 @@ export default function RoomView({
         (value) => {
           if (active) setState(value);
         },
+        () => setPoolOpen(true),
       );
       scene.current = view;
       const timer = setInterval(() => {
@@ -330,6 +340,41 @@ export default function RoomView({
       }}
     >
       <div className="room3d-canvas" ref={mount} />
+      <div className="room-social-actions">
+        <label>
+          Interação{" "}
+          <select
+            aria-label="Interação social"
+            value={emote}
+            onChange={(e) => {
+              setEmote(e.target.value);
+              scene.current?.emote(
+                e.target.value as NonNullable<RoomPose["emote"]>,
+              );
+            }}
+          >
+            <option value="none">Parar ação</option>
+            <option value="wave">Acenar</option>
+            <option value="laugh">Rir</option>
+            <option value="dance">Dançar</option>
+            <option value="celebrate">Comemorar</option>
+            <option value="greet">Cumprimentar</option>
+            <option value="smoke">Cigarro virtual</option>
+          </select>
+        </label>
+        {preset === "lounge" && (
+          <button onClick={() => setPoolOpen((v) => !v)}>Sinuca</button>
+        )}
+      </div>
+      {poolOpen && (
+        <PoolPanel
+          game={pool}
+          people={people}
+          self={selfId}
+          command={command}
+          close={() => setPoolOpen(false)}
+        />
+      )}
       {!state.ready && (
         <div className="room-loading" role="status">
           <div className="room-loading-symbol">

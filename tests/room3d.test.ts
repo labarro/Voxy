@@ -31,7 +31,7 @@ test("spatial attenuation, stereo direction and preset collision agree", () => {
   );
   for (const preset of ["lounge", "cinema"] as const) {
     assert(walkable(preset, 0, 6));
-    assert(!walkable(preset, 8, 6));
+    assert(!walkable(preset, 14, 6));
     assert(!walkable(preset, NaN, 0));
     for (const seat of seats(preset)) assert(!walkable(preset, seat.x, seat.z));
     assert.equal(
@@ -216,7 +216,7 @@ test("real host validates rooms, reserves seats atomically, isolates pose packet
       (
         await command(0, {
           type: "room.pose",
-          pose: { ...spawnPose(), x: 6, z: -5 },
+          pose: { ...spawnPose(), x: 14, z: -5 },
         })
       ).ok,
       false,

@@ -1,4 +1,32 @@
 {
+  "1.2.0": {
+    "date": "2026-11-12",
+    "title": "Mais espaço, mais identidade, mais encontros",
+    "items": [
+      "Lounge e Cinema ampliados, móveis reconstruídos sem encostos duplicados e rosto integrado à cabeça.",
+      "Sinuca Rotação 7 para dois jogadores, com turnos e física calculados somente pelo host.",
+      "Criador ampliado com peças independentes, visuais salvos e interações sociais sincronizadas."
+    ],
+    "features": [
+      "Sinuca jogável com mira, força, colisões, caçapas, placar, faltas, turnos e estado autoritativo por canal.",
+      "Doze cabelos, oito peças superiores, calças, shorts, saia, três calçados e acessórios combináveis.",
+      "Formatos de cabeça, olhos, sobrancelhas, nariz, barba/bigode, quatro corpos e controle de altura.",
+      "Desfazer, até seis visuais locais, mechas e cores independentes das peças no editor com zoom.",
+      "Acenar, rir, dançar, comemorar, cumprimentar e cigarro virtual com animação e fumaça opcional nas preferências."
+    ],
+    "improvements": [
+      "Arquitetura de 26 × 24 metros com áreas de TV, conversa e jogos no Lounge e corredores amplos no Cinema.",
+      "Modelagem articulada própria com detalhes faciais acompanhando a superfície da cabeça, usada na sala e no editor.",
+      "Corredores, limites, colisões, saída dos assentos e enquadramento da TV ajustados às salas maiores.",
+      "Sinuca transmite snapshots restritos ao canal e aceita comandos com validação de turno, distância e revisão."
+    ],
+    "fixes": [
+      "Removidas as geometrias adicionais de almofadas/encostos sobre móveis importados e a rotação extra de 180 graus.",
+      "Olhos e boca deixam de usar coordenadas fixas projetadas para fora de modelos distintos.",
+      "Chapéus, óculos e fones têm grupos de exclusão para reduzir conflitos entre acessórios.",
+      "Saída de um jogador ou do modo 3D libera a mesa e reinicia o placar com segurança."
+    ]
+  },
   "1.1.0": {
     "date": "2026-11-11",
     "title": "Um espaço com a sua cara",

@@ -39,10 +39,10 @@ export function buildEnvironment(
   const key = new T.DirectionalLight("#ffe1b7", 3.2);
   key.position.set(-4, 9, 5);
   key.castShadow = true;
-  key.shadow.camera.left = -10;
-  key.shadow.camera.right = 10;
-  key.shadow.camera.top = 10;
-  key.shadow.camera.bottom = -10;
+  key.shadow.camera.left = -16;
+  key.shadow.camera.right = 16;
+  key.shadow.camera.top = 16;
+  key.shadow.camera.bottom = -16;
   key.shadow.camera.near = 0.5;
   key.shadow.camera.far = 30;
   key.shadow.bias = -0.0003;
@@ -68,9 +68,9 @@ export function buildEnvironment(
     mat.bumpScale = 0.018;
     return mat;
   };
-  r.box(scene, 0, -0.22, 0.4, 22, 0.4, 23, "#262b30", 0.12);
+  r.box(scene, 0, -0.22, 0.4, 32, 0.4, 34, "#262b30", 0.12);
   // Continue the floor beneath the cutaway camera, avoiding a visible platform edge.
-  r.box(scene, 0, -0.06, 0.4, 22, 0.16, 23, wood, 0.04);
+  r.box(scene, 0, -0.06, 0.4, 32, 0.16, 34, wood, 0.04);
   const rug = r.box(
     scene,
     0,
@@ -95,29 +95,26 @@ export function buildEnvironment(
   );
   // Architectural shell: wainscot, plaster, inset window and ceiling coves.
   walls.push(
-    r.box(scene, 0, 3.05, -6.13, 14, 6.2, 0.25, palette.plaster, 0.04),
+    r.box(scene, 0, 3.05, -11.13, 26, 6.2, 0.25, palette.plaster, 0.04),
   );
-  walls.push(
-    r.box(scene, -7.05, 2.45, 0.4, 0.22, 4.9, 13.4, palette.wall, 0.04),
-  );
-  walls.push(
-    r.box(scene, 7.05, 2.45, 0.4, 0.22, 4.9, 13.4, palette.wall, 0.04),
-  );
+  walls.push(r.box(scene, -13.05, 3.1, 1, 0.22, 6.2, 24, palette.wall, 0.04));
+  walls.push(r.box(scene, 13.05, 3.1, 1, 0.22, 6.2, 24, palette.wall, 0.04));
+  walls.push(r.box(scene, 0, 0.5, 13.15, 26, 1, 0.22, palette.wood, 0.04));
   colliders.push(...walls);
-  r.box(scene, 0, 0.6, -5.96, 14, 1.2, 0.08, palette.wood, 0.02);
-  for (const x of [-6.9, 6.9]) {
-    r.box(scene, x, 0.6, 0.4, 0.12, 1.2, 13.4, palette.wood, 0.02);
-    r.box(scene, x, 1.23, 0.4, 0.15, 0.08, 13.4, palette.trim, 0.01);
-    r.box(scene, x, 4.65, 0.4, 0.28, 0.14, 13.4, palette.wood, 0.03);
+  r.box(scene, 0, 0.6, -10.96, 26, 1.2, 0.08, palette.wood, 0.02);
+  for (const x of [-12.9, 12.9]) {
+    r.box(scene, x, 0.6, 0.4, 0.12, 1.2, 24, palette.wood, 0.02);
+    r.box(scene, x, 1.23, 0.4, 0.15, 0.08, 24, palette.trim, 0.01);
+    r.box(scene, x, 4.65, 0.4, 0.28, 0.14, 24, palette.wood, 0.03);
     const strip = r.material("#ffe0a8");
     strip.emissive.set("#f2af5d");
     strip.emissiveIntensity = 1.1;
-    r.box(scene, x, 4.54, 0.4, 0.06, 0.045, 13.1, strip, 0);
+    r.box(scene, x, 4.54, 0.4, 0.06, 0.045, 23.7, strip, 0);
     const ambient = new T.PointLight("#ffc784", cinema ? 8 : 12, 13, 2);
     ambient.position.set(x * 0.7, 3.8, 1);
     scene.add(ambient);
   }
-  r.box(scene, 0, 5.9, -5.94, 13.7, 0.14, 0.2, palette.wood, 0.03);
+  r.box(scene, 0, 5.9, -10.94, 25.7, 0.14, 0.2, palette.wood, 0.03);
   // A single instanced set provides the rhythm of acoustic / timber panels.
   const slatGeometry = r.keep(new T.BoxGeometry(0.12, 4.6, 0.12)),
     slatMaterial = r.material(cinema ? "#46394c" : "#886b53");
@@ -125,7 +122,7 @@ export function buildEnvironment(
   const transform = new T.Object3D();
   for (let i = 0; i < 32; i++) {
     const side = i < 16 ? -1 : 1;
-    transform.position.set(side * (4.6 + (i % 16) * 0.14), 3.5, -5.83);
+    transform.position.set(side * (4.6 + (i % 16) * 0.14), 3.5, -10.83);
     transform.updateMatrix();
     slats.setMatrixAt(i, transform.matrix);
   }
@@ -163,12 +160,12 @@ export function buildEnvironment(
       windowMat,
     );
     windowPlane.rotation.y = Math.PI / 2;
-    windowPlane.position.set(-6.9, 3, 0);
+    windowPlane.position.set(-12.9, 3, 0);
     scene.add(windowPlane);
     for (const z of [-3.3, 0, 3.3])
-      r.box(scene, -6.78, 3, z, 0.16, 2.7, 0.09, palette.wood, 0.02);
+      r.box(scene, -12.78, 3, z, 0.16, 2.7, 0.09, palette.wood, 0.02);
     for (const y of [1.65, 4.35])
-      r.box(scene, -6.78, y, 0, 0.25, 0.1, 6.8, palette.wood, 0.02);
+      r.box(scene, -12.78, y, 0, 0.25, 0.1, 6.8, palette.wood, 0.02);
     const art = document.createElement("canvas");
     art.width = 512;
     art.height = 384;
@@ -195,17 +192,17 @@ export function buildEnvironment(
       r.keep(new T.MeshStandardMaterial({ map: artMap, roughness: 1 })),
     );
     artwork.rotation.y = -Math.PI / 2;
-    artwork.position.set(6.88, 3, 0);
+    artwork.position.set(12.88, 3, 0);
     scene.add(artwork);
     for (const y of [1.72, 4.28])
-      r.box(scene, 6.84, y, 0, 0.13, 0.09, 3.55, palette.wood, 0.02);
+      r.box(scene, 12.84, y, 0, 0.13, 0.09, 3.55, palette.wood, 0.02);
     for (const z of [-1.77, 1.77])
-      r.box(scene, 6.84, 3, z, 0.13, 2.65, 0.09, palette.wood, 0.02);
+      r.box(scene, 12.84, 3, z, 0.13, 2.65, 0.09, palette.wood, 0.02);
   } else {
     const panelGeometry = r.keep(new RoundedPanelGeometry()),
       panels = new T.InstancedMesh(panelGeometry, fabric("#40384c"), 12);
     for (let i = 0; i < 12; i++) {
-      transform.position.set(i < 6 ? -6.88 : 6.88, 2.9, (i % 6) * 1.8 - 4.5);
+      transform.position.set(i < 6 ? -12.88 : 12.88, 2.9, (i % 6) * 1.8 - 4.5);
       transform.rotation.y = i < 6 ? Math.PI / 2 : -Math.PI / 2;
       transform.updateMatrix();
       panels.setMatrixAt(i, transform.matrix);
@@ -253,7 +250,7 @@ export function buildEnvironment(
     group.add(root);
     group.scale.set(w / size.x, h / size.y, d / size.z);
     group.position.set(x, y, z);
-    group.rotation.y = yaw + Math.PI;
+    group.rotation.y = yaw;
     root.traverse((obj) => {
       if (!(obj instanceof T.Mesh)) return;
       const originals = Array.isArray(obj.material)
@@ -282,38 +279,22 @@ export function buildEnvironment(
     return group;
   };
   if (!cinema) {
-    prop("loungeSofa", 0, 2, 5.8, 1.45, 1.5, Math.PI, palette.cloth);
+    const sofa = new T.Group();
+    sofa.position.set(0, 0, 2);
+    sofa.rotation.y = Math.PI;
+    scene.add(sofa);
+    colliders.push(sofa);
+    r.box(sofa, 0, 0.4, 0, 5.8, 0.35, 1.4, palette.wood, 0.12);
+    r.box(sofa, 0, 1.05, -0.58, 5.8, 0.95, 0.26, fabric(palette.cloth), 0.12);
+    for (const x of [-2.8, 2.8])
+      r.box(sofa, x, 0.85, 0, 0.28, 0.6, 1.4, fabric(palette.cloth), 0.12);
+    for (const x of [-1.85, 0, 1.85])
+      r.box(sofa, x, 0.64, 0.06, 1.76, 0.25, 1.03, fabric("#9b809a"), 0.1);
+    for (const x of [-2.4, 2.4])
+      for (const z of [-0.48, 0.48])
+        r.box(sofa, x, 0.15, z, 0.16, 0.3, 0.16, palette.wood, 0.02);
+    r.batch(sofa);
     contact(0, 2, 6.7, 2.1);
-    for (const x of [-1.85, 0, 1.85]) {
-      r.box(scene, x, 0.64, 1.84, 1.76, 0.25, 1.05, fabric("#9b809a"), 0.12);
-      const back = r.box(
-        scene,
-        x,
-        1.08,
-        2.44,
-        1.76,
-        0.64,
-        0.24,
-        fabric("#91748d"),
-        0.11,
-      );
-      back.rotation.x = -0.06;
-    }
-    // Separate throw cushions add silhouette and fabric detail to the authored sofa.
-    for (const x of [-2.2, 2.2]) {
-      const cushion = r.box(
-        scene,
-        x,
-        0.99,
-        2.25,
-        0.65,
-        0.63,
-        0.2,
-        fabric(x < 0 ? "#bd9b78" : "#a8b2a0"),
-        0.13,
-      );
-      cushion.rotation.z = x < 0 ? 0.16 : -0.16;
-    }
     const table = prop("tableCoffee", 0, -0.2, 3.5, 0.6, 1.5, 0);
     colliders.push(table);
     contact(0, -0.2, 4.2, 2.1);
@@ -326,28 +307,55 @@ export function buildEnvironment(
   }
   for (const seat of seats(preset)) {
     if (seat.kind !== "sofa") {
-      if (seat.kind === "puff")
-        prop(
-          "loungeSofaOttoman",
-          seat.x,
-          seat.z,
-          1.2,
-          0.56,
-          1.2,
-          seat.yaw,
-          "#ab7963",
+      const chair = new T.Group();
+      chair.name = "seat-" + seat.id;
+      chair.position.set(seat.x, 0, seat.z);
+      chair.rotation.y = seat.yaw;
+      scene.add(chair);
+      colliders.push(chair);
+      if (seat.kind === "puff") {
+        r.box(chair, 0, 0.29, 0, 1.15, 0.56, 1.15, fabric("#ab7963"), 0.18);
+      } else {
+        r.box(chair, 0, 0.39, 0, 1.28, 0.26, 1.24, palette.wood, 0.06);
+        r.box(
+          chair,
+          0,
+          0.64,
+          0.07,
+          1.04,
+          0.25,
+          0.98,
+          fabric(cinema ? "#92708b" : "#9aa999"),
+          0.1,
         );
-      else
-        prop(
-          cinema ? "loungeDesignChair" : "loungeChair",
-          seat.x,
-          seat.z,
-          cinema ? 1.35 : 1.55,
-          cinema ? 1.45 : 1.4,
-          1.35,
-          seat.yaw,
-          cinema ? palette.cloth : "#839384",
+        r.box(
+          chair,
+          0,
+          1.12,
+          -0.52,
+          1.2,
+          1.02,
+          0.24,
+          fabric(palette.cloth),
+          0.11,
         );
+        for (const x of [-0.64, 0.64])
+          r.box(
+            chair,
+            x,
+            0.84,
+            0,
+            0.22,
+            0.38,
+            1.3,
+            fabric(palette.cloth),
+            0.08,
+          );
+        for (const x of [-0.46, 0.46])
+          for (const z of [-0.45, 0.45])
+            r.box(chair, x, 0.17, z, 0.12, 0.34, 0.12, palette.wood, 0.02);
+      }
+      r.batch(chair);
       contact(seat.x, seat.z, 1.8, 1.8);
     }
     const marker = new T.Mesh(
@@ -368,46 +376,43 @@ export function buildEnvironment(
     scene.add(marker);
     seatMarkers.set(seat.id, marker);
   }
-  // Shared rounded inserts soften the silhouette of every seat in one draw per part.
-  const chairs = seats(preset).filter((s) => s.kind === "chair");
-  for (const part of [
-    { size: [1.04, 0.24, 0.95], y: 0.61, z: 0.04 },
-    { size: [1.04, 0.78, 0.26], y: 1.1, z: -0.44 },
-  ]) {
-    const geometry = r.keep(
-      new RoundedBoxGeometry(part.size[0], part.size[1], part.size[2], 3, 0.11),
-    );
-    const cushions = new T.InstancedMesh(
-      geometry,
-      fabric(cinema ? "#92708b" : "#9aa999"),
-      chairs.length,
-    );
-    chairs.forEach((seat, i) => {
-      const pivot = new T.Object3D();
-      pivot.position.set(seat.x, part.y, seat.z);
-      pivot.rotation.y = seat.yaw;
-      pivot.translateZ(part.z);
-      pivot.updateMatrix();
-      cushions.setMatrixAt(i, pivot.matrix);
-    });
-    cushions.castShadow = true;
-    cushions.receiveShadow = true;
-    scene.add(cushions);
-  }
-  for (const x of [-5.6, 5.6]) {
-    prop("pottedPlant", x, -4.1, 1.15, 2.3, 1.15);
-    contact(x, -4.1, 1.6, 1.6);
-    prop("lampRoundFloor", x, 3.8, 0.8, 2.9, 0.8);
+  for (const x of [-11, 11]) {
+    prop("pottedPlant", x, -8.1, 1.15, 2.3, 1.15);
+    contact(x, -8.1, 1.6, 1.6);
+    prop("lampRoundFloor", x, 8.8, 0.8, 2.9, 0.8);
     const bulb = new T.PointLight("#ffbc75", 9, 7, 2);
-    bulb.position.set(x, 2.5, 3.8);
+    bulb.position.set(x, 2.5, 8.8);
     scene.add(bulb);
+  }
+  if (!cinema) {
+    // Conversation nook and separate games zone, with wide circulation between them.
+    r.box(scene, -8, 0.035, 3, 6, 0.06, 7, fabric("#758c82"), 0.04);
+    const chatTable = r.cylinder(
+      scene,
+      -8,
+      0.37,
+      2.5,
+      0.85,
+      0.65,
+      0.7,
+      palette.wood,
+    );
+    colliders.push(chatTable);
+    prop("bookcaseOpenLow", -11, -5, 2.4, 1.4, 0.5, 0);
+    prop("books", -11, -5, 1.6, 0.35, 0.35, 0, undefined, 1.4);
+  } else {
+    const aisle = r.material("#d8ac72");
+    aisle.emissive.set("#d8ac72");
+    aisle.emissiveIntensity = 0.6;
+    for (const x of [-1.3, 1.3, -8, 8])
+      r.box(scene, x, 0.045, 2, 0.045, 0.03, 17, aisle, 0);
   }
   // Screen architecture and a deliberately composed idle slate.
   const panel = r.box(
     scene,
     0,
     3.15,
-    -5.76,
+    -10.76,
     8.5,
     4.7,
     0.28,
@@ -418,8 +423,8 @@ export function buildEnvironment(
   const warm = r.material("#e4c59a");
   warm.emissive.set("#dba46b");
   warm.emissiveIntensity = 0.7;
-  r.box(scene, 0, 5.54, -5.75, 8.4, 0.035, 0.1, warm, 0);
-  r.box(scene, 0, 0.55, -5.5, 8, 1, 0.8, palette.wood, 0.08);
+  r.box(scene, 0, 5.54, -10.75, 8.4, 0.035, 0.1, warm, 0);
+  r.box(scene, 0, 0.55, -10.5, 8, 1, 0.8, palette.wood, 0.08);
   const posterCanvas = document.createElement("canvas");
   posterCanvas.width = 1280;
   posterCanvas.height = 720;
@@ -448,7 +453,7 @@ export function buildEnvironment(
     r.keep(new T.PlaneGeometry(7.8, 4.3875)),
     r.keep(new T.MeshBasicMaterial({ map: poster, toneMapped: false })),
   );
-  screen.position.set(0, 3.15, -5.59);
+  screen.position.set(0, 3.15, -10.59);
   scene.add(screen);
   for (const wall of walls)
     wall.material = r.keep((wall.material as T.MeshStandardMaterial).clone());

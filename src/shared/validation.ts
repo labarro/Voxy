@@ -35,24 +35,80 @@ export const bannerSchema = z
       return false;
     }
   }, "Escolha uma capa de até 960 × 360 px / 128 KB.");
-const profileObjectSchema = z.object({
-  avatar3d: z
-    .object({
-      hair: z.enum(["short", "long", "crest"]),
-      hairStyle: z.enum(["short", "long", "crest", "bob", "curly"]).optional(),
-      hairColor: colorSchema,
-      skin: colorSchema,
-      outfit: z.enum(["sweater", "jacket"]),
-      outfitStyle: z.enum(["sweater", "jacket", "hoodie", "tee"]).optional(),
-      color: colorSchema,
-      accessory: z.enum(["none", "glasses", "headphones"]),
-      accessoryStyle: z
-        .enum(["none", "glasses", "headphones", "beanie", "earrings"])
-        .optional(),
-      body: z.enum(["classic", "soft"]).optional(),
-      face: z.enum(["friendly", "calm", "bright"]).optional(),
-    })
+export const avatar3dSchema = z.object({
+  hair: z.enum(["short", "long", "crest"]),
+  hairStyle: z
+    .enum([
+      "short",
+      "long",
+      "crest",
+      "bob",
+      "curly",
+      "buzz",
+      "afro",
+      "ponytail",
+      "braids",
+      "wavy",
+      "bun",
+      "bald",
+    ])
     .optional(),
+  hairColor: colorSchema,
+  skin: colorSchema,
+  outfit: z.enum(["sweater", "jacket"]),
+  outfitStyle: z
+    .enum([
+      "sweater",
+      "jacket",
+      "hoodie",
+      "tee",
+      "shirt",
+      "coat",
+      "suit",
+      "varsity",
+    ])
+    .optional(),
+  color: colorSchema,
+  accessory: z.enum(["none", "glasses", "headphones"]),
+  accessoryStyle: z
+    .enum(["none", "glasses", "headphones", "beanie", "earrings"])
+    .optional(),
+  body: z.enum(["classic", "soft", "slim", "athletic"]).optional(),
+  headShape: z.enum(["round", "oval", "square"]).optional(),
+  eyes: z.enum(["round", "almond", "sleepy"]).optional(),
+  brows: z.enum(["soft", "bold", "arched"]).optional(),
+  nose: z.enum(["small", "round", "wide"]).optional(),
+  facialHair: z.enum(["none", "stubble", "beard", "mustache"]).optional(),
+  height: z.number().finite().min(0.9).max(1.1).optional(),
+  hairSecondary: colorSchema.optional(),
+  bottom: z.enum(["trousers", "shorts", "skirt"]).optional(),
+  bottomColor: colorSchema.optional(),
+  shoes: z.enum(["sneakers", "boots", "formal"]).optional(),
+  shoeColor: colorSchema.optional(),
+  accessories: z
+    .array(
+      z.enum([
+        "glasses",
+        "sunglasses",
+        "headphones",
+        "headset",
+        "beanie",
+        "cap",
+        "hat",
+        "earrings",
+        "necklace",
+        "bracelet",
+        "backpack",
+      ]),
+    )
+    .max(11)
+    .refine((a) => new Set(a).size === a.length)
+    .optional(),
+  idle: z.enum(["relaxed", "lively", "confident"]).optional(),
+  face: z.enum(["friendly", "calm", "bright"]).optional(),
+});
+const profileObjectSchema = z.object({
+  avatar3d: avatar3dSchema.optional(),
   room3d: z
     .object({
       entry: z.enum(["always", "ask", "traditional"]),
@@ -63,6 +119,7 @@ const profileObjectSchema = z.object({
       sensitivity: z.number().min(0.2).max(3),
       names: z.boolean(),
       cameraMode: z.enum(["follow", "free"]).optional(),
+      smokeEffects: z.boolean().optional(),
     })
     .optional(),
   id: z.uuid(),
@@ -164,6 +221,18 @@ export const imageSchema = z
   .max(Math.ceil(MAX_IMAGE_BYTES / 3) * 4 + 40)
   .regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/);
 export const commandSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("pool.join") }),
+  z.object({ type: z.literal("pool.leave") }),
+  z.object({
+    type: z.literal("pool.shoot"),
+    angle: z
+      .number()
+      .finite()
+      .min(-Math.PI * 2)
+      .max(Math.PI * 2),
+    power: z.number().finite().min(0.05).max(1),
+    revision: z.number().int().nonnegative(),
+  }),
   z.object({ type: z.literal("room.tv"), participantId: id }),
   z.object({
     type: z.literal("channel.room"),
@@ -174,11 +243,23 @@ export const commandSchema = z.discriminatedUnion("type", [
     type: z.literal("room.pose"),
     pose: z
       .object({
-        x: z.number().finite().min(-7).max(7),
-        z: z.number().finite().min(-6).max(7),
+        x: z.number().finite().min(-13).max(13),
+        z: z.number().finite().min(-11).max(13),
         yaw: z.number().finite().min(-100).max(100),
         seat: z.string().max(40).nullable(),
         moving: z.boolean(),
+        emote: z
+          .enum([
+            "wave",
+            "laugh",
+            "dance",
+            "celebrate",
+            "greet",
+            "smoke",
+            "none",
+          ])
+          .optional(),
+        emoteAt: z.number().finite().nonnegative().optional(),
       })
       .nullable(),
   }),

@@ -1,6 +1,6 @@
 {
   "name": "voxy-desktop",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "Voz e tela entre amigos pela sua rede privada",
   "author": "Voxy",
@@ -35,7 +35,8 @@
     "test:rooms3d:app": "tsx tests/room3d.app.e2e.ts",
     "test:rooms3d:packaged": "tsx tests/room3d.app.e2e.ts --packaged",
     "test:rooms3d:performance": "tsx tests/room3d.performance.ts",
-    "assets:rooms3d": "node scripts/room-asset-manifest.mjs"
+    "assets:rooms3d": "node scripts/room-asset-manifest.mjs",
+    "test:rooms3d:visual": "tsx tests/room3d.visual.ts"
   },
   "dependencies": {
     "electron-updater": "6.8.9",
@@ -70,7 +71,7 @@
     "appId": "dev.voxy.desktop",
     "productName": "Voxy",
     "directories": {
-      "output": "release/1.1.0"
+      "output": "release/1.2.0"
     },
     "files": [
       "dist/**/*",

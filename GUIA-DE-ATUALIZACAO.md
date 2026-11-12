@@ -1,10 +1,10 @@
 # Voxy — distribuir e atualizar sem perder os dados
 
-## Versão 1.1.0 em preparação
+## Versão 1.2.0 em preparação
 
-O código prepara o redesenho das salas e o criador visual de personagens. Versões do pacote/lock e saída prevista estão em 1.1.0 (`release/1.1.0/`), com notas completas no catálogo. A publicação foi autorizada e será considerada concluída após verificar o workflow, os artefatos e a assinatura. Até essa confirmação, o download e o atualizador continuam apontando para a 1.0.0 publicada abaixo.
+Publicação autorizada, em validação. Pacote/lock e saída estão em 1.2.0 (`release/1.2.0/`), com catálogo completo. A última release existente é [1.1.0](https://github.com/labarro/Voxy/releases/tag/v1.1.0); o download só muda após concluir o workflow e verificar os artefatos e sua assinatura.
 
-Os novos estilos são extensões opcionais do avatar; os campos básicos permanecem compatíveis. O banco e o protocolo de voz não são substituídos. O processo de atualização, backup e validação de assinatura é preservado. [Uso das salas e do editor](SALAS-3D.md).
+A atualização preserva perfil e banco. Campos novos do personagem e a preferência de fumaça são opcionais; perfis antigos mantêm valores padrão. Visuais salvos do editor ficam localmente no renderer. Partidas de sinuca e emotes são transitórios. Atualize host e participantes para 1.2.0 para jogar sinuca e compartilhar a personalização completa. As novidades aparecem uma vez após atualizar de 1.1.0. [Regras e uso](SALAS-3D.md).
 
 ## Versão 1.0.0 publicada
 

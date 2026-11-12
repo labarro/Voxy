@@ -1,0 +1,309 @@
+{
+  "version": "1.2.0",
+  "date": "2026-11-12T21:18:20.239Z",
+  "status": "validated locally; publication recorded separately",
+  "unitTests": {
+    "passed": 53,
+    "failed": 0
+  },
+  "build": "passed; production build and local ASAR; lazy Three.js chunk warning",
+  "visual": {
+    "errors": [],
+    "combinations": 12,
+    "checks": [
+      "front/side/back",
+      "face close-up",
+      "smoking pose",
+      "sitting pose",
+      "12 hair combinations",
+      "wide lounge/cinema",
+      "seat fronts",
+      "camera orbits"
+    ]
+  },
+  "roomUI": {
+    "audio": {
+      "normal": [
+        0.2112444572682103,
+        0.2112444572682103
+      ],
+      "far": [
+        0,
+        0
+      ],
+      "panned": [
+        0,
+        0.4241807712159302
+      ],
+      "restored": [
+        0.21289927552190704,
+        0.21289927552190704
+      ]
+    },
+    "errors": [],
+    "checks": [
+      "lounge",
+      "cinema",
+      "walk",
+      "seat",
+      "stand",
+      "TV subscription",
+      "TV focus",
+      "camera gallery",
+      "customization",
+      "quality",
+      "spatial audio",
+      "traditional fallback",
+      "context loss",
+      "smooth watch camera",
+      "room fullscreen",
+      "creator live preview",
+      "apply and cancel isolation"
+    ]
+  },
+  "electronDevelopment": {
+    "errors": [],
+    "checks": [
+      "two Electron clients",
+      "pool join/aim/power/shot UI and identical authoritative results",
+      "virtual cigarette pose received by the other client",
+      "native background rendering suspension with call preserved",
+      "profile persistence",
+      "host preset UI",
+      "automatic 3D entry",
+      "remote occupancy",
+      "movement",
+      "view switching without new microphone capture",
+      "mute",
+      "deafen",
+      "remote WebRTC video decoded in TV and expanded player",
+      "direct 3D settings shortcut",
+      "character creator apply without microphone recapture",
+      "extended avatar styles synchronized to the other client",
+      "room fullscreen and native Escape",
+      "watch camera and transmission fullscreen",
+      "live preset change"
+    ]
+  },
+  "audio": {
+    "date": "2026-11-12T21:07:50.098Z",
+    "results": [
+      "Teste privado antes da chamada, troca de processamento, preferências salvas e liberação de todas as capturas.",
+      "Link de mensagem e crédito encaminhados ao navegador via IPC; URL file bloqueada. A chamada do shell foi interceptada somente no teste.",
+      "Teste durante chamada pausa o envio e fechar configurações restaura o estado anterior.",
+      "Menu contextual compacto, volume 200% persistido, mute individual e fechamento fora/Escape.",
+      "Queda TCP real restaura servidor e canal de voz automaticamente, sem duplicação e mantendo perfil/volume.",
+      "Saída voluntária cancela reconexão; indisponibilidade prolongada encerra em cinco tentativas e não volta sozinha."
+    ],
+    "errors": []
+  },
+  "media": "45 mesh pairs; 90 audio directions; screen and webcam to 9 viewers; mute/PTT/deafen/re-entry passed",
+  "shortcuts": "F9, Q, Mouse 4/5 press/release; global mute and deafen passed",
+  "performance": {
+    "gpuBaseline": {
+      "label": "1.1.0-baseline-gpu",
+      "measuredAt": "2026-11-12T21:10:18.145Z",
+      "results": [
+        {
+          "quality": "low",
+          "frames": 92,
+          "fps": 23,
+          "renderCpuMs": 0.742391304416663,
+          "drawCalls": 145,
+          "triangles": 25850,
+          "geometries": 124,
+          "textures": 36,
+          "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "viewport": "1024x600",
+          "avatars": 10,
+          "afterDispose": {
+            "geometries": 0,
+            "textures": 0
+          }
+        },
+        {
+          "quality": "medium",
+          "frames": 150,
+          "fps": 37.492501499710535,
+          "renderCpuMs": 0.8386666666219632,
+          "drawCalls": 171.88666666666666,
+          "triangles": 31729.546666666665,
+          "geometries": 125,
+          "textures": 39,
+          "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "viewport": "1024x600",
+          "avatars": 10,
+          "afterDispose": {
+            "geometries": 0,
+            "textures": 0
+          }
+        },
+        {
+          "quality": "high",
+          "frames": 217,
+          "fps": 54.232374478284456,
+          "renderCpuMs": 0.6585253455637512,
+          "drawCalls": 163.5852534562212,
+          "triangles": 29914.20276497696,
+          "geometries": 125,
+          "textures": 39,
+          "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "viewport": "1024x600",
+          "avatars": 10,
+          "afterDispose": {
+            "geometries": 0,
+            "textures": 0
+          }
+        }
+      ]
+    },
+    "gpuCurrent": {
+      "label": "1.2.0-gpu",
+      "measuredAt": "2026-11-12T21:01:14.121Z",
+      "results": [
+        {
+          "quality": "low",
+          "frames": 92,
+          "fps": 23,
+          "renderCpuMs": 0.990217391361037,
+          "drawCalls": 344,
+          "triangles": 47080,
+          "geometries": 324,
+          "textures": 15,
+          "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "viewport": "1024x600",
+          "avatars": 10,
+          "afterDispose": {
+            "geometries": 0,
+            "textures": 0
+          }
+        },
+        {
+          "quality": "medium",
+          "frames": 150,
+          "fps": 37.4859427714607,
+          "renderCpuMs": 1.1653333333134652,
+          "drawCalls": 423.4266666666667,
+          "triangles": 58541.12,
+          "geometries": 336,
+          "textures": 18,
+          "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "viewport": "1024x600",
+          "avatars": 10,
+          "afterDispose": {
+            "geometries": 0,
+            "textures": 0
+          }
+        },
+        {
+          "quality": "high",
+          "frames": 219,
+          "fps": 54.689841174702735,
+          "renderCpuMs": 0.8926940639269406,
+          "drawCalls": 398.4018264840183,
+          "triangles": 54930.08219178082,
+          "geometries": 336,
+          "textures": 18,
+          "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "viewport": "1024x600",
+          "avatars": 10,
+          "afterDispose": {
+            "geometries": 0,
+            "textures": 0
+          }
+        }
+      ]
+    },
+    "softwareCurrent": {
+      "label": "1.2.0-optimized",
+      "measuredAt": "2026-11-12T20:57:26.048Z",
+      "results": [
+        {
+          "quality": "low",
+          "frames": 93,
+          "fps": 23.229093815568152,
+          "renderCpuMs": 1.150537634588858,
+          "drawCalls": 344,
+          "triangles": 47080,
+          "geometries": 324,
+          "textures": 15,
+          "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+          "viewport": "1024x600",
+          "avatars": 10,
+          "afterDispose": {
+            "geometries": 0,
+            "textures": 0
+          }
+        },
+        {
+          "quality": "medium",
+          "frames": 44,
+          "fps": 10.956720952241707,
+          "renderCpuMs": 4.795454545454546,
+          "drawCalls": 505,
+          "triangles": 70312,
+          "geometries": 336,
+          "textures": 18,
+          "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+          "viewport": "1024x600",
+          "avatars": 10,
+          "afterDispose": {
+            "geometries": 0,
+            "textures": 0
+          }
+        },
+        {
+          "quality": "high",
+          "frames": 44,
+          "fps": 10.939286957383466,
+          "renderCpuMs": 4.534090909175575,
+          "drawCalls": 505,
+          "triangles": 70312,
+          "geometries": 336,
+          "textures": 18,
+          "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+          "viewport": "1024x600",
+          "avatars": 10,
+          "afterDispose": {
+            "geometries": 0,
+            "textures": 0
+          }
+        }
+      ]
+    }
+  },
+  "limits": [
+    "No physical microphone/acoustic assessment",
+    "No two physical PCs or VPN endurance test",
+    "No integrated/entry-level GPU validation",
+    "No personal NSIS installation",
+    "Software rendering medium/high remains slow; use low",
+    "Pool simplified rules and transient matches"
+  ],
+  "electronPackaged": {
+    "errors": [],
+    "checks": [
+      "two Electron clients",
+      "pool join/aim/power/shot UI and identical authoritative results",
+      "virtual cigarette pose received by the other client",
+      "native background rendering suspension with call preserved",
+      "profile persistence",
+      "host preset UI",
+      "automatic 3D entry",
+      "remote occupancy",
+      "movement",
+      "view switching without new microphone capture",
+      "mute",
+      "deafen",
+      "remote WebRTC video decoded in TV and expanded player",
+      "direct 3D settings shortcut",
+      "character creator apply without microphone recapture",
+      "extended avatar styles synchronized to the other client",
+      "room fullscreen and native Escape",
+      "watch camera and transmission fullscreen",
+      "live preset change"
+    ]
+  },
+  "packagedBuild": "release/1.2.0/build-1794518205955/win-unpacked/Voxy.exe",
+  "preview": "Opaque background verified after alpha compositing artifact; final room UI suite passed"
+}

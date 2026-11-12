@@ -1,14 +1,14 @@
 # Voxy — distribuir e atualizar sem perder os dados
 
-## Versão 1.2.0 em preparação
+## Versão 1.2.0 publicada
 
-Publicação autorizada, em validação. Pacote/lock e saída estão em 1.2.0 (`release/1.2.0/`), com catálogo completo. A última release existente é [1.1.0](https://github.com/labarro/Voxy/releases/tag/v1.1.0); o download só muda após concluir o workflow e verificar os artefatos e sua assinatura.
+A [release 1.2.0](https://github.com/labarro/Voxy/releases/tag/v1.2.0) foi publicada pelo [workflow](https://github.com/labarro/Voxy/actions/runs/43309471907). Pacote/lock, tag, instalador, manifesto e catálogo correspondem à 1.2.0. Os cinco arquivos foram baixados; assinatura Ed25519, SHA-512, SHA-256 e endpoint público foram conferidos. Saída local: `release/1.2.0/`. [Evidência](evidence/publication-1.2.0.json).
 
 A atualização preserva perfil e banco. Campos novos do personagem e a preferência de fumaça são opcionais; perfis antigos mantêm valores padrão. Visuais salvos do editor ficam localmente no renderer. Partidas de sinuca e emotes são transitórios. Atualize host e participantes para 1.2.0 para jogar sinuca e compartilhar a personalização completa. As novidades aparecem uma vez após atualizar de 1.1.0. [Regras e uso](SALAS-3D.md).
 
 ## Versão 1.0.0 publicada
 
-A [release 1.0.0](https://github.com/labarro/Voxy/releases/tag/v1.0.0) está publicada e é entregue pelo canal de atualização. O [workflow obrigatório](https://github.com/labarro/Voxy/actions/runs/43038013587) concluiu os testes, geração do instalador e metadados assinados, persistência do pacote e salas 3D em dois executáveis. Os cinco arquivos foram baixados e verificados; assinatura Ed25519, hashes SHA-512 e checksum SHA-256 conferem com o catálogo e o GitHub. Evidência: `evidence/publication-1.0.0.json`.
+A [release 1.0.0](https://github.com/labarro/Voxy/releases/tag/v1.0.0) permanece preservada no histórico. O canal atual entrega 1.2.0. O [workflow obrigatório](https://github.com/labarro/Voxy/actions/runs/43038013587) concluiu os testes, geração do instalador e metadados assinados, persistência do pacote e salas 3D em dois executáveis. Os cinco arquivos foram baixados e verificados; assinatura Ed25519, hashes SHA-512 e checksum SHA-256 conferem com o catálogo e o GitHub. Evidência: `evidence/publication-1.0.0.json`.
 
 Inclui [salas 3D opcionais](SALAS-3D.md) e as correções de identidade/atalhos que estavam em preparação para 0.8.1. O instalador restaura a entrada do Menu Iniciar mesmo quando uma atualização preserva atalhos. Não altera a pasta dos dados instalados. Os arquivos locais verificados ficam em `release/1.0.0/`.
 
@@ -24,13 +24,13 @@ O backup passa a incluir `notifications.json`, além do perfil, banco, caixa de 
 
 Inclui temas, capas, cargos, amigos e chamadas privadas, respostas/menções/reações e grade simultânea de telas e webcams. O áudio usa captura mono e normalização nativa, com estados e sons locais do PTT. Veja [Personalização e recursos sociais](SOCIAL-E-PERSONALIZACAO.md) e [Áudio e conexão](AUDIO-E-CONEXAO.md).
 
-A [release pública 0.7.0](https://github.com/labarro/Voxy/releases/tag/v0.7.0) permanece no histórico. O atualizador agora entrega a 1.0.0. Instale por cima, sem desinstalar. O protocolo de mídia permanece 2; para os recursos atuais, atualize o host e os interlocutores. Depois da primeira conexão, a identidade de cada perfil fica vinculada ao dispositivo e clientes antigos desse mesmo perfil podem precisar atualizar.
+A [release pública 0.7.0](https://github.com/labarro/Voxy/releases/tag/v0.7.0) permanece no histórico. O atualizador agora entrega a 1.2.0. Instale por cima, sem desinstalar. O protocolo de mídia permanece 2; para os recursos atuais, atualize o host e os interlocutores. Depois da primeira conexão, a identidade de cada perfil fica vinculada ao dispositivo e clientes antigos desse mesmo perfil podem precisar atualizar.
 
 A migração adiciona contatos, identidade e mensagens privadas ao banco, sem remover servidores ou mensagens de canais. O backup inclui `direct-inbox.json` e `profile-identity.bin`. Não apague ou troque a identidade durante uma atualização. DMs, status e navegação: [CONVERSAS-E-STATUS.md](CONVERSAS-E-STATUS.md).
 
 ## Como funciona
 
-**Publicação inicial: 0.4.1.** A tag 0.4.0 foi preservada no Git, mas seu workflow falhou antes de publicar arquivos. A 0.4.1 prepara explicitamente os binários verificados do Electron em instalações limpas e inclui todos os recursos da linha 0.4. Para instalar hoje, use `Voxy-Setup-1.0.0-x64.exe` da release oficial; instalações até 0.3.0 precisam recebê-lo uma última vez manualmente, sem desinstalar.
+**Publicação inicial: 0.4.1.** A tag 0.4.0 foi preservada no Git, mas seu workflow falhou antes de publicar arquivos. A 0.4.1 prepara explicitamente os binários verificados do Electron em instalações limpas e inclui todos os recursos da linha 0.4. Para instalar hoje, use `Voxy-Setup-1.2.0-x64.exe` da release oficial; instalações até 0.3.0 precisam recebê-lo uma última vez manualmente, sem desinstalar.
 
 O Voxy usa o mesmo identificador de aplicativo em todas as versões. O instalador novo atualiza os arquivos do programa por cima da instalação existente; não é necessário desinstalar ou apagar pastas.
 
@@ -38,9 +38,9 @@ Perfil, UUID, avatares, volumes, preferências, servidores, mensagens e imagens 
 
 A versão 0.4.0 acrescenta busca e download automáticos pelo domínio devbarros.com e GitHub Releases, com assinatura dos metadados, conferência do pacote e reinício escolhido pelo usuário. A configuração de publicação já está ativa; veja [ATUALIZACOES-REMOTAS.md](ATUALIZACOES-REMOTAS.md). O instalador manual continua disponível para migração inicial e recuperação.
 
-## Atualizar para 1.0.0
+## Atualizar para 1.2.0
 
-Distribua `Voxy-Setup-1.0.0-x64.exe` e o `SHA256SUMS.txt` correspondente da release oficial. No Voxy 0.2.0 ou posterior, abra **Engrenagem → Conta → Atualizações → Selecionar novo instalador → Fazer backup e atualizar**, sem desinstalar. Todos devem atualizar: a versão 0.4.0 usa quatro trilhas de mídia e rejeita o protocolo antigo, nos dois sentidos.
+Distribua `Voxy-Setup-1.2.0-x64.exe` e o `SHA256SUMS.txt` correspondente da release oficial. No Voxy 0.2.0 ou posterior, abra **Engrenagem → Conta → Atualizações → Selecionar novo instalador → Fazer backup e atualizar**, sem desinstalar. Todos devem atualizar: a versão 0.4.0 usa quatro trilhas de mídia e rejeita o protocolo antigo, nos dois sentidos.
 
 São preservados perfil, volumes, mensagens e imagens. O banco recebe `ownerId` e `icon` nos servidores; o host assume os servidores antigos sem criador. `recent-rooms.json` guarda metadados e convites protegidos pelo Windows e também entra no backup. O histórico de recentes só começa a ser preenchido a partir dos acessos na 0.4.0; versões antigas não guardavam convites.
 

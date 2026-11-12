@@ -1,6 +1,6 @@
-# Salas 3D · Voxy 1.2.0 em preparação
+# Salas 3D · Voxy 1.2.0
 
-Código 1.2.0 em validação para publicação autorizada. A última versão publicada é [1.1.0](https://github.com/labarro/Voxy/releases/tag/v1.1.0). Execute `npm run build` e `npm start` para avaliar o código local; o perfil de desenvolvimento é separado da instalação. Não há editor de mapas nem construção livre.
+A [versão 1.2.0](https://github.com/labarro/Voxy/releases/tag/v1.2.0) está publicada, com instalador, notas e arquivos de atualização verificados. [Evidência](evidence/publication-1.2.0.json). Execute `npm run build` e `npm start` para avaliar o código local; o perfil de desenvolvimento é separado da instalação. Não há editor de mapas nem construção livre.
 
 Os dois ambientes têm arquitetura de 26 × 24 m. O Lounge tem área de TV, conversa e jogos; o Cinema tem 12 poltronas em três fileiras, com corredores central e laterais. Móveis e personagens mantêm suas proporções. Cada assento tem uma única construção com frente local +Z; o layout e as colisões são compartilhados entre host e renderer.
 

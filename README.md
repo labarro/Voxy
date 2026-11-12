@@ -9,20 +9,20 @@
 Voz, chat e compartilhamento de tela para o seu grupo de amigos.<br />
 Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu computador.
 
-![Versão 1.2.0 em preparação](https://img.shields.io/badge/vers%C3%A3o-1.2.0_em_preparacao-b6adff?style=flat-square)
+![Versão 1.2.0 publicada](https://img.shields.io/badge/vers%C3%A3o-1.2.0_publicada-b6adff?style=flat-square)
 ![Windows 10 e 11 x64](https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-4389e8?style=flat-square)
 ![WebRTC P2P](https://img.shields.io/badge/WebRTC-P2P-68d6b1?style=flat-square)
 ![Até 10 participantes](https://img.shields.io/badge/at%C3%A9-10%20participantes-c9233c?style=flat-square)
 
-[⬇ Baixar Voxy 1.1.0](https://github.com/labarro/Voxy/releases/download/v1.1.0/Voxy-Setup-1.1.0-x64.exe) · [Instalar e conectar](INSTALACAO-E-CONEXAO.md) · [Atualizar o Voxy](GUIA-DE-ATUALIZACAO.md) · [Desenvolvimento](#desenvolvimento) · [Documentação](#documentação)
+[⬇ Baixar Voxy 1.2.0](https://github.com/labarro/Voxy/releases/download/v1.2.0/Voxy-Setup-1.2.0-x64.exe) · [Instalar e conectar](INSTALACAO-E-CONEXAO.md) · [Atualizar o Voxy](GUIA-DE-ATUALIZACAO.md) · [Desenvolvimento](#desenvolvimento) · [Documentação](#documentação)
 
 </div>
 
 ---
 
-## Novidades na versão 1.2.0 em preparação
+## Novidades na versão 1.2.0 publicada
 
-**Código em preparação: 1.2.0. Última versão publicada: 1.1.0.** Publicação autorizada e ainda em validação; os links de download só mudam após a verificação dos artefatos publicados.
+**Versão do código e última versão publicada: 1.2.0.** O [workflow obrigatório](https://github.com/labarro/Voxy/actions/runs/43309471907) concluiu testes, build, catálogo assinado, verificação do executável empacotado e [publicação](https://github.com/labarro/Voxy/releases/tag/v1.2.0). Instalador, blockmap, manifesto, checksum e catálogo foram baixados e verificados; assinatura Ed25519, hashes, notas e endpoint público correspondem à 1.2.0. [Evidência](evidence/publication-1.2.0.json).
 
 Lounge e Cinema com arquitetura de 26 × 24 metros e móveis reconstruídos, sem duplicação de assento/encosto. O Lounge separa áreas de TV, conversa e sinuca; o Cinema oferece corredores central, laterais e entre fileiras. Personagens usam modelos articulados próprios, detalhes faciais aderentes à cabeça e roupas/cabelos com silhuetas diferentes.
 

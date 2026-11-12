@@ -1,6 +1,6 @@
 {
   "name": "voxy-desktop",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "description": "Voz e tela entre amigos pela sua rede privada",
   "author": "Voxy",
@@ -71,7 +71,7 @@
     "appId": "dev.voxy.desktop",
     "productName": "Voxy",
     "directories": {
-      "output": "release/1.2.0"
+      "output": "release/1.2.1"
     },
     "files": [
       "dist/**/*",

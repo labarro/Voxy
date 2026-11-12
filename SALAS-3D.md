@@ -1,6 +1,12 @@
-# Salas 3D · Voxy 1.2.0
+# Salas 3D · Voxy 1.2.1 em preparação
 
-A [versão 1.2.0](https://github.com/labarro/Voxy/releases/tag/v1.2.0) está publicada, com instalador, notas e arquivos de atualização verificados. [Evidência](evidence/publication-1.2.0.json). Execute `npm run build` e `npm start` para avaliar o código local; o perfil de desenvolvimento é separado da instalação. Não há editor de mapas nem construção livre.
+A 1.2.1 está em validação para publicação autorizada. O download continua na [1.2.0 publicada](https://github.com/labarro/Voxy/releases/tag/v1.2.0) até conferir os novos arquivos. Execute `npm run build` e `npm start` para avaliar o código local; o perfil de desenvolvimento é separado da instalação. Não há editor de mapas nem construção livre.
+
+Atualize o host e os participantes para 1.2.1 para que o layout, as colisões e os novos modelos coincidam entre os clientes. O protocolo e os perfis anteriores continuam compatíveis; versões antigas desenham os modelos e obstáculos antigos.
+
+Na 1.2.1 os dois ambientes são interiores fechados, com teto, quatro paredes, portas, forro e luminárias. O Lounge organiza TV, conversa e sinuca e tem apoio de hospitalidade na parede traseira; o Cinema reúne carpete contínuo, poltronas com apoios de cabeça/porta-copos e cabine de projeção. Os tacos compartilham um pivô por objeto, com segmentos unidos e suporte próprio.
+
+O avatar usa torso orgânico, braços/pernas contínuos deformados por ossos e calçados com perfil arredondado. Cabelos são superfícies desenhadas para o formato da cabeça, com tranças, rabo e coque por curvas. O rosto acompanha a superfície da cabeça; a saia deforma a própria malha ao sentar. Altura do assento, inclinação dos joelhos e contato dos pés foram calibrados para as alturas disponíveis. As opções e aparências já salvas permanecem compatíveis.
 
 Os dois ambientes têm arquitetura de 26 × 24 m. O Lounge tem área de TV, conversa e jogos; o Cinema tem 12 poltronas em três fileiras, com corredores central e laterais. Móveis e personagens mantêm suas proporções. Cada assento tem uma única construção com frente local +Z; o layout e as colisões são compartilhados entre host e renderer.
 
@@ -33,7 +39,7 @@ O host abre **… ao lado do servidor → Gerenciar servidor e canais** e escolh
 - **R** reposiciona a câmera. O menu de câmera no topo oferece as mesmas ações.
 - **F** ou **Tela cheia da sala** abre fullscreen real. **Esc** sai. Redimensionar ou alternar fullscreen preserva personagem e câmera.
 
-A câmera tem amortecimento, limites de inclinação e proteção contra obstáculos. As paredes laterais usam apresentação em corte quando vistas de fora; o modo livre permite inspecionar a arquitetura. A sensibilidade e a câmera inicial ficam em Configurações → Salas 3D.
+A câmera tem amortecimento, limites de inclinação e proteção contra obstáculos. A exploração permanece no interior; paredes e teto são opacos. Ao sentar, o pivô fica acima do encosto. Colisão com volume, busca de órbita livre e exclusão do volume do avatar impedem o colapso da câmera dentro do corpo. A trajetória suavizada também é conferida, incluindo ao levantar e voltar da TV. A sensibilidade e a câmera inicial ficam em Configurações → Salas 3D.
 
 Ao se aproximar de um lugar livre, um indicador no chão e a ação **E · Sentar** aparecem. Pressione **E** ou clique na ação contextual. O host reserva o assento; outra pessoa não pode ocupá-lo simultaneamente. Pressione novamente para levantar. O personagem usa transição de animação e procura um ponto livre ao sair. Sair do modo 3D ou mudar de canal libera o lugar. Digitar em menus não move o personagem.
 
@@ -41,7 +47,7 @@ Ao se aproximar de um lugar livre, um indicador no chão e a ação **E · Senta
 
 Abra o ícone de personagem na HUD ou **Configurações → Salas 3D → Personalizar personagem**. O criador funciona fora de uma chamada e contém preview 3D com iluminação própria; arraste para girar e use Parado/Andando/Sentado para testar as animações.
 
-Corpo, rosto, cabelo, roupas, acessórios e cores têm cards e paletas. Há quatro tipos físicos com altura ajustável; três formatos de cabeça, olhos, sobrancelhas e nariz; três expressões e opções de barba/bigode. Os 12 cabelos incluem curto, longo, topete, chanel, coques cacheados, raspado, afro, rabo de cavalo, tranças, ondulado, preso e sem cabelo, com cor e mechas opcionais. Combine oito peças superiores com calça/shorts/saia e tênis/botas/sapatos, em cores independentes. Óculos, óculos escuros, fones/headset, gorro/boné/chapéu, brincos, colar, pulseira e mochila podem ser combinados. Chapéus, óculos e fones substituem peças de seu grupo; chapéus também ocultam volumes altos do cabelo para reduzir sobreposição.
+Corpo, rosto, cabelo, roupas, acessórios e cores têm cards e paletas. Há quatro tipos físicos com altura ajustável; três formatos de cabeça, olhos, sobrancelhas e nariz; três expressões e opções de barba/bigode. Os 12 cabelos incluem curto, longo, topete, chanel, cacheado, raspado, afro, rabo de cavalo, tranças, ondulado, preso e sem cabelo, com cor e mechas opcionais. Combine oito peças superiores com calça/shorts/saia e tênis/botas/sapatos, em cores independentes. Óculos, óculos escuros, fones/headset, gorro/boné/chapéu, brincos, colar, pulseira e mochila podem ser combinados. Chapéus, óculos e fones substituem peças de seu grupo; chapéus também ocultam volumes altos do cabelo para reduzir sobreposição.
 
 Arraste a prévia para girar e use a roda para aproximar os detalhes. **Desfazer** guarda até 30 alterações; **Salvar visual** guarda até seis aparências neste computador, com aplicação e exclusão individuais. Os presets ficam no armazenamento local do renderer; a aparência aplicada fica no perfil e é sincronizada. **Aplicar personagem** salva sem reiniciar o microfone. **Cancelar** descarta o rascunho; **Restaurar padrão** altera apenas o rascunho até aplicar. O preview pode ser recarregado após uma interrupção gráfica sem perder as escolhas.
 

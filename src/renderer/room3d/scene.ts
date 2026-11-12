@@ -593,7 +593,7 @@ export class SocialScene {
         dt,
         pose.moving,
         !!pose.seat,
-        pose.seat?.startsWith("puff") ? 0.68 : 0.88,
+        pose.seat?.startsWith("puff") ? 0.70 : 0.74,
         pose,
         settings.smokeEffects !== false,
       );
@@ -625,15 +625,6 @@ export class SocialScene {
     }
     this.scene.updateMatrixWorld(true);
     this.rig.update(dt, this.pose, environment.colliders);
-    for (const wall of environment.walls) {
-      const mat = wall.material as T.MeshStandardMaterial;
-      const fade =
-        Math.abs(wall.position.x) > 12.8 &&
-        Math.sign(wall.position.x) * this.camera.position.x > 12.8;
-      mat.transparent = fade;
-      mat.opacity = fade ? 0.12 : 1;
-      mat.depthWrite = !fade;
-    }
     if (time - this.shadowAt > 100) {
       this.shadowAt = time;
       this.renderer.shadowMap.needsUpdate = true;

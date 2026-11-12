@@ -159,6 +159,7 @@ export class Resources {
     for (const child of root.children) {
       if (
         !(child instanceof T.Mesh) ||
+        child instanceof T.SkinnedMesh ||
         Array.isArray(child.material) ||
         child.userData.dynamic
       )

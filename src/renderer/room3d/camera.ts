@@ -11,9 +11,10 @@ export class RoomCamera {
   private distance = 8;
   private wantedDistance = 8;
   private target = new T.Vector3(0, 1.1, 4);
-  private freeTarget = new T.Vector3(0, 1.35, 0);
+  private freeTarget = new T.Vector3(0, 2.2, 0);
   private position = new T.Vector3(0, 5, 12);
   private ray = new T.Raycaster();
+  private collisionRadius = 0.24;
   private first = true;
   private previous: "follow" | "free" = "follow";
   private beforeWatch?: {
@@ -34,8 +35,8 @@ export class RoomCamera {
         target: this.freeTarget.clone(),
       };
     } else if (mode === "free") {
-      this.wantedDistance = 15;
-      this.wantedPitch = 0.62;
+      this.wantedDistance = 9;
+      this.wantedPitch = 0.42;
     } else {
       this.wantedDistance = 8;
       this.wantedPitch = 0.43;
@@ -54,9 +55,9 @@ export class RoomCamera {
   }
   reset() {
     this.wantedYaw = 0;
-    this.wantedPitch = this.mode === "free" ? 0.62 : 0.43;
-    this.wantedDistance = this.mode === "free" ? 15 : 8;
-    this.freeTarget.set(0, 1.35, 0);
+    this.wantedPitch = this.mode === "free" ? 0.42 : 0.43;
+    this.wantedDistance = this.mode === "free" ? 9 : 8;
+    this.freeTarget.set(0, 2.2, 0);
   }
   rotate(dx: number, dy: number, sensitivity: number) {
     if (this.mode === "watch") return;
@@ -116,7 +117,7 @@ export class RoomCamera {
       wantedTarget =
         this.mode === "free"
           ? this.freeTarget.clone()
-          : new T.Vector3(pose.x, pose.seat ? 1.05 : 1.25, pose.z - 0.35);
+          : new T.Vector3(pose.x, pose.seat ? 1.85 : 1.55, pose.z);
       wantedPosition = new T.Vector3(
         wantedTarget.x +
           Math.sin(this.yaw) * this.distance * Math.cos(this.pitch),
@@ -124,17 +125,37 @@ export class RoomCamera {
         wantedTarget.z +
           Math.cos(this.yaw) * this.distance * Math.cos(this.pitch),
       );
-      const direction = wantedPosition.clone().sub(wantedTarget),
-        length = direction.length();
-      this.ray.set(wantedTarget, direction.normalize());
-      this.ray.far = length;
-      const hit = this.ray
-        .intersectObjects(colliders, true)
-        .find((h) => h.distance > 0.5);
-      if (hit)
-        wantedPosition
-          .copy(wantedTarget)
-          .addScaledVector(direction, Math.max(0.6, hit.distance - 0.22));
+      wantedPosition = this.resolve(wantedTarget, wantedPosition, colliders);
+      // If a wall or a seat blocks the requested orbit at short range, find an
+      // unobstructed shoulder orbit. Never shorten through the avatar capsule.
+      if (wantedPosition.distanceTo(wantedTarget) < 2.15) {
+        let best = wantedPosition,
+          bestDistance = best.distanceTo(wantedTarget);
+        for (const offset of [
+          Math.PI / 4,
+          -Math.PI / 4,
+          Math.PI / 2,
+          -Math.PI / 2,
+          Math.PI,
+        ]) {
+          const candidate = this.resolve(
+            wantedTarget,
+            new T.Vector3(
+              wantedTarget.x + Math.sin(this.yaw + offset) * 4,
+              wantedTarget.y + 2,
+              wantedTarget.z + Math.cos(this.yaw + offset) * 4,
+            ),
+            colliders,
+          );
+          const distance = candidate.distanceTo(wantedTarget);
+          if (distance > bestDistance) {
+            best = candidate;
+            bestDistance = distance;
+          }
+          if (bestDistance >= 3) break;
+        }
+        wantedPosition = best;
+      }
     }
     if (this.first) {
       this.first = false;
@@ -144,19 +165,23 @@ export class RoomCamera {
       this.target.lerp(wantedTarget, alpha);
       this.position.lerp(wantedPosition, alpha);
     }
-    // A second ray prevents a smoothed transition from crossing a wall on the way.
-    if (this.mode !== "watch") {
-      const direction = this.position.clone().sub(this.target),
-        length = direction.length();
-      this.ray.set(this.target, direction.normalize());
-      this.ray.far = length;
-      const hit = this.ray
-        .intersectObjects(colliders, true)
-        .find((h) => h.distance > 0.5);
-      if (hit)
-        this.position
-          .copy(this.target)
-          .addScaledVector(direction, Math.max(0.6, hit.distance - 0.18));
+    // Resolve the interpolated path too: a valid destination does not imply a
+    // valid transition. Five rays approximate the near-plane swept volume.
+    this.position.copy(this.resolve(this.target, this.position, colliders));
+    const capsule = new T.Vector3(
+      pose.x,
+      T.MathUtils.clamp(this.position.y, 0.35, pose.seat ? 2.15 : 2.35),
+      pose.z,
+    );
+    if (this.position.distanceTo(capsule) < 0.95) {
+      this.position.copy(this.resolve(this.target, wantedPosition, colliders));
+      const nearest = new T.Vector3(
+        pose.x,
+        T.MathUtils.clamp(this.position.y, 0.35, pose.seat ? 2.15 : 2.35),
+        pose.z,
+      );
+      if (this.position.distanceTo(nearest) < 0.95)
+        this.position.y = Math.max(this.position.y, pose.seat ? 3.15 : 3.35);
     }
     this.camera.position.copy(this.position);
     this.camera.lookAt(this.target);
@@ -169,5 +194,47 @@ export class RoomCamera {
       this.camera.fov = fov;
       this.camera.updateProjectionMatrix();
     }
+  }
+  private resolve(
+    target: T.Vector3,
+    position: T.Vector3,
+    colliders: T.Object3D[],
+  ) {
+    const end = position.clone();
+    // The architecture is closed. These bounds also protect from grazing rays
+    // at wall/ceiling seams and keep the near plane on the interior side.
+    end.set(
+      T.MathUtils.clamp(end.x, -12.63, 12.63),
+      T.MathUtils.clamp(end.y, 0.4, 5.78),
+      T.MathUtils.clamp(end.z, -10.62, 12.7),
+    );
+    const direction = end.clone().sub(target),
+      length = direction.length();
+    if (length < 0.001) return end;
+    direction.normalize();
+    let safe = length;
+    for (const [x, y] of [
+      [0, 0],
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ]) {
+      const origin = target
+        .clone()
+        .add(
+          new T.Vector3(x * this.collisionRadius, y * this.collisionRadius, 0),
+        );
+      this.ray.set(origin, direction);
+      this.ray.near = 0.06;
+      this.ray.far = length + 0.25;
+      const hit = this.ray.intersectObjects(colliders, true)[0];
+      if (hit)
+        safe = Math.min(
+          safe,
+          Math.max(0.08, hit.distance - this.collisionRadius),
+        );
+    }
+    return target.clone().addScaledVector(direction, safe);
   }
 }

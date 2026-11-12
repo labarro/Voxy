@@ -25,10 +25,10 @@ test("camera follows with damping, clamps zoom/pitch and resets without a discon
   assert(camera.position.distanceTo(initial) < 2);
   for (let i = 0; i < 180; i++) rig.update(1 / 60, pose, []);
   assert(camera.position.y > 1.2);
-  assert(camera.position.distanceTo(new T.Vector3(0, 1.25, -0.35)) >= 3.1);
+  assert(camera.position.distanceTo(new T.Vector3(0, 1.55, 0)) >= 3.1);
   rig.zoom(100000);
   for (let i = 0; i < 180; i++) rig.update(1 / 60, pose, []);
-  assert(camera.position.distanceTo(new T.Vector3(0, 1.25, -0.35)) <= 13.01);
+  assert(camera.position.distanceTo(new T.Vector3(0, 1.55, 0)) <= 13.01);
   const before = camera.position.clone();
   rig.reset();
   rig.update(1 / 60, pose, []);

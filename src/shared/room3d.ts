@@ -54,7 +54,9 @@ export const spawnPose = (slot = 0): RoomPose => ({
   seat: null,
   moving: false,
 });
-export const roomBounds = { minX: -12.6, maxX: 12.6, minZ: -10.2, maxZ: 12.6 };
+// Keep the largest supported hair/headset silhouette (including the soft body
+// width) clear of the interior wall faces; these are avatar-center limits.
+export const roomBounds = { minX: -12.2, maxX: 12.2, minZ: -10.2, maxZ: 12.3 };
 export function walkable(preset: RoomPreset, x: number, z: number) {
   if (
     !Number.isFinite(x) ||
@@ -71,8 +73,14 @@ export function walkable(preset: RoomPreset, x: number, z: number) {
     if (Math.abs(x) < 3.3 && Math.abs(z - 2) < 1.05) return false;
     if (Math.abs(x - POOL.x) < 1.95 && Math.abs(z - POOL.z) < 3) return false;
     if (Math.hypot(x + 8, z - 2.5) < 1.2) return false;
+    if (Math.abs(x + 8) < 3.15 && Math.abs(z - 11.8) < 0.85) return false;
     if (
-      (Math.abs(x - 5.8) < 1 && Math.abs(z + 3) < 0.8) ||
+      Math.abs(x - (POOL.x + 2.25)) < 0.7 &&
+      Math.abs(z - (POOL.z - 1.65)) < 0.6
+    )
+      return false;
+    if (
+      (Math.abs(x - 7.2) < 1.55 && Math.abs(z + 9.8) < 0.8) ||
       (Math.abs(x + 11) < 1.6 && Math.abs(z + 5) < 0.7)
     )
       return false;

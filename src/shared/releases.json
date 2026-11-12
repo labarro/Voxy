@@ -1,4 +1,30 @@
 {
+  "1.2.1": {
+    "date": "2026-11-12",
+    "title": "Personagens reconstruídos, interiores completos",
+    "items": [
+      "Corpos com membros contínuos e deformação nos cotovelos e joelhos; cabelos reconstruídos com superfícies curvas.",
+      "Câmera sentada com proteção do volume do avatar, órbitas alternativas e transições verificadas contra obstáculos.",
+      "Lounge e Cinema fechados por teto e quatro paredes, com iluminação integrada e tacos completos no suporte."
+    ],
+    "features": [],
+    "improvements": [
+      "Torso, ombros, mãos, pernas e calçados remodelados com perfis orgânicos e normais suaves.",
+      "Penteados com cobertura contínua, volumes esculpidos e rabos/coques/tranças por curvas, preservando estilos e cores salvos.",
+      "Rosto com textura própria aderente à superfície da cabeça, reduzindo peças faciais salientes.",
+      "Saia com deformação contínua e postura sentada ajustada à altura do avatar para manter os pés junto ao piso.",
+      "Arquitetura completa, portas, forro, luminárias, vegetação curva e composição da parede traseira.",
+      "Cinema com carpete ampliado, apoios de cabeça, bases metálicas, porta-copos e cabine de projeção."
+    ],
+    "fixes": [
+      "Câmera deixa de colapsar junto ao encosto: pivô acima do assento, volume de colisão, busca de órbita livre e exclusão do corpo.",
+      "Órbita livre e câmera suavizada permanecem dentro da arquitetura fechada, sem transparência de paredes.",
+      "Corpo, ferrule e ponta de cada taco compartilham um pivô local e ficam unidos num suporte com base.",
+      "Transições de braços e pernas passam a deformar uma malha contínua, eliminando intervalos entre blocos.",
+      "Raiz do cabelo acompanha os formatos de cabeça, com costuras fechadas e normais contínuas.",
+      "Colisões incluem o suporte de tacos e o móvel de apoio traseiro."
+    ]
+  },
   "1.2.0": {
     "date": "2026-11-12",
     "title": "Mais espaço, mais identidade, mais encontros",

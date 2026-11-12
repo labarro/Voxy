@@ -630,7 +630,7 @@ export default function AvatarCreator({
                     { id: "crest", name: "Topete" },
                     { id: "long", name: "Longo" },
                     { id: "bob", name: "Chanel" },
-                    { id: "curly", name: "Coques cacheados" },
+                    { id: "curly", name: "Cacheado" },
                     { id: "buzz", name: "Raspado" },
                     { id: "bald", name: "Sem cabelo" },
                     { id: "afro", name: "Afro" },

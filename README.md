@@ -9,7 +9,7 @@
 Voz, chat e compartilhamento de tela para o seu grupo de amigos.<br />
 Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu computador.
 
-![Versão 1.2.0 publicada](https://img.shields.io/badge/vers%C3%A3o-1.2.0_publicada-b6adff?style=flat-square)
+![Versão 1.2.1 em preparação](https://img.shields.io/badge/vers%C3%A3o-1.2.1_em_preparacao-b6adff?style=flat-square)
 ![Windows 10 e 11 x64](https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-4389e8?style=flat-square)
 ![WebRTC P2P](https://img.shields.io/badge/WebRTC-P2P-68d6b1?style=flat-square)
 ![Até 10 participantes](https://img.shields.io/badge/at%C3%A9-10%20participantes-c9233c?style=flat-square)
@@ -20,9 +20,21 @@ Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu compu
 
 ---
 
+## Novidades na versão 1.2.1 em preparação
+
+**Código em preparação: 1.2.1. Última versão publicada: 1.2.0.** Lançamento autorizado, ainda em validação. O download permanece na release existente até verificar a publicação 1.2.1.
+
+A base visual do avatar foi reconstruída: torso com perfis suaves, braços/pernas em malhas contínuas deformadas por ossos, mãos e calçados modelados, cabelos com coberturas e mechas curvas e rosto aderente à cabeça. Aparências e estilos salvos continuam compatíveis.
+
+A câmera sentada usa um pivô acima do encosto, resolução de colisão com volume, busca de órbitas livres e proteção explícita contra entrar no avatar. Lounge e Cinema têm teto e quatro paredes completos; a exploração permanece no interior. Forro, luminárias, portas e composição traseira organizam os ambientes. Os tacos foram remontados em pivôs únicos, com corpo e ponta unidos e suporte próprio.
+
+Sinuca, TV, fullscreen, modo assistir, voz e modo tradicional preservam os serviços existentes. [Guia 3D](SALAS-3D.md) · [Modelagem](ASSETS-3D.md) · [Validação e limites](TESTING.md). Saída: `release/1.2.1/`.
+
+A comparação na GPU dedicada manteve FPS equivalentes à 1.2.0. Renderização por software ficou mais lenta com os modelos detalhados; Médio/Alto requerem aceleração gráfica. Sem GPU, prefira Baixo ou o canal tradicional. [Medições e capturas](TESTING.md).
+
 ## Novidades na versão 1.2.0 publicada
 
-**Versão do código e última versão publicada: 1.2.0.** O [workflow obrigatório](https://github.com/labarro/Voxy/actions/runs/43309471907) concluiu testes, build, catálogo assinado, verificação do executável empacotado e [publicação](https://github.com/labarro/Voxy/releases/tag/v1.2.0). Instalador, blockmap, manifesto, checksum e catálogo foram baixados e verificados; assinatura Ed25519, hashes, notas e endpoint público correspondem à 1.2.0. [Evidência](evidence/publication-1.2.0.json).
+**Histórico publicado: 1.2.0.** O [workflow obrigatório](https://github.com/labarro/Voxy/actions/runs/43309471907) concluiu testes, build, catálogo assinado, verificação do executável empacotado e [publicação](https://github.com/labarro/Voxy/releases/tag/v1.2.0). Instalador, blockmap, manifesto, checksum e catálogo foram baixados e verificados; assinatura Ed25519, hashes, notas e endpoint público correspondem à 1.2.0. [Evidência](evidence/publication-1.2.0.json).
 
 Lounge e Cinema com arquitetura de 26 × 24 metros e móveis reconstruídos, sem duplicação de assento/encosto. O Lounge separa áreas de TV, conversa e sinuca; o Cinema oferece corredores central, laterais e entre fileiras. Personagens usam modelos articulados próprios, detalhes faciais aderentes à cabeça e roupas/cabelos com silhuetas diferentes.
 
@@ -294,7 +306,7 @@ Cada empacotamento usa uma pasta `build-*` nova. Quando autorizado e executado, 
 | `npm run test:rooms3d` | Cenários, câmera, assentos, criador, TV, fullscreen, áudio espacial e fallback gráfico. |
 | `npm run test:rooms3d:app` | Dois clientes Electron com host, perfis sincronizados, chamada preservada e TV via WebRTC. |
 | `npm run test:rooms3d:visual` | Capturas de frente/lado/costas, catálogo de 12 cabelos, assentos e câmera. |
-| `npm run test:rooms3d:performance` | Dez avatares em três qualidades; `-- --gpu` usa a GPU, `-- --baseline` usa todos os módulos da tag 1.1.0. |
+| `npm run test:rooms3d:performance` | Dez avatares em três qualidades; `-- --gpu` usa a GPU, `-- --baseline` usa todos os módulos da tag 1.2.0. |
 | `npm run test:controls`   | Combinação global, Mouse 4, segundo plano, mute/Deafen e barra Kuromi.                          |
 | `npm run test:capture`    | Loopback real de janela/monitor: tons sintéticos de processos distintos e exclusão do Voxy.   |
 | `npm run test:system`     | Central, navegação, leitura, PiP local/remoto e bandeja em duas instâncias Electron.             |

@@ -1,5 +1,33 @@
 # Validação do Voxy
 
+## Versão 1.2.1 — 12/11/2026
+
+**Em validação para publicação autorizada.** Passaram `npm test` (60 testes), `npm run build`, `npm run pack`, `test:rooms3d`, `test:rooms3d:app`, `test:rooms3d:packaged`, `test:rooms3d:visual`, `test:media`, `test:audio`, `test:controls` e `test:ptt`. O workflow externo e os arquivos publicados serão registrados separadamente após sua conclusão.
+
+- **Inspeção estrutural:** a 1.2 usava esferas/caixas separadas para cabelo e membros, detalhes faciais em malhas independentes e saia rígida substituída ao sentar. A 1.2.1 usa perfis contínuos, malhas com pesos de ossos, cobertura capilar aderente ao formato da cabeça, face conformada e deformação da mesma saia. Testes verificam normais externas, pesos normalizados, deformação real do membro, continuidade dos cabelos e ausência de interseção da raiz com cabeças redondas/ovais/quadradas.
+- **Câmera:** o pivô baixo e o limite mínimo de 60 cm permitiam que um encosto colapsasse a câmera contra o avatar. O novo sistema usa pivô acima do encosto, cinco raios de colisão, busca de órbita livre, limites internos e exclusão do volume corporal, também após suavizar a trajetória. A suíte com os obstáculos reais percorre 168 órbitas de assentos e 7.560 passos, conferindo a distância do avatar em cada passo. Há ensaios separados de parede, TV em proporções diferentes, restauração da exploração e levantar.
+- **Avatar:** capturas do catálogo de 12 estilos de frente/lado/costas, aproximação do rosto, em pé, sentado e fumando. As inspeções identificaram e levaram a corrigir normais invertidas de perfis descendentes, pele atravessando cabelo em cabeça quadrada, contato dos pés, saia rígida, encaixe dos fones e hastes dos óculos. Contato dos pés foi medido em 12 combinações de altura corporal e assento, em pé/sentado; não houve penetração do piso nem pés suspensos fora da tolerância de 8 cm do ensaio.
+- **Arquitetura e sinuca:** teto e quatro paredes são malhas opacas reais; a câmera permanece dentro de seus limites. Capturas incluem a parede traseira, teto/luminárias, assentos e suporte de tacos. Teste geométrico verifica corpo, haste, ferrule e ponta colineares e contíguos sob o pivô de cada taco. A partida foi executada na interface de dois processos Electron, comparando o estado final integral recebido do host.
+- **Regressões no aplicativo:** dois clientes reais, ocupação remota, movimento, troca 3D/tradicional sem recapturar microfone, personalização recebida pelo outro cliente, cigarro sincronizado, mute/Deafen, fullscreen/Esc, fonte sintética de TV recebida via WebRTC, modo assistir e retorno. Também executado no ASAR em diretórios isolados. O NSIS não foi aplicado à instalação pessoal.
+
+Houve intermitências nos ensaios: uma medição Web Audio ficou abaixo do limiar inicial, uma amostra de suspensão de vídeo ainda acumulou bytes e uma tentativa de atalho global venceu o timeout. As repetições isoladas passaram sem alterar o código de áudio/mídia/atalhos: ganho/atenuação/panorama, vídeo suspenso sem cortar voz, mute/Deafen globais e PTT por F9/Q/Mouse 4/5. A suíte de mídia conectou 45 pares e recebeu voz nos 90 sentidos, além de tela/webcam para nove espectadores e ciclos de saída/reentrada. Essas tentativas não são apresentadas como aprovação sem ressalvas nem como avaliação acústica com microfones físicos.
+
+### Desempenho e limites
+
+Edge/ANGLE, viewport 1024 × 600, dez avatares (cinco andando), 2 s de aquecimento e 4 s de amostragem por nível, NVIDIA GeForce RTX 5060 Ti/D3D11. O comparador materializa todos os módulos da tag v1.2.0; não mistura dependências atuais com a cena antiga.
+
+| Qualidade | FPS 1.2.0 → 1.2.1 | Draw calls 1.2.0 → 1.2.1 | Triângulos 1.2.0 → 1.2.1 |
+| :-- | :-- | :-- | :-- |
+| Baixo | 23,2 → 23,0 | 344 → 321 | 47.080 → 83.732 |
+| Médio | 37,5 → 37,5 | 425,6 → 391,2 | 58.851 → 101.930 |
+| Alto | 54,2 → 54,7 | 397,4 → 367,8 | 54.788 → 95.869 |
+
+Os FPS permaneceram equivalentes nesta GPU, com mais geometria e menos chamadas de desenho. Rosto e esqueleto acrescentam texturas; geometrias/texturas registradas retornaram a zero ao descartar cada cena. Isso não mede toda a RAM/VRAM, nem garante desempenho em GPU integrada. O chunk Three.js continua sob demanda com aviso de tamanho no build.
+
+Em SwiftShader, com dez avatares e sem GPU acelerada, foram medidos aproximadamente **18,7/7,0/6,2 FPS** em baixo/médio/alto. É uma regressão frente à 1.2.0 nesse cenário de emulação e foi mantida explícita: a modelagem mais detalhada e os esqueletos têm custo. Médio/alto requerem aceleração gráfica; para renderização por software, prefira o canal tradicional ou Baixo conforme a tolerância de uso. Não há alegação de desempenho preservado em todo hardware.
+
+Faltam sessões prolongadas, GPUs integradas/de entrada, dois PCs físicos pela VPN e avaliação acústica humana. Os testes de mídia usam fontes sintéticas. Use Baixo ou o canal tradicional se a aceleração gráfica não estiver disponível. Resultados e capturas: [relatório 1.2.1](evidence/validation-1.2.1.json).
+
 ## Versão 1.2.0 — 12/11/2026
 
 Passaram `npm test` (**53 testes**), `npm run build`, `npm run pack`, `test:rooms3d`, `test:rooms3d:app`, `test:rooms3d:packaged`, `test:rooms3d:visual`, `test:audio`, `test:media`, `test:controls` e `test:ptt`. O build mantém o aviso conhecido do chunk Three.js carregado sob demanda. A [publicação externa](https://github.com/labarro/Voxy/releases/tag/v1.2.0) foi concluída pelo [workflow](https://github.com/labarro/Voxy/actions/runs/43309471907); os cinco arquivos e o endpoint foram verificados. [Assinatura e hashes](evidence/publication-1.2.0.json).

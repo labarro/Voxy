@@ -46,7 +46,8 @@ async function main() {
       "--enable-unsafe-swiftshader",
     ],
   });
-  const dir = "test-results/visual-1.2.0";
+  const dir = "test-results/visual-1.2.1";
+  const cameraAudits: unknown[] = [];
   await mkdir(dir, { recursive: true });
   const page = await browser.newPage({
       viewport: { width: 1200, height: 720 },
@@ -83,6 +84,9 @@ async function main() {
       await page.screenshot({ path: `${dir}/avatar-${name}.png` });
     }
     assert(await page.evaluate(() => (window as any).verifySmokePreference()));
+    const contacts = await page.evaluate(() => (window as any).floorContact());
+    for (const contact of contacts)
+      assert(contact.minY >= 0 && contact.minY < 0.08, JSON.stringify(contact));
     const combinations = await page.evaluate(() => {
       const w = window as any,
         hairs = [
@@ -127,6 +131,13 @@ async function main() {
     assert.equal(combinations, 12);
     await page.evaluate(() => (window as any).catalog());
     await page.screenshot({ path: `${dir}/character-catalog.png` });
+    for (const [name, angle] of [
+      ["side", Math.PI / 2],
+      ["back", Math.PI],
+    ] as const) {
+      await page.evaluate((angle) => (window as any).catalog(angle), angle);
+      await page.screenshot({ path: dir + "/catalog-" + name + ".png" });
+    }
     for (const preset of ["lounge", "cinema"] as const) {
       await page.evaluate((preset) => {
         document.querySelector("canvas")?.remove();
@@ -170,9 +181,9 @@ async function main() {
       await page.evaluate(() => {
         const s = (window as any).room;
         s.rig.setMode("free");
-        s.rig.wantedDistance = 20;
-        s.rig.wantedPitch = 0.67;
-        s.rig.freeTarget.set(0, 1.2, 1);
+        s.rig.wantedDistance = 11;
+        s.rig.wantedPitch = 0.32;
+        s.rig.freeTarget.set(0, 2.2, 1);
       });
       await page.waitForTimeout(1500);
       await page.screenshot({ path: `${dir}/${preset}-wide.png` });
@@ -192,6 +203,96 @@ async function main() {
         if (yaw === Math.PI)
           await page.screenshot({ path: `${dir}/${preset}-seat-fronts.png` });
       }
+      const audit = await page.evaluate((preset) => {
+        const w = window as any,
+          s = w.room;
+        let samples = 0,
+          frames = 0,
+          minClearance = Infinity;
+        s.scene.updateMatrixWorld(true);
+        for (const seat of w.seats(preset))
+          for (let angle = 0; angle < 8; angle++) {
+            const pose = {
+              x: seat.x,
+              z: seat.z,
+              yaw: seat.yaw,
+              seat: seat.id,
+              moving: false,
+            };
+            s.rig.setMode("follow");
+            s.rig.wantedYaw = (angle * Math.PI) / 4;
+            for (let i = 0; i < 45; i++) {
+              s.rig.update(1 / 60, pose, s.environment.colliders);
+              frames++;
+              const c = s.camera.position,
+                cy = Math.max(0.35, Math.min(2.15, c.y));
+              const clearance = Math.hypot(
+                c.x - pose.x,
+                c.y - cy,
+                c.z - pose.z,
+              );
+              minClearance = Math.min(minClearance, clearance);
+              if (clearance < 0.94)
+                throw Error("Camera entered avatar during orbit: " + seat.id);
+            }
+            const p = s.camera.position,
+              y = Math.max(0.35, Math.min(2.15, p.y));
+            const clearance = Math.hypot(p.x - pose.x, p.y - y, p.z - pose.z);
+            minClearance = Math.min(minClearance, clearance);
+            samples++;
+            if (
+              clearance < 0.94 ||
+              Math.abs(p.x) > 12.64 ||
+              p.z < -10.63 ||
+              p.z > 12.71 ||
+              p.y > 5.79
+            )
+              throw Error("Unsafe sitting camera: " + seat.id + " / " + angle);
+          }
+        return { samples, frames, minClearance };
+      }, preset);
+      assert(audit.samples > 60);
+      assert(audit.minClearance >= 0.94);
+      cameraAudits.push({ preset, ...audit });
+      await page.evaluate((preset) => {
+        const w = window as any,
+          s = w.room,
+          seat = w.seats(preset)[0];
+        s.correct({
+          x: seat.x,
+          z: seat.z,
+          yaw: seat.yaw,
+          seat: seat.id,
+          moving: false,
+        });
+        s.rig.wantedYaw = 0;
+        s.rig.wantedDistance = 7;
+        s.rig.wantedPitch = 0.3;
+      }, preset);
+      await page.waitForTimeout(900);
+      await page.screenshot({ path: dir + "/" + preset + "-sitting.png" });
+      // Interior elevation, including the full rear wall and doors.
+      await page.evaluate(() => {
+        const s = (window as any).room;
+        s.rig.setMode("free");
+        s.rig.freeTarget.set(0, 2.2, 5);
+        s.rig.wantedYaw = Math.PI;
+        s.rig.wantedDistance = 9;
+        s.rig.wantedPitch = 0.15;
+      });
+      await page.waitForTimeout(900);
+      await page.screenshot({ path: dir + "/" + preset + "-rear-wall.png" });
+      if (preset === "lounge") {
+        await page.evaluate(() => {
+          const s = (window as any).room;
+          s.rig.freeTarget.set(8.5, 1.6, 2.1);
+          s.rig.wantedYaw = 0.7;
+          s.rig.wantedDistance = 4;
+          s.rig.wantedPitch = 0.3;
+        });
+        await page.waitForTimeout(900);
+        await page.screenshot({ path: dir + "/pool-cues.png" });
+      }
       await page.evaluate(() => (window as any).room.dispose());
       await page.evaluate(() =>
         document.querySelectorAll("body>div").forEach((e) => e.remove()),
@@ -204,6 +305,8 @@ async function main() {
         {
           errors,
           combinations,
+          contacts,
+          cameraAudits,
           checks: [
             "front/side/back",
             "face close-up",

@@ -2,11 +2,12 @@ import * as T from "three";
 import { SocialAvatar } from "../src/renderer/room3d/avatar";
 import { RoomAssets } from "../src/renderer/room3d/assets";
 import { SocialScene } from "../src/renderer/room3d/scene";
-import { defaultAvatar } from "../src/shared/room3d";
+import { defaultAvatar, seats } from "../src/shared/room3d";
 import type { Avatar3D } from "../src/shared/types";
 
 const w = window as any;
 w.SocialScene = SocialScene;
+w.seats = seats;
 const assets = new RoomAssets(),
   scene = new T.Scene(),
   camera = new T.PerspectiveCamera(34, 1200 / 720, 0.1, 40);
@@ -94,7 +95,7 @@ w.show = (angle = 0, smoke = false) => {
         1 / 60,
         false,
         false,
-        0.88,
+        0.74,
         smoke
           ? {
               x: 0,
@@ -126,14 +127,14 @@ w.characterCase = (
   avatars.push(a);
   scene.add(a.group);
   a.group.rotation.y = angle;
-  camera.position.set(0, 1.85, 4.3);
-  camera.lookAt(0, 1.25, 0);
+  camera.position.set(0, 1.85, seated ? 5.1 : 4.3);
+  camera.lookAt(0, seated ? 1.1 : 1.25, 0);
   for (let j = 0; j < 120; j++)
     a.update(
       1 / 60,
       false,
       seated,
-      0.88,
+      0.74,
       smoke
         ? {
             x: 0,
@@ -154,7 +155,7 @@ w.verifySmokePreference = () => {
     1 / 60,
     false,
     false,
-    0.88,
+    0.74,
     { emote: "smoke", emoteAt: Date.now() },
     true,
   );
@@ -163,7 +164,7 @@ w.verifySmokePreference = () => {
     1 / 60,
     false,
     false,
-    0.88,
+    0.74,
     { emote: "smoke", emoteAt: Date.now() },
     false,
   );
@@ -173,8 +174,29 @@ w.verifySmokePreference = () => {
     a.smoke.every((p: T.Sprite) => !p.visible)
   );
 };
+w.floorContact = () => {
+  const results = [];
+  for (const height of [0.9, 1, 1.1])
+    for (const hip of [0.7, 0.74])
+      for (const seated of [false, true]) {
+        const a = new SocialAvatar(assets, { ...entries[1], height });
+        scene.add(a.group);
+        for (let i = 0; i < 240; i++) a.update(1 / 60, false, seated, hip);
+        a.group.updateMatrixWorld(true);
+        let minY = Infinity;
+        a.group.traverse((o) => {
+          if (o.name === "shoe-sole") {
+            const b = new T.Box3().setFromObject(o, true);
+            minY = Math.min(minY, b.min.y);
+          }
+        });
+        results.push({ height, hip, seated, minY });
+        a.dispose();
+      }
+  return results;
+};
 document.body.appendChild(renderer.domElement);
-w.catalog = () => {
+w.catalog = (angle = 0) => {
   for (const a of avatars) a.dispose();
   avatars = [];
   const hairs: NonNullable<Avatar3D["hairStyle"]>[] = [
@@ -212,6 +234,7 @@ w.catalog = () => {
       bottom: i % 3 === 0 ? "shorts" : i % 3 === 1 ? "skirt" : "trousers",
     });
     a.group.position.set(((i % 6) - 2.5) * 1.4, i < 6 ? 2.5 : 0, 0);
+    a.group.rotation.y = angle;
     a.update(0, false, false);
     scene.add(a.group);
     avatars.push(a);

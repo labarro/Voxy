@@ -290,7 +290,7 @@ async function main() {
       });
     });
     await b
-      .getByRole("button", { name: "Cabelo Coques cacheados", exact: true })
+      .getByRole("button", { name: "Cabelo Cacheado", exact: true })
       .click();
     await b.getByRole("tab", { name: "Roupas", exact: true }).click();
     await b.getByRole("button", { name: "Roupa Moletom", exact: true }).click();

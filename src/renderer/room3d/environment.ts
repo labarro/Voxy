@@ -1,5 +1,4 @@
 import * as T from "three";
-import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import type { RoomPreset } from "../../shared/types";
 import { seats } from "../../shared/room3d";
 import { Resources } from "./resources";
@@ -11,7 +10,7 @@ export type RoomEnvironment = {
   colliders: T.Object3D[];
   walls: T.Mesh[];
   seatMarkers: Map<string, T.Mesh>;
-  key: T.DirectionalLight;
+  key: T.SpotLight;
   dispose: () => void;
 };
 export function buildEnvironment(
@@ -25,8 +24,8 @@ export function buildEnvironment(
     seatMarkers = new Map<string, T.Mesh>();
   const cinema = preset === "cinema";
   const palette = {
-    wall: cinema ? "#242734" : "#52615e",
-    plaster: cinema ? "#393449" : "#b4aaa0",
+    wall: cinema ? "#343541" : "#52615e",
+    plaster: cinema ? "#454151" : "#b4aaa0",
     wood: "#75503e",
     cloth: cinema ? "#76536c" : "#8c718d",
     trim: "#bda17a",
@@ -34,22 +33,19 @@ export function buildEnvironment(
   };
   scene.background = new T.Color(cinema ? "#171925" : "#222c35");
   scene.fog = new T.Fog(scene.background, 28, 65);
-  scene.add(new T.HemisphereLight("#dae5fa", "#8a6b56", 1.15));
-  scene.add(new T.AmbientLight("#e3c9ab", 0.36));
-  const key = new T.DirectionalLight("#ffe1b7", 3.2);
-  key.position.set(-4, 9, 5);
+  scene.add(new T.HemisphereLight("#dae5fa", "#8a6b56", cinema ? 0.95 : 0.95));
+  scene.add(new T.AmbientLight("#e3c9ab", cinema ? 0.3 : 0.3));
+  const key = new T.SpotLight("#ffe1b7", cinema ? 105 : 165, 35, 1.14, 0.7, 2);
+  key.position.set(0, 5.8, 1);
+  key.target.position.set(0, 0, 1);
   key.castShadow = true;
-  key.shadow.camera.left = -16;
-  key.shadow.camera.right = 16;
-  key.shadow.camera.top = 16;
-  key.shadow.camera.bottom = -16;
   key.shadow.camera.near = 0.5;
   key.shadow.camera.far = 30;
   key.shadow.bias = -0.0003;
   key.shadow.normalBias = 0.035;
   key.shadow.mapSize.set(1024, 1024);
   key.shadow.radius = 3;
-  scene.add(key);
+  scene.add(key, key.target);
   const fill = new T.DirectionalLight("#b6c6ff", 0.7);
   fill.position.set(5, 5, -1);
   scene.add(fill);
@@ -68,17 +64,17 @@ export function buildEnvironment(
     mat.bumpScale = 0.018;
     return mat;
   };
-  r.box(scene, 0, -0.22, 0.4, 32, 0.4, 34, "#262b30", 0.12);
+  r.box(scene, 0, -0.22, 0.4, 26.3, 0.4, 24.6, "#262b30", 0.12);
   // Continue the floor beneath the cutaway camera, avoiding a visible platform edge.
-  r.box(scene, 0, -0.06, 0.4, 32, 0.16, 34, wood, 0.04);
+  r.box(scene, 0, -0.06, 0.4, 26.3, 0.16, 24.6, wood, 0.04);
   const rug = r.box(
     scene,
     0,
     0.035,
     1,
-    10,
+    cinema ? 16.8 : 10,
     0.06,
-    9,
+    cinema ? 16 : 9,
     fabric(cinema ? "#3d354c" : "#b5a093"),
     0.05,
   );
@@ -87,9 +83,9 @@ export function buildEnvironment(
     0,
     0.07,
     1,
-    9.65,
+    cinema ? 16.45 : 9.65,
     0.015,
-    8.65,
+    cinema ? 15.65 : 8.65,
     fabric(cinema ? "#454052" : "#a7948b"),
     0.03,
   );
@@ -99,7 +95,24 @@ export function buildEnvironment(
   );
   walls.push(r.box(scene, -13.05, 3.1, 1, 0.22, 6.2, 24, palette.wall, 0.04));
   walls.push(r.box(scene, 13.05, 3.1, 1, 0.22, 6.2, 24, palette.wall, 0.04));
-  walls.push(r.box(scene, 0, 0.5, 13.15, 26, 1, 0.22, palette.wood, 0.04));
+  walls.push(r.box(scene, 0, 3.1, 13.15, 26.2, 6.2, 0.22, palette.wall, 0.04));
+  const ceiling = r.box(
+    scene,
+    0,
+    6.15,
+    1,
+    26.3,
+    0.24,
+    24.6,
+    cinema ? "#33323f" : "#d0c8b8",
+    0.02,
+  );
+  ceiling.name = "solid-ceiling";
+  walls.push(ceiling);
+  walls.forEach((w, i) => {
+    w.name = w.name || "interior-shell-" + i;
+    (w.material as T.MeshStandardMaterial).side = T.DoubleSide;
+  });
   colliders.push(...walls);
   r.box(scene, 0, 0.6, -10.96, 26, 1.2, 0.08, palette.wood, 0.02);
   for (const x of [-12.9, 12.9]) {
@@ -115,6 +128,67 @@ export function buildEnvironment(
     scene.add(ambient);
   }
   r.box(scene, 0, 5.9, -10.94, 25.7, 0.14, 0.2, palette.wood, 0.03);
+  // Ceiling coffers, perimeter cornice and actual ceiling-mounted luminaires.
+  for (const z of [-10.8, 12.85]) {
+    r.box(scene, 0, 5.87, z, 25.8, 0.25, 0.28, palette.wood, 0.025);
+    r.box(scene, 0, 0.6, z, 25.8, 1.2, 0.07, palette.wood, 0.015);
+  }
+  for (const x of [-12.84, 12.84])
+    r.box(scene, x, 5.87, 1, 0.28, 0.25, 23.8, palette.wood, 0.025);
+  const diffuser = r.material("#e9d3ad");
+  diffuser.emissive.set("#d9b98a");
+  diffuser.emissiveIntensity = 0.5;
+  for (const x of [-7, 0, 7])
+    for (const z of [-5, 4, 10]) {
+      r.box(scene, x, 6.0, z, cinema ? 2.8 : 3.6, 0.12, 1.0, "#4b4443", 0.03);
+      r.box(scene, x, 5.92, z, cinema ? 2.5 : 3.3, 0.035, 0.7, diffuser, 0.01);
+    }
+  // Doors and rear-wall composition give every orbit a real interior elevation.
+  for (const x of cinema ? [-9, 9] : [0]) {
+    r.box(scene, x, 1.65, 12.98, 2.65, 3.3, 0.13, palette.wood, 0.04);
+    r.box(
+      scene,
+      x,
+      1.67,
+      12.88,
+      2.32,
+      3.05,
+      0.08,
+      cinema ? "#353442" : "#71817a",
+      0.03,
+    );
+    r.box(scene, x + 0.85, 1.45, 12.8, 0.045, 0.32, 0.055, palette.trim, 0.01);
+    r.box(scene, x, 3.4, 12.89, 2.8, 0.12, 0.2, palette.trim, 0.015);
+  }
+  if (cinema) {
+    r.box(scene, 0, 3.7, 12.95, 5, 1.45, 0.15, "#635b66", 0.04);
+    r.box(scene, 0, 3.7, 12.84, 4.7, 1.18, 0.06, "#202735", 0.02);
+    r.box(scene, 0, 3.55, 12.72, 0.7, 0.28, 0.28, "#41444d", 0.04);
+  } else {
+    const console = r.box(
+      scene,
+      -8,
+      0.65,
+      11.8,
+      5.4,
+      1.3,
+      0.85,
+      palette.wood,
+      0.06,
+    );
+    colliders.push(console);
+    r.box(scene, -8, 1.34, 11.8, 5.65, 0.1, 1.0, "#b9ad96", 0.035);
+    for (const x of [-9.7, -8, -6.3]) {
+      r.box(scene, x, 0.65, 11.33, 1.55, 1.05, 0.045, "#665849", 0.015);
+      r.box(scene, x, 1.0, 11.28, 0.4, 0.025, 0.04, palette.trim, 0);
+    }
+    // Hospitality station: a tray and a carafe, grouped on the counter surface.
+    r.cylinder(scene, -8.7, 1.43, 11.7, 0.55, 0.55, 0.07, "#b69d77");
+    for (const x of [-8.9, -8.5])
+      r.cylinder(scene, x, 1.58, 11.7, 0.11, 0.09, 0.22, "#ddd4c5");
+    r.cylinder(scene, -7.3, 1.63, 11.8, 0.15, 0.21, 0.48, "#565753");
+    r.cylinder(scene, -7.3, 1.9, 11.8, 0.13, 0.15, 0.06, palette.trim);
+  }
   // A single instanced set provides the rhythm of acoustic / timber panels.
   const slatGeometry = r.keep(new T.BoxGeometry(0.12, 4.6, 0.12)),
     slatMaterial = r.material(cinema ? "#46394c" : "#886b53");
@@ -289,7 +363,7 @@ export function buildEnvironment(
     for (const x of [-2.8, 2.8])
       r.box(sofa, x, 0.85, 0, 0.28, 0.6, 1.4, fabric(palette.cloth), 0.12);
     for (const x of [-1.85, 0, 1.85])
-      r.box(sofa, x, 0.64, 0.06, 1.76, 0.25, 1.03, fabric("#9b809a"), 0.1);
+      r.box(sofa, x, 0.5, 0.06, 1.76, 0.22, 1.03, fabric("#9b809a"), 0.1);
     for (const x of [-2.4, 2.4])
       for (const z of [-0.48, 0.48])
         r.box(sofa, x, 0.15, z, 0.16, 0.3, 0.16, palette.wood, 0.02);
@@ -298,8 +372,8 @@ export function buildEnvironment(
     const table = prop("tableCoffee", 0, -0.2, 3.5, 0.6, 1.5, 0);
     colliders.push(table);
     contact(0, -0.2, 4.2, 2.1);
-    prop("bookcaseOpenLow", 5.8, -3, 1.3, 1.4, 0.55, Math.PI / 2);
-    prop("books", 5.72, -3, 0.7, 0.38, 0.35, Math.PI / 2, undefined, 1.4);
+    prop("bookcaseOpenLow", 7.2, -9.8, 2.4, 1.4, 0.6, 0);
+    prop("books", 7.2, -9.8, 1.6, 0.35, 0.35, 0, undefined, 1.4);
     const tray = r.cylinder(scene, 0.65, 0.65, -0.2, 0.4, 0.4, 0.04, "#d2b598");
     tray.scale.z = 0.7;
     for (const x of [0.45, 0.9])
@@ -316,14 +390,24 @@ export function buildEnvironment(
       if (seat.kind === "puff") {
         r.box(chair, 0, 0.29, 0, 1.15, 0.56, 1.15, fabric("#ab7963"), 0.18);
       } else {
-        r.box(chair, 0, 0.39, 0, 1.28, 0.26, 1.24, palette.wood, 0.06);
         r.box(
           chair,
           0,
-          0.64,
+          0.29,
+          0,
+          1.28,
+          0.26,
+          1.24,
+          cinema ? "#373944" : palette.wood,
+          0.06,
+        );
+        r.box(
+          chair,
+          0,
+          0.5,
           0.07,
           1.04,
-          0.25,
+          0.22,
           0.98,
           fabric(cinema ? "#92708b" : "#9aa999"),
           0.1,
@@ -351,9 +435,25 @@ export function buildEnvironment(
             fabric(palette.cloth),
             0.08,
           );
-        for (const x of [-0.46, 0.46])
-          for (const z of [-0.45, 0.45])
-            r.box(chair, x, 0.17, z, 0.12, 0.34, 0.12, palette.wood, 0.02);
+        if (cinema) {
+          r.box(chair, 0, 0.18, 0, 0.6, 0.36, 0.7, "#373944", 0.1);
+          r.box(
+            chair,
+            0,
+            1.45,
+            -0.48,
+            0.94,
+            0.29,
+            0.23,
+            fabric("#80667a"),
+            0.09,
+          );
+          for (const x of [-0.64, 0.64])
+            r.cylinder(chair, x, 1.045, 0.32, 0.075, 0.075, 0.018, "#292a32");
+        } else
+          for (const x of [-0.46, 0.46])
+            for (const z of [-0.45, 0.45])
+              r.box(chair, x, 0.17, z, 0.12, 0.34, 0.12, palette.wood, 0.02);
       }
       r.batch(chair);
       contact(seat.x, seat.z, 1.8, 1.8);
@@ -377,9 +477,60 @@ export function buildEnvironment(
     seatMarkers.set(seat.id, marker);
   }
   for (const x of [-11, 11]) {
-    prop("pottedPlant", x, -8.1, 1.15, 2.3, 1.15);
+    const plant = new T.Group();
+    plant.position.set(x, 0, -8.1);
+    scene.add(plant);
+    colliders.push(plant);
+    r.cylinder(plant, 0, 0.3, 0, 0.34, 0.25, 0.6, "#978d77");
+    r.cylinder(plant, 0, 0.61, 0, 0.32, 0.32, 0.045, "#343d32");
+    for (let i = 0; i < 7; i++) {
+      const angle = (i / 7) * Math.PI * 2,
+        leaf = new T.Shape();
+      leaf.moveTo(0, 0);
+      leaf.bezierCurveTo(-0.22, 0.28, -0.24, 0.75, 0, 1.25);
+      leaf.bezierCurveTo(0.24, 0.75, 0.22, 0.28, 0, 0);
+      const geo = r.keep(new T.ShapeGeometry(leaf, 12)),
+        pos = geo.getAttribute("position");
+      for (let j = 0; j < pos.count; j++) {
+        const y = pos.getY(j);
+        pos.setZ(j, 0.2 * Math.sin((y / 1.25) * Math.PI) - y * y * 0.2);
+      }
+      geo.computeVertexNormals();
+      const mat = r.keep(
+        new T.MeshStandardMaterial({
+          color: i % 2 ? "#55765b" : "#6a8666",
+          roughness: 0.9,
+          side: T.DoubleSide,
+        }),
+      );
+      const mesh = new T.Mesh(geo, mat);
+      mesh.position.set(Math.sin(angle) * 0.09, 0.58, Math.cos(angle) * 0.09);
+      mesh.rotation.set(-0.3 + (i % 3) * 0.15, angle, 0);
+      mesh.scale.setScalar(0.9 + (i % 3) * 0.15);
+      mesh.castShadow = true;
+      plant.add(mesh);
+    }
     contact(x, -8.1, 1.6, 1.6);
-    prop("lampRoundFloor", x, 8.8, 0.8, 2.9, 0.8);
+    const lamp = new T.Group();
+    lamp.position.set(x, 0, 8.8);
+    scene.add(lamp);
+    colliders.push(lamp);
+    r.cylinder(lamp, 0, 0.065, 0, 0.25, 0.29, 0.13, "#645e50");
+    r.cylinder(lamp, 0, 1.15, 0, 0.025, 0.035, 2.2, "#a58e65");
+    const shade = new T.Mesh(
+      r.keep(new T.CylinderGeometry(0.22, 0.4, 0.5, 32, 1, true)),
+      r.keep(
+        new T.MeshStandardMaterial({
+          color: "#d7c9aa",
+          roughness: 0.92,
+          side: T.DoubleSide,
+        }),
+      ),
+    );
+    shade.position.y = 2.4;
+    shade.castShadow = true;
+    lamp.add(shade);
+    r.cylinder(lamp, 0, 2.16, 0, 0.36, 0.36, 0.025, "#ddc9a3");
     const bulb = new T.PointLight("#ffbc75", 9, 7, 2);
     bulb.position.set(x, 2.5, 8.8);
     scene.add(bulb);

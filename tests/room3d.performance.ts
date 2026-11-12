@@ -7,11 +7,11 @@ import { execFileSync } from "node:child_process";
 
 async function main() {
   const label =
-    process.argv.find((v) => v.startsWith("--label="))?.slice(8) ?? "1.2.0";
+    process.argv.find((v) => v.startsWith("--label="))?.slice(8) ?? "1.2.1";
   const baseline = process.argv.includes("--baseline"),
     gpu = process.argv.includes("--gpu");
   // Preserve every historical module, not just scene.ts with current dependencies.
-  const baselineRoot = resolve(".local/performance-v1.1.0");
+  const baselineRoot = resolve(".local/performance-v1.2.0");
   if (baseline) {
     const files = execFileSync(
       "git",
@@ -19,7 +19,7 @@ async function main() {
         "ls-tree",
         "-r",
         "--name-only",
-        "v1.1.0",
+        "v1.2.0",
         "src/renderer/room3d",
         "src/shared",
       ],
@@ -30,7 +30,7 @@ async function main() {
     for (const file of files) {
       const path = resolve(baselineRoot, file);
       await mkdir(dirname(path), { recursive: true });
-      await writeFile(path, execFileSync("git", ["show", `v1.1.0:${file}`]));
+      await writeFile(path, execFileSync("git", ["show", `v1.2.0:${file}`]));
     }
   }
   const source = {

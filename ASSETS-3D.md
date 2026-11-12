@@ -1,4 +1,14 @@
-# Direção artística e assets das salas · 1.2.0
+# Direção artística e assets das salas · 1.2.1
+
+## Reconstrução da 1.2.1
+
+`characterGeometry.ts` passa a construir perfis elípticos com normais compartilhadas e membros em `SkinnedMesh`. Cada braço/perna é uma superfície contínua com pesos de dois ossos, em vez de cubos separados. Torso, mãos, calçados e mochila têm silhuetas próprias. As hastes de óculos e o microfone do headset acompanham curvas conectadas; o arco dos fones considera o volume do cabelo e do chapéu.
+
+Cabelos usam uma cobertura paramétrica contínua com linha de implantação, volume e curvatura próprios por estilo; rabo, tranças e coque seguem curvas afiladas. A cobertura usa a mesma superelipsoide da cabeça e uma folga de raiz verificada, evitando manchas de pele atravessando cabelos em cabeças quadradas. Cor secundária integra os vértices da própria superfície. O rosto usa uma textura procedural transparente sobre malha aderente à cabeça, sem olhos ou boca como esferas salientes.
+
+A saia usa dois alvos de deformação da mesma superfície para poltronas/sofás e puffs, com normais próprias e transição contínua. A postura dos joelhos considera altura corporal e assento para manter os pés junto ao piso. O rosto, os cabelos e as roupas são iguais no editor e na chamada; nenhuma dependência ou licença externa nova foi adicionada.
+
+Os cenários têm teto e parede traseira completos, portas e acabamentos de fechamento; não há corte por transparência. Luminárias e vegetação curva substituem os modelos mais rudimentares. A iluminação principal vem de um spot interno com penumbra e sombras de móveis; a luz não atravessa uma cobertura inexistente. Tacos usam segmentos contíguos em um único pivô local e suporte de chão. Os modelos CC0 preservados continuam documentados abaixo.
 
 ## Reconstrução da 1.2.0
 

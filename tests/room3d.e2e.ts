@@ -278,7 +278,10 @@ async function main() {
     assert(mixed.friend.gain < 1);
     assert(mixed.friend.pan > 0);
     const audio = await page.evaluate(() => (window as any).testVoiceSpatial());
-    assert(audio.normal[0] > 0.05 && audio.normal[1] > 0.05);
+    assert(
+      audio.normal[0] > 0.05 && audio.normal[1] > 0.05,
+      JSON.stringify(audio),
+    );
     assert(audio.far[0] < 0.005 && audio.far[1] < 0.005);
     assert(audio.panned[1] > audio.panned[0] * 5);
     assert(audio.restored[0] > 0.05 && audio.restored[1] > 0.05);

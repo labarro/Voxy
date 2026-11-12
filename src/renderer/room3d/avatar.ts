@@ -2,6 +2,15 @@
 import type { Avatar3D, RoomPose } from "../../shared/types";
 import { RoomAssets } from "./assets";
 import { Resources } from "./resources";
+import {
+  surface,
+  smoothRadialNormals,
+  profileGeometry,
+  skinnedLimb,
+  swept,
+  buildHair,
+  buildFace,
+} from "./characterGeometry";
 
 // Models use a single +Z front and articulated local joints. Facial details are
 // placed on the ellipsoid surface instead of fixed offsets outside a GLB head.
@@ -12,11 +21,11 @@ export class SocialAvatar {
   private head = new T.Group();
   private arms: T.Group[] = [];
   private legs: T.Group[] = [];
-  private shins: T.Group[] = [];
+  private shins: T.Object3D[] = [];
+  private skeletons: T.Skeleton[] = [];
   private skirt?: T.Group;
   private skirtStanding?: T.Mesh;
-  private skirtSeated?: T.Mesh;
-  private forearms: T.Group[] = [];
+  private forearms: T.Object3D[] = [];
   private cigarette = new T.Group();
   private smoke: T.Sprite[] = [];
   private time = 0;
@@ -42,32 +51,58 @@ export class SocialAvatar {
     const cloth = a.color,
       pants = a.bottomColor ?? "#30394c",
       shoe = a.shoeColor ?? "#e5ded2";
-    r.cylinder(this.body, 0, 1.02, 0, 0.22, 0.24, 0.2, cloth);
-    const width = a.body === "athletic" ? 0.64 : 0.56;
-    r.box(this.body, 0, 1.22, 0, width, 0.59, 0.34, cloth, 0.15);
-    if (["coat", "suit"].includes(outfit)) {
-      r.box(this.body, 0, 0.98, 0, 0.6, 0.44, 0.37, cloth, 0.08);
-      for (const x of [-0.12, 0.12]) {
-        const lapel = r.box(
-          this.body,
-          x,
-          1.35,
-          0.19,
-          0.11,
-          0.3,
-          0.025,
-          "#d8d5ca",
-          0,
+    const coat = ["coat", "suit"].includes(outfit);
+    surface(
+      r,
+      this.body,
+      [
+        [coat ? 0.82 : 0.9, 0.21, 0.15],
+        [coat ? 0.85 : 0.94, coat ? 0.3 : 0.26, 0.18],
+        [1.05, 0.27, 0.185],
+        [1.2, 0.27, 0.19],
+        [1.35, a.body === "athletic" ? 0.335 : 0.305, 0.19],
+        [1.43, 0.29, 0.16],
+        [1.49, 0.135, 0.105],
+        [1.5, 0.105, 0.09],
+      ],
+      cloth,
+      24,
+    );
+    if (coat)
+      for (const side of [-1, 1]) {
+        const lapel = r.keep(new T.BufferGeometry());
+        lapel.setAttribute(
+          "position",
+          new T.Float32BufferAttribute(
+            [
+              side * 0.07,
+              1.47,
+              0.13,
+              side * 0.18,
+              1.34,
+              0.17,
+              side * 0.11,
+              1.21,
+              0.195,
+              side * 0.04,
+              1.32,
+              0.206,
+            ],
+            3,
+          ),
         );
-        lapel.rotation.z = x < 0 ? 0.25 : -0.25;
+        lapel.setIndex([0, 1, 3, 1, 2, 3]);
+        lapel.computeVertexNormals();
+        const mat = r.keep(r.material("#d8d5ca").clone());
+        mat.side = T.DoubleSide;
+        this.body.add(new T.Mesh(lapel, mat));
       }
-    }
     if (["jacket", "varsity", "shirt", "suit", "coat"].includes(outfit)) {
       r.box(
         this.body,
         0,
         1.23,
-        0.186,
+        0.213,
         0.025,
         0.46,
         0.025,
@@ -75,12 +110,12 @@ export class SocialAvatar {
         0,
       );
       for (const x of [-0.16, 0.16])
-        r.box(this.body, x, 1.12, 0.188, 0.12, 0.11, 0.03, cloth, 0.01);
+        r.box(this.body, x, 1.12, 0.21, 0.12, 0.11, 0.03, cloth, 0.01);
       for (const y of [1.13, 1.26, 1.39])
-        r.sphere(this.body, 0.025, y, 0.206, 0.017, "#e3d6ba");
+        r.sphere(this.body, 0.025, y, 0.228, 0.017, "#e3d6ba");
     }
     if (outfit === "tee")
-      r.box(this.body, 0, 1.28, 0.18, 0.24, 0.15, 0.025, "#e8dccd", 0.02);
+      r.box(this.body, 0, 1.28, 0.211, 0.24, 0.15, 0.025, "#e8dccd", 0.02);
     if (outfit === "hoodie") {
       const hood = r.sphere(this.body, 0, 1.49, -0.13, 0.26, cloth);
       hood.scale.set(1, 0.65, 0.65);
@@ -95,100 +130,45 @@ export class SocialAvatar {
       a.headShape === "square" ? 0.335 : a.headShape === "oval" ? 0.29 : 0.32;
     const ry = a.headShape === "oval" ? 0.385 : 0.34,
       rz = 0.295;
-    if (a.headShape === "square")
-      r.box(this.head, 0, 0, 0, rx * 2, ry * 2, rz * 2, a.skin, 0.16);
-    else {
-      const skull = r.sphere(this.head, 0, 0, 0, 1, a.skin);
-      skull.scale.set(rx, ry, rz);
+    const power = a.headShape === "square" ? 2.6 : 2;
+    const geometry = r.keep(new T.SphereGeometry(1, 28, 20)),
+      positions = geometry.getAttribute("position");
+    for (let i = 0; i < positions.count; i++) {
+      const shape = (v: number) =>
+        Math.sign(v) * Math.pow(Math.abs(v), 2 / power);
+      positions.setXYZ(
+        i,
+        shape(positions.getX(i)) * rx,
+        shape(positions.getY(i)) * ry,
+        shape(positions.getZ(i)) * rz,
+      );
     }
-    const surface = (x: number, y: number) =>
-      a.headShape === "square"
-        ? rz
-        : rz * Math.sqrt(Math.max(0.01, 1 - (x / rx) ** 2 - (y / ry) ** 2));
-    for (const x of [-rx, rx]) {
-      const ear = r.sphere(this.head, x, -0.025, 0, 0.075, a.skin);
-      ear.scale.set(0.7, 1, 0.6);
+    geometry.computeVertexNormals();
+    smoothRadialNormals(geometry, 28);
+    const skull = new T.Mesh(geometry, r.material(a.skin, 0.83));
+    skull.castShadow = skull.receiveShadow = true;
+    this.head.add(skull);
+    for (const side of [-1, 1]) {
+      const ear = r.sphere(
+        this.head,
+        side * (rx - 0.012),
+        -0.025,
+        -0.005,
+        0.062,
+        a.skin,
+      );
+      ear.scale.set(0.65, 1, 0.55);
     }
-    const eyeY = 0.035;
-    for (const x of [-0.115, 0.115]) {
-      const eye = r.sphere(
-        this.head,
-        x,
-        eyeY,
-        surface(x, eyeY),
-        0.044,
-        "#292b35",
-      );
-      eye.scale.set(
-        a.eyes === "almond" ? 1.25 : 1,
-        a.eyes === "sleepy" || a.face === "calm"
-          ? 0.35
-          : a.face === "bright"
-            ? 1.2
-            : 0.85,
-        0.13,
-      );
-      const glint = r.sphere(
-        this.head,
-        x - 0.009,
-        eyeY + 0.01,
-        surface(x, eyeY) + 0.007,
-        0.01,
-        "#f7eee1",
-      );
-      glint.scale.z = 0.2;
-      const brow = r.box(
-        this.head,
-        x,
-        0.115,
-        surface(x, 0.115) + 0.004,
-        0.089,
-        a.brows === "bold" ? 0.027 : 0.017,
-        0.012,
-        a.hairColor,
-        0,
-      );
-      brow.rotation.z = (a.brows === "arched" ? 0.24 : 0.07) * Math.sign(-x);
-    }
+    buildFace(r, this.head, a, rx, ry, rz, power);
     const nose = r.sphere(
       this.head,
       0,
-      -0.045,
-      rz - 0.008,
-      a.nose === "round" ? 0.065 : 0.047,
+      -0.044,
+      rz - 0.012,
+      a.nose === "round" ? 0.049 : 0.037,
       a.skin,
     );
-    nose.scale.set(a.nose === "wide" ? 1.4 : 0.8, 0.8, 0.45);
-    const points = Array.from({ length: 17 }, (_, i) => {
-      const x = (i / 16 - 0.5) * 0.16,
-        y =
-          -0.112 -
-          (a.face === "calm" ? 0.003 : Math.sin((i / 16) * Math.PI) * 0.035);
-      return new T.Vector3(x, y, surface(x, y) + 0.004);
-    });
-    const mouth = new T.Mesh(
-      r.keep(
-        new T.TubeGeometry(new T.CatmullRomCurve3(points), 16, 0.008, 5, false),
-      ),
-      r.material("#754547"),
-    );
-    this.head.add(mouth);
-    if (a.facialHair && a.facialHair !== "none") {
-      const beard = a.facialHair !== "mustache";
-      const fur = r.sphere(
-        this.head,
-        0,
-        beard ? -0.19 : -0.085,
-        beard ? 0.16 : 0.275,
-        1,
-        a.hairColor,
-      );
-      fur.scale.set(
-        beard ? 0.235 : 0.11,
-        beard ? (a.facialHair === "stubble" ? 0.09 : 0.16) : 0.025,
-        beard ? 0.105 : 0.016,
-      );
-    }
+    nose.scale.set(a.nose === "wide" ? 1.25 : 0.82, 0.8, 0.42);
     const accessories = new Set(
       a.accessories ?? [a.accessoryStyle ?? a.accessory],
     );
@@ -205,120 +185,7 @@ export class SocialAvatar {
       m.scale.set(sx, sy, sz);
       return m;
     };
-    if (hair !== "bald" && hair !== "buzz") {
-      // Upper hemisphere is an authored cap, leaving the forehead and face clear.
-      const shell = new T.Mesh(
-        r.keep(
-          new T.SphereGeometry(1, 20, 12, 0, Math.PI * 2, 0, Math.PI * 0.36),
-        ),
-        r.material(a.hairColor),
-      );
-      shell.scale.set(rx + 0.025, ry + 0.025, rz + 0.025);
-      this.head.add(shell);
-    }
-    if (hair === "buzz") {
-      const shell = new T.Mesh(
-        r.keep(
-          new T.SphereGeometry(1, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.39),
-        ),
-        r.material(a.hairColor),
-      );
-      shell.scale.set(rx + 0.004, ry + 0.004, rz + 0.004);
-      this.head.add(shell);
-    }
-    if (!hat) {
-      if (hair === "crest") {
-        const m = cap(0.33, 0.18, 0.17, 0.23);
-        m.rotation.z = -0.25;
-      }
-      if (hair === "afro") {
-        for (let i = 0; i < 14; i++) {
-          const t = (i / 14) * Math.PI * 2;
-          const m = r.sphere(
-            this.head,
-            Math.cos(t) * 0.28,
-            0.2 + Math.sin(t) * 0.1,
-            Math.sin(t) * 0.2,
-            0.16,
-            a.hairColor,
-          );
-          m.scale.y = 1.2;
-        }
-      }
-      if (hair === "curly" || hair === "bun")
-        for (const x of [-0.25, 0.25])
-          r.sphere(
-            this.head,
-            x,
-            0.3,
-            -0.09,
-            hair === "bun" ? 0.14 : 0.2,
-            a.hairColor,
-          );
-      if (hair === "ponytail") {
-        const tail = r.sphere(this.head, 0, -0.02, -0.33, 0.16, a.hairColor);
-        tail.scale.set(0.8, 2, 0.8);
-      }
-      if (hair === "short") {
-        const fringe = r.box(
-          this.head,
-          -0.08,
-          0.24,
-          0.19,
-          0.36,
-          0.13,
-          0.15,
-          a.hairColor,
-          0.05,
-        );
-        fringe.rotation.z = 0.15;
-      }
-      if (a.hairSecondary && !["bald", "afro", "curly", "bun"].includes(hair)) {
-        const streak = new T.Mesh(
-          r.keep(
-            new T.SphereGeometry(1, 6, 8, Math.PI * 0.4, 0.18, 0.12, 0.96),
-          ),
-          r.material(a.hairSecondary),
-        );
-        const lift = hair === "buzz" ? 0.006 : 0.028;
-        streak.scale.set(rx + lift, ry + lift, rz + lift);
-        this.head.add(streak);
-      }
-    }
-    if (["long", "bob", "wavy", "braids"].includes(hair)) {
-      const length = hair === "bob" ? 0.32 : 0.61;
-      for (const x of [-1, 1]) {
-        if (hair === "braids" || hair === "wavy")
-          for (let i = 0; i < 5; i++) {
-            const part = r.sphere(
-              this.head,
-              x *
-                (rx +
-                  0.005 +
-                  (hair === "wavy" ? Math.sin(i * 1.8) * 0.025 : 0)),
-              0.15 - i * 0.105,
-              -0.05,
-              0.105,
-              i % 2 && a.hairSecondary ? a.hairSecondary : a.hairColor,
-            );
-            part.scale.set(0.8, 1, 0.85);
-          }
-        else
-          r.box(
-            this.head,
-            x * (rx - 0.025),
-            0.1 - length / 2,
-            -0.08,
-            0.14,
-            length,
-            0.28,
-            a.hairColor,
-            0.06,
-          );
-      }
-      if (hair === "long")
-        r.box(this.head, 0, -0.12, -0.25, 0.5, 0.57, 0.13, a.hairColor, 0.06);
-    }
+    buildHair(r, this.head, a, rx, ry, rz, !!hat);
     // Headwear takes priority over tall hairstyles; one item per conflict group.
     if (hat) {
       cap(0.28, rx + 0.04, 0.16, rz + 0.04, cloth);
@@ -357,32 +224,59 @@ export class SocialAvatar {
           rim.position.set(x, 0.04, 0.3);
           this.head.add(rim);
         }
-        r.box(
+        const side = Math.sign(x);
+        swept(
+          r,
           this.head,
-          Math.sign(x) * 0.25,
-          0.04,
-          0.16,
-          0.02,
-          0.02,
-          0.28,
+          [
+            [side * 0.205, 0.04, 0.3],
+            [side * (rx * 0.87 + 0.025), 0.04, 0.21],
+            [side * (rx + 0.018), 0.015, 0],
+          ],
+          [0.008, 0.008, 0.007],
           "#bd9864",
-          0,
+          6,
+          18,
         );
       }
       r.box(this.head, 0, 0.05, 0.305, 0.075, 0.015, 0.015, "#bd9864", 0);
     }
     if (accessories.has("headphones") || accessories.has("headset")) {
-      for (const x of [-rx - 0.025, rx + 0.025]) {
+      const padding = hat
+        ? 0.025
+        : hair === "afro"
+          ? 0.14
+          : hair === "curly"
+            ? 0.085
+            : 0.025;
+      const radius = rx + padding + 0.035;
+      for (const x of [-radius, radius]) {
         const cup = r.sphere(this.head, x, 0, 0, 0.105, "#a294ca");
         cup.scale.set(0.5, 1, 1);
       }
       const band = new T.Mesh(
-        r.keep(new T.TorusGeometry(rx + 0.035, 0.022, 6, 24, Math.PI)),
+        r.keep(new T.TorusGeometry(radius, 0.022, 8, 32, Math.PI)),
         r.material("#a294ca"),
       );
+      band.scale.y = (hat ? 0.49 : ry + padding * 0.8 + 0.035) / radius;
       this.head.add(band);
-      if (accessories.has("headset"))
-        r.box(this.head, 0.21, -0.11, 0.27, 0.22, 0.025, 0.025, "#423e55", 0);
+      if (accessories.has("headset")) {
+        swept(
+          r,
+          this.head,
+          [
+            [radius, -0.035, 0.035],
+            [radius * 0.8, -0.1, 0.23],
+            [0.13, -0.12, 0.34],
+          ],
+          [0.01, 0.009, 0.009],
+          "#423e55",
+          7,
+          22,
+        );
+        const mic = r.sphere(this.head, 0.13, -0.12, 0.34, 0.023, "#423e55");
+        mic.scale.x = 1.4;
+      }
     }
     if (accessories.has("earrings"))
       for (const x of [-rx, rx]) {
@@ -403,129 +297,193 @@ export class SocialAvatar {
       this.body.add(chain);
     }
     if (accessories.has("backpack")) {
-      r.box(this.body, 0, 1.22, -0.28, 0.46, 0.57, 0.24, "#856a52", 0.09);
-      for (const x of [-0.2, 0.2])
-        r.box(this.body, x, 1.29, 0.18, 0.045, 0.42, 0.035, "#856a52", 0.01);
+      surface(
+        r,
+        this.body,
+        [
+          [0.94, 0.13, 0.08, -0.27],
+          [0.99, 0.22, 0.11, -0.28],
+          [1.26, 0.235, 0.12, -0.29],
+          [1.45, 0.2, 0.1, -0.27],
+          [1.49, 0.12, 0.06, -0.25],
+        ],
+        "#856a52",
+        24,
+      );
+      for (const side of [-1, 1])
+        swept(
+          r,
+          this.body,
+          [
+            [side * 0.18, 1.4, -0.23],
+            [side * 0.18, 1.47, 0],
+            [side * 0.18, 1.26, 0.16],
+            [side * 0.18, 0.99, 0.15],
+          ],
+          [0.019, 0.019, 0.018, 0.018],
+          "#856a52",
+          7,
+          24,
+        );
     }
     for (const side of [-1, 1]) {
       const arm = new T.Group();
-      arm.position.set(side * 0.36, 1.43, 0);
+      arm.position.set(side * 0.295, 1.43, 0);
+      arm.rotation.z = side * 0.16;
       this.body.add(arm);
       this.arms.push(arm);
-      const short = outfit === "tee";
-      r.box(
+      const sleeve = outfit === "varsity" ? "#e6d9c4" : cloth;
+      const limb = skinnedLimb(
+        r,
         arm,
-        0,
-        -0.13,
-        0,
-        0.19,
-        short ? 0.22 : 0.31,
-        0.21,
-        outfit === "varsity" ? "#e6d9c4" : cloth,
-        0.07,
-      );
-      const forearm = new T.Group();
-      forearm.position.y = -0.27;
-      arm.add(forearm);
-      this.forearms.push(forearm);
-      r.box(
-        forearm,
-        0,
-        -0.12,
-        0,
-        0.16,
+        0.62,
         0.27,
-        0.17,
-        short ? a.skin : cloth,
-        0.07,
+        [
+          [0.07, 0.004, 0.004],
+          [0.045, 0.075, 0.075],
+          [0, 0.107, 0.105],
+          [-0.1, 0.105, 0.1],
+          [-0.2, 0.093, 0.09],
+          [-0.27, 0.085, 0.085],
+          [-0.34, 0.082, 0.082],
+          [-0.43, 0.075, 0.075],
+          [-0.49, 0.069, 0.067],
+          [-0.515, 0.084, 0.075],
+          [-0.565, 0.086, 0.078],
+          [-0.6, 0.06, 0.065],
+          [-0.625, 0.002, 0.002],
+        ],
+        (y) =>
+          y < -0.495 ? a.skin : outfit === "tee" && y < -0.19 ? a.skin : sleeve,
       );
-      r.sphere(forearm, 0, -0.29, 0, 0.095, a.skin);
+      this.forearms.push(limb.lower);
+      this.skeletons.push(limb.skeleton);
       if (accessories.has("bracelet") && side === 1)
-        r.cylinder(forearm, 0, -0.24, 0, 0.095, 0.095, 0.035, "#d9b76c");
+        r.cylinder(limb.lower, 0, -0.22, 0, 0.078, 0.078, 0.025, "#d9b76c");
       const leg = new T.Group();
-      leg.position.set(side * 0.155, 0.96, 0);
+      leg.position.set(side * 0.14, 0.96, 0);
       this.body.add(leg);
       this.legs.push(leg);
-      r.box(
+      const bare = a.bottom === "shorts" || a.bottom === "skirt";
+      const legLimb = skinnedLimb(
+        r,
         leg,
-        0,
-        -0.2,
-        0,
-        0.245,
-        0.4,
-        0.28,
-        a.bottom === "skirt" ? a.skin : pants,
-        0.08,
+        0.86,
+        0.39,
+        [
+          [0.065, 0.006, 0.006],
+          [0.035, 0.105, 0.12],
+          [-0.05, 0.13, 0.135],
+          [-0.19, 0.124, 0.13],
+          [-0.3, 0.113, 0.12],
+          [-0.39, 0.104, 0.11],
+          [-0.47, 0.106, 0.11],
+          [-0.6, 0.094, 0.1],
+          [-0.73, 0.079, 0.085],
+          [-0.82, 0.07, 0.078],
+          [-0.86, 0.003, 0.003],
+        ],
+        (y) =>
+          a.bottom === "skirt" ? a.skin : bare && y < -0.31 ? a.skin : pants,
       );
-      const shin = new T.Group();
-      shin.position.y = -0.39;
-      leg.add(shin);
-      this.shins.push(shin);
-      r.box(
+      this.shins.push(legLimb.lower);
+      this.skeletons.push(legLimb.skeleton);
+      const shin = legLimb.lower,
+        boot = a.shoes === "boots";
+      // A shaped last with instep, heel and a rounded toe, plus a thin sole.
+      surface(
+        r,
         shin,
-        0,
-        -0.21,
-        0,
-        0.21,
-        0.42,
-        0.23,
-        a.bottom === "shorts" || a.bottom === "skirt" ? a.skin : pants,
-        0.07,
-      );
-      const boot = a.shoes === "boots";
-      r.box(
-        shin,
-        0,
-        boot ? -0.33 : -0.43,
-        0.07,
-        0.25,
-        boot ? 0.26 : 0.14,
-        0.4,
+        [
+          [boot ? -0.26 : -0.38, 0.067, 0.078, 0],
+          [boot ? -0.28 : -0.39, 0.085, 0.105, 0.018],
+          [-0.425, 0.107, 0.17, 0.064],
+          [-0.465, 0.11, 0.185, 0.075],
+          [-0.485, 0.095, 0.17, 0.075],
+          [-0.492, 0.001, 0.001, 0.075],
+        ],
         shoe,
-        0.05,
+        20,
       );
-      if (a.shoes !== "formal")
-        r.box(shin, 0, -0.485, 0.07, 0.26, 0.035, 0.41, "#d5d0c6", 0);
+      const sole = surface(
+        r,
+        shin,
+        [
+          [-0.47, 0.11, 0.183, 0.075],
+          [-0.493, 0.108, 0.18, 0.075],
+          [-0.5, 0.095, 0.16, 0.075],
+          [-0.502, 0.001, 0.001, 0.075],
+        ],
+        a.shoes === "formal" ? "#3b3332" : "#d5d0c6",
+        20,
+      );
+      sole.name = "shoe-sole";
+      sole.userData.dynamic = true;
       if (a.shoes === "sneakers" || !a.shoes)
         for (const z of [0.09, 0.14])
-          r.box(shin, 0, -0.355, z, 0.13, 0.014, 0.018, "#f3eee6", 0);
+          swept(
+            r,
+            shin,
+            [
+              [-0.045, -0.424, z],
+              [0, -0.415, z + 0.004],
+              [0.045, -0.424, z],
+            ],
+            [0.006, 0.006, 0.006],
+            "#f3eee6",
+            5,
+            8,
+          );
     }
     if (a.bottom === "skirt") {
       this.skirt = new T.Group();
       this.skirt.position.y = 0.985;
       this.body.add(this.skirt);
-      const cloth = new T.Mesh(
-        r.keep(new T.CylinderGeometry(0.25, 0.38, 0.45, 20, 4, true)),
-        r.keep(r.material(pants).clone()),
-      );
-      cloth.material.side = T.DoubleSide;
-      cloth.position.y = -0.21;
-      cloth.castShadow = cloth.receiveShadow = true;
-      this.skirt.add(cloth);
-      this.skirtStanding = cloth;
-      // A separate drape covers the lap and knees without rotating a rigid hem
-      // into a forward-facing hoop. The lower edge remains open like fabric.
-      const drape = r.keep(new T.BufferGeometry());
-      drape.setAttribute(
-        "position",
-        new T.Float32BufferAttribute(
-          [
-            -0.26, 0.13, -0.14, 0.26, 0.13, -0.14, -0.38, 0.17, 0.55, 0.38,
-            0.17, 0.55, -0.29, -0.28, -0.15, 0.29, -0.28, -0.15, -0.38, -0.16,
-            0.55, 0.38, -0.16, 0.55,
-          ],
-          3,
-        ),
-      );
-      drape.setIndex([
-        0, 2, 1, 1, 2, 3, 2, 6, 3, 3, 6, 7, 0, 4, 2, 2, 4, 6, 1, 3, 5, 3, 7, 5,
-        0, 1, 4, 1, 5, 4,
-      ]);
-      drape.computeVertexNormals();
-      this.skirtSeated = new T.Mesh(drape, cloth.material);
-      this.skirtSeated.castShadow = this.skirtSeated.receiveShadow = true;
-      this.skirtSeated.visible = false;
-      this.skirt.add(this.skirtSeated);
+      const rings = Array.from({ length: 10 }, (_, i) => {
+        const t = i / 9;
+        return [-t * 0.45, 0.25 + 0.13 * t, 0.2 + 0.12 * t] as [
+          number,
+          number,
+          number,
+        ];
+      });
+      const geometry = r.keep(profileGeometry(rings, 24)),
+        base = geometry.getAttribute("position");
+      geometry.morphAttributes.position = [];
+      geometry.morphAttributes.normal = [];
+      for (const hip of [0.74, 0.7]) {
+        const draped = base.clone(),
+          h = a.height ?? 1,
+          drop = (hip - (0.502 * h + 0.03)) / h;
+        for (let i = 0; i < base.count; i++) {
+          const t = -base.getY(i) / 0.45,
+            phi = ((i % 25) / 24) * Math.PI * 2,
+            front = T.MathUtils.smoothstep(Math.cos(phi), -0.15, 0.35);
+          draped.setXYZ(
+            i,
+            base.getX(i),
+            front * (0.14 - (drop + 0.06) * t) + (1 - front) * (-0.12 * t),
+            Math.cos(phi) * (0.2 + 0.12 * t + 0.18 * t * front),
+          );
+        }
+        const target = geometry.clone();
+        target.morphAttributes = {};
+        target.setAttribute("position", draped);
+        target.computeVertexNormals();
+        smoothRadialNormals(target, 24);
+        geometry.morphAttributes.position.push(draped);
+        geometry.morphAttributes.normal.push(
+          target.getAttribute("normal").clone(),
+        );
+        target.dispose();
+      }
+      const mat = r.keep(r.material(pants).clone());
+      mat.side = T.DoubleSide;
+      this.skirtStanding = new T.Mesh(geometry, mat);
+      this.skirtStanding.name = "continuous-skirt-drape";
+      this.skirtStanding.castShadow = this.skirtStanding.receiveShadow = true;
+      this.skirtStanding.userData.dynamic = true;
+      this.skirt.add(this.skirtStanding);
     }
     const hand = this.forearms[1];
     hand.add(this.cigarette);
@@ -559,7 +517,6 @@ export class SocialAvatar {
       this.smoke.push(puff);
     }
     if (this.skirtStanding) this.skirtStanding.userData.dynamic = true;
-    if (this.skirtSeated) this.skirtSeated.userData.dynamic = true;
     r.batch(this.body);
   }
   play(name: string) {
@@ -569,7 +526,7 @@ export class SocialAvatar {
     dt: number,
     moving: boolean,
     seated: boolean,
-    seatHeight = 0.68,
+    seatHeight = 0.74,
     pose?: RoomPose,
     showSmoke = true,
   ) {
@@ -587,12 +544,26 @@ export class SocialAvatar {
         ? "none"
         : this.animation;
     this.seated = T.MathUtils.lerp(this.seated, seated ? 1 : 0, alpha);
-    if (this.skirt) {
-      this.skirtStanding!.visible = this.seated < 0.5;
-      this.skirtSeated!.visible = this.seated >= 0.5;
+    if (this.skirtStanding?.morphTargetInfluences) {
+      const normalSeat = T.MathUtils.clamp((seatHeight - 0.7) / 0.04, 0, 1);
+      this.skirtStanding.morphTargetInfluences[0] = this.seated * normalSeat;
+      this.skirtStanding.morphTargetInfluences[1] =
+        this.seated * (1 - normalSeat);
     }
+    const avatarHeight = this.appearance.height ?? 1;
+    const seatedBend = Math.acos(
+      T.MathUtils.clamp(
+        (seatHeight - (0.502 * avatarHeight + 0.03)) / (0.39 * avatarHeight),
+        0.15,
+        0.95,
+      ),
+    );
     this.body.position.y =
-      this.seated * (seatHeight - 0.96) +
+      T.MathUtils.lerp(
+        -0.04 * avatarHeight,
+        seatHeight - 0.96 * avatarHeight,
+        this.seated,
+      ) +
       (!seated && moving
         ? Math.abs(Math.sin(t * 9)) * 0.025
         : Math.sin(t * 2) * 0.008);
@@ -621,7 +592,7 @@ export class SocialAvatar {
       arm.rotation.x = T.MathUtils.lerp(arm.rotation.x, target, alpha);
       arm.rotation.z = T.MathUtils.lerp(
         arm.rotation.z,
-        wave ? Math.sin(t * 8) * 0.25 : smoking ? -0.8 : i === 0 ? 0.08 : -0.08,
+        wave ? Math.sin(t * 8) * 0.25 : smoking ? -0.8 : i === 0 ? -0.16 : 0.16,
         alpha,
       );
       this.forearms[i].rotation.x = T.MathUtils.lerp(
@@ -634,7 +605,7 @@ export class SocialAvatar {
       leg.rotation.x = T.MathUtils.lerp(
         leg.rotation.x,
         seated
-          ? -Math.PI / 2
+          ? -seatedBend
           : moving
             ? Math.sin(t * 9 + i * Math.PI) * (this.skirt ? 0.35 : 0.6)
             : 0,
@@ -644,7 +615,7 @@ export class SocialAvatar {
       shin.rotation.x = T.MathUtils.lerp(
         shin.rotation.x,
         seated
-          ? Math.PI / 2
+          ? seatedBend
           : moving
             ? Math.max(0, Math.sin(t * 9 + i * Math.PI)) * 0.55
             : 0,
@@ -673,6 +644,7 @@ export class SocialAvatar {
     });
   }
   dispose() {
+    for (const skeleton of this.skeletons) skeleton.dispose();
     this.r.dispose();
     this.group.removeFromParent();
   }

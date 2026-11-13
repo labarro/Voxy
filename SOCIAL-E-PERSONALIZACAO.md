@@ -1,6 +1,6 @@
 # Personalização, amigos, chat e visualização em grade
 
-## Interface 1.3.0 em preparação
+## Interface 1.3.0 publicada
 
 A engrenagem agora abre um hub pesquisável com Conta, Perfil, Aparência, Áudio e Voz, Vídeo, Notificações, Atalhos, Salas 3D, Windows, Privacidade, Atualizações e Avançado. **Conta** reúne nome e presença; **Perfil** reúne foto/emoji, cor do nome e capa. Mudanças ficam em rascunho até **Salvar perfil e dispositivos**; **Desfazer alterações** restaura o perfil de entrada. Fechar descarta o rascunho. Teste privado e prévia de tema são locais.
 

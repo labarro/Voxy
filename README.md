@@ -9,20 +9,20 @@
 Voz, chat e compartilhamento de tela para o seu grupo de amigos.<br />
 Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu computador.
 
-![Versão 1.3.0 em preparação](https://img.shields.io/badge/vers%C3%A3o-1.3.0_em_preparacao-b6adff?style=flat-square)
+![Versão 1.3.0 publicada](https://img.shields.io/badge/vers%C3%A3o-1.3.0_publicada-b6adff?style=flat-square)
 ![Windows 10 e 11 x64](https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-4389e8?style=flat-square)
 ![WebRTC P2P](https://img.shields.io/badge/WebRTC-P2P-68d6b1?style=flat-square)
 ![Até 10 participantes](https://img.shields.io/badge/at%C3%A9-10%20participantes-c9233c?style=flat-square)
 
-[⬇ Baixar Voxy 1.2.1](https://github.com/labarro/Voxy/releases/download/v1.2.1/Voxy-Setup-1.2.1-x64.exe) · [Instalar e conectar](INSTALACAO-E-CONEXAO.md) · [Atualizar o Voxy](GUIA-DE-ATUALIZACAO.md) · [Desenvolvimento](#desenvolvimento) · [Documentação](#documentação)
+[⬇ Baixar Voxy 1.3.0](https://github.com/labarro/Voxy/releases/download/v1.3.0/Voxy-Setup-1.3.0-x64.exe) · [Instalar e conectar](INSTALACAO-E-CONEXAO.md) · [Atualizar o Voxy](GUIA-DE-ATUALIZACAO.md) · [Desenvolvimento](#desenvolvimento) · [Documentação](#documentação)
 
 </div>
 
 ---
 
-## Novidades na versão 1.3.0 em preparação
+## Novidades na versão 1.3.0 publicada
 
-**Código em preparação: 1.3.0. Última versão publicada: 1.2.1.** Lançamento autorizado, em validação. O download permanece na release existente até verificar os arquivos novos.
+**Versão do código e última versão publicada: 1.3.0.** A [release 1.3.0](https://github.com/labarro/Voxy/releases/tag/v1.3.0) foi publicada pelo [workflow](https://github.com/labarro/Voxy/actions/runs/43512912215). Os cinco arquivos foram baixados; assinatura Ed25519, SHA-512, SHA-256, notas e endpoint público foram conferidos. [Evidência](evidence/publication-1.3.0.json).
 
 Launcher, navegação e chat foram redesenhados em uma identidade de ardósia e azul mineral. Entrar e hospedar têm caminhos distintos; servidores recentes, filtro de canais e destinos identificados ajudam a retomar uma conversa.
 

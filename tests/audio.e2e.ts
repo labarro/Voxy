@@ -104,6 +104,7 @@ async function main() {
     await b.getByText("Teste local ativo", { exact: false }).waitFor();
     await b.waitForFunction(() => (window as any).captures.length === 1);
     await b.screenshot({ path: "test-results/audio-microphone.png" });
+    await b.getByRole("button", { name: "Processamento", exact: true }).click();
     await b.getByLabel("Supressão de ruído", { exact: true }).uncheck();
     await b.getByLabel("Cancelamento de eco", { exact: true }).uncheck();
     await b.waitForFunction(() => {
@@ -114,6 +115,7 @@ async function main() {
         c.at(-1).constraints.audio.echoCancellation === false
       );
     });
+    await b.getByRole("button", { name: "Sensibilidade", exact: true }).click();
     await b.getByLabel("Volume de entrada", { exact: true }).fill("0.8");
     await b
       .getByRole("button", { name: "Parar teste do microfone", exact: true })

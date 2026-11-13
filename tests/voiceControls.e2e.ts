@@ -154,7 +154,7 @@ async function main() {
     await page.waitForFunction(
       () =>
         getComputedStyle(document.querySelector(".window-titlebar")!)
-          .backgroundColor === "rgb(20, 16, 25)",
+          .backgroundColor === "rgb(24, 21, 31)",
     );
     await page.screenshot({ path: join(root, "kuromi-titlebar.png") });
     await app.evaluate(({ BrowserWindow }) =>

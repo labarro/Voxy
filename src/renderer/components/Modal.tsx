@@ -4,10 +4,12 @@ export function Modal({
   title,
   close,
   children,
+  variant = "standard",
 }: {
   title: string;
   close: () => void;
   children: ReactNode;
+  variant?: "standard" | "hub";
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -17,6 +19,8 @@ export function Modal({
   return (
     <dialog
       ref={ref}
+      className={variant === "hub" ? "hub-dialog" : undefined}
+      aria-label={title}
       onCancel={(e) => {
         e.preventDefault();
         close();
@@ -25,7 +29,7 @@ export function Modal({
         if (e.target === e.currentTarget) close();
       }}
     >
-      <header>
+      <header className="dialog-heading">
         <h2>{title}</h2>
         <button title="Fechar" onClick={close}>
           <X size={20} />

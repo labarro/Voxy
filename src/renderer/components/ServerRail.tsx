@@ -65,6 +65,7 @@ export function ServerRail({
         onClick={() => navigate("home")}
       >
         <AudioLines size={28} />
+        <span className="rail-caption">Início</span>
       </button>
       <button
         className={"rail-action " + (page === "dm" ? "selected" : "")}
@@ -74,6 +75,7 @@ export function ServerRail({
         onClick={() => navigate("dm")}
       >
         <MessageCircle />
+        <span className="rail-caption">Conversas</span>
         {unread > 0 && (
           <span
             className="unread-badge rail-unread"
@@ -86,10 +88,12 @@ export function ServerRail({
       <button
         className={"rail-action " + (page === "news" ? "selected" : "")}
         title="Novidades do Voxy"
+        aria-label="Novidades do Voxy"
         aria-current={page === "news" ? "page" : undefined}
         onClick={() => navigate("news")}
       >
         <Megaphone />
+        <span className="rail-caption">Novidades</span>
       </button>
       <button
         className={"rail-action " + (page === "friends" ? "selected" : "")}
@@ -99,6 +103,7 @@ export function ServerRail({
         onClick={() => navigate("friends")}
       >
         <Users />
+        <span className="rail-caption">Amigos</span>
         {(room.friendships || []).some((f) => f.status === "pending") && (
           <i className="status-dot" />
         )}
@@ -114,6 +119,7 @@ export function ServerRail({
         onClick={() => navigate("notifications")}
       >
         <Bell />
+        <span className="rail-caption">Avisos</span>
         {notifications > 0 && (
           <span className="unread-badge rail-unread">
             {notifications > 99 ? "99+" : notifications}

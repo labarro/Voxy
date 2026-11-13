@@ -605,7 +605,7 @@ app.whenReady().then(async () => {
     icon: identity.icon,
     show: !startHidden(process.argv),
     titleBarStyle: "hidden",
-    titleBarOverlay: { color: "#171c28", symbolColor: "#e7edf9", height: 36 },
+    titleBarOverlay: { color: "#141e26", symbolColor: "#e7edf9", height: 36 },
     autoHideMenuBar: true,
     webPreferences: {
       preload: join(__dirname, "../preload/index.cjs"),

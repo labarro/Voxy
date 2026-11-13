@@ -1,0 +1,1098 @@
+{
+  "version": "1.3.0",
+  "checkedAt": "2026-11-13T21:40:52.203Z",
+  "status": "validated locally; publication proof recorded separately",
+  "unitTests": {
+    "passed": 62,
+    "failed": 0
+  },
+  "build": "passed; lazy Three.js chunk size warning retained",
+  "packagedBuild": {
+    "version": "1.3.0",
+    "directory": "C:\\projects\\Voxy\\release\\1.3.0\\build-1794605924808"
+  },
+  "uiDevelopment": {
+    "packed": false,
+    "errors": [],
+    "checks": [
+      "draft isolation, undo across categories, discard on close, theme preview without saving",
+      "all twelve settings pages, searchable navigation, persistent footer at 900/1024/1440 widths",
+      "launcher host/join, real two-client synchronization, seven admin pages, roles, server image upload, inline channel creation, confirmed deletion, rename, 3D selection and participant permissions",
+      "channel filtering, chat send/receive and responsive shell",
+      "all four saved themes across shell and settings; official Kuromi images decoded offline, pink palette, themed administration, reduced-motion effects"
+    ],
+    "layouts": [
+      {
+        "name": "Conta",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Perfil",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Aparência",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Áudio e Voz",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Vídeo",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Notificações",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Atalhos",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Salas 3D",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Windows",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Privacidade",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Atualizações",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Avançado",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "audio-1024",
+        "width": 1024,
+        "height": 720,
+        "dialog": [
+          20,
+          30,
+          1004,
+          690
+        ],
+        "footer": [
+          612,
+          689
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "audio-900",
+        "width": 900,
+        "height": 640,
+        "dialog": [
+          20,
+          14,
+          880,
+          626
+        ],
+        "footer": [
+          547.703125,
+          625
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Geral",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Imagem",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Cargos",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Canais de texto",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Salas de voz",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Ambientes 3D",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Convites",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Oceano preview",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Bosque preview",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Voxy preview",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Kuromi preview",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Kuromi audio",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Kuromi admin",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      }
+    ]
+  },
+  "uiPackaged": {
+    "packed": true,
+    "errors": [],
+    "checks": [
+      "draft isolation, undo across categories, discard on close, theme preview without saving",
+      "all twelve settings pages, searchable navigation, persistent footer at 900/1024/1440 widths",
+      "launcher host/join, real two-client synchronization, seven admin pages, roles, server image upload, inline channel creation, confirmed deletion, rename, 3D selection and participant permissions",
+      "channel filtering, chat send/receive and responsive shell",
+      "all four saved themes across shell and settings; official Kuromi images decoded offline, pink palette, themed administration, reduced-motion effects"
+    ],
+    "layouts": [
+      {
+        "name": "Conta",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Perfil",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Aparência",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Áudio e Voz",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Vídeo",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Notificações",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Atalhos",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Salas 3D",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Windows",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Privacidade",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Atualizações",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Avançado",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "audio-1024",
+        "width": 1024,
+        "height": 720,
+        "dialog": [
+          20,
+          30,
+          1004,
+          690
+        ],
+        "footer": [
+          612,
+          689
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "audio-900",
+        "width": 900,
+        "height": 640,
+        "dialog": [
+          20,
+          14,
+          880,
+          626
+        ],
+        "footer": [
+          547.703125,
+          625
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Geral",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Imagem",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Cargos",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Canais de texto",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Salas de voz",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Ambientes 3D",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Convites",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Oceano preview",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Bosque preview",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Voxy preview",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Kuromi preview",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Kuromi audio",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      },
+      {
+        "name": "Kuromi admin",
+        "width": 1440,
+        "height": 960,
+        "dialog": [
+          160,
+          70,
+          1280,
+          890
+        ],
+        "footer": [
+          812,
+          889
+        ],
+        "horizontalOverflow": 0,
+        "contentOverflow": 0,
+        "navOverflow": 0
+      }
+    ]
+  },
+  "roomsPackaged": {
+    "errors": [],
+    "checks": [
+      "two Electron clients",
+      "pool join/aim/power/shot UI and identical authoritative results",
+      "virtual cigarette pose received by the other client",
+      "native background rendering suspension with call preserved",
+      "profile persistence",
+      "host preset UI",
+      "automatic 3D entry",
+      "remote occupancy",
+      "movement",
+      "view switching without new microphone capture",
+      "mute",
+      "deafen",
+      "remote WebRTC video decoded in TV and expanded player",
+      "direct 3D settings shortcut",
+      "character creator apply without microphone recapture",
+      "extended avatar styles synchronized to the other client",
+      "room fullscreen and native Escape",
+      "watch camera and transmission fullscreen",
+      "live preset change"
+    ]
+  },
+  "ux": {
+    "date": "2026-11-13T21:29:57.619Z",
+    "results": [
+      "Imagem do servidor preenche o botão inteiro com object-fit cover, sem padding interno.",
+      "Novidades → mesmo canal, outro canal e Home → canal funcionam em um clique e sem seleção presa.",
+      "Tentar um servidor salvo indisponível preserva a conexão e a chamada atuais.",
+      "Online, Ausente e Ocupado salvos e propagados aos participantes sem interromper a voz.",
+      "DM entregue só ao destinatário; notificação e badge de não lidas aparecem e zeram ao abrir; voz permanece ativa na navegação.",
+      "Ocupado mantém o badge sem popup; voltar a Online não reapresenta o aviso silenciado.",
+      "Imagens, edição e exclusão funcionam em DMs; terceiro cliente não pode buscar a imagem privada.",
+      "Reabertura preserva identidade e histórico; reconexão pela lateral entrega mensagem recebida enquanto o destinatário estava offline.",
+      "Host offline mantém DMs legíveis e recentes na lateral; compositor desativado e disponibilidade visual correta em 900×620."
+    ]
+  },
+  "audio": {
+    "date": "2026-11-13T21:30:35.483Z",
+    "results": [
+      "Teste privado antes da chamada, troca de processamento, preferências salvas e liberação de todas as capturas.",
+      "Link de mensagem e crédito encaminhados ao navegador via IPC; URL file bloqueada. A chamada do shell foi interceptada somente no teste.",
+      "Teste durante chamada pausa o envio e fechar configurações restaura o estado anterior.",
+      "Menu contextual compacto, volume 200% persistido, mute individual e fechamento fora/Escape.",
+      "Queda TCP real restaura servidor e canal de voz automaticamente, sem duplicação e mantendo perfil/volume.",
+      "Saída voluntária cancela reconexão; indisponibilidade prolongada encerra em cinco tentativas e não volta sozinha."
+    ],
+    "errors": []
+  },
+  "controls": {
+    "errors": [],
+    "checks": "Combinação, Mouse4, segundo plano, segurar sem repetir, restauração do mute, Deafen, Kuromi, maximizar/restaurar."
+  },
+  "system": {
+    "checks": "Menção, reply, DM, amizades, notificação nativa instrumentada, navegação à mensagem, leitura, persistência, PiP nativo, bandeja, chamada preservada, fim de câmera fecha PiP.",
+    "errors": []
+  },
+  "social": {
+    "passed": true,
+    "clients": 3,
+    "evidence": "test-results/social-1794605790910",
+    "checks": "themes, cover, roles, profile, friends, private call, mentions, replies, reactions, search and DM"
+  },
+  "assets": {
+    "source": "https://www.sanrio.co.jp/characters/kuromi/",
+    "files": [
+      "portrait.png",
+      "gallery.png"
+    ],
+    "delivery": "local PNGs, decoded inside packaged file protocol; copyright SANRIO CO., LTD."
+  },
+  "limits": [
+    "No two physical PCs over VPN",
+    "No human acoustic evaluation or physical microphone certification",
+    "No integrated GPU or prolonged endurance/performance benchmark",
+    "No personal NSIS installation",
+    "Window minimum is desktop size; no phone layout claim"
+  ],
+  "iterations": [
+    "Initial host attempt found existing port in use; test switched to isolated loopback port",
+    "Server image fill regression from new border fixed using inset border",
+    "News accessible name preserved after adding visual captions",
+    "Audio sections split and inherited vertical search layout corrected",
+    "Global controls color expectation updated for new Kuromi palette"
+  ]
+}

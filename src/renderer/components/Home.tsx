@@ -6,9 +6,13 @@ import {
   RefreshCw,
   Trash2,
   History,
+  ArrowUpRight,
+  Link,
+  ShieldCheck,
 } from "lucide-react";
 import type { RoomAvailability } from "../../shared/types";
 import type { SavedRoomsView } from "../hooks/useSavedRooms";
+import { KuromiMark, KuromiArtwork } from "./Personalization";
 const labels: Record<RoomAvailability["status"], string> = {
   available: "Disponível",
   unavailable: "Fora de alcance",
@@ -22,44 +26,97 @@ export function Home({
   join,
   reconnect,
   saved,
+  theme,
 }: {
   saved: SavedRoomsView;
   busy: boolean;
   host: () => void;
   join: () => void;
   reconnect: (id: string) => void;
+  theme?: string;
 }) {
   const { rooms, states, checking, error, refresh, remove } = saved;
   const [actionError, setError] = useState("");
   return (
     <div className="home-view">
-      <section className="welcome">
-        <div className="welcome-art">
-          <AudioLines size={70} />
-          <span className="orbit one" />
-          <span className="orbit two" />
+      <section className="launcher-intro">
+        <div className="launcher-copy">
+          <span className="launcher-signal">
+            {theme === "kuromi" ? <KuromiMark /> : <AudioLines size={18} />} Um
+            espaço para o seu grupo
+          </span>
+          <h1>
+            Seu grupo.
+            <br />
+            Sua frequência.
+          </h1>
+          <p>
+            Tem conversa que merece continuar.
+            <br />
+            Encontre seus amigos na voz, compartilhe a tela
+            <br className="wide-break" /> ou passe um tempo na sala 3D.
+          </p>
+          <svg
+            className="frequency-art"
+            viewBox="0 0 480 80"
+            role="img"
+            aria-label="Ondas de uma conversa"
+          >
+            <path
+              d="M0 40H35L42 28 49 52 56 40H79L87 12 95 68 103 26 111 54 119 40H151L159 31 167 49 175 40H209L217 6 225 74 233 19 241 61 249 30 257 50 265 40H302L310 23 318 57 326 34 334 46 342 40H375L383 16 391 64 399 29 407 51 415 40H480"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinejoin="round"
+            />
+            <circle cx="225" cy="40" r="4" fill="var(--signal-warm)" />
+          </svg>
         </div>
-        <h1>
-          Seu grupo.
-          <br />
-          Sua frequência.
-        </h1>
-        <p>
-          Voz, câmera e tela para estar junto.
-          <br />
-          Uma sala no seu computador, um convite para os amigos.
-        </p>
-        <div className="welcome-actions">
-          <button className="primary" disabled={busy} onClick={host}>
-            <Radio size={18} /> Hospedar sala
+        <div className="launcher-actions">
+          {theme === "kuromi" && (
+            <div className="kuromi-feature">
+              <KuromiArtwork />
+              <div>
+                <span className="kuromi-feature-title">Do seu jeito.</span>
+                <p>
+                  Um pouco de atitude.
+                  <br />
+                  Um lugar para os seus.
+                </p>
+                <small>Arte © SANRIO</small>
+              </div>
+              <span className="kuromi-sparkle one" aria-hidden="true">
+                ✦
+              </span>
+              <span className="kuromi-sparkle two" aria-hidden="true">
+                ✧
+              </span>
+            </div>
+          )}
+          <button className="launcher-action" disabled={busy} onClick={join}>
+            <span className="launcher-action-icon">
+              <LogIn size={23} />
+            </span>
+            <span>
+              <strong>Entrar em sala</strong>
+              <small>Já tem um convite? Seu lugar está aqui.</small>
+            </span>
+            <ArrowUpRight size={20} />
           </button>
-          <button className="secondary" disabled={busy} onClick={join}>
-            <LogIn size={18} /> Entrar em sala
+          <button className="launcher-action" disabled={busy} onClick={host}>
+            <span className="launcher-action-icon warm">
+              <Radio size={23} />
+            </span>
+            <span>
+              <strong>Hospedar sala</strong>
+              <small>Abra um espaço e chame seus amigos.</small>
+            </span>
+            <PlusMark />
           </button>
+          <p className="launcher-network">
+            <ShieldCheck size={16} /> Na mesma rede Radmin VPN, entre amigos.
+          </p>
         </div>
-        <small>
-          Conecte os computadores ao Radmin VPN para entrar em uma sala.
-        </small>
       </section>
       <section className="recent-section">
         <header>
@@ -84,10 +141,22 @@ export function Home({
           </p>
         )}
         {!rooms.length && (
-          <p className="recent-empty">
-            Conecte-se a uma sala para salvá-la aqui. Os próximos acessos ficam
-            a um clique.
-          </p>
+          <div className="recent-empty">
+            <span className="empty-link">
+              <Link size={24} />
+            </span>
+            <div>
+              <h3>A próxima conversa começa aqui</h3>
+              <p>
+                Entre com um convite ou hospede sua sala.
+                <br />
+                Seus servidores ficam salvos para voltar depois.
+              </p>
+            </div>
+            <button className="secondary" onClick={join} disabled={busy}>
+              Usar um convite
+            </button>
+          </div>
         )}
         <div className="recent-list">
           {rooms.map((room) => {
@@ -145,5 +214,12 @@ export function Home({
         )}
       </section>
     </div>
+  );
+}
+function PlusMark() {
+  return (
+    <span className="launcher-plus" aria-hidden="true">
+      +
+    </span>
   );
 }

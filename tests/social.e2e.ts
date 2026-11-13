@@ -16,14 +16,12 @@ async function main() {
   const metrics: Record<string, unknown> = {};
   const measure = async (app: ElectronApplication) =>
     await app.evaluate(({ app }) =>
-      app
-        .getAppMetrics()
-        .map((p) => ({
-          type: p.type,
-          cpu: p.cpu.percentCPUUsage,
-          workingSetKB: p.memory.workingSetSize,
-          peakWorkingSetKB: p.memory.peakWorkingSetSize,
-        })),
+      app.getAppMetrics().map((p) => ({
+        type: p.type,
+        cpu: p.cpu.percentCPUUsage,
+        workingSetKB: p.memory.workingSetSize,
+        peakWorkingSetKB: p.memory.peakWorkingSetSize,
+      })),
     );
   const ids = [randomUUID(), randomUUID(), randomUUID()];
   async function settings(page: Page, category = "Conta") {
@@ -84,7 +82,7 @@ async function main() {
       });
     }
     const [a, b, c] = pages;
-    await settings(b, "Conta");
+    await settings(b, "Perfil");
     await b.getByLabel("Cor do nickname", { exact: true }).fill("#ee88cc");
     const banner = await b.evaluate(() => {
       const canvas = document.createElement("canvas");
@@ -97,13 +95,11 @@ async function main() {
       ctx.fillRect(600, 0, 600, 500);
       return canvas.toDataURL();
     });
-    await b
-      .getByLabel("Arquivo de capa do perfil")
-      .setInputFiles({
-        name: "capa.png",
-        mimeType: "image/png",
-        buffer: Buffer.from(banner.split(",")[1], "base64"),
-      });
+    await b.getByLabel("Arquivo de capa do perfil").setInputFiles({
+      name: "capa.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(banner.split(",")[1], "base64"),
+    });
     await b
       .getByRole("button", { name: "Alterar capa", exact: true })
       .waitFor();
@@ -128,6 +124,10 @@ async function main() {
     await a.locator(".member-row").filter({ hasText: "Bruno" }).waitFor();
     await a
       .getByRole("button", { name: "Gerenciar servidor e canais" })
+      .click();
+    await a
+      .locator(".hub-nav")
+      .getByRole("button", { name: "Cargos", exact: true })
       .click();
     await a.getByLabel("Nome do cargo", { exact: true }).fill("Moderadores");
     await a.getByLabel("Cor de identificação", { exact: true }).fill("#99bbff");
@@ -247,7 +247,7 @@ async function main() {
     await a
       .getByRole("button", { name: "Enviar mensagem", exact: true })
       .click();
-    await settings(b, "Conta");
+    await settings(b, "Perfil");
     await b.getByRole("button", { name: "Remover capa", exact: true }).click();
     await save(b);
     assert.equal((await b.evaluate(() => window.voxy.profile())).banner, "");

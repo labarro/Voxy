@@ -1,4 +1,31 @@
 {
+  "1.3.0": {
+    "date": "2026-11-13",
+    "title": "Um novo espaço para as suas conversas",
+    "items": [
+      "Interface principal redesenhada com superfícies de ardósia, azul mineral e nova hierarquia de navegação.",
+      "Configurações em um hub pesquisável, com rascunho, desfazer e ações sempre acessíveis.",
+      "Administração organizada por geral, imagem, cargos, canais, ambientes e convites."
+    ],
+    "features": [
+      "Busca de seções nas configurações e na administração; filtro de canais na barra lateral.",
+      "Configurações com rascunho local e opção de desfazer antes de aplicar."
+    ],
+    "improvements": [
+      "Launcher com caminhos distintos para entrar e hospedar, histórico e orientação de conexão.",
+      "Configurações separadas em Conta, Perfil, Aparência, Áudio e Voz, Vídeo, Notificações, Atalhos, Salas 3D, Windows, Privacidade, Atualizações e Avançado.",
+      "Gerenciamento com páginas por tarefa e conteúdo rolável independente da navegação.",
+      "Sistema visual compartilhado de superfícies, tipografia, controles, foco, menus, mensagens e indicadores.",
+      "Chat com melhor hierarquia de autoria, horário, respostas, reações, busca e composição.",
+      "Layouts adaptados à largura e à altura disponíveis e respeito à preferência de movimento reduzido.",
+      "Temas Voxy, Oceano, Bosque e Kuromi adaptados ao novo sistema; Kuromi com rosa luminoso, ilustrações da Sanrio e efeitos breves de hover."
+    ],
+    "fixes": [
+      "Editar e fechar as configurações não deixa um perfil parcialmente alterado em uso.",
+      "Ações de salvar permanecem acessíveis sem percorrer formulários longos.",
+      "Textos e botões preservam contraste com os temas e com acentos personalizados escuros."
+    ]
+  },
   "1.2.1": {
     "date": "2026-11-12",
     "title": "Personagens reconstruídos, interiores completos",

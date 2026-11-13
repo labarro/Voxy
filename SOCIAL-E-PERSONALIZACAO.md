@@ -1,14 +1,20 @@
 # Personalização, amigos, chat e visualização em grade
 
+## Interface 1.3.0 em preparação
+
+A engrenagem agora abre um hub pesquisável com Conta, Perfil, Aparência, Áudio e Voz, Vídeo, Notificações, Atalhos, Salas 3D, Windows, Privacidade, Atualizações e Avançado. **Conta** reúne nome e presença; **Perfil** reúne foto/emoji, cor do nome e capa. Mudanças ficam em rascunho até **Salvar perfil e dispositivos**; **Desfazer alterações** restaura o perfil de entrada. Fechar descarta o rascunho. Teste privado e prévia de tema são locais.
+
+Os quatro temas acompanham o novo sistema; o Kuromi recebe rosa luminoso, arte da Sanrio e efeitos breves ao interagir, sem movimento contínuo no chat. Em **Gerenciar servidor e canais**, escolha a seção **Cargos**, **Imagem**, **Canais de texto**, **Salas de voz**, **Ambientes 3D** ou **Convites**. Criar canais acontece dentro da página. As ações administrativas são imediatas e continuam sujeitas às permissões existentes. [Design e estrutura](DESIGN-SYSTEM.md).
+
 A **0.8.0 publicada** acrescenta notificações de menções, respostas, DMs e amizades, controles de leitura, PiP e bandeja. Veja [Notificações, PiP e Windows](NOTIFICACOES-E-WINDOWS.md). A descrição abaixo registra a base introduzida na 0.7.0; as configurações agora também incluem **Windows**.
 
 As funcionalidades deste guia foram introduzidas na **0.7.0** e continuam na **0.8.0**. Para compartilhar os recursos atuais, host e participantes precisam atualizar para 0.8.0. A distribuição e o Actions da release estão indicados no README.
 
 ## Configurações e identidade
 
-A engrenagem abre as categorias **Conta**, **Áudio e Voz**, **Vídeo**, **Aparência**, **Atalhos** e **Notificações**. Salve para persistir as alterações no perfil deste computador.
+A lista abaixo descreve as funcionalidades introduzidas na 0.7.0. Na 1.3.0, use a organização do hub indicada acima; as funcionalidades foram preservadas.
 
-- **Conta:** avatar, nome, presença, cor do nickname e capa. A capa aceita PNG, JPEG ou WebP de até 5 MB e recebe recorte central, sem distorção, de 960 × 360 px. É reduzida para até 128 KB; pode ser substituída ou removida.
+- **Conta e Perfil:** nome/presença em Conta; avatar, cor do nickname e capa em Perfil. A capa aceita PNG, JPEG ou WebP de até 5 MB e recebe recorte central, sem distorção, de 960 × 360 px. É reduzida para até 128 KB; pode ser substituída ou removida.
 - **Aparência:** temas Voxy, Oceano, Bosque e Kuromi, com cor principal opcional. O tema Kuromi usa preto, roxo e rosa, com um emblema ilustrado inspirado no capuz e na caveira da personagem.
 - **Áudio e Voz:** captura mono e normalização nativa de voz ativadas por padrão, supressão de ruído, cancelamento de eco, teste privado e sensibilidade. O volume manual permanece em 100%, com proteção contra picos. Desative a normalização se seu equipamento já aplicar processamento incompatível.
 - **Atalhos:** ativação e tecla do Push-to-Talk. Microfone cortado significa mute manual ou teste privado; teclado âmbar significa PTT aguardando; microfone verde significa atividade de voz.

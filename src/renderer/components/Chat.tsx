@@ -11,6 +11,9 @@ import {
   Maximize,
   Pencil,
   Trash2,
+  Search,
+  CornerUpLeft,
+  SmilePlus,
 } from "lucide-react";
 import type { Message } from "../../shared/types";
 import { MAX_IMAGE_BYTES } from "../../shared/constants";
@@ -238,6 +241,7 @@ function ChatView({
           void history.find();
         }}
       >
+        <Search size={16} aria-hidden="true" />
         <input
           aria-label="Buscar no histórico"
           placeholder="Buscar mensagens antigas"
@@ -345,7 +349,7 @@ function ChatView({
                       composer.current?.focus();
                     }}
                   >
-                    Responder
+                    <CornerUpLeft size={16} />
                   </button>
                   {onReact && (
                     <button
@@ -356,7 +360,7 @@ function ChatView({
                         setReacting(reacting === m.id ? null : m.id)
                       }
                     >
-                      ☺
+                      <SmilePlus size={16} />
                     </button>
                   )}
                 </span>

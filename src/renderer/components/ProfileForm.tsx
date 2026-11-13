@@ -1,17 +1,118 @@
 import { RoomSettings } from "../room3d/RoomSettings";
 import type { Profile, RoomState } from "../../shared/types";
 import { NotificationSettings } from "./NotificationSettings";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Avatar } from "./Avatar";
 import { PTT_KEYS, isPttKey, shortcutConflict } from "../../shared/preferences";
 import { ShortcutPicker } from "./ShortcutPicker";
 import { MicrophonePreview } from "./MicrophonePreview";
-import { BannerPicker, ThemePicker } from "./Personalization";
+import {
+  BannerPicker,
+  ThemePicker,
+  themeVariables,
+  KuromiArtwork,
+} from "./Personalization";
 import { Updates } from "./Updates";
+import {
+  UserRound,
+  Fingerprint,
+  Palette,
+  AudioLines,
+  Video,
+  Bell,
+  Keyboard,
+  Monitor,
+  ShieldCheck,
+  Box,
+  Download,
+  Activity,
+  Undo2,
+} from "lucide-react";
+import { HubNavigation, type HubPage } from "./HubNavigation";
+const settingsPages: HubPage[] = [
+  {
+    id: "Conta",
+    group: "Você no Voxy",
+    icon: Fingerprint,
+    description: "Nome de exibição e presença na sua rede.",
+  },
+  {
+    id: "Perfil",
+    group: "Você no Voxy",
+    icon: UserRound,
+    description: "Foto, identificação e capa do seu perfil.",
+    keywords: "avatar banner nickname",
+  },
+  {
+    id: "Aparência",
+    group: "Você no Voxy",
+    icon: Palette,
+    description: "Escolha as superfícies e a cor que acompanham você.",
+    keywords: "tema cores",
+  },
+  {
+    id: "Áudio e Voz",
+    group: "Sua experiência",
+    icon: AudioLines,
+    description: "Dispositivos, sensibilidade e processamento do microfone.",
+    keywords: "saída volume eco ruído",
+  },
+  {
+    id: "Vídeo",
+    group: "Sua experiência",
+    icon: Video,
+    description: "Escolha a webcam para suas próximas chamadas.",
+    keywords: "câmera",
+  },
+  {
+    id: "Notificações",
+    group: "Sua experiência",
+    icon: Bell,
+    description: "Decida quando e como o Voxy chama sua atenção.",
+    keywords: "sons menções não perturbe",
+  },
+  {
+    id: "Atalhos",
+    group: "Sua experiência",
+    icon: Keyboard,
+    description: "Seu microfone e seus controles a uma tecla de distância.",
+    keywords: "ptt mute deafen",
+  },
+  {
+    id: "Salas 3D",
+    group: "Sua experiência",
+    icon: Box,
+    description: "Personagem, renderização e voz por proximidade.",
+    keywords: "cabelo sinuca câmera fumaça",
+  },
+  {
+    id: "Windows",
+    group: "Aplicativo",
+    icon: Monitor,
+    description: "Inicialização e comportamento na bandeja.",
+  },
+  {
+    id: "Privacidade",
+    group: "Aplicativo",
+    icon: ShieldCheck,
+    description: "Entenda onde ficam seus dados e o que é compartilhado.",
+  },
+  {
+    id: "Atualizações",
+    group: "Aplicativo",
+    icon: Download,
+    description: "Versão instalada, atualização e backup.",
+  },
+  {
+    id: "Avançado",
+    group: "Aplicativo",
+    icon: Activity,
+    description: "Diagnóstico de conexão e suporte à rede privada.",
+  },
+];
 const avatars = ["🪻", "🦊", "🐳", "🪐", "🐸", "🍄", "🌙", "🎧", "👴"];
 export function ProfileForm({
-  profile,
-  setProfile,
+  profile: original,
   devices,
   busy,
   onSave,
@@ -22,12 +123,12 @@ export function ProfileForm({
   scope,
   initialCategory = "Conta",
   onCustomize,
+  onDiagnostics,
 }: {
   profile: Profile;
-  setProfile: (profile: Profile) => void;
   devices: MediaDeviceInfo[];
   busy: boolean;
-  onSave: () => void;
+  onSave: (profile: Profile) => void;
   inputLevel?: number;
   presenceSupported?: boolean;
   onMicrophoneTest: (active: boolean) => void;
@@ -35,8 +136,18 @@ export function ProfileForm({
   scope?: string;
   initialCategory?: string;
   onCustomize?: () => void;
+  onDiagnostics?: () => void;
 }) {
+  const [profile, setProfile] = useState(original);
+  const dirty = JSON.stringify(profile) !== JSON.stringify(original);
+  const content = useRef<HTMLDivElement>(null);
   const [category, setCategory] = useState(initialCategory);
+  useEffect(() => {
+    content.current?.scrollTo(0, 0);
+  }, [category]);
+  const currentPage =
+    settingsPages.find((p) => p.id === category) || settingsPages[0];
+  const [audioPage, setAudioPage] = useState("Dispositivos");
   const [recording, setRecording] = useState(false);
   const [shortcutRecording, setShortcutRecording] = useState(false);
   const conflict = shortcutConflict(profile);
@@ -95,6 +206,8 @@ export function ProfileForm({
   return (
     <form
       className="settings-form"
+      data-preview-theme={profile.theme || "voxy"}
+      style={themeVariables(profile)}
       onSubmit={(e) => {
         e.preventDefault();
         if (
@@ -105,35 +218,28 @@ export function ProfileForm({
           conflict
         )
           return;
-        onSave();
+        onSave(profile);
       }}
     >
-      <nav className="settings-nav" aria-label="Categorias de configurações">
-        {[
-          "Conta",
-          "Áudio e Voz",
-          "Vídeo",
-          "Aparência",
-          "Atalhos",
-          "Notificações",
-          "Windows",
-          "Salas 3D",
-        ].map((item) => (
-          <button
-            type="button"
-            key={item}
-            aria-current={category === item ? "page" : undefined}
-            onClick={() => {
-              setCategory(item);
-              setRecording(false);
-            }}
-          >
-            {item}
-          </button>
-        ))}
-      </nav>
-      <div className="settings-content">
-        <h3>{category}</h3>
+      <HubNavigation
+        pages={settingsPages}
+        active={category}
+        change={(item) => {
+          setCategory(item);
+          setRecording(false);
+        }}
+        label="Categorias de configurações"
+      />
+      <div className="settings-content" ref={content}>
+        <header className="hub-page-heading">
+          <span className="hub-page-icon">
+            <currentPage.icon size={22} />
+          </span>
+          <div>
+            <h3>{category}</h3>
+            <p>{currentPage.description}</p>
+          </div>
+        </header>
         <section hidden={category !== "Salas 3D"}>
           <RoomSettings
             profile={profile}
@@ -178,6 +284,15 @@ export function ProfileForm({
               avisos de novas DMs.
             </small>
           </label>
+        </section>
+        <section hidden={category !== "Perfil"}>
+          <div className="profile-preview">
+            <Avatar avatar={profile.avatar} className="large-avatar" />
+            <div>
+              <h3>{profile.name}</h3>
+              <p>Sua identidade nas conversas.</p>
+            </div>
+          </div>
           <div className="avatar-picker">
             {avatars.map((a) => (
               <button
@@ -249,7 +364,6 @@ export function ProfileForm({
             value={profile.banner || ""}
             change={(banner) => setProfile({ ...profile, banner })}
           />
-          <Updates />
         </section>
         <section hidden={category !== "Atalhos"}>
           <ShortcutPicker
@@ -446,149 +560,180 @@ export function ProfileForm({
           {keyError && <p role="alert">{keyError}</p>}
         </section>
         <section hidden={category !== "Áudio e Voz"}>
-          <fieldset className="audio-processing">
-            <legend>Processamento do microfone</legend>
+          <div className="audio-page-tabs" aria-label="Seções de áudio">
+            {["Dispositivos", "Processamento", "Sensibilidade"].map((item) => (
+              <button
+                type="button"
+                key={item}
+                aria-pressed={audioPage === item}
+                onClick={() => setAudioPage(item)}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+          <div className="audio-page" hidden={audioPage !== "Dispositivos"}>
+            {" "}
+            <label>
+              Microfone
+              <select
+                value={profile.input}
+                onChange={(e) =>
+                  setProfile({ ...profile, input: e.target.value })
+                }
+              >
+                <option value="">Padrão do sistema</option>
+                {devices
+                  .filter((d) => d.kind === "audioinput")
+                  .map((d, i) => (
+                    <option key={d.deviceId || i} value={d.deviceId}>
+                      {d.label || "Microfone " + (i + 1)}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label>
+              Saída de áudio
+              <select
+                value={profile.output}
+                onChange={(e) =>
+                  setProfile({ ...profile, output: e.target.value })
+                }
+              >
+                <option value="">Padrão do sistema</option>
+                {devices
+                  .filter((d) => d.kind === "audiooutput")
+                  .map((d, i) => (
+                    <option key={d.deviceId || i} value={d.deviceId}>
+                      {d.label || "Saída " + (i + 1)}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <p className="hint">
+              Os nomes dos dispositivos aparecem após permitir o microfone.
+              Mudanças são aplicadas ao salvar.
+            </p>
+          </div>
+          <div className="audio-page" hidden={audioPage !== "Processamento"}>
+            {" "}
+            <fieldset className="audio-processing">
+              <legend>Processamento do microfone</legend>
+              <label className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={profile.noiseSuppression !== false}
+                  onChange={(e) =>
+                    setProfile({
+                      ...profile,
+                      noiseSuppression: e.target.checked,
+                    })
+                  }
+                />
+                Supressão de ruído
+              </label>
+              <label className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={profile.echoCancellation !== false}
+                  onChange={(e) =>
+                    setProfile({
+                      ...profile,
+                      echoCancellation: e.target.checked,
+                    })
+                  }
+                />
+                Cancelamento de eco
+              </label>
+              <small>
+                Processamento nativo do Chromium, conforme suporte do
+                dispositivo. Ajuste automático de voz conforme suporte do
+                dispositivo.
+              </small>
+            </fieldset>
             <label className="checkbox">
               <input
                 type="checkbox"
-                checked={profile.noiseSuppression !== false}
+                checked={profile.autoGainControl !== false}
                 onChange={(e) =>
-                  setProfile({ ...profile, noiseSuppression: e.target.checked })
+                  setProfile({ ...profile, autoGainControl: e.target.checked })
                 }
               />
-              Supressão de ruído
+              Normalizar volume da voz automaticamente (recomendado)
+            </label>
+          </div>
+          <div className="audio-page" hidden={audioPage !== "Sensibilidade"}>
+            {" "}
+            <label>
+              Volume de entrada: {Math.round((profile.inputVolume ?? 1) * 100)}%
+              <input
+                aria-label="Volume de entrada"
+                type="range"
+                min="0"
+                max="2"
+                step="0.05"
+                value={profile.inputVolume ?? 1}
+                onChange={(e) =>
+                  setProfile({
+                    ...profile,
+                    inputVolume: Number(e.target.value),
+                  })
+                }
+              />
+              <small>
+                100% preserva o nível original. Aumentar também aumenta ruídos;
+                o ajuste automático usa o processamento nativo de voz.
+              </small>
             </label>
             <label className="checkbox">
               <input
                 type="checkbox"
-                checked={profile.echoCancellation !== false}
+                checked={!!profile.voiceDetection}
                 onChange={(e) =>
-                  setProfile({ ...profile, echoCancellation: e.target.checked })
+                  setProfile({ ...profile, voiceDetection: e.target.checked })
                 }
               />
-              Cancelamento de eco
+              Ativar detecção de voz (filtro por sensibilidade)
             </label>
-            <small>
-              Processamento nativo do Chromium, conforme suporte do dispositivo.
-              Ajuste automático de voz conforme suporte do dispositivo.
-            </small>
-          </fieldset>
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={profile.autoGainControl !== false}
-              onChange={(e) =>
-                setProfile({ ...profile, autoGainControl: e.target.checked })
-              }
-            />
-            Normalizar volume da voz automaticamente (recomendado)
-          </label>
+            <label>
+              Limite de ativação: {profile.voiceThreshold ?? -45} dBFS
+              <input
+                aria-label="Limite de ativação"
+                type="range"
+                min="-70"
+                max="-10"
+                step="1"
+                disabled={!profile.voiceDetection}
+                value={profile.voiceThreshold ?? -45}
+                onChange={(e) =>
+                  setProfile({
+                    ...profile,
+                    voiceThreshold: Number(e.target.value),
+                  })
+                }
+              />
+              <small>
+                Mais perto de −10 exige voz mais forte; −70 capta sons mais
+                baixos. O filtro também se aplica ao Push-to-Talk. Aplicado ao
+                salvar.
+              </small>
+            </label>
+            <label>
+              Nível captado{" "}
+              {inputLevel === undefined
+                ? "(entre na chamada para medir)"
+                : Math.round(inputLevel) + " dBFS"}
+              <meter
+                aria-label="Nível do microfone"
+                min="-100"
+                max="0"
+                value={inputLevel ?? -100}
+              />
+            </label>
+          </div>
           {category === "Áudio e Voz" && (
             <MicrophonePreview profile={profile} onActive={onMicrophoneTest} />
           )}
-          <label>
-            Volume de entrada: {Math.round((profile.inputVolume ?? 1) * 100)}%
-            <input
-              aria-label="Volume de entrada"
-              type="range"
-              min="0"
-              max="2"
-              step="0.05"
-              value={profile.inputVolume ?? 1}
-              onChange={(e) =>
-                setProfile({ ...profile, inputVolume: Number(e.target.value) })
-              }
-            />
-            <small>
-              100% preserva o nível original. Aumentar também aumenta ruídos; o
-              ajuste automático usa o processamento nativo de voz.
-            </small>
-          </label>
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={!!profile.voiceDetection}
-              onChange={(e) =>
-                setProfile({ ...profile, voiceDetection: e.target.checked })
-              }
-            />
-            Ativar detecção de voz (filtro por sensibilidade)
-          </label>
-          <label>
-            Limite de ativação: {profile.voiceThreshold ?? -45} dBFS
-            <input
-              aria-label="Limite de ativação"
-              type="range"
-              min="-70"
-              max="-10"
-              step="1"
-              disabled={!profile.voiceDetection}
-              value={profile.voiceThreshold ?? -45}
-              onChange={(e) =>
-                setProfile({
-                  ...profile,
-                  voiceThreshold: Number(e.target.value),
-                })
-              }
-            />
-            <small>
-              Mais perto de −10 exige voz mais forte; −70 capta sons mais
-              baixos. O filtro também se aplica ao Push-to-Talk. Aplicado ao
-              salvar.
-            </small>
-          </label>
-          <label>
-            Nível captado{" "}
-            {inputLevel === undefined
-              ? "(entre na chamada para medir)"
-              : Math.round(inputLevel) + " dBFS"}
-            <meter
-              aria-label="Nível do microfone"
-              min="-100"
-              max="0"
-              value={inputLevel ?? -100}
-            />
-          </label>
-          <label>
-            Microfone
-            <select
-              value={profile.input}
-              onChange={(e) =>
-                setProfile({ ...profile, input: e.target.value })
-              }
-            >
-              <option value="">Padrão do sistema</option>
-              {devices
-                .filter((d) => d.kind === "audioinput")
-                .map((d, i) => (
-                  <option key={d.deviceId || i} value={d.deviceId}>
-                    {d.label || "Microfone " + (i + 1)}
-                  </option>
-                ))}
-            </select>
-          </label>
-          <label>
-            Saída de áudio
-            <select
-              value={profile.output}
-              onChange={(e) =>
-                setProfile({ ...profile, output: e.target.value })
-              }
-            >
-              <option value="">Padrão do sistema</option>
-              {devices
-                .filter((d) => d.kind === "audiooutput")
-                .map((d, i) => (
-                  <option key={d.deviceId || i} value={d.deviceId}>
-                    {d.label || "Saída " + (i + 1)}
-                  </option>
-                ))}
-            </select>
-          </label>
-          <p className="hint">
-            Os nomes dos dispositivos aparecem após permitir o microfone.
-            Mudanças são aplicadas ao salvar.
-          </p>
         </section>
         <section hidden={category !== "Vídeo"}>
           <label>
@@ -615,7 +760,93 @@ export function ProfileForm({
         </section>
         <section hidden={category !== "Aparência"}>
           <ThemePicker profile={profile} change={setProfile} />
+          {profile.theme === "kuromi" && (
+            <div className="kuromi-theme-story">
+              <KuromiArtwork variant="gallery" />
+              <div>
+                <h4>Rosa com personalidade.</h4>
+                <p>
+                  Grafite ameixa, rosa luminoso e detalhes em lavanda. Sua
+                  Kuromi acompanha os espaços sem atrapalhar a conversa.
+                </p>
+                <small>Ilustrações © SANRIO CO., LTD.</small>
+                <button
+                  type="button"
+                  onClick={() =>
+                    void window.voxy
+                      .openExternal(
+                        "https://www.sanrio.co.jp/characters/kuromi/",
+                      )
+                      .catch((e) => setKeyError(e.message))
+                  }
+                >
+                  Conheça a Kuromi na Sanrio
+                </button>
+              </div>
+            </div>
+          )}
         </section>
+        <section hidden={category !== "Atualizações"}>
+          <Updates />
+        </section>
+        <section
+          hidden={category !== "Privacidade"}
+          className="privacy-information"
+        >
+          <article>
+            <h4>Dados neste computador</h4>
+            <p>
+              Seu perfil e o histórico de DMs ficam no armazenamento local. O
+              histórico dos canais fica no computador que hospeda a sala.
+              Atualizações criam um backup antes de instalar.
+            </p>
+          </article>
+          <article>
+            <h4>Conexões entre amigos</h4>
+            <p>
+              Voz, câmera e tela usam conexões diretas entre participantes.
+              Compartilhe convites apenas com quem você conhece; o convite dá
+              acesso à sala na rede privada.
+            </p>
+          </article>
+          <article>
+            <h4>Você decide quando transmitir</h4>
+            <p>
+              Câmera e compartilhamento de tela começam por uma ação sua. Fechar
+              as configurações não encerra sua chamada. Use os controles do
+              canal para desligar cada fonte.
+            </p>
+          </article>
+        </section>
+        <section hidden={category !== "Avançado"}>
+          <article>
+            <h4>Conexão e mídia</h4>
+            <p>
+              Consulte o estado de cada conexão durante a chamada. Se a rede
+              privada caiu, verifique o Radmin VPN e o firewall antes de entrar
+              novamente.
+            </p>
+            <button type="button" className="secondary" onClick={onDiagnostics}>
+              Abrir diagnóstico de conexão
+            </button>
+          </article>
+        </section>
+      </div>
+      <footer className="hub-savebar">
+        <div>
+          <strong>{dirty ? "Alterações não salvas" : "Tudo em dia"}</strong>
+          <small>
+            Salvar aplica as preferências. Fechar descarta o rascunho.
+          </small>
+        </div>
+        <button
+          type="button"
+          disabled={!dirty || busy}
+          onClick={() => setProfile(original)}
+        >
+          <Undo2 size={16} />
+          Desfazer alterações
+        </button>
         <button
           className="primary"
           disabled={
@@ -629,7 +860,7 @@ export function ProfileForm({
         >
           Salvar perfil e dispositivos
         </button>
-      </div>
+      </footer>
     </form>
   );
 }

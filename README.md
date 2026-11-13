@@ -9,7 +9,7 @@
 Voz, chat e compartilhamento de tela para o seu grupo de amigos.<br />
 Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu computador.
 
-![Versão 1.2.1 publicada](https://img.shields.io/badge/vers%C3%A3o-1.2.1_publicada-b6adff?style=flat-square)
+![Versão 1.3.0 em preparação](https://img.shields.io/badge/vers%C3%A3o-1.3.0_em_preparacao-b6adff?style=flat-square)
 ![Windows 10 e 11 x64](https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-4389e8?style=flat-square)
 ![WebRTC P2P](https://img.shields.io/badge/WebRTC-P2P-68d6b1?style=flat-square)
 ![Até 10 participantes](https://img.shields.io/badge/at%C3%A9-10%20participantes-c9233c?style=flat-square)
@@ -20,9 +20,21 @@ Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu compu
 
 ---
 
+## Novidades na versão 1.3.0 em preparação
+
+**Código em preparação: 1.3.0. Última versão publicada: 1.2.1.** Lançamento autorizado, em validação. O download permanece na release existente até verificar os arquivos novos.
+
+Launcher, navegação e chat foram redesenhados em uma identidade de ardósia e azul mineral. Entrar e hospedar têm caminhos distintos; servidores recentes, filtro de canais e destinos identificados ajudam a retomar uma conversa.
+
+As configurações usam um hub com navegação pesquisável, doze seções e rodapé fixo. Alterações ficam em rascunho até salvar, com opção de desfazer. Administração separa Geral, Imagem, Cargos, Canais de texto, Salas de voz, Ambientes 3D e Convites. Permissões existentes continuam sendo aplicadas pelo host; cargos são identificadores, sem novas permissões.
+
+Temas e cores pessoais continuam disponíveis. Voz, mídia, salas 3D, atualização e integração Windows preservam os serviços existentes. [Design e organização](DESIGN-SYSTEM.md) · [Validação e limites](TESTING.md). Saída: `release/1.3.0/`.
+
+Voxy, Oceano, Bosque e Kuromi foram adaptados ao novo sistema. O Kuromi ganha rosa luminoso, contraste em grafite ameixa, ilustrações da Sanrio armazenadas localmente e efeitos breves de hover, com movimento reduzido respeitado. A prévia do tema fica no hub até salvar. [Fontes e créditos das imagens](src/renderer/public/assets/themes/kuromi/CREDITS.md).
+
 ## Novidades na versão 1.2.1 publicada
 
-**Versão do código e última versão publicada: 1.2.1.** A [release 1.2.1](https://github.com/labarro/Voxy/releases/tag/v1.2.1) foi publicada pelo [workflow](https://github.com/labarro/Voxy/actions/runs/43330910485). Os cinco arquivos foram baixados; assinatura Ed25519, SHA-512, SHA-256, notas e endpoint público foram conferidos. [Evidência](evidence/publication-1.2.1.json).
+**Histórico publicado: 1.2.1.** A [release 1.2.1](https://github.com/labarro/Voxy/releases/tag/v1.2.1) foi publicada pelo [workflow](https://github.com/labarro/Voxy/actions/runs/43330910485). Os cinco arquivos foram baixados; assinatura Ed25519, SHA-512, SHA-256, notas e endpoint público foram conferidos. [Evidência](evidence/publication-1.2.1.json).
 
 A base visual do avatar foi reconstruída: torso com perfis suaves, braços/pernas em malhas contínuas deformadas por ossos, mãos e calçados modelados, cabelos com coberturas e mechas curvas e rosto aderente à cabeça. Aparências e estilos salvos continuam compatíveis.
 

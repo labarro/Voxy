@@ -24,7 +24,7 @@ A barra superior usa as cores do tema, incluindo Kuromi e a cor principal person
 
 ## Ajustar e testar o microfone
 
-1. Abra **Configurações → Áudio e Voz** pela engrenagem. Funciona antes de entrar em uma sala.
+1. Abra **Configurações → Áudio e Voz** pela engrenagem. Funciona antes de entrar em uma sala. Na 1.3.0, escolha **Dispositivos**, **Processamento** ou **Sensibilidade**; o teste privado permanece disponível nas três páginas. Ajustes ficam em rascunho até salvar.
 2. Escolha o microfone e a saída de áudio. Ative **Supressão de ruído** e **Cancelamento de eco** conforme sua necessidade; ambos ficam ativados por padrão para perfis antigos.
 3. Use fones e clique em **Testar meu microfone**. A voz processada é reproduzida somente no seu computador. Durante uma chamada, o envio do microfone fica pausado até parar o teste ou fechar as configurações. Tela e webcam não são interrompidas.
 4. Ajuste o volume de entrada e, se desejar, a detecção por sensibilidade. O medidor mostra o nível anterior ao ganho; aumentar o volume não abre o filtro para ruídos que estavam abaixo do limite. O teste ignora o Push-to-Talk, mas aplica ganho, ruído, eco e sensibilidade.

@@ -1,5 +1,9 @@
 # Voxy — distribuir e atualizar sem perder os dados
 
+## Versão 1.3.0 em preparação
+
+Redesign autorizado para lançamento, em validação. Código, notas e saída estão em `1.3.0` (`release/1.3.0/`); o download continua na 1.2.1 até verificar o workflow e os arquivos novos. Na nova interface, o atualizador fica em **Configurações → Atualizações**, com navegação própria. Perfil e preferências existentes são preservados; os temas recebem novas paletas sem apagar cores pessoais. [Organização da interface](DESIGN-SYSTEM.md).
+
 ## Versão 1.2.1 publicada
 
 A [release 1.2.1](https://github.com/labarro/Voxy/releases/tag/v1.2.1) foi publicada pelo [workflow](https://github.com/labarro/Voxy/actions/runs/43330910485). Os cinco arquivos foram baixados; assinatura Ed25519, SHA-512, SHA-256, notas e endpoint público foram conferidos. [Evidência](evidence/publication-1.2.1.json). Pacote/lock, tag, instalador e saída correspondem à 1.2.1 (`release/1.2.1/`). A atualização reconstrói a apresentação dos personagens e os interiores, corrige a câmera sentada e os objetos da sinuca. Perfis, estilos, cores e preferências continuam aceitos, sem migração destrutiva. Atualize também o host para usar as colisões e o layout corrigidos. [Detalhes e limites](SALAS-3D.md).

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 export function ManageRow({
   name,
@@ -13,6 +13,24 @@ export function ManageRow({
 }) {
   const [value, setValue] = useState(name),
     [confirm, setConfirm] = useState(false);
+  const [pending, setPending] = useState(false),
+    [error, setError] = useState("");
+  useEffect(() => {
+    setValue(name);
+  }, [name]);
+  async function apply(action: () => Promise<unknown>) {
+    setPending(true);
+    setError("");
+    try {
+      await action();
+      setConfirm(false);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setPending(false);
+    }
+  }
+  disabled = disabled || pending;
   return (
     <div className="manage-row">
       <input
@@ -25,7 +43,7 @@ export function ManageRow({
       <button
         title="Salvar novo nome"
         disabled={disabled || !value.trim() || value === name}
-        onClick={() => void rename(value)}
+        onClick={() => void apply(() => rename(value))}
       >
         <Pencil size={17} />
       </button>
@@ -34,11 +52,13 @@ export function ManageRow({
           <button
             className="danger"
             disabled={disabled}
-            onClick={() => void remove()}
+            onClick={() => void apply(remove)}
           >
             Confirmar exclusão
           </button>
-          <button onClick={() => setConfirm(false)}>Cancelar</button>
+          <button disabled={disabled} onClick={() => setConfirm(false)}>
+            Cancelar
+          </button>
         </>
       ) : (
         <button
@@ -48,6 +68,11 @@ export function ManageRow({
         >
           <Trash2 size={17} />
         </button>
+      )}
+      {error && (
+        <p role="alert" className="modal-error">
+          {error}
+        </p>
       )}
     </div>
   );

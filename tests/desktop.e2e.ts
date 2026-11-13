@@ -75,9 +75,13 @@ async function main() {
     await a.getByRole("button", { name: "Configurações", exact: true }).click();
     await centered(a);
     await a.getByLabel("Nome de exibição").fill("Amigo 0");
+    await a
+      .locator(".hub-nav")
+      .getByRole("button", { name: "Perfil", exact: true })
+      .click();
     await a.getByRole("button", { name: "Avatar 👴", exact: true }).click();
     await a
-      .locator(".settings-nav")
+      .locator(".hub-nav")
       .getByRole("button", { name: "Notificações", exact: true })
       .click();
     await a.getByLabel("Sons de entrada e saída da chamada").uncheck();
@@ -119,6 +123,10 @@ async function main() {
     await a
       .getByRole("button", { name: "Gerenciar servidor e canais", exact: true })
       .click();
+    await a
+      .locator(".hub-nav")
+      .getByRole("button", { name: "Imagem", exact: true })
+      .click();
     await a.getByLabel("Arquivo de imagem do servidor").setInputFiles({
       name: "servidor.png",
       mimeType: "image/png",
@@ -135,6 +143,10 @@ async function main() {
       .click();
     for (const page of pages)
       await page.locator(".server-photo").waitFor({ state: "detached" });
+    await a
+      .locator(".hub-nav")
+      .getByRole("button", { name: "Imagem", exact: true })
+      .click();
     await a.getByLabel("Arquivo de imagem do servidor").setInputFiles({
       name: "servidor.png",
       mimeType: "image/png",
@@ -148,6 +160,10 @@ async function main() {
     await a.getByRole("button", { name: "Fechar", exact: true }).click();
     await pages[1]
       .getByRole("button", { name: "Gerenciar servidor e canais", exact: true })
+      .click();
+    await pages[1]
+      .locator(".hub-nav")
+      .getByRole("button", { name: "Imagem", exact: true })
       .click();
     assert(
       await pages[1].getByLabel("Arquivo de imagem do servidor").isDisabled(),
@@ -182,6 +198,10 @@ async function main() {
     );
     await a.getByRole("button", { name: "Configurações", exact: true }).click();
     await centered(a);
+    await a
+      .locator(".hub-nav")
+      .getByRole("button", { name: "Perfil", exact: true })
+      .click();
     await a.getByLabel("Arquivo de foto de perfil").setInputFiles({
       name: "perfil.png",
       mimeType: "image/png",

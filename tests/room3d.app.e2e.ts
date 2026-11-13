@@ -139,6 +139,10 @@ async function main() {
       .getByRole("button", { name: "Gerenciar servidor e canais", exact: true })
       .click();
     await a
+      .locator(".hub-nav")
+      .getByRole("button", { name: "Ambientes 3D", exact: true })
+      .click();
+    await a
       .getByRole("combobox", {
         name: "Ambiente de Sala dos amigos",
         exact: true,
@@ -427,6 +431,10 @@ async function main() {
     await a.screenshot({ path: join(root, "integrated-lounge.png") });
     await a
       .getByRole("button", { name: "Gerenciar servidor e canais", exact: true })
+      .click();
+    await a
+      .locator(".hub-nav")
+      .getByRole("button", { name: "Ambientes 3D", exact: true })
       .click();
     await a
       .getByRole("combobox", {

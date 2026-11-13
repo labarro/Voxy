@@ -403,46 +403,6 @@ button[aria-pressed="true"] {
 [hidden] {
   display: none !important;
 }
-dialog:has(.settings-form) {
-  width: min(860px, calc(100vw - 40px));
-  max-width: 860px;
-}
-.settings-form {
-  display: grid;
-  grid-template-columns: 150px minmax(0, 1fr);
-  gap: 28px;
-}
-.settings-nav {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 5px;
-  border-right: 1px solid #ffffff14;
-  padding-right: 14px;
-}
-.settings-nav button {
-  justify-content: flex-start;
-  text-align: left;
-  padding: 12px 10px;
-}
-.settings-nav button[aria-current="page"] {
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-}
-.settings-content {
-  min-width: 0;
-}
-.settings-content > h3 {
-  font-size: 21px;
-  margin-bottom: 22px;
-}
-.settings-content > button.primary {
-  margin-top: 24px;
-  width: 100%;
-}
-.settings-content section > label {
-  margin-top: 18px;
-}
 input[type="color"] {
   width: 70px;
   height: 40px;
@@ -593,20 +553,6 @@ input[type="color"] {
 }
 .ptt-waiting {
   color: #e3b358;
-}
-[data-theme="kuromi"] .channel-panel {
-  background: linear-gradient(180deg, #201827, #291c31);
-}
-[data-theme="kuromi"] .profile-banner {
-  background:
-    radial-gradient(circle at 85% 20%, #efabd63b 0 10%, transparent 11%),
-    linear-gradient(125deg, #141019, #65417e);
-}
-[data-theme="kuromi"] .profile-bar {
-  border-top: 2px solid #ee9ec552;
-}
-[data-theme="kuromi"] .theme-options button[aria-pressed="true"] {
-  border-color: #ee9ec5;
 }
 @media (max-width: 650px) {
   .settings-form {

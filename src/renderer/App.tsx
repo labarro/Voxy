@@ -3,8 +3,12 @@ import { NotificationCenter } from "./components/NotificationCenter";
 import { useNotifications } from "./hooks/useNotifications";
 import { Friends } from "./components/Friends";
 import { memberRoles, nicknameColor } from "../shared/identity";
-import { RoleBadges, Roles } from "./components/Roles";
-import { themes, KuromiMark, accentInk } from "./components/Personalization";
+import { RoleBadges } from "./components/Roles";
+import {
+  themes,
+  KuromiMark,
+  themeVariables,
+} from "./components/Personalization";
 import { MAX_PARTICIPANTS } from "../shared/constants";
 import { PTT_KEYS } from "../shared/preferences";
 import { Avatar, AvatarImages } from "./components/Avatar";
@@ -13,7 +17,7 @@ import { Chat } from "./components/Chat";
 import { ParticipantMenu } from "./components/ParticipantMenu";
 import { ProfileForm } from "./components/ProfileForm";
 import { ShareForm } from "./components/ShareForm";
-import { ManageRow } from "./components/ManageRow";
+import { ServerManager } from "./components/ServerManager";
 import { Home } from "./components/Home";
 import { ServerRail, type AppPage } from "./components/ServerRail";
 import { Presence, presenceLabels } from "./components/Presence";
@@ -27,7 +31,6 @@ import {
   type DirectTarget,
 } from "./directThreads";
 import { ReleaseChannel } from "./components/ReleaseChannel";
-import { ServerImage } from "./components/ServerImage";
 import { RemoteUpdate } from "./components/RemoteUpdate";
 import {
   lazy,
@@ -66,6 +69,7 @@ import {
   Megaphone,
   MessageCircle,
   Bell,
+  Search,
   X,
 } from "lucide-react";
 import type {
@@ -114,6 +118,7 @@ export function App() {
   const notificationConnecting = useRef("");
   const [audioNotice, setAudioNotice] = useState("");
   const [roomMode, setRoomMode] = useState(false);
+  const [channelQuery, setChannelQuery] = useState("");
   const [profileSection, setProfileSection] = useState("Conta");
   const [roomPrompt, setRoomPrompt] = useState(false);
   const [tvSource, setTvSource] = useState<string | null>(null);
@@ -172,14 +177,8 @@ export function App() {
     const theme = themes[profile?.theme || "voxy"];
     const root = document.documentElement;
     root.dataset.theme = profile?.theme || "voxy";
-    root.style.setProperty("--accent", profile?.accentColor || theme.accent);
-    root.style.setProperty(
-      "--accent-ink",
-      accentInk(profile?.accentColor || theme.accent),
-    );
-    root.style.setProperty("--base", theme.base);
-    root.style.setProperty("--surface", theme.surface);
-    root.style.setProperty("--deep", theme.deep);
+    for (const [key, value] of Object.entries(themeVariables(profile || {})))
+      root.style.setProperty(key, String(value));
     void window.voxy
       .titlebarTheme(theme.deep, "#e7edf9")
       .catch((e) => setError(e.message));
@@ -715,7 +714,9 @@ export function App() {
     <AvatarImages.Provider value={room.avatars ?? {}}>
       <header className="window-titlebar">
         <AudioLines size={16} />
-        <span>Voxy</span>
+        <span className="titlebar-wordmark">
+          voxy<span className="titlebar-product"> / perto de quem importa</span>
+        </span>
         {deafened && <span className="titlebar-call-state">Deafen ativo</span>}
       </header>
       {audioNotice && (
@@ -812,6 +813,17 @@ export function App() {
             )}
           </header>
           <div className="channel-scroll">
+            {online && page !== "dm" && (
+              <label className="channel-filter">
+                <Search size={16} />
+                <input
+                  aria-label="Filtrar canais"
+                  placeholder="Encontrar um canal"
+                  value={channelQuery}
+                  onChange={(e) => setChannelQuery(e.target.value)}
+                />
+              </label>
+            )}
             {page === "dm" ? (
               <DirectList
                 profiles={room.profiles}
@@ -851,7 +863,14 @@ export function App() {
                       )}
                     </div>
                     {room.channels
-                      .filter((c) => c.serverId === serverId && c.kind === type)
+                      .filter(
+                        (c) =>
+                          c.serverId === serverId &&
+                          c.kind === type &&
+                          c.name
+                            .toLocaleLowerCase()
+                            .includes(channelQuery.toLocaleLowerCase()),
+                      )
                       .map((c) => (
                         <div key={c.id}>
                           <button
@@ -1340,6 +1359,7 @@ export function App() {
             <ReleaseChannel />
           ) : page === "home" || !online ? (
             <Home
+              theme={profile.theme}
               saved={saved}
               busy={busy}
               host={() => void open("host")}
@@ -1867,6 +1887,9 @@ export function App() {
         )}
         {dialog && (
           <Modal
+            variant={
+              dialog === "profile" || dialog === "manage" ? "hub" : "standard"
+            }
             title={
               {
                 host: "Hospedar sua sala",
@@ -1992,11 +2015,11 @@ export function App() {
                 onMicrophoneTest={(value) => engine.setMicrophoneTesting(value)}
                 presenceSupported={!online || !!room.features?.presence}
                 profile={profile}
-                setProfile={setProfile}
+                onDiagnostics={() => void open("diagnostics")}
                 devices={devices}
                 inputLevel={media.micLevelDb}
                 busy={busy}
-                onSave={() => void run(() => savePreferences(profile), true)}
+                onSave={(draft) => void run(() => savePreferences(draft), true)}
               />
             )}
             {dialog === "avatar" && (
@@ -2123,88 +2146,16 @@ export function App() {
               </form>
             )}
             {dialog === "manage" && (
-              <div className="manage-list">
-                {server?.ownerId === profile.id && (
-                  <Roles room={room} serverId={serverId} command={command} />
-                )}
-                {server && (
-                  <ServerImage
-                    server={server}
-                    allowed={server.ownerId === profile.id}
-                    busy={busy}
-                    save={(image) =>
-                      command({ type: "server.icon", id: server.id, image })
-                    }
-                  />
-                )}
-                <p>
-                  {me?.host
-                    ? "Renomeie ou exclua os espaços da sala. Excluir também remove seu histórico."
-                    : "Somente o host pode editar estes espaços."}
-                </p>
-                {server && (
-                  <ManageRow
-                    name={server.name}
-                    disabled={!me?.host || busy}
-                    rename={(name) =>
-                      run(() =>
-                        command({ type: "server.rename", id: server.id, name }),
-                      )
-                    }
-                    remove={() =>
-                      run(
-                        () => command({ type: "server.delete", id: server.id }),
-                        true,
-                      )
-                    }
-                  />
-                )}
-                <hr />
-                {room.channels
-                  .filter((c) => c.serverId === serverId)
-                  .map((c) => (
-                    <div key={c.id}>
-                      {c.kind === "voice" && room.features?.rooms3d && (
-                        <label>
-                          Ambiente de {c.name}
-                          <select
-                            aria-label={"Ambiente de " + c.name}
-                            disabled={!me?.host || busy}
-                            value={c.roomPreset ?? ""}
-                            onChange={(e) =>
-                              void run(() =>
-                                command({
-                                  type: "channel.room",
-                                  id: c.id,
-                                  preset: (e.target.value || null) as
-                                    "lounge" | "cinema" | null,
-                                }),
-                              )
-                            }
-                          >
-                            <option value="">Tradicional</option>
-                            <option value="lounge">Lounge 3D</option>
-                            <option value="cinema">Cinema 3D</option>
-                          </select>
-                        </label>
-                      )}
-                      <ManageRow
-                        name={c.name}
-                        disabled={!me?.host || busy}
-                        rename={(name) =>
-                          run(() =>
-                            command({ type: "channel.rename", id: c.id, name }),
-                          )
-                        }
-                        remove={() =>
-                          run(() =>
-                            command({ type: "channel.delete", id: c.id }),
-                          )
-                        }
-                      />
-                    </div>
-                  ))}
-              </div>
+              <ServerManager
+                room={room}
+                serverId={serverId}
+                ownerId={profile.id}
+                isHost={!!me?.host}
+                busy={busy}
+                command={command}
+                invite={hostInfo?.invite}
+                close={() => setDialog(null)}
+              />
             )}
             {dialog === "diagnostics" && (
               <div className="diagnostics">

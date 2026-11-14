@@ -9,7 +9,7 @@
 Voz, chat e compartilhamento de tela para o seu grupo de amigos.<br />
 Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu computador.
 
-![Versão 1.3.0 publicada](https://img.shields.io/badge/vers%C3%A3o-1.3.0_publicada-b6adff?style=flat-square)
+![Versão 1.4.0 em preparação](https://img.shields.io/badge/vers%C3%A3o-1.4.0_em_preparacao-b6adff?style=flat-square)
 ![Windows 10 e 11 x64](https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-4389e8?style=flat-square)
 ![WebRTC P2P](https://img.shields.io/badge/WebRTC-P2P-68d6b1?style=flat-square)
 ![Até 10 participantes](https://img.shields.io/badge/at%C3%A9-10%20participantes-c9233c?style=flat-square)
@@ -20,9 +20,19 @@ Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu compu
 
 ---
 
+## Novidades na versão 1.4.0 em preparação
+
+**Código em preparação: 1.4.0. Última versão publicada: 1.3.0.** A atualização Social & Games está em desenvolvimento e ainda não foi publicada. O download continua na release existente. A entrada 1.4.0 do catálogo será consolidada com as funcionalidades efetivamente concluídas antes do lançamento autorizado.
+
+A 1.4.0 integra sinuca, Truco Paulista 2×2 e xadrez às salas 3D. As partidas acontecem nas mesas do cenário, com câmeras próprias, objetos físicos, animações dos avatares e controles discretos. O host valida regras, turnos, física e informações privadas.
+
+O menu radial reúne dez emotes, cigarro virtual e cancelamento. O novo Rooftop noturno combina cidade estilizada, pergolados, áreas de conversa, TV e jogos. A voz usa os mesmos serviços, preservando PTT, Mute, Deafen, webcam e compartilhamento.
+
+[Regras e controles dos jogos](JOGOS-SOCIAIS.md) · [Salas 3D](SALAS-3D.md) · [Validação e limites](TESTING.md) · [Licenças](THIRD-PARTY-NOTICES.md). Saída: `release/1.4.0/`. Partidas ficam na memória do host; a sinuca termina por desconexão, enquanto Truco e xadrez reservam o assento por 60 segundos. Atualize todos os participantes para 1.4.0.
+
 ## Novidades na versão 1.3.0 publicada
 
-**Versão do código e última versão publicada: 1.3.0.** A [release 1.3.0](https://github.com/labarro/Voxy/releases/tag/v1.3.0) foi publicada pelo [workflow](https://github.com/labarro/Voxy/actions/runs/43512912215). Os cinco arquivos foram baixados; assinatura Ed25519, SHA-512, SHA-256, notas e endpoint público foram conferidos. [Evidência](evidence/publication-1.3.0.json).
+**Histórico publicado: 1.3.0.** A [release 1.3.0](https://github.com/labarro/Voxy/releases/tag/v1.3.0) foi publicada pelo [workflow](https://github.com/labarro/Voxy/actions/runs/43512912215). Os cinco arquivos foram baixados; assinatura Ed25519, SHA-512, SHA-256, notas e endpoint público foram conferidos. [Evidência](evidence/publication-1.3.0.json).
 
 Launcher, navegação e chat foram redesenhados em uma identidade de ardósia e azul mineral. Entrar e hospedar têm caminhos distintos; servidores recentes, filtro de canais e destinos identificados ajudam a retomar uma conversa.
 

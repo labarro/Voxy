@@ -203,13 +203,13 @@ async function main() {
     }
     await activate(0);
     await a.waitForFunction(() => (window as any).poolGame?.phase === "aiming");
-    await a.getByLabel("Força da tacada").fill("0.3");
+    await a.getByLabel("Força da tacada").fill("30");
     await a.getByRole("button", { name: "Dar tacada", exact: true }).click();
     await a.waitForFunction(() =>
       (window as any).poolPackets.some((s: any) => s.phase === "rolling"),
     );
     await a.waitForFunction(
-      () => (window as any).poolGame?.phase === "aiming",
+      () => ["aiming", "placing"].includes((window as any).poolGame?.phase),
       {},
       { timeout: 20000 },
     );
@@ -231,13 +231,17 @@ async function main() {
         .click();
     }
     await activate(0);
-    await a.getByLabel("Interação social").selectOption("smoke");
+    await a.getByRole("button", { name: "Abrir menu de emotes" }).click();
+    await a
+      .getByRole("menuitem", { name: "Cigarro virtual", exact: true })
+      .click();
     await activate(1);
     await b.waitForFunction(() =>
       (window as any).posePackets.some((p: any) => p.pose?.emote === "smoke"),
     );
     await activate(0);
-    await a.getByLabel("Interação social").selectOption("none");
+    await a.getByRole("button", { name: "Abrir menu de emotes" }).click();
+    await a.getByRole("menuitem", { name: "Parar ação", exact: true }).click();
     for (const [index, page] of pages.entries()) {
       await activate(index);
       await page.evaluate(() => (window as any).socialOff());

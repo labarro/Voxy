@@ -294,6 +294,17 @@ export function App() {
           setPage((current) => (current === "room" ? "home" : current));
         }
       }
+      if (event.type === "room-games") {
+        const next = {
+          ...latest.current.room,
+          socialGames: {
+            ...latest.current.room.socialGames,
+            [event.channelId]: event.games,
+          },
+        };
+        latest.current.room = next;
+        setRoom(next);
+      }
       if (event.type === "room-pool") {
         const next = {
           ...latest.current.room,
@@ -1485,6 +1496,7 @@ export function App() {
                         onSource={setTvSource}
                         sourceId={room.televisions?.[channel.id]}
                         pool={room.poolGames?.[channel.id]}
+                        games={room.socialGames?.[channel.id]}
                         muted={muted}
                         deafened={deafened}
                         onMute={() => void run(toggleMute)}

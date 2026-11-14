@@ -21,8 +21,12 @@ import type {
 import { validateImage } from "../../shared/image";
 import { seats, walkable, spawnPose } from "../../shared/room3d";
 import { POOL, PoolGame } from "../../shared/pool";
+import { poolStroke } from "../../shared/poolMotion";
+import { GameRoom } from "./gameRoom";
+import { tableSeat, tableSeats, GAME_TABLES } from "../../shared/gameTables";
 export class RoomHost {
   private poolGames = new Map<string, PoolGame>();
+  private gameRooms = new Map<string, GameRoom>();
   private poolTimer?: ReturnType<typeof setInterval>;
   private io: Server;
   private http: HttpServer;
@@ -200,6 +204,10 @@ export class RoomHost {
         try {
           limited();
           const c = commandSchema.parse(raw);
+          if (c.type.startsWith("game.") && !socket.data.privateIdentity)
+            throw Error(
+              "Atualize o perfil autenticado para participar dos jogos.",
+            );
           if (c.type === "room.pose") {
             const person = this.people.get(socket.id)!;
             const channel = this.store
@@ -211,6 +219,38 @@ export class RoomHost {
             if (c.pose && now - lastPose < 75)
               throw Error("Aguarde o próximo movimento.");
             const pose = c.pose;
+            const social = this.gameRooms.get(channel.id),
+              reserved = social?.seat(person.profile.id);
+            const restoring = !!(
+              pose &&
+              reserved &&
+              !person.roomPose &&
+              social![reserved.game].seats
+                .view()
+                .reconnecting.some((x) => x.id === person.profile.id)
+            );
+            if (restoring && pose && reserved) {
+              const seat = tableSeat(reserved.game, reserved.index);
+              Object.assign(pose, {
+                x: seat.x,
+                z: seat.z,
+                yaw: seat.yaw,
+                seat: seat.id,
+                moving: false,
+              });
+            }
+            if (
+              reserved &&
+              (!pose || pose.seat !== `${reserved.game}-${reserved.index}`)
+            ) {
+              social!.leave(reserved.game, person.profile.id);
+              this.emitGames(channel.id, social!);
+            }
+            if (
+              pose?.seat?.match(/^(truco|chess)-/) &&
+              (!reserved || pose.seat !== `${reserved.game}-${reserved.index}`)
+            )
+              throw Error("Entre na partida para reservar este assento.");
             if (pose) {
               if (!person.roomPose && !pose.seat) {
                 const occupied = [...this.people.values()]
@@ -252,6 +292,7 @@ export class RoomHost {
                 throw Error("Assento ocupado ou indisponível.");
               if (seat) {
                 if (
+                  !restoring &&
                   Math.hypot(
                     (person.roomPose?.x ?? 0) - seat.x,
                     (person.roomPose?.z ?? 6) - seat.z,
@@ -371,7 +412,7 @@ export class RoomHost {
                 ? this.store.messageRecord(c.id)
                 : undefined;
             this.command(socket.id, c);
-            this.broadcast();
+            if (c.type !== "pool.aim") this.broadcast();
             if (changed)
               this.io.emit("message-update", {
                 id: changed.id,
@@ -504,6 +545,17 @@ export class RoomHost {
   }
   state(viewer?: string, state = this.store.snapshot()): RoomState {
     return {
+      socialGames: Object.fromEntries(
+        [...this.gameRooms]
+          .filter(
+            ([channel]) =>
+              !viewer ||
+              [...this.people.values()].some(
+                (p) => p.profile.id === viewer && p.channelId === channel,
+              ),
+          )
+          .map(([channel, games]) => [channel, games.view(viewer)]),
+      ),
       poolGames: Object.fromEntries(
         [...this.poolGames]
           .filter(
@@ -536,6 +588,7 @@ export class RoomHost {
         social: true,
         richChat: true,
         rooms3d: true,
+        socialGames: true,
       },
       ...state,
       friendships: viewer ? this.store.social.snapshot(viewer) : [],
@@ -572,11 +625,12 @@ export class RoomHost {
         socket.emit("room-pool", { channelId, game: game.state });
   }
   private tickPool() {
+    this.tickGames();
     for (const [channelId, game] of this.poolGames) {
       const channel = this.store
         .snapshot()
         .channels.find((c) => c.id === channelId);
-      if (channel?.roomPreset !== "lounge") {
+      if (!channel?.roomPreset || channel.roomPreset === "cinema") {
         this.poolGames.delete(channelId);
         continue;
       }
@@ -592,6 +646,58 @@ export class RoomHost {
       for (let i = 0; i < 12; i++) changed = game.step() || changed;
       if (changed) this.emitPool(channelId, game);
       if (!game.state.players.length) this.poolGames.delete(channelId);
+    }
+  }
+  private emitGames(channelId: string, games: GameRoom) {
+    for (const socket of this.io.sockets.sockets.values()) {
+      const p = this.people.get(socket.id);
+      if (p?.channelId === channelId)
+        socket.emit("room-games", {
+          channelId,
+          games: games.view(p.profile.id),
+        });
+    }
+  }
+  private tickGames() {
+    const channels = this.store.snapshot().channels,
+      now = Date.now();
+    for (const [channel, games] of this.gameRooms) {
+      const preset = channels.find((c) => c.id === channel)?.roomPreset;
+      if (!preset || preset === "cinema") {
+        this.gameRooms.delete(channel);
+        continue;
+      }
+      const online = new Set<string>();
+      for (const p of this.people.values())
+        if (p.channelId === channel && p.roomPose) {
+          online.add(p.profile.id);
+          const seat = games.seat(p.profile.id);
+          if (
+            seat &&
+            games[seat.game].seats
+              .view()
+              .reconnecting.some((x) => x.id === p.profile.id)
+          ) {
+            const reserved = tableSeat(seat.game, seat.index);
+            p.roomPose = {
+              ...p.roomPose,
+              x: reserved.x,
+              z: reserved.z,
+              yaw: reserved.yaw,
+              seat: reserved.id,
+              moving: false,
+            };
+            for (const target of this.io.sockets.sockets.values())
+              if (this.people.get(target.id)?.channelId === channel)
+                target.emit("room-pose", {
+                  id: p.id,
+                  channelId: channel,
+                  pose: p.roomPose,
+                });
+          }
+        }
+      if (games.sync(online, now)) this.emitGames(channel, games);
+      if (!games.occupied) this.gameRooms.delete(channel);
     }
   }
   private broadcast() {
@@ -636,11 +742,90 @@ export class RoomHost {
     )
       throw Error("Somente o host pode gerenciar servidores e canais.");
     switch (c.type) {
+      case "game.join":
+      case "game.leave":
+      case "game.act": {
+        const channel = state.channels.find(
+          (ch) =>
+            ch.id === p.channelId &&
+            (ch.roomPreset === "lounge" || ch.roomPreset === "rooftop"),
+        );
+        if (!channel || !p.roomPose)
+          throw Error("Entre no Lounge 3D para jogar.");
+        let games = this.gameRooms.get(channel.id);
+        if (!games) {
+          games = new GameRoom();
+          this.gameRooms.set(channel.id, games);
+        }
+        const table = GAME_TABLES[c.game];
+        if (c.type === "game.join") {
+          if (
+            [...this.poolGames.values()].some((g) =>
+              g.state.players.includes(p.id),
+            )
+          )
+            throw Error("Saia da sinuca antes de entrar nesta mesa.");
+          if (
+            games.seat(p.profile.id) &&
+            games.seat(p.profile.id)!.game !== c.game
+          )
+            throw Error("Saia da partida atual primeiro.");
+          const index =
+            c.seat ??
+            tableSeats(c.game).findIndex(
+              (s) =>
+                ![...this.people.values()].some(
+                  (other) =>
+                    other.id !== p.id &&
+                    other.channelId === channel.id &&
+                    other.roomPose?.seat === s.id,
+                ) && !games![c.game].seats.players[Number(s.id.split("-")[1])],
+            );
+          const seat = tableSeat(c.game, index);
+          if (index < 0 || index >= table.seats)
+            throw Error("Todos os assentos estão ocupados.");
+          if (Math.hypot(p.roomPose.x - seat.x, p.roomPose.z - seat.z) > 0.95)
+            throw Error("Aproxime-se do assento escolhido.");
+          if (
+            [...this.people.values()].some(
+              (other) =>
+                other.id !== p.id &&
+                other.channelId === channel.id &&
+                other.roomPose?.seat === seat.id,
+            )
+          )
+            throw Error("Assento ocupado.");
+          games.join(c.game, p.profile.id, Date.now(), index);
+          p.roomPose = {
+            x: seat.x,
+            z: seat.z,
+            yaw: seat.yaw,
+            seat: seat.id,
+            moving: false,
+          };
+        } else if (c.type === "game.leave") {
+          const reserved = games.seat(p.profile.id);
+          games.leave(c.game, p.profile.id);
+          if (reserved) {
+            const seat = tableSeat(reserved.game, reserved.index);
+            const x = seat.x + Math.cos(seat.yaw) * 0.75,
+              z = seat.z - Math.sin(seat.yaw) * 0.75;
+            p.roomPose = { ...p.roomPose, x, z, seat: null, moving: false };
+          }
+        } else games.act(c, p.profile.id, Date.now());
+        this.emitGames(channel.id, games);
+        break;
+      }
       case "pool.join":
       case "pool.leave":
+      case "pool.aim":
+      case "pool.place":
+      case "pool.restart":
       case "pool.shoot": {
         const channel = state.channels.find(
-          (ch) => ch.id === p.channelId && ch.roomPreset === "lounge",
+          (ch) =>
+            ch.id === p.channelId &&
+            (ch.roomPreset === "lounge" || ch.roomPreset === "rooftop"),
         );
         if (!channel || !p.roomPose)
           throw Error("Entre no Lounge 3D para jogar.");
@@ -653,8 +838,30 @@ export class RoomHost {
         else {
           if (Math.hypot(p.roomPose.x - POOL.x, p.roomPose.z - POOL.z) > 5)
             throw Error("Aproxime-se da mesa de sinuca.");
-          if (c.type === "pool.join") game.join(p.id);
-          else game.shoot(p.id, c.angle, c.power, c.revision);
+          if (c.type === "pool.join") {
+            if (this.gameRooms.get(channel.id)?.seat(p.profile.id))
+              throw Error("Saia da mesa atual antes de entrar na sinuca.");
+            game.join(p.id);
+          } else if (c.type === "pool.aim") game.aim(p.id, c.angle, c.power);
+          else if (c.type === "pool.place")
+            game.place(p.id, c.x, c.z, c.revision);
+          else if (c.type === "pool.restart") game.restart(p.id);
+          else {
+            const stance = poolStroke(
+              {
+                ...game.state,
+                shot: undefined,
+                aim: { actor: p.id, angle: c.angle, power: c.power },
+              },
+              p.profile.avatar3d,
+            ).stance;
+            if (
+              Math.hypot(p.roomPose.x - stance.x, p.roomPose.z - stance.z) >
+              0.65
+            )
+              throw Error("Aguarde o personagem se posicionar para a tacada.");
+            game.shoot(p.id, c.angle, c.power, c.revision);
+          }
         }
         this.emitPool(channel.id, game);
         break;
@@ -760,11 +967,15 @@ export class RoomHost {
         break;
       case "channel.room":
         this.store.setRoomPreset(c.id, c.preset);
+        this.poolGames.delete(c.id);
+        this.gameRooms.delete(c.id);
         this.televisions.delete(c.id);
         for (const person of this.people.values())
           if (person.channelId === c.id) person.roomPose = undefined;
         break;
       case "channel.delete":
+        this.poolGames.delete(c.id);
+        this.gameRooms.delete(c.id);
         this.televisions.delete(c.id);
         this.store.delete("channels", c.id);
         break;
@@ -797,6 +1008,14 @@ export class RoomHost {
         this.store.react(c.id, p.profile.id, c.emoji);
         break;
       case "voice":
+        if (p.channelId && p.channelId !== c.channelId) {
+          const games = this.gameRooms.get(p.channelId),
+            seat = games?.seat(p.profile.id);
+          if (games && seat) {
+            games.leave(seat.game, p.profile.id);
+            this.emitGames(p.channelId, games);
+          }
+        }
         if (
           p.channelId &&
           this.calls.has(p.channelId) &&
@@ -875,6 +1094,7 @@ export class RoomHost {
   async close() {
     clearInterval(this.poolTimer);
     this.poolGames.clear();
+    this.gameRooms.clear();
     for (const timer of this.callTimers.values()) clearTimeout(timer);
     this.callTimers.clear();
     this.calls.clear();

@@ -1,5 +1,22 @@
 # Validação do Voxy
 
+## Versão 1.4.0 — 13/11/2026
+
+Foram executadas partidas completas de sinuca em dois processos Electron (nove tacadas, 4×3), Truco em quatro processos (cinco mãos, 12×3) e xadrez em dois processos (mate em quatro lances). O Truco e o xadrez usam cliques nos objetos 3D; o ensaio de sinuca combina mira pelo mouse, ajuste fino de direção e reposição da branca por clique no feltro. Relatórios locais em `test-results/pool-match-1794612843261/`, `truco-app-1794614489700/` e `chess-app-1794615096498/`.
+
+O teste `social3d.app.ts` passou com dois processos: doze ações da roda sincronizadas, abertura por G, cancelamento por Esc, troca para Rooftop, voz conectada e aproximação das mesas de xadrez/sinuca. Relatório em `test-results/social-rooftop-app-1794616143979/`. A regressão `test:rooms3d:app` passou após a integração (`room3d-app-1794616312005/`), incluindo TV via WebRTC, fullscreen, modo assistir, personalização e alternância tradicional/3D.
+
+As regras automatizadas cobrem cartas/manilhas, empates, apostas e recusas, mão de onze, mão de ferro, vitória, abandono e reconexão; xadrez cobre regras especiais e reivindicações de empate. Seis sockets reais verificaram isolamento por canal, privacidade de mãos, tentativa de credencial incorreta, respostas concorrentes e restauração do assento com as mesmas cartas. A inspeção encontrou e corrigiu o retorno à mesa autenticada, enquadramento das próprias cartas, seleção do radial e saída de mesas.
+
+Foram renderizadas 63 amostras de mesas, emotes e Rooftop, com alturas de 0,9 a 1,1, mãos medidas e pés conferidos contra o piso. Uma varredura adicional de 864 poses de sinuca encontrou pegadas sem alcance; o solucionador foi ampliado para selecionar posição e orientação ao redor da mesa e variar a pegada na haste. A repetição passou sem erros acima de 4 cm nas mãos ou 8 mm na ponta no contato. A repetição completa após corrigir também a navegação junto às tabelas passou em `test-results/pool-match-1794616919150/`: nove tacadas, 4×3.
+
+O benchmark local com dez avatares em 1024×600 na RTX 5060 Ti mediu 23,2/37,5/54,5 FPS em Baixo/Médio/Alto. Geometrias e texturas voltaram a zero após descarte. É uma amostra nesta GPU, sem comparação equivalente com a versão anterior ou teste prolongado.
+
+Limitações: não houve partida humana em quatro computadores físicos pela VPN, avaliação acústica humana, teste prolongado ou cobertura visual de todas as combinações de acessórios. Os microfones dos ensaios Electron são sintéticos. As regras especiais de Truco foram verificadas por testes automatizados, não todas em uma partida humana pela interface. Nem todos os testes históricos de áudio/Windows serão repetidos nesta entrega, conforme autorização para priorizar a publicação. A integração e os testes não equivalem a uma auditoria completa de segurança ou a validação de todas as GPUs. O aviso conhecido de tamanho do chunk Three.js permanece.
+
+Reprodução: `npm test`, `npm run build`, `npm run test:games:pool`, `npm run test:games:truco`, `npm run test:games:chess`, `npm run test:games:social` e `npm run test:games:visual`. Use perfis e portas de teste, preservando os dados pessoais.
+
+
 ## Versão 1.3.0 — 13/11/2026
 
 Passaram `npm test` (62 testes), build e pacote ASAR. A validação específica do redesign foi executada no Electron e em dois executáveis empacotados, com host/sinalização reais e perfis isolados. A [release 1.3.0](https://github.com/labarro/Voxy/releases/tag/v1.3.0) foi publicada pelo [workflow](https://github.com/labarro/Voxy/actions/runs/43512912215). Os cinco arquivos foram baixados; assinatura Ed25519, SHA-512, SHA-256, notas e endpoint público foram conferidos. [Evidência](evidence/publication-1.3.0.json). O CI também testou persistência no executável empacotado.

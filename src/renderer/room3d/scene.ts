@@ -14,8 +14,26 @@ import { Resources } from "./resources";
 
 import { POOL, type PoolState } from "../../shared/pool";
 import { PoolTable } from "./PoolTable";
+import { PoolTimeline } from "./GameTimeline";
+import { poolStroke } from "../../shared/poolMotion";
+import { walkPath } from "../../shared/navigation";
+import type { Command } from "../../shared/types";
+import type { SocialGamesView } from "../../shared/types";
+import {
+  GAME_TABLES,
+  tableSeat,
+  tableSeats,
+  tableCamera,
+  type TableGame,
+} from "../../shared/gameTables";
+import { TrucoTable } from "./TrucoTable";
+import { cardMotion } from "../../shared/cardMotion";
+import { ChessTable } from "./ChessTable";
+import { chessMotion } from "../../shared/chessMotion";
+import { GameSounds } from "./GameSounds";
 export type SceneSnapshot = {
   pool?: PoolState;
+  games?: SocialGamesView;
   people: Participant[];
   speaking: Set<string>;
   settings: RoomSettings;
@@ -30,6 +48,8 @@ export type SceneState = {
   fps: number;
   drawCalls: number;
   triangles: number;
+  poolReady?: boolean;
+  poolAngle?: number;
 };
 type PersonModel = {
   avatar: SocialAvatar;
@@ -49,6 +69,45 @@ export class SocialScene {
   private assets = new RoomAssets();
   private environment?: RoomEnvironment;
   private poolTable?: PoolTable;
+  private trucoTable?: TrucoTable;
+  private chessTable?: ChessTable;
+  private chessSelected?: string;
+  private chessPromotion: "q" | "r" | "b" | "n" = "q";
+  private chessRevision = -1;
+  private chessClock = 0;
+  private chessAt = 0;
+  private tableActive?: TableGame;
+  private tableClock = 0;
+  private tableRevision = -1;
+  private tableAt = 0;
+  private covered = false;
+  private preview?: RoomPose["emote"];
+  private previewAt = 0;
+  previewEmote(value?: RoomPose["emote"]) {
+    this.preview = value;
+    this.previewAt = Date.now();
+    this.clearKeys();
+    this.route = [];
+    this.routeEnd = undefined;
+  }
+  private sounds = new GameSounds();
+  private soundEvents = { truco: 0, chess: 0, pool: 0 };
+  private joinRequest?: { kind: TableGame; index: number };
+  private poolTimeline = new PoolTimeline();
+  private poolActive = false;
+  private poolAngle = 0;
+  private poolPower = 0.55;
+  private gameYaw = 1.1;
+  private gameDistance = 3.3;
+  private aimSent = 0;
+  private aimDirty = true;
+  private route: { x: number; z: number }[] = [];
+  private routeEnd?: () => void;
+  private afterStand?: () => void;
+  private leavingTable = false;
+  private stanceAt = 0;
+  private stanceTarget?: { x: number; z: number; yaw: number };
+  private drawPool?: PoolState;
   private models = new Map<string, PersonModel>();
   private keys = new Set<string>();
   private observer: ResizeObserver;
@@ -86,16 +145,21 @@ export class SocialScene {
     private fail: (message: string) => void,
     private changed: (state: SceneState) => void = () => {},
     private openPool: () => void = () => {},
+    private gameCommand: (
+      command: Command,
+    ) => Promise<unknown> = async () => {},
   ) {
     this.data = data;
     this.pose =
-      Array.from({ length: 10 }, (_, i) => spawnPose(i)).find((slot) =>
-        data.people.every(
-          (p) =>
-            p.id === self ||
-            !p.roomPose ||
-            Math.hypot(p.roomPose.x - slot.x, p.roomPose.z - slot.z) >= 0.9,
-        ),
+      Array.from({ length: 10 }, (_, i) => spawnPose(i)).find(
+        (slot) =>
+          walkable(preset, slot.x, slot.z) &&
+          data.people.every(
+            (p) =>
+              p.id === self ||
+              !p.roomPose ||
+              Math.hypot(p.roomPose.x - slot.x, p.roomPose.z - slot.z) >= 0.9,
+          ),
       ) ?? spawnPose();
     this.rig.setMode(data.settings.cameraMode ?? "follow");
     this.renderer = new T.WebGLRenderer({
@@ -146,8 +210,12 @@ export class SocialScene {
       });
       if (this.disposed) return;
       this.environment = buildEnvironment(this.scene, this.preset, this.assets);
-      if (this.preset === "lounge")
+      if (this.preset !== "cinema")
         this.poolTable = new PoolTable(this.scene, this.environment.colliders);
+      if (this.preset !== "cinema")
+        this.trucoTable = new TrucoTable(this.scene);
+      if (this.preset !== "cinema")
+        this.chessTable = new ChessTable(this.scene);
       this.scene.updateMatrixWorld(true);
       this.configureQuality();
       this.progress = 0.96;
@@ -164,12 +232,25 @@ export class SocialScene {
     if (this.disposed) return;
     const oldMode = this.data.settings.cameraMode;
     this.data = data;
+    if (data.pool) this.poolTimeline.receive(data.pool);
     if (data.settings.cameraMode !== oldMode && this.rig.mode !== "watch")
       this.rig.setMode(data.settings.cameraMode ?? "follow");
     const confirmed = data.people.find((p) => p.id === this.self)?.roomPose;
-    if (!this.confirmedEntry && confirmed) {
+    if (
+      confirmed &&
+      (!this.confirmedEntry ||
+        ((confirmed.seat?.match(/^(truco|chess)-/) ||
+          this.pose.seat?.match(/^(truco|chess)-/)) &&
+          confirmed.seat !== this.pose.seat))
+    ) {
       this.confirmedEntry = true;
       this.pose = { ...confirmed };
+      if (!confirmed.seat) {
+        this.leavingTable = false;
+        const next = this.afterStand;
+        this.afterStand = undefined;
+        next?.();
+      }
     }
     if (data.paused || document.hidden) {
       this.clearKeys();
@@ -191,6 +272,149 @@ export class SocialScene {
   }
   resetCamera() {
     this.rig.reset();
+  }
+  setPoolActive(value: boolean) {
+    if (value) this.tableActive = undefined;
+    this.poolActive = value;
+    this.route = [];
+    this.routeEnd = undefined;
+    this.stanceTarget = undefined;
+    this.clearKeys();
+    if (!value) this.rig.setGame();
+    this.aimDirty = true;
+  }
+  setTableActive(kind?: TableGame) {
+    this.tableActive = kind;
+    this.poolActive = false;
+    this.clearKeys();
+    if (!kind) this.rig.setGame();
+  }
+  setCovered(value: boolean) {
+    this.covered = value;
+  }
+  setChessPromotion(value: "q" | "r" | "b" | "n") {
+    this.chessPromotion = value;
+  }
+  leaveGame(kind: TableGame) {
+    if (this.leavingTable) return;
+    this.leavingTable = true;
+    void this.gameCommand({ type: "game.leave", game: kind })
+      .then(() => this.setTableActive())
+      .catch(() => {
+        this.leavingTable = false;
+      });
+  }
+  approachGame(kind: TableGame) {
+    if (this.pose.seat?.startsWith(`${kind}-`)) {
+      this.tableActive = kind;
+      return;
+    }
+    const state = this.data.games?.[kind];
+    const seat = tableSeats(kind)
+      .filter((s) => !state?.players[Number(s.id.split("-")[1])])
+      .sort(
+        (a, b) =>
+          Math.hypot(a.x - this.pose.x, a.z - this.pose.z) -
+          Math.hypot(b.x - this.pose.x, b.z - this.pose.z),
+      )[0];
+    if (!seat) return;
+    if (this.pose.seat?.match(/^(truco|chess)-/)) {
+      this.afterStand = () => this.approachGame(kind);
+      this.leaveGame(this.pose.seat.startsWith("truco-") ? "truco" : "chess");
+      return;
+    }
+    if (this.pose.seat) this.interact();
+    const target = {
+      x: seat.x + Math.cos(seat.yaw) * 0.78,
+      z: seat.z - Math.sin(seat.yaw) * 0.78,
+    };
+    this.route = walkPath(this.preset, this.pose, target);
+    this.routeEnd = () => {
+      this.velocity.set(0, 0);
+      this.pose.moving = false;
+      this.dirty = true;
+      this.joinRequest = { kind, index: Number(seat.id.split("-")[1]) };
+    };
+    if (Math.hypot(this.pose.x - target.x, this.pose.z - target.z) < 0.1) {
+      this.routeEnd();
+      this.routeEnd = undefined;
+    }
+  }
+  setPoolAim(angle: number, power: number) {
+    this.poolAngle = angle;
+    this.poolPower = power;
+    this.aimDirty = true;
+    this.emit();
+  }
+  shootPool() {
+    const s = this.data.pool;
+    if (!s || !this.poolReady())
+      return Promise.reject(Error("Aguarde o personagem se posicionar."));
+    return this.gameCommand({
+      type: "pool.shoot",
+      angle: this.poolAngle,
+      power: this.poolPower,
+      revision: s.revision,
+    });
+  }
+  approachPool() {
+    if (this.preset === "cinema") return;
+    if (this.pose.seat?.match(/^(truco|chess)-/)) {
+      this.afterStand = () => this.approachPool();
+      this.leaveGame(this.pose.seat.startsWith("truco-") ? "truco" : "chess");
+      return;
+    }
+    if (this.pose.seat) this.interact();
+    if (this.nearPool()) {
+      this.openPool();
+      return;
+    }
+    this.route = walkPath(this.preset, this.pose, {
+      x: POOL.x + 1.8,
+      z: POOL.z + 1.5,
+    });
+    this.routeEnd = () => this.openPool();
+  }
+  private stroke(state: PoolState, id = this.self) {
+    return poolStroke(
+      state,
+      this.data.people.find((p) => p.id === id)?.profile.avatar3d,
+    );
+  }
+  private poolReady() {
+    if (!this.poolActive || !this.data.pool) return false;
+    const stroke = this.stroke({
+      ...this.data.pool,
+      aim: { actor: this.self, angle: this.poolAngle, power: this.poolPower },
+      shot: undefined,
+    });
+    return (
+      !!this.models.get(this.self)?.avatar.poolAligned &&
+      !this.pose.moving &&
+      Math.hypot(this.pose.x - stroke.stance.x, this.pose.z - stroke.stance.z) <
+        0.18
+    );
+  }
+  private poolPoint(event: PointerEvent) {
+    const rect = this.renderer.domElement.getBoundingClientRect(),
+      ray = new T.Raycaster();
+    ray.setFromCamera(
+      new T.Vector2(
+        ((event.clientX - rect.left) / rect.width) * 2 - 1,
+        (-(event.clientY - rect.top) / rect.height) * 2 + 1,
+      ),
+      this.camera,
+    );
+    const point = ray.ray.intersectPlane(
+      new T.Plane(new T.Vector3(0, 1, 0), -POOL.clothY),
+      new T.Vector3(),
+    );
+    if (!point) return;
+    const x = (point.x - POOL.x) / POOL.scale,
+      z = (point.z - POOL.z) / POOL.scale;
+    return Math.abs(x) <= POOL.halfX && Math.abs(z) <= POOL.halfZ
+      ? { x, z }
+      : undefined;
   }
   setExpanded(value: boolean) {
     this.expanded = value;
@@ -233,6 +457,7 @@ export class SocialScene {
     });
   }
   private keydown = (event: KeyboardEvent) => {
+    this.sounds.unlock();
     if (event.repeat && ["KeyE", "KeyC", "KeyR"].includes(event.code)) return;
     if (
       [
@@ -248,6 +473,11 @@ export class SocialScene {
     ) {
       event.preventDefault();
       if (this.rig.mode === "watch") this.returnFromTV();
+      if (!this.poolActive) {
+        this.route = [];
+        this.routeEnd = undefined;
+        this.joinRequest = undefined;
+      }
       this.keys.add(event.code);
     } else if (event.code === "KeyE") {
       event.preventDefault();
@@ -277,6 +507,68 @@ export class SocialScene {
     if (event.button !== 0 && event.button !== 2) return;
     const canvas = this.renderer.domElement;
     canvas.focus();
+    this.sounds.unlock();
+    if (this.tableActive && event.button === 0) {
+      const rect = canvas.getBoundingClientRect(),
+        ray = new T.Raycaster();
+      ray.setFromCamera(
+        new T.Vector2(
+          ((event.clientX - rect.left) / rect.width) * 2 - 1,
+          (-(event.clientY - rect.top) / rect.height) * 2 + 1,
+        ),
+        this.camera,
+      );
+      if (this.tableActive === "chess") {
+        const square = this.chessTable?.pick(ray),
+          state = this.data.games?.chess;
+        if (!square || !state) return;
+        const moves = state.moves.filter(
+          (m) => m.from === this.chessSelected && m.to === square,
+        );
+        if (moves.length) {
+          void this.gameCommand({
+            type: "game.act",
+            game: "chess",
+            revision: state.revision,
+            action: {
+              type: "move",
+              from: this.chessSelected!,
+              to: square,
+              ...(moves.some((m) => m.promotion)
+                ? { promotion: this.chessPromotion }
+                : {}),
+            },
+          }).catch(() => {});
+          this.chessSelected = undefined;
+        } else
+          this.chessSelected = state.moves.some((m) => m.from === square)
+            ? square
+            : undefined;
+        this.chessTable?.select(this.chessSelected);
+        return;
+      }
+      const index = this.trucoTable?.pick(ray),
+        state = this.data.games?.truco;
+      if (index !== undefined && state)
+        void this.gameCommand({
+          type: "game.act",
+          game: "truco",
+          action: { type: "play", index, covered: this.covered },
+          revision: state.revision,
+        }).catch(() => {});
+      return;
+    }
+    if (this.poolActive && event.button === 0) {
+      const s = this.data.pool,
+        point = this.poolPoint(event);
+      if (point && s?.phase === "placing" && s.players[s.turn] === this.self)
+        void this.gameCommand({
+          type: "pool.place",
+          ...point,
+          revision: s.revision,
+        }).catch(() => {});
+      return;
+    }
     this.drag = event.button === 2 ? "pan" : "rotate";
     canvas.setPointerCapture(event.pointerId);
   };
@@ -285,6 +577,26 @@ export class SocialScene {
   };
   private contextmenu = (event: Event) => event.preventDefault();
   private pointermove = (event: PointerEvent) => {
+    if (this.tableActive) {
+      if (this.drag === "pan") this.gameYaw -= event.movementX * 0.004;
+      return;
+    }
+    if (this.poolActive) {
+      if (this.drag === "pan") {
+        this.gameYaw -= event.movementX * 0.006;
+        return;
+      }
+      const s = this.data.pool,
+        point = this.poolPoint(event);
+      if (point && s?.phase === "aiming" && s.players[s.turn] === this.self) {
+        this.poolAngle = Math.atan2(
+          point.x - s.balls[0].x,
+          -(point.z - s.balls[0].z),
+        );
+        this.aimDirty = true;
+      }
+      return;
+    }
     if (this.drag === "rotate")
       this.rig.rotate(
         event.movementX,
@@ -296,6 +608,14 @@ export class SocialScene {
   };
   private wheel = (event: WheelEvent) => {
     event.preventDefault();
+    if (this.poolActive) {
+      this.gameDistance = T.MathUtils.clamp(
+        this.gameDistance * Math.exp(event.deltaY * 0.001),
+        2.7,
+        5,
+      );
+      return;
+    }
     this.rig.zoom(
       event.deltaY *
         (event.deltaMode === 1
@@ -324,6 +644,7 @@ export class SocialScene {
     return seats(this.preset)
       .filter(
         (seat) =>
+          !seat.game &&
           !this.data.people.some(
             (p) => p.id !== this.self && p.roomPose?.seat === seat.id,
           ),
@@ -341,12 +662,28 @@ export class SocialScene {
   }
   private nearPool() {
     return (
-      this.preset === "lounge" &&
-      Math.hypot(this.pose.x - POOL.x, this.pose.z - POOL.z) < 5
+      this.preset !== "cinema" &&
+      Math.hypot(this.pose.x - POOL.x, this.pose.z - POOL.z) < 2.9
     );
   }
   private interaction() {
     if (this.pose.seat) return { label: "Levantar", available: true };
+    if (
+      this.preset !== "cinema" &&
+      Math.hypot(
+        this.pose.x - GAME_TABLES.truco.x,
+        this.pose.z - GAME_TABLES.truco.z,
+      ) < 2.7
+    )
+      return { label: "Jogar Truco Paulista", available: true };
+    if (
+      this.preset !== "cinema" &&
+      Math.hypot(
+        this.pose.x - GAME_TABLES.chess.x,
+        this.pose.z - GAME_TABLES.chess.z,
+      ) < 2.3
+    )
+      return { label: "Jogar xadrez", available: true };
     const seat = this.nearestSeat();
     return seat && Math.hypot(seat.x - this.pose.x, seat.z - this.pose.z) < 2.35
       ? {
@@ -364,6 +701,32 @@ export class SocialScene {
   }
   interact() {
     if (!this.ready || this.data.paused) return;
+    if (this.pose.seat?.match(/^(truco|chess)-/)) {
+      this.leaveGame(this.pose.seat.startsWith("truco-") ? "truco" : "chess");
+      return;
+    }
+    if (
+      !this.pose.seat &&
+      this.preset !== "cinema" &&
+      Math.hypot(
+        this.pose.x - GAME_TABLES.truco.x,
+        this.pose.z - GAME_TABLES.truco.z,
+      ) < 2.7
+    ) {
+      this.approachGame("truco");
+      return;
+    }
+    if (
+      !this.pose.seat &&
+      this.preset !== "cinema" &&
+      Math.hypot(
+        this.pose.x - GAME_TABLES.chess.x,
+        this.pose.z - GAME_TABLES.chess.z,
+      ) < 2.3
+    ) {
+      this.approachGame("chess");
+      return;
+    }
     if (this.pose.seat) {
       const seat = seats(this.preset).find((s) => s.id === this.pose.seat);
       if (!seat) return;
@@ -429,8 +792,11 @@ export class SocialScene {
     const label = resources.label(
       person.profile.name,
       person.profile.nicknameColor || "#eee8dd",
+      256,
+      64,
     );
     label.position.y = 2.45;
+    label.scale.set(0.95, 0.2375, 1);
     avatar.group.add(label);
     const ring = new T.Mesh(
       resources.keep(new T.RingGeometry(0.38, 0.43, 32)),
@@ -472,6 +838,8 @@ export class SocialScene {
       fps: this.fps,
       drawCalls: this.renderer.info.render.calls,
       triangles: this.renderer.info.render.triangles,
+      poolReady: this.poolReady(),
+      poolAngle: this.poolAngle,
     });
   }
   private tick = (time: number) => {
@@ -493,7 +861,161 @@ export class SocialScene {
       return;
     }
     const environment = this.environment!;
-    this.poolTable?.update(this.data.pool, dt);
+    const truco = this.data.games?.truco;
+    if (truco && truco.revision !== this.tableRevision) {
+      this.tableRevision = truco.revision;
+      this.tableClock = truco.clock;
+      this.tableAt = time;
+    }
+    const cardClock = truco?.paused
+      ? truco.clock
+      : this.tableClock + time - this.tableAt;
+    const sound = (
+      type: "raise" | "play" | "win" | "impact" | "accept",
+      x: number,
+      z: number,
+      value?: number,
+    ) => {
+      if (settings.gameSounds === false) return;
+      const distance = Math.hypot(this.pose.x - x, this.pose.z - z),
+        gain = Math.max(0, 1 - distance / 10) * settings.volume;
+      this.sounds.play(type, value, gain, (x - this.pose.x) / 8);
+    };
+    if (
+      truco?.animation &&
+      truco.animation.sequence !== this.soundEvents.truco
+    ) {
+      const a = truco.animation;
+      this.soundEvents.truco = a.sequence;
+      if (
+        cardClock - a.at < 1500 &&
+        ["raise", "play", "win", "accept"].includes(a.type)
+      )
+        sound(
+          a.type as "raise",
+          GAME_TABLES.truco.x,
+          GAME_TABLES.truco.z,
+          a.value,
+        );
+    }
+    const chess = this.data.games?.chess;
+    if (chess && chess.revision !== this.chessRevision) {
+      this.chessRevision = chess.revision;
+      this.chessClock = chess.clock;
+      this.chessAt = time;
+    }
+    const chessClock = chess?.paused
+      ? chess.clock
+      : this.chessClock + time - this.chessAt;
+    if (
+      chess?.last &&
+      chess.last.sequence !== this.soundEvents.chess &&
+      chessClock - chess.last.at >= 250
+    ) {
+      this.soundEvents.chess = chess.last.sequence;
+      if (chessClock - chess.last.at < 1200)
+        sound("play", GAME_TABLES.chess.x, GAME_TABLES.chess.z);
+    }
+    if (this.tableActive === "chess") {
+      const index =
+          chess?.players.indexOf(
+            this.data.people.find((p) => p.id === this.self)?.profile.id ?? "",
+          ) ?? -1,
+        view = tableCamera("chess", Math.max(0, index));
+      this.rig.setGame(
+        new T.Vector3(view.position.x, view.position.y, view.position.z),
+        new T.Vector3(view.target.x, view.target.y, view.target.z),
+      );
+    }
+    if (this.tableActive === "truco") {
+      const index =
+          truco?.players.indexOf(
+            this.data.people.find((p) => p.id === this.self)?.profile.id ?? "",
+          ) ?? -1,
+        seat = tableSeat("truco", Math.max(0, index)),
+        table = GAME_TABLES.truco;
+      const dx = seat.x - table.x,
+        dz = seat.z - table.z;
+      const view = tableCamera("truco", Math.max(0, index));
+      this.rig.setGame(
+        new T.Vector3(view.position.x, view.position.y, view.position.z),
+        new T.Vector3(view.target.x, view.target.y, view.target.z),
+      );
+    }
+    this.drawPool = this.poolTimeline.sample() ?? this.data.pool;
+    const pool = this.data.pool,
+      myPoolTurn = pool?.players[pool.turn] === this.self;
+    const drawn = this.drawPool;
+    if (
+      drawn?.shot &&
+      drawn.shot.sequence !== this.soundEvents.pool &&
+      drawn.clock - drawn.shot.started >= POOL.contact
+    ) {
+      this.soundEvents.pool = drawn.shot.sequence;
+      if (drawn.clock - drawn.shot.started < 1.2)
+        sound("impact", POOL.x, POOL.z);
+    }
+    if (this.poolActive) {
+      this.rig.setGame(
+        new T.Vector3(
+          POOL.x + Math.sin(this.gameYaw) * this.gameDistance,
+          4.5,
+          POOL.z + Math.cos(this.gameYaw) * this.gameDistance,
+        ),
+        new T.Vector3(POOL.x, 1.0, POOL.z),
+      );
+      if (pool && myPoolTurn && pool.phase === "aiming") {
+        if (this.aimDirty && time - this.aimSent > 160) {
+          this.aimDirty = false;
+          this.aimSent = time;
+          void this.gameCommand({
+            type: "pool.aim",
+            angle: this.poolAngle,
+            power: this.poolPower,
+          }).catch(() => {});
+        }
+        const stance = this.stroke({
+          ...pool,
+          shot: undefined,
+          aim: {
+            actor: this.self,
+            angle: this.poolAngle,
+            power: this.poolPower,
+          },
+        }).stance;
+        if (
+          time - this.stanceAt > 250 &&
+          (!this.stanceTarget ||
+            Math.hypot(
+              this.stanceTarget.x - stance.x,
+              this.stanceTarget.z - stance.z,
+            ) > 0.06 ||
+            Math.abs(
+              Math.atan2(
+                Math.sin(this.stanceTarget.yaw - stance.yaw),
+                Math.cos(this.stanceTarget.yaw - stance.yaw),
+              ),
+            ) > 0.04)
+        ) {
+          this.stanceAt = time;
+          this.stanceTarget = stance;
+          this.route = walkPath(this.preset, this.pose, stance);
+          this.routeEnd = () => {
+            this.pose.yaw = stance.yaw;
+            this.dirty = true;
+          };
+        }
+      }
+    }
+    this.poolTable?.update(
+      drawn,
+      dt,
+      pool?.players.map(
+        (id) =>
+          this.data.people.find((p) => p.id === id)?.profile.name ?? "Jogador",
+      ),
+      this.poolActive && myPoolTurn ? this.poolAngle : undefined,
+    );
     this.configureQuality();
     const ratio = Math.min(
       devicePixelRatio,
@@ -515,8 +1037,37 @@ export class SocialScene {
     );
     if (input.lengthSq() > 0) input.normalize();
     if (this.pose.seat || this.rig.mode === "watch") input.set(0, 0);
+    if (this.poolActive) input.set(0, 0);
+    const waypoint = this.route[0];
+    if (waypoint) {
+      const delta = new T.Vector2(
+        waypoint.x - this.pose.x,
+        waypoint.z - this.pose.z,
+      );
+      if (delta.length() < 0.09) {
+        this.pose.x = waypoint.x;
+        this.pose.z = waypoint.z;
+        this.velocity.set(0, 0);
+        this.dirty = true;
+        this.route.shift();
+        if (!this.route.length) {
+          this.routeEnd?.();
+          this.routeEnd = undefined;
+        }
+      } else {
+        delta.normalize();
+        input.set(
+          delta.x * Math.cos(this.rig.yaw) - delta.y * Math.sin(this.rig.yaw),
+          delta.x * Math.sin(this.rig.yaw) + delta.y * Math.cos(this.rig.yaw),
+        );
+      }
+    }
     this.velocity.lerp(input.multiplyScalar(3.5), 1 - Math.exp(-dt * 14));
     const moving = this.velocity.length() > 0.12 && !this.pose.seat;
+    if (moving && this.pose.emote === "sitfloor") {
+      this.pose.emote = "none";
+      this.dirty = true;
+    }
     if (moving) {
       const dx =
           (this.velocity.x * Math.cos(this.rig.yaw) +
@@ -538,6 +1089,26 @@ export class SocialScene {
       this.dirty = true;
     }
     this.flush(time);
+    if (this.joinRequest && !this.pending && !this.dirty) {
+      const request = this.joinRequest,
+        seat = tableSeat(request.kind, request.index),
+        confirmed = this.data.people.find((p) => p.id === this.self)?.roomPose;
+      if (
+        confirmed &&
+        Math.hypot(confirmed.x - seat.x, confirmed.z - seat.z) < 0.94
+      ) {
+        this.joinRequest = undefined;
+        void this.gameCommand({
+          type: "game.join",
+          game: request.kind,
+          seat: request.index,
+        })
+          .then(() => {
+            this.tableActive = request.kind;
+          })
+          .catch(() => {});
+      }
+    }
     this.audio(this.pose, this.rig.yaw);
     const visible = new Set(
       this.data.people
@@ -593,14 +1164,71 @@ export class SocialScene {
         dt,
         pose.moving,
         !!pose.seat,
-        pose.seat?.startsWith("puff") ? 0.70 : 0.74,
-        pose,
+        pose.seat?.startsWith("puff")
+          ? 0.7
+          : pose.seat?.startsWith("truco-") || pose.seat?.startsWith("chess-")
+            ? 0.62
+            : 0.74,
+        person.id === this.self && this.preview
+          ? { ...pose, emote: this.preview, emoteAt: this.previewAt }
+          : pose,
         settings.smokeEffects !== false,
+        (() => {
+          if (!drawn) return undefined;
+          const st = this.stroke(
+            person.id === this.self && myPoolTurn && drawn.phase === "aiming"
+              ? {
+                  ...drawn,
+                  shot: undefined,
+                  aim: {
+                    actor: this.self,
+                    angle: this.poolAngle,
+                    power: this.poolPower,
+                  },
+                }
+              : drawn,
+            person.id,
+          );
+          if (
+            st.actor !== person.id ||
+            (!st.active && drawn.phase !== "aiming") ||
+            pose.moving ||
+            Math.hypot(pose.x - st.stance.x, pose.z - st.stance.z) > 0.27
+          )
+            return undefined;
+          return st;
+        })(),
+        !!pool?.players.includes(person.id),
+        truco && pose.seat?.startsWith("truco-")
+          ? cardMotion(truco, Number(pose.seat.split("-")[1]), cardClock)
+          : chess && pose.seat?.startsWith("chess-")
+            ? chessMotion(chess, Number(pose.seat.split("-")[1]), chessClock)
+            : undefined,
       );
       model.seat = pose.seat;
-      model.label.visible = settings.names && this.rig.mode !== "watch";
+      model.label.position.y =
+        (pose.seat ? 1.92 : 2.45) * (person.profile.avatar3d?.height ?? 1);
+      model.label.visible =
+        person.id !== this.self &&
+        settings.names &&
+        this.rig.mode !== "watch" &&
+        !this.poolActive &&
+        !this.tableActive;
       model.ring.visible = this.data.speaking.has(person.id) && !person.muted;
     }
+    this.trucoTable?.update(
+      truco,
+      this.data.people.find((p) => p.id === this.self)?.profile.id ?? "",
+      cardClock,
+      (seat, index) => {
+        const id = truco?.players[seat],
+          person = this.data.people.find((p) => p.profile.id === id);
+        return person
+          ? this.models.get(person.id)?.avatar.handWorld(index)
+          : undefined;
+      },
+    );
+    this.chessTable?.update(chess, chessClock);
     const nearest = this.nearestSeat();
     for (const [id, marker] of environment.seatMarkers)
       marker.visible =
@@ -673,6 +1301,9 @@ export class SocialScene {
     }
     this.models.clear();
     this.poolTable?.dispose();
+    this.trucoTable?.dispose();
+    this.chessTable?.dispose();
+    this.sounds.dispose();
     this.environment?.dispose();
     this.assets.dispose();
     this.renderer.dispose();

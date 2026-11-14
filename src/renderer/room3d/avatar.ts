@@ -2,6 +2,9 @@
 import type { Avatar3D, RoomPose } from "../../shared/types";
 import { RoomAssets } from "./assets";
 import { Resources } from "./resources";
+import { armIK } from "./ArmIK";
+import { playingCue } from "./PlayingCue";
+import type { poolStroke } from "../../shared/poolMotion";
 import {
   surface,
   smoothRadialNormals,
@@ -18,7 +21,14 @@ export class SocialAvatar {
   readonly group = new T.Group();
   private r = new Resources();
   private body = new T.Group();
+  private spine = new T.Group();
+  private poolCue!: T.Group;
+  private poolGrip = new T.Group();
+  private ankles: T.Group[] = [];
+  readonly handErrors = [0, 0];
+  poolAligned = false;
   private head = new T.Group();
+  private floorBlend = 0;
   private arms: T.Group[] = [];
   private legs: T.Group[] = [];
   private shins: T.Object3D[] = [];
@@ -517,10 +527,41 @@ export class SocialAvatar {
       this.smoke.push(puff);
     }
     if (this.skirtStanding) this.skirtStanding.userData.dynamic = true;
+    for (const shin of this.shins) {
+      const ankle = new T.Group();
+      ankle.position.y = -0.485;
+      for (const child of [...shin.children]) {
+        ankle.add(child);
+        child.position.y += 0.485;
+      }
+      shin.add(ankle);
+      this.ankles.push(ankle);
+    }
     r.batch(this.body);
+    // Preserve the pelvis/legs while bending the torso. The standing bind pose
+    // is unchanged; clothes, head and both arm skeletons share this spine pivot.
+    this.spine.position.y = 0.95;
+    for (const child of [...this.body.children])
+      if (
+        !this.legs.includes(child as T.Group) &&
+        child !== this.skirt &&
+        !this.smoke.includes(child as T.Sprite)
+      ) {
+        this.spine.add(child);
+        child.position.y -= 0.95;
+      }
+    this.body.add(this.spine);
+    this.poolGrip.position.y = -0.35;
+    this.forearms[1].add(this.poolGrip);
+    this.poolCue = playingCue(r, this.poolGrip);
+    this.poolCue.visible = false;
   }
   play(name: string) {
     this.animation = name;
+  }
+  handWorld(index: number) {
+    this.forearms[index].updateWorldMatrix(true, false);
+    return this.forearms[index].localToWorld(new T.Vector3(0, -0.35, 0));
   }
   update(
     dt: number,
@@ -529,10 +570,17 @@ export class SocialAvatar {
     seatHeight = 0.74,
     pose?: RoomPose,
     showSmoke = true,
+    poolRig?: ReturnType<typeof poolStroke>,
+    carryCue = false,
+    cards?: {
+      left: { x: number; y: number; z: number };
+      right: { x: number; y: number; z: number };
+      lean: number;
+      forward?: number;
+    },
   ) {
     this.time += dt;
-    const t = this.time,
-      alpha = 1 - Math.exp(-dt * 12),
+    const alpha = 1 - Math.exp(-dt * 12),
       active =
         pose?.emote &&
         pose.emote !== "none" &&
@@ -543,7 +591,46 @@ export class SocialAvatar {
       : this.animation === "idle"
         ? "none"
         : this.animation;
-    this.seated = T.MathUtils.lerp(this.seated, seated ? 1 : 0, alpha);
+    const t =
+      active && pose?.emoteAt
+        ? Math.max(0, (Date.now() - pose.emoteAt) / 1000)
+        : this.time;
+    const floorSit =
+      emote === "sitfloor" && !moving && !seated && !poolRig && !cards;
+    this.floorBlend = T.MathUtils.lerp(
+      this.floorBlend,
+      floorSit ? 1 : 0,
+      alpha,
+    );
+    this.seated = T.MathUtils.lerp(
+      this.seated,
+      seated || floorSit ? 1 : 0,
+      alpha,
+    );
+    this.spine.rotation.x = T.MathUtils.lerp(
+      this.spine.rotation.x,
+      poolRig
+        ? 1.05 + ((this.appearance.height ?? 1) - 1) * 1.2
+        : (cards?.lean ?? 0),
+      alpha,
+    );
+    this.spine.position.z = T.MathUtils.lerp(
+      this.spine.position.z,
+      poolRig
+        ? 0.24
+        : cards?.forward !== undefined
+          ? cards.forward +
+            (1 - (this.appearance.height ?? 1)) *
+              0.9 *
+              Math.min(1, cards.forward / 0.2)
+          : 0,
+      alpha,
+    );
+    this.head.rotation.x = T.MathUtils.lerp(
+      this.head.rotation.x,
+      poolRig ? -0.45 : cards ? -cards.lean : 0,
+      alpha,
+    );
     if (this.skirtStanding?.morphTargetInfluences) {
       const normalSeat = T.MathUtils.clamp((seatHeight - 0.7) / 0.04, 0, 1);
       this.skirtStanding.morphTargetInfluences[0] = this.seated * normalSeat;
@@ -564,6 +651,8 @@ export class SocialAvatar {
         seatHeight - 0.96 * avatarHeight,
         this.seated,
       ) +
+      (poolRig ? -0.053 : 0) +
+      this.floorBlend * (0.22 * avatarHeight - seatHeight) +
       (!seated && moving
         ? Math.abs(Math.sin(t * 9)) * 0.025
         : Math.sin(t * 2) * 0.008);
@@ -584,11 +673,13 @@ export class SocialAvatar {
             ? -2.2
             : moving
               ? Math.sin(t * 9 + i * Math.PI) * 0.55
-              : emote === "laugh"
-                ? -0.6 + Math.sin(t * 12) * 0.05
-                : this.appearance.idle === "confident"
-                  ? -0.14
-                  : -0.05;
+              : floorSit
+                ? -0.75
+                : emote === "laugh"
+                  ? -0.6 + Math.sin(t * 12) * 0.05
+                  : this.appearance.idle === "confident"
+                    ? -0.14
+                    : -0.05;
       arm.rotation.x = T.MathUtils.lerp(arm.rotation.x, target, alpha);
       arm.rotation.z = T.MathUtils.lerp(
         arm.rotation.z,
@@ -604,25 +695,167 @@ export class SocialAvatar {
     this.legs.forEach((leg, i) => {
       leg.rotation.x = T.MathUtils.lerp(
         leg.rotation.x,
-        seated
-          ? -seatedBend
-          : moving
-            ? Math.sin(t * 9 + i * Math.PI) * (this.skirt ? 0.35 : 0.6)
-            : 0,
+        poolRig
+          ? -0.35
+          : floorSit
+            ? -1.4
+            : seated
+              ? -seatedBend
+              : moving
+                ? Math.sin(t * 9 + i * Math.PI) * (this.skirt ? 0.35 : 0.6)
+                : emote === "dance"
+                  ? Math.sin(t * 5 + i * Math.PI) * 0.22
+                  : 0,
         alpha,
       );
       const shin = this.shins[i];
+      leg.rotation.z = T.MathUtils.lerp(
+        leg.rotation.z,
+        floorSit ? (i === 0 ? -0.22 : 0.22) : 0,
+        alpha,
+      );
       shin.rotation.x = T.MathUtils.lerp(
         shin.rotation.x,
-        seated
-          ? seatedBend
-          : moving
-            ? Math.max(0, Math.sin(t * 9 + i * Math.PI)) * 0.55
-            : 0,
+        poolRig
+          ? 0.7
+          : floorSit
+            ? 2.8
+            : seated
+              ? seatedBend
+              : moving
+                ? Math.max(0, Math.sin(t * 9 + i * Math.PI)) * 0.55
+                : 0,
+        alpha,
+      );
+      this.ankles[i].rotation.x = T.MathUtils.lerp(
+        this.ankles[i].rotation.x,
+        poolRig ? -0.35 : floorSit ? -1.4 : 0,
         alpha,
       );
     });
     this.cigarette.visible = emote === "smoke" && showSmoke;
+    this.poolCue.visible = !!poolRig || carryCue;
+    this.poolAligned = false;
+    if (carryCue && !poolRig) {
+      this.poolGrip.updateWorldMatrix(true, false);
+      this.poolCue.matrixAutoUpdate = false;
+      this.poolCue.matrix.copy(
+        new T.Matrix4()
+          .copy(this.poolGrip.matrixWorld)
+          .invert()
+          .multiply(
+            new T.Matrix4().compose(
+              this.poolGrip.getWorldPosition(new T.Vector3()),
+              new T.Quaternion().setFromUnitVectors(
+                new T.Vector3(0, 0, 1),
+                new T.Vector3(0, 1, 0),
+              ),
+              new T.Vector3(1, 1, 1),
+            ),
+          ),
+      );
+    }
+    if (poolRig) {
+      this.cigarette.visible = false;
+      this.body.rotation.z = 0;
+      this.group.updateWorldMatrix(true, true);
+      const bridge = new T.Vector3(
+          poolRig.bridge.x,
+          poolRig.bridge.y,
+          poolRig.bridge.z,
+        ),
+        grip = new T.Vector3(poolRig.grip.x, poolRig.grip.y, poolRig.grip.z);
+      const gripHand = poolRig.stance.gripHand,
+        bridgeHand = 1 - gripHand;
+      if (this.poolGrip.parent !== this.forearms[gripHand])
+        this.forearms[gripHand].add(this.poolGrip);
+      this.handErrors[bridgeHand] = armIK(
+        this.arms[bridgeHand],
+        this.forearms[bridgeHand],
+        bridge,
+        bridgeHand === 0 ? -1 : 1,
+      );
+      this.handErrors[gripHand] = armIK(
+        this.arms[gripHand],
+        this.forearms[gripHand],
+        grip,
+        gripHand === 0 ? -1 : 1,
+      );
+      this.poolAligned = this.handErrors.every((error) => error < 0.035);
+      this.poolGrip.updateWorldMatrix(true, false);
+      const held = this.poolGrip.getWorldPosition(new T.Vector3());
+      const heldRotation = new T.Quaternion().setFromUnitVectors(
+        new T.Vector3(0, 0, 1),
+        new T.Vector3(poolRig.tip.x, poolRig.tip.y, poolRig.tip.z)
+          .sub(held)
+          .normalize(),
+      );
+      const cueOrigin = held
+        .clone()
+        .add(
+          new T.Vector3(
+            0,
+            0,
+            poolRig.stance.gripDistance - 0.8,
+          ).applyQuaternion(heldRotation),
+        );
+      this.poolCue.matrixAutoUpdate = false;
+      this.poolCue.matrix.copy(
+        new T.Matrix4()
+          .copy(this.poolGrip.matrixWorld)
+          .invert()
+          .multiply(
+            new T.Matrix4().compose(
+              cueOrigin,
+              heldRotation,
+              new T.Vector3(1, 1, 1),
+            ),
+          ),
+      );
+    }
+    if (
+      !cards &&
+      !poolRig &&
+      ["clap", "point", "pose", "surprise"].includes(emote ?? "")
+    ) {
+      this.group.updateWorldMatrix(true, true);
+      const targets =
+        emote === "clap"
+          ? [
+              [-(0.035 + Math.abs(Math.sin(t * 7)) * 0.13), 1.25, 0.43],
+              [0.035 + Math.abs(Math.sin(t * 7)) * 0.13, 1.25, 0.43],
+            ]
+          : emote === "surprise"
+            ? [
+                [-0.22, 1.74, 0.3],
+                [0.22, 1.74, 0.3],
+              ]
+            : emote === "point"
+              ? [
+                  [-0.28, 1.02, 0.1],
+                  [0.1, 1.48, 0.57],
+                ]
+              : [
+                  [-0.28, 1.07, 0.12],
+                  [0.2, 1.9, 0.24],
+                ];
+      targets.forEach((target, i) => {
+        const world = this.body.localToWorld(new T.Vector3(...target));
+        armIK(this.arms[i], this.forearms[i], world, i === 0 ? -1 : 1);
+      });
+    }
+    if (cards) {
+      this.cigarette.visible = false;
+      this.group.updateWorldMatrix(true, true);
+      [cards.left, cards.right].forEach((target, i) => {
+        this.handErrors[i] = armIK(
+          this.arms[i],
+          this.forearms[i],
+          new T.Vector3(target.x, target.y, target.z),
+          i === 0 ? -1 : 1,
+        );
+      });
+    }
     // Small puffs travel from the animated cigarette tip, then dissipate.
     this.body.updateMatrixWorld(true);
     this.smoke.forEach((puff, i) => {

@@ -1,0 +1,106 @@
+{
+  "version": "1.4.0",
+  "date": "2026-11-14T00:45:12.928Z",
+  "native": {
+    "pool": {
+      "players": 2,
+      "shots": 9,
+      "scores": [
+        4,
+        3
+      ],
+      "source": "pool-match-1794616919150"
+    },
+    "truco": {
+      "players": 4,
+      "hands": 5,
+      "scores": [
+        12,
+        3
+      ],
+      "source": "truco-app-1794614489700"
+    },
+    "chess": {
+      "players": 2,
+      "result": "checkmate",
+      "source": "chess-app-1794615096498"
+    },
+    "social": {
+      "players": 2,
+      "actions": 12,
+      "rooftop": true,
+      "source": "social-rooftop-app-1794616143979"
+    },
+    "regression": "room3d-app-1794616312005"
+  },
+  "visual": {
+    "renders": 63,
+    "poolRigCombinations": 864,
+    "handToleranceMeters": 0.04,
+    "tipToleranceMeters": 0.008
+  },
+  "performance": {
+    "label": "1.4.0",
+    "measuredAt": "2026-11-14T00:42:27.146Z",
+    "results": [
+      {
+        "quality": "low",
+        "frames": 93,
+        "fps": 23.231995203708472,
+        "renderCpuMs": 2.250537634576841,
+        "drawCalls": 353,
+        "triangles": 85374,
+        "geometries": 326,
+        "textures": 73,
+        "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+        "viewport": "1024x600",
+        "avatars": 10,
+        "afterDispose": {
+          "geometries": 0,
+          "textures": 0
+        }
+      },
+      {
+        "quality": "medium",
+        "frames": 150,
+        "fps": 37.45879532515628,
+        "renderCpuMs": 2.5526666667064033,
+        "drawCalls": 449.0133333333333,
+        "triangles": 104328.4,
+        "geometries": 371,
+        "textures": 76,
+        "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+        "viewport": "1024x600",
+        "avatars": 10,
+        "afterDispose": {
+          "geometries": 0,
+          "textures": 0
+        }
+      },
+      {
+        "quality": "high",
+        "frames": 218,
+        "fps": 54.48910217955394,
+        "renderCpuMs": 2.79311926616783,
+        "drawCalls": 415.58715596330273,
+        "triangles": 97729.59633027524,
+        "geometries": 371,
+        "textures": 76,
+        "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+        "viewport": "1024x600",
+        "avatars": 10,
+        "afterDispose": {
+          "geometries": 0,
+          "textures": 0
+        }
+      }
+    ]
+  },
+  "limitations": [
+    "Synthetic microphones on one physical Windows computer",
+    "No four-human VPN match",
+    "Not every special Truco rule exercised visually",
+    "No exhaustive accessory, GPU or long-session coverage",
+    "Some historical audio and Windows integration suites not rerun, as authorized"
+  ]
+}

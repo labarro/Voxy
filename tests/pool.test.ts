@@ -5,6 +5,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { io, type Socket } from "socket.io-client";
+import { poolStroke } from "../src/shared/poolMotion";
 import { PoolGame, POOL, type PoolState } from "../src/shared/pool";
 import { Store } from "../src/database/store";
 import { RoomHost } from "../src/services/signaling/host";
@@ -26,8 +27,9 @@ function game() {
 }
 function settle(g: PoolGame) {
   let n = 0;
-  while (g.state.phase === "rolling" && n++ < 2500) g.step();
-  assert.equal(g.state.phase, "aiming");
+  while (["preparing", "rolling"].includes(g.state.phase) && n++ < 2500)
+    g.step();
+  assert(["aiming", "placing"].includes(g.state.phase));
 }
 test("pool validates turns/revisions, breaks reproducibly and stops with finite non-overlapping balls", () => {
   const a = game(),
@@ -48,7 +50,8 @@ test("pool validates turns/revisions, breaks reproducibly and stops with finite 
     assert.equal(ball.vx, 0);
   }
   a.leave("a");
-  assert.equal(a.state.phase, "waiting");
+  assert.equal(a.state.phase, "finished");
+  assert.equal(a.state.winner, "b");
   assert.deepEqual(a.state.players, ["b"]);
   assert.deepEqual(a.state.scores, [0, 0]);
 });
@@ -59,7 +62,12 @@ test("pool detects legal pots, retains the turn, finishes, and respots scratches
   Object.assign(g.state.balls[0], { x: 0.5, z: 0 });
   Object.assign(g.state.balls[1], { x: 0.95, z: 0 });
   g.shoot("a", Math.PI / 2, 0.18, g.state.revision);
-  for (let i = 0; i < 2500 && g.state.phase === "rolling"; i++) g.step();
+  for (
+    let i = 0;
+    i < 2500 && ["preparing", "rolling"].includes(g.state.phase);
+    i++
+  )
+    g.step();
   assert.equal(g.state.phase, "finished");
   assert.equal(g.state.scores[0], 1);
   assert.equal(g.state.winner, "a");
@@ -198,6 +206,11 @@ test("two real socket clients share authoritative pool results; other channels, 
       ).ok,
       false,
     );
+    await new Promise((r) => setTimeout(r, 350));
+    await command(0, {
+      type: "room.pose",
+      pose: { ...spawnPose(), ...poolStroke(initial).stance },
+    });
     assert(
       (
         await command(0, {
@@ -214,7 +227,11 @@ test("two real socket clients share authoritative pool results; other channels, 
         reject(Error("Simulation did not settle"));
       }, 15000);
       const poll = setInterval(() => {
-        if (host.state().poolGames![channel.id]?.phase !== "rolling") {
+        if (
+          !["preparing", "rolling"].includes(
+            host.state().poolGames![channel.id]?.phase,
+          )
+        ) {
           clearInterval(poll);
           clearTimeout(timer);
           resolve();
@@ -257,7 +274,7 @@ test("two real socket clients share authoritative pool results; other channels, 
       ).ok,
       false,
     );
-    assert.equal(active.phase, "aiming");
+    assert(["aiming", "placing"].includes(active.phase));
     await command(0, {
       type: "room.pose",
       pose: { ...spawnPose(), x: 5, z: 6.7, emote: "smoke" },
@@ -269,7 +286,7 @@ test("two real socket clients share authoritative pool results; other channels, 
     assert(pose.emoteAt! > 0);
     sockets[0].disconnect();
     await new Promise((r) => setTimeout(r, 200));
-    assert.equal(host.state().poolGames![channel.id].phase, "waiting");
+    assert.equal(host.state().poolGames![channel.id].phase, "finished");
     const notes = new ReleaseNotesStore(join(dir, "notes.json"), "1.1.0");
     notes.mark("1.1.0");
     const updated = new ReleaseNotesStore(join(dir, "notes.json"), "1.2.0");

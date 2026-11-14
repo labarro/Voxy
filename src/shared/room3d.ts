@@ -1,4 +1,5 @@
 import { POOL } from "./pool";
+import { GAME_TABLES, tableSeats } from "./gameTables";
 import type { Avatar3D, RoomPose, RoomPreset, RoomSettings } from "./types";
 
 export const defaultAvatar: Avatar3D = {
@@ -24,6 +25,7 @@ export type Seat = {
   z: number;
   yaw: number;
   kind: "sofa" | "chair" | "puff";
+  game?: "truco" | "chess";
 };
 export const seats = (preset: RoomPreset): Seat[] =>
   preset === "cinema"
@@ -36,17 +38,48 @@ export const seats = (preset: RoomPreset): Seat[] =>
           kind: "chair" as const,
         })),
       )
-    : [
-        { id: "sofa-0", x: -2, z: 2, yaw: Math.PI, kind: "sofa" },
-        { id: "sofa-1", x: 0, z: 2, yaw: Math.PI, kind: "sofa" },
-        { id: "sofa-2", x: 2, z: 2, yaw: Math.PI, kind: "sofa" },
-        { id: "chair-0", x: -8, z: 0, yaw: 0, kind: "chair" },
-        { id: "chat-0", x: -10, z: 3, yaw: Math.PI / 2, kind: "chair" },
-        { id: "chat-1", x: -8, z: 5, yaw: Math.PI, kind: "chair" },
-        { id: "chair-1", x: -6, z: 3, yaw: -Math.PI / 2, kind: "chair" },
-        { id: "puff-0", x: -3.7, z: 4.5, yaw: Math.PI, kind: "puff" },
-        { id: "puff-1", x: 3.7, z: 4.5, yaw: Math.PI, kind: "puff" },
-      ];
+    : (
+        [
+          { id: "sofa-0", x: -2, z: 2, yaw: Math.PI, kind: "sofa" },
+          { id: "sofa-1", x: 0, z: 2, yaw: Math.PI, kind: "sofa" },
+          { id: "sofa-2", x: 2, z: 2, yaw: Math.PI, kind: "sofa" },
+          { id: "chair-0", x: -8, z: 0, yaw: 0, kind: "chair" },
+          { id: "chat-0", x: -10, z: 3, yaw: Math.PI / 2, kind: "chair" },
+          { id: "chat-1", x: -8, z: 5, yaw: Math.PI, kind: "chair" },
+          { id: "chair-1", x: -6, z: 3, yaw: -Math.PI / 2, kind: "chair" },
+          { id: "puff-0", x: -3.7, z: 4.5, yaw: Math.PI, kind: "puff" },
+          { id: "puff-1", x: 3.7, z: 4.5, yaw: Math.PI, kind: "puff" },
+        ] as Seat[]
+      ).concat([
+        ...tableSeats("truco"),
+        ...tableSeats("chess"),
+        ...(preset === "rooftop"
+          ? ([
+              {
+                id: "roof-fire-0",
+                x: 5.2,
+                z: -4.5,
+                yaw: Math.PI / 2,
+                kind: "chair",
+              },
+              {
+                id: "roof-fire-1",
+                x: 9.2,
+                z: -4.5,
+                yaw: -Math.PI / 2,
+                kind: "chair",
+              },
+              { id: "roof-fire-2", x: 7.2, z: -6.5, yaw: 0, kind: "chair" },
+              {
+                id: "roof-fire-3",
+                x: 7.2,
+                z: -2.5,
+                yaw: Math.PI,
+                kind: "chair",
+              },
+            ] as Seat[])
+          : []),
+      ]);
 export const spawnPose = (slot = 0): RoomPose => ({
   x: [0, 1.2, -1.2, 2.4, -2.4, 3.6, -3.6, 4.8, -4.8, 6][slot % 10],
   z: 6,
@@ -68,10 +101,36 @@ export function walkable(preset: RoomPreset, x: number, z: number) {
   )
     return false;
   if (Math.abs(x) < 4.6 && z < -9.65) return false;
-  if (preset === "lounge") {
+  if (preset === "rooftop") {
+    if (Math.hypot(x - 7.2, z + 4.5) < 1.15) return false;
+    for (const [px, pz] of [
+      [-5.5, -3],
+      [-5.5, 5],
+      [5.5, -3],
+      [5.5, 5],
+      [4.4, 1],
+      [4.4, 6.2],
+      [9.4, 1],
+      [9.4, 6.2],
+    ])
+      if (Math.hypot(x - px, z - pz) < 0.5) return false;
+  }
+  if (preset !== "cinema") {
+    for (const table of Object.values(GAME_TABLES)) {
+      const clearance = table.seats === 4 ? 1.1 : 0.84;
+      if (
+        Math.abs(x - table.x) < clearance &&
+        Math.abs(z - table.z) < clearance
+      )
+        return false;
+    }
     if (Math.abs(x) < 2.1 && Math.abs(z + 0.2) < 1.15) return false;
     if (Math.abs(x) < 3.3 && Math.abs(z - 2) < 1.05) return false;
-    if (Math.abs(x - POOL.x) < 1.95 && Math.abs(z - POOL.z) < 3) return false;
+    if (
+      Math.abs(x - POOL.x) < POOL.halfX * POOL.scale + 0.41 &&
+      Math.abs(z - POOL.z) < POOL.halfZ * POOL.scale + 0.41
+    )
+      return false;
     if (Math.hypot(x + 8, z - 2.5) < 1.2) return false;
     if (Math.abs(x + 8) < 3.15 && Math.abs(z - 11.8) < 0.85) return false;
     if (
@@ -97,8 +156,10 @@ export function walkable(preset: RoomPreset, x: number, z: number) {
     const dx = x - s.x,
       dz = z - s.z;
     return (
-      Math.abs(dx * Math.cos(s.yaw) - dz * Math.sin(s.yaw)) < 1 &&
-      Math.abs(dx * Math.sin(s.yaw) + dz * Math.cos(s.yaw)) < 1.05
+      Math.abs(dx * Math.cos(s.yaw) - dz * Math.sin(s.yaw)) <
+        (s.game ? 0.65 : 1) &&
+      Math.abs(dx * Math.sin(s.yaw) + dz * Math.cos(s.yaw)) <
+        (s.game ? 0.63 : 1.05)
     );
   });
 }

@@ -9,33 +9,30 @@ import {
   buildHair,
 } from "../src/renderer/room3d/characterGeometry";
 import { defaultAvatar, seats, spawnPose } from "../src/shared/room3d";
-import { PoolTable } from "../src/renderer/room3d/PoolTable";
+import { playingCue } from "../src/renderer/room3d/PlayingCue";
+import { POOL } from "../src/shared/pool";
 
 test("cue butt, shaft, ferrule and tip share one centerline and meet without gaps under the rack transform", () => {
-  const scene = new T.Scene(),
-    table = new PoolTable(scene, []),
-    cues: T.Object3D[] = [];
-  scene.updateMatrixWorld(true);
-  table.group.traverse((o) => {
-    if (o.name === "complete-cue") cues.push(o);
-  });
-  assert.equal(cues.length, 2);
+  const resources = new Resources(),
+    rack = new T.Group();
+  const cues = [playingCue(resources, rack), playingCue(resources, rack)];
   for (const cue of cues) {
-    const pieces = cue.children.filter((o) => o instanceof T.Mesh) as T.Mesh[];
-    assert.equal(pieces.length, 4);
-    let end = 0;
-    for (const piece of pieces) {
+    let end = -0.65;
+    for (const piece of cue.children as T.Mesh[]) {
+      piece.updateMatrix();
       piece.geometry.computeBoundingBox();
-      const b = piece.geometry.boundingBox!;
+      const bounds = piece.geometry
+        .boundingBox!.clone()
+        .applyMatrix4(piece.matrix);
+      assert(Math.abs(bounds.min.z - end) < 1e-6);
       assert(
-        Math.abs(piece.position.x) < 1e-9 && Math.abs(piece.position.z) < 1e-9,
+        Math.abs(piece.position.x) < 1e-8 && Math.abs(piece.position.y) < 1e-8,
       );
-      assert(Math.abs(piece.position.y + b.min.y - end) < 1e-6);
-      end = piece.position.y + b.max.y;
+      end = bounds.max.z;
     }
-    assert(Math.abs(end - 1.82) < 1e-6);
+    assert(Math.abs(end - (0.8 - POOL.radius * POOL.scale)) < 1e-6);
   }
-  table.dispose();
+  resources.dispose();
 });
 
 test("continuous section surfaces have outward normals in either profile direction", () => {

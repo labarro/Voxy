@@ -3,6 +3,7 @@ import type { RoomPreset } from "../../shared/types";
 import { seats } from "../../shared/room3d";
 import { Resources } from "./resources";
 import { RoomAssets } from "./assets";
+import { buildRooftop } from "./Rooftop";
 
 export type RoomEnvironment = {
   screen: T.Mesh<T.PlaneGeometry, T.MeshBasicMaterial>;
@@ -18,6 +19,7 @@ export function buildEnvironment(
   preset: RoomPreset,
   assets: RoomAssets,
 ): RoomEnvironment {
+  if (preset === "rooftop") return buildRooftop(scene);
   const r = new Resources(),
     colliders: T.Object3D[] = [],
     walls: T.Mesh[] = [],
@@ -387,7 +389,14 @@ export function buildEnvironment(
       chair.rotation.y = seat.yaw;
       scene.add(chair);
       colliders.push(chair);
-      if (seat.kind === "puff") {
+      if (seat.game) {
+        r.box(chair, 0, 0.52, 0, 0.65, 0.14, 0.64, palette.wood, 0.04);
+        r.box(chair, 0, 0.62, 0.025, 0.56, 0.1, 0.55, fabric("#688a84"), 0.04);
+        r.box(chair, 0, 0.99, -0.29, 0.63, 0.6, 0.12, fabric("#688a84"), 0.045);
+        for (const x of [-0.23, 0.23])
+          for (const z of [-0.22, 0.22])
+            r.box(chair, x, 0.26, z, 0.055, 0.5, 0.055, palette.wood, 0.008);
+      } else if (seat.kind === "puff") {
         r.box(chair, 0, 0.29, 0, 1.15, 0.56, 1.15, fabric("#ab7963"), 0.18);
       } else {
         r.box(

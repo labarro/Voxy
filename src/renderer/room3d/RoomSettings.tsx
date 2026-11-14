@@ -3,6 +3,7 @@ import { PersonStanding, ArrowRight } from "lucide-react";
 import type { Profile } from "../../shared/types";
 import { defaultRoomSettings } from "../../shared/room3d";
 import { Modal } from "../components/Modal";
+import { EMOTE_KEYS, emoteKey } from "../../shared/emotes";
 const AvatarCreator = lazy(() => import("./AvatarCreator"));
 export function RoomSettings({
   profile,
@@ -36,6 +37,26 @@ export function RoomSettings({
         </span>
       </button>
       <h4>Experiência da sala</h4>
+      <label>
+        Atalho do menu radial
+        <select
+          aria-label="Atalho do menu radial"
+          value={settings.emoteKey ?? "KeyG"}
+          onChange={(e) =>
+            update({ emoteKey: e.target.value as typeof settings.emoteKey })
+          }
+        >
+          {EMOTE_KEYS.map((key) => (
+            <option key={key} value={key}>
+              {key.slice(3)}
+            </option>
+          ))}
+        </select>
+      </label>
+      <small>
+        Tecla em uso: {emoteKey(profile)?.slice(3) ?? "use o botão Emotes"}. O
+        menu reserva uma tecla livre dos atalhos de voz.
+      </small>
       <label>
         Ao entrar em canal compatível
         <select
@@ -108,6 +129,14 @@ export function RoomSettings({
           onChange={(e) => update({ smokeEffects: e.target.checked })}
         />
         Mostrar cigarro virtual e fumaça
+      </label>
+      <label>
+        <input
+          type="checkbox"
+          checked={settings.gameSounds !== false}
+          onChange={(e) => update({ gameSounds: e.target.checked })}
+        />
+        Sons dos jogos na sala
       </label>
       <h4>Voz por proximidade</h4>
       <label className="checkbox">

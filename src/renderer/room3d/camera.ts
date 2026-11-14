@@ -16,6 +16,10 @@ export class RoomCamera {
   private ray = new T.Raycaster();
   private collisionRadius = 0.24;
   private first = true;
+  private game?: { position: T.Vector3; target: T.Vector3 };
+  setGame(position?: T.Vector3, target?: T.Vector3) {
+    this.game = position && target ? { position, target } : undefined;
+  }
   private previous: "follow" | "free" = "follow";
   private beforeWatch?: {
     yaw: number;
@@ -96,6 +100,19 @@ export class RoomCamera {
   }
   update(dt: number, pose: RoomPose, colliders: T.Object3D[]) {
     const alpha = 1 - Math.exp(-dt * 9);
+    if (this.game) {
+      this.target.lerp(this.game.target, alpha);
+      this.position.lerp(this.game.position, alpha);
+      this.position.copy(this.resolve(this.target, this.position, colliders));
+      if (
+        Math.hypot(this.position.x - pose.x, this.position.z - pose.z) < 0.95 &&
+        this.position.y < 2.4
+      )
+        this.position.y = 2.4;
+      this.camera.position.copy(this.position);
+      this.camera.lookAt(this.target);
+      return;
+    }
     this.yaw +=
       Math.atan2(
         Math.sin(this.wantedYaw - this.yaw),

@@ -120,6 +120,8 @@ const profileObjectSchema = z.object({
       names: z.boolean(),
       cameraMode: z.enum(["follow", "free"]).optional(),
       smokeEffects: z.boolean().optional(),
+      gameSounds: z.boolean().optional(),
+      emoteKey: z.enum(["KeyG", "KeyB", "KeyH", "KeyN"]).optional(),
     })
     .optional(),
   id: z.uuid(),
@@ -221,8 +223,77 @@ export const imageSchema = z
   .max(Math.ceil(MAX_IMAGE_BYTES / 3) * 4 + 40)
   .regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/);
 export const commandSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("game.join"),
+    game: z.enum(["truco", "chess"]),
+    seat: z.number().int().min(0).max(3).optional(),
+  }),
+  z.discriminatedUnion("game", [
+    z.object({
+      type: z.literal("game.act"),
+      game: z.literal("chess"),
+      revision: z.number().int().nonnegative(),
+      action: z.discriminatedUnion("type", [
+        z.object({
+          type: z.literal("move"),
+          from: z.string().regex(/^[a-h][1-8]$/),
+          to: z.string().regex(/^[a-h][1-8]$/),
+          promotion: z.enum(["q", "r", "b", "n"]).optional(),
+        }),
+        z.object({
+          type: z.literal("claim"),
+          move: z
+            .object({
+              from: z.string().regex(/^[a-h][1-8]$/),
+              to: z.string().regex(/^[a-h][1-8]$/),
+              promotion: z.enum(["q", "r", "b", "n"]).optional(),
+            })
+            .optional(),
+        }),
+        z.object({ type: z.literal("resign") }),
+        z.object({ type: z.literal("offer") }),
+        z.object({ type: z.literal("accept") }),
+        z.object({ type: z.literal("decline") }),
+        z.object({ type: z.literal("restart") }),
+      ]),
+    }),
+    z.object({
+      type: z.literal("game.act"),
+      game: z.literal("truco"),
+      revision: z.number().int().nonnegative(),
+      action: z.discriminatedUnion("type", [
+        z.object({
+          type: z.literal("play"),
+          index: z.number().int().min(0).max(2),
+          covered: z.boolean().optional(),
+        }),
+        z.object({ type: z.literal("raise") }),
+        z.object({ type: z.literal("accept") }),
+        z.object({ type: z.literal("fold") }),
+        z.object({ type: z.literal("eleven"), accept: z.boolean() }),
+        z.object({ type: z.literal("restart") }),
+      ]),
+    }),
+  ]),
+  z.object({ type: z.literal("game.leave"), game: z.enum(["truco", "chess"]) }),
   z.object({ type: z.literal("pool.join") }),
   z.object({ type: z.literal("pool.leave") }),
+  z.object({
+    type: z.literal("pool.aim"),
+    angle: z
+      .number()
+      .finite()
+      .min(-Math.PI * 2)
+      .max(Math.PI * 2),
+    power: z.number().finite().min(0.05).max(1),
+  }),
+  z.object({
+    type: z.literal("pool.place"),
+    x: z.number().finite().min(-1.25).max(1.25),
+    z: z.number().finite().min(-2.3).max(2.3),
+    revision: z.number().int().nonnegative(),
+  }),
+  z.object({ type: z.literal("pool.restart") }),
   z.object({
     type: z.literal("pool.shoot"),
     angle: z
@@ -237,7 +308,7 @@ export const commandSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("channel.room"),
     id,
-    preset: z.enum(["lounge", "cinema"]).nullable(),
+    preset: z.enum(["lounge", "cinema", "rooftop"]).nullable(),
   }),
   z.object({
     type: z.literal("room.pose"),
@@ -251,6 +322,11 @@ export const commandSchema = z.discriminatedUnion("type", [
         emote: z
           .enum([
             "wave",
+            "clap",
+            "point",
+            "sitfloor",
+            "pose",
+            "surprise",
             "laugh",
             "dance",
             "celebrate",

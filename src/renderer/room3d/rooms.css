@@ -1,3 +1,7 @@
+.room3d .table-game-hud {
+  top: 14px;
+  bottom: auto;
+}
 .room3d.room-social {
   --room-glass: color-mix(in srgb, var(--deep, #18212b) 88%, transparent);
   height: clamp(430px, calc(100vh - 244px), 820px);
@@ -1100,4 +1104,232 @@ dialog:has(.avatar-creator) > header h2 {
 }
 .pool-panel > button {
   padding: 7px 10px;
+}
+.game-hud {
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  transform: translateX(-50%);
+  z-index: 12;
+  width: min(680px, calc(100% - 32px));
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  border: 1px solid var(--line-strong, #ffffff22);
+  border-radius: 12px;
+  box-shadow: 0 12px 35px #0004;
+  color: var(--text-primary, #edf0f8);
+  backdrop-filter: blur(12px);
+}
+.game-hud-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.game-hud-title > div {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+.game-hud-title strong {
+  font-size: 13px;
+}
+.game-hud-title span {
+  font-size: 12px;
+  color: var(--text-secondary, #adbbcc);
+}
+.game-hud-body {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.game-hud-body label {
+  font-size: 11px;
+  flex: 1;
+  min-width: 100px;
+  max-width: 160px;
+  gap: 4px;
+  margin: 0;
+}
+.game-hud-body input {
+  width: 100%;
+  padding: 0;
+  accent-color: var(--accent);
+}
+.game-hud .primary {
+  margin: 0;
+  width: auto;
+  padding: 9px 15px;
+  font-size: 12px;
+}
+.game-hud-hint {
+  font-size: 11px;
+  color: var(--text-muted, #9aaebb);
+  flex: 1;
+  max-width: 26ch;
+}
+.game-hud-error {
+  font-size: 12px;
+  color: #f0a3aa;
+  margin: 10px 0 0;
+}
+.room-playing .room-identity,
+.room-playing .room-tv-card,
+.room-playing .room-context,
+.room-playing .room-social-actions {
+  display: none;
+}
+.room-playing .room-hud-top {
+  top: 110px;
+}
+.room-playing .room-hud-actions {
+  margin-left: auto;
+  padding: 4px;
+}
+.room-playing .room-hud-actions button[aria-label="Participantes da sala"],
+.room-playing .room-hud-actions button[aria-label="Opções da câmera"] {
+  display: none;
+}
+.room-playing .game-hud-body {
+  margin-top: 4px;
+  gap: 10px;
+}
+.room-playing .game-hud-body input {
+  min-height: 16px;
+}
+.room-playing .game-hud-hint {
+  max-width: 20ch;
+  font-size: 10px;
+}
+.table-game-hud {
+  position: absolute;
+  left: 50%;
+  bottom: 82px;
+  transform: translateX(-50%);
+  width: min(590px, calc(100% - 36px));
+  padding: 12px 16px;
+  background: color-mix(in srgb, var(--bg-elevated, #172d31) 94%, transparent);
+  border: 1px solid #a5c0b044;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px #0005;
+  color: var(--text, #f2efe6);
+  pointer-events: auto;
+}
+.table-game-hud header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.table-game-hud header button {
+  margin-left: auto;
+}
+.table-game-hud p {
+  margin: 6px 0;
+  font-size: 13px;
+}
+.table-game-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.table-game-hint {
+  opacity: 0.76;
+}
+.table-game-hud button {
+  border: 1px solid #8bac9b55;
+  border-radius: 6px;
+  padding: 6px 10px;
+  background: #e9d9b112;
+  color: inherit;
+}
+.table-game-hud button:hover {
+  background: #e9d9b12a;
+}
+.table-game-controls label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.emote-wheel-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  display: grid;
+  place-items: center;
+  background: #07171b66;
+  pointer-events: auto;
+  backdrop-filter: blur(2px);
+}
+.emote-wheel {
+  position: relative;
+  width: 370px;
+  height: 370px;
+  max-width: 100%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    #152d35ee 0 29%,
+    #31464be8 30% 66%,
+    #182d35e8 67%
+  );
+  box-shadow: 0 16px 60px #0006;
+  border: 1px solid #b0c7bf44;
+  outline: none;
+}
+.emote-wheel-center {
+  position: absolute;
+  inset: 34%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  color: var(--text, #f5ece0);
+}
+.emote-wheel-center strong {
+  font-size: 14px;
+  line-height: 1.3;
+}
+.emote-wheel-center span {
+  font-size: 10px;
+  opacity: 0.65;
+}
+.emote-wheel button {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 76px;
+  height: 57px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text, #f5ece0);
+  font-size: 10px;
+  cursor: pointer;
+}
+.emote-wheel button:hover,
+.emote-wheel button.is-selected,
+.emote-wheel button:focus-visible {
+  background: var(--accent, #91d5c1);
+  color: var(--accent-contrast, #142c30);
+  outline: 2px solid #fffc;
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .emote-wheel {
+    animation: none;
+  }
+}
+.emote-wheel button:active:not(:disabled) {
+  transform: translate(-50%, -50%) scale(0.97);
 }

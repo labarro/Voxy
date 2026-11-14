@@ -292,7 +292,7 @@ export function ServerManager({
                   <label className="environment-row" key={c.id}>
                     <span>
                       <strong>{c.name}</strong>
-                      <small>Tradicional, Lounge ou Cinema</small>
+                      <small>Tradicional, Lounge, Cinema ou Rooftop</small>
                     </span>
                     <select
                       aria-label={"Ambiente de " + c.name}
@@ -303,13 +303,14 @@ export function ServerManager({
                           type: "channel.room",
                           id: c.id,
                           preset: (e.target.value || null) as
-                            "lounge" | "cinema" | null,
+                            "lounge" | "cinema" | "rooftop" | null,
                         })
                       }
                     >
                       <option value="">Tradicional</option>
                       <option value="lounge">Lounge 3D</option>
                       <option value="cinema">Cinema 3D</option>
+                      <option value="rooftop">Rooftop noturno 3D</option>
                     </select>
                   </label>
                 ))

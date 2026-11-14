@@ -1,4 +1,31 @@
 {
+  "1.4.0": {
+    "date": "2026-11-13",
+    "title": "Social & Games: encontros que viram partidas",
+    "items": [
+      "Sinuca jogada no cenário, com caminhada, mira no feltro, taco nas mãos e tacada sincronizada.",
+      "Truco Paulista para quatro jogadores, com cartas privadas e duplas frente a frente.",
+      "Xadrez físico, menu radial de emotes e Rooftop noturno."
+    ],
+    "features": [
+      "Truco Paulista com manilhas variáveis, vazas, cartas cobertas, aumentos até doze, mão de onze e mão de ferro.",
+      "Xadrez autoritativo com roque, en passant, promoções, xeque-mate, empates, desistência e revanche.",
+      "Rooftop com cidade estilizada, pergolados, áreas de convivência, TV e mesas de jogos.",
+      "Menu radial configurável com dez emotes sociais, cigarro virtual e cancelamento."
+    ],
+    "improvements": [
+      "Mesas e cartas 3D, câmeras contextuais e HUDs compactas; jogos preservam a visão do ambiente.",
+      "Mãos com IK, pivô de tronco e posicionamento variável no taco para diferentes alturas e direções.",
+      "Sessões de Truco e xadrez com assentos autenticados, pausa e reserva de reconexão por 60 segundos.",
+      "Sons sintetizados dos jogos, controle nas preferências e prioridade de Deafen."
+    ],
+    "fixes": [
+      "A sinuca aplica o impulso apenas após o contato visual do taco e mantém uma única física no host.",
+      "Bola na mão após falta, prevenção de tacadas simultâneas e vitória por abandono.",
+      "Cartas secretas não entram em snapshots de adversários ou espectadores; respostas de parceiros são serializadas.",
+      "Saída de mesas e aproximação de outro jogo aguardam a posição autoritativa de levantar."
+    ]
+  },
   "1.3.0": {
     "date": "2026-11-13",
     "title": "Um novo espaço para as suas conversas",

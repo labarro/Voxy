@@ -1,14 +1,30 @@
 import type { PoolState } from "./pool";
+import type { TrucoView, TrucoAction } from "./truco";
+import type { TableGame } from "./gameTables";
+import type { ChessView, ChessAction } from "./chess";
+export type SocialGamesView = { truco?: TrucoView; chess?: ChessView };
 import type { PttKey, VoiceShortcut } from "./preferences";
 export type Presence = "online" | "away" | "busy";
-export type RoomPreset = "lounge" | "cinema";
+export type RoomPreset = "lounge" | "cinema" | "rooftop";
 export type RoomPose = {
   x: number;
   z: number;
   yaw: number;
   seat: string | null;
   moving: boolean;
-  emote?: "wave" | "laugh" | "dance" | "celebrate" | "greet" | "smoke" | "none";
+  emote?:
+    | "wave"
+    | "laugh"
+    | "dance"
+    | "celebrate"
+    | "greet"
+    | "smoke"
+    | "none"
+    | "clap"
+    | "point"
+    | "sitfloor"
+    | "pose"
+    | "surprise";
   emoteAt?: number;
 };
 export type Avatar3D = {
@@ -79,6 +95,8 @@ export type RoomSettings = {
   names: boolean;
   cameraMode?: "follow" | "free";
   smokeEffects?: boolean;
+  gameSounds?: boolean;
+  emoteKey?: "KeyG" | "KeyB" | "KeyH" | "KeyN";
 };
 export type Profile = {
   avatar3d?: Avatar3D;
@@ -167,6 +185,7 @@ export type Message = {
   editedAt?: number | null;
 };
 export type RoomState = {
+  socialGames?: Record<string, SocialGamesView>;
   televisions?: Record<string, string>;
   poolGames?: Record<string, PoolState>;
   friendships?: Friendship[];
@@ -175,6 +194,7 @@ export type RoomState = {
   memberRoles?: MemberRole[];
   profiles?: Record<string, Participant["profile"]>;
   features?: {
+    socialGames?: boolean;
     directMessages: boolean;
     presence: boolean;
     mediaSubscriptions?: boolean;
@@ -199,6 +219,13 @@ export type Signal = {
 export type Command =
   | { type: "pool.join" }
   | { type: "pool.leave" }
+  | { type: "game.join"; game: TableGame; seat?: number }
+  | { type: "game.leave"; game: TableGame }
+  | { type: "game.act"; game: "truco"; revision: number; action: TrucoAction }
+  | { type: "game.act"; game: "chess"; revision: number; action: ChessAction }
+  | { type: "pool.aim"; angle: number; power: number }
+  | { type: "pool.place"; x: number; z: number; revision: number }
+  | { type: "pool.restart" }
   | { type: "pool.shoot"; angle: number; power: number; revision: number }
   | { type: "room.tv"; participantId: string }
   | { type: "room.pose"; pose: RoomPose | null }
@@ -334,6 +361,7 @@ export type Reply<T = unknown> =
   { ok: true; value: T } | { ok: false; error: string };
 export type NetworkEvent =
   | { type: "room-pool"; channelId: string; game: PoolState }
+  | { type: "room-games"; channelId: string; games: SocialGamesView }
   | { type: "room-pose"; id: string; channelId: string; pose: RoomPose | null }
   | {
       type: "notifications";

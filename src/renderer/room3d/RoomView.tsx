@@ -39,6 +39,11 @@ import { Avatar } from "../components/Avatar";
 
 import type { PoolState } from "../../shared/pool";
 import { PoolPanel } from "./PoolPanel";
+import type { SocialGamesView } from "../../shared/types";
+import { TrucoHUD } from "./TrucoHUD";
+import { ChessHUD } from "./ChessHUD";
+import { EmoteWheel } from "./EmoteWheel";
+import { emoteKey } from "../../shared/emotes";
 type Actions = {
   muted?: boolean;
   deafened?: boolean;
@@ -65,6 +70,7 @@ const initialScene: SceneState = {
 export default function RoomView({
   preset,
   pool,
+  games,
   selfId,
   people,
   profile,
@@ -90,6 +96,7 @@ export default function RoomView({
 }: {
   preset: RoomPreset;
   pool?: PoolState;
+  games?: SocialGamesView;
   selfId: string;
   people: Participant[];
   profile: Profile;
@@ -106,7 +113,7 @@ export default function RoomView({
     root = useRef<HTMLElement>(null),
     scene = useRef<SocialScene | undefined>(undefined);
   const [poolOpen, setPoolOpen] = useState(false);
-  const [emote, setEmote] = useState("none");
+  const [radial, setRadial] = useState(false);
   const [notice, setNotice] = useState(""),
     [occupancy, setOccupancy] = useState(1),
     [state, setState] = useState(initialScene),
@@ -130,22 +137,26 @@ export default function RoomView({
   const current = useRef({
     people,
     pool,
+    games,
     settings,
     stream,
     media,
     command,
     fallback,
     paused,
+    deafened,
   });
   current.current = {
     people,
     pool,
+    games,
     settings,
     stream,
     media,
     command,
     fallback,
     paused,
+    deafened,
   };
   useEffect(() => {
     onSource(source?.id ?? null);
@@ -155,7 +166,13 @@ export default function RoomView({
     const data = () => ({
       people: current.current.people,
       pool: current.current.pool,
-      settings: current.current.settings,
+      games: current.current.games,
+      settings: {
+        ...current.current.settings,
+        gameSounds:
+          !current.current.deafened &&
+          current.current.settings.gameSounds !== false,
+      },
       stream: current.current.stream,
       speaking: current.current.media.speaking,
       paused: current.current.paused,
@@ -213,6 +230,16 @@ export default function RoomView({
           if (active) setState(value);
         },
         () => setPoolOpen(true),
+        async (action) => {
+          try {
+            const result = await current.current.command(action);
+            if (active) setNotice("");
+            return result;
+          } catch (e) {
+            if (active) setNotice((e as Error).message);
+            throw e;
+          }
+        },
       );
       scene.current = view;
       const timer = setInterval(() => {
@@ -243,6 +270,17 @@ export default function RoomView({
       engine.setSpatialMix(new Map());
     };
   }, [preset, selfId, engine]);
+  useEffect(() => {
+    scene.current?.setPoolActive(poolOpen);
+  }, [poolOpen]);
+  const trucoSeat = games?.truco?.players.indexOf(profile.id) ?? -1;
+  const chessSeat = games?.chess?.players.indexOf(profile.id) ?? -1;
+  useEffect(() => {
+    if (trucoSeat >= 0 || chessSeat >= 0) {
+      setPoolOpen(false);
+      scene.current?.setTableActive(trucoSeat >= 0 ? "truco" : "chess");
+    } else scene.current?.setTableActive();
+  }, [trucoSeat, chessSeat]);
   useEffect(() => {
     const change = () =>
       setFullscreen(
@@ -308,14 +346,35 @@ export default function RoomView({
         "room3d room-social " +
         (state.ready ? "is-ready " : "") +
         (!hud ? "hud-quiet " : "") +
+        (poolOpen || trucoSeat >= 0 || chessSeat >= 0 ? "room-playing " : "") +
         (expanded ? "room-presenting " : "")
       }
-      aria-label={preset === "lounge" ? "Lounge 3D" : "Cinema 3D"}
+      aria-label={
+        preset === "lounge"
+          ? "Lounge 3D"
+          : preset === "rooftop"
+            ? "Rooftop 3D"
+            : "Cinema 3D"
+      }
       aria-busy={!state.ready}
       data-camera-mode={state.mode}
       onPointerMove={showHud}
       onFocusCapture={showHud}
       onKeyDown={(event) => {
+        if (
+          event.code === emoteKey(profile) &&
+          !event.repeat &&
+          !event.ctrlKey &&
+          !event.altKey &&
+          event.target instanceof HTMLCanvasElement &&
+          !poolOpen &&
+          trucoSeat < 0 &&
+          chessSeat < 0
+        ) {
+          event.preventDefault();
+          setRadial(true);
+          return;
+        }
         if (event.key === "Escape") {
           if (
             document.fullscreenElement &&
@@ -325,6 +384,13 @@ export default function RoomView({
           if (expanded) {
             event.stopPropagation();
             returnToRoom();
+          } else if (poolOpen) {
+            void command({ type: "pool.leave" }).catch(() => {});
+            setPoolOpen(false);
+          } else if (trucoSeat >= 0) {
+            scene.current?.leaveGame("truco");
+          } else if (chessSeat >= 0) {
+            scene.current?.leaveGame("chess");
           } else if (menu) setMenu(null);
           else if (state.mode === "watch") returnToRoom();
         }
@@ -340,30 +406,35 @@ export default function RoomView({
       }}
     >
       <div className="room3d-canvas" ref={mount} />
+      {radial && (
+        <EmoteWheel
+          close={() => setRadial(false)}
+          preview={(value) => scene.current?.previewEmote(value)}
+          choose={(value) => {
+            scene.current?.emote(value);
+            setRadial(false);
+          }}
+        />
+      )}
       <div className="room-social-actions">
-        <label>
-          Interação{" "}
-          <select
-            aria-label="Interação social"
-            value={emote}
-            onChange={(e) => {
-              setEmote(e.target.value);
-              scene.current?.emote(
-                e.target.value as NonNullable<RoomPose["emote"]>,
-              );
-            }}
-          >
-            <option value="none">Parar ação</option>
-            <option value="wave">Acenar</option>
-            <option value="laugh">Rir</option>
-            <option value="dance">Dançar</option>
-            <option value="celebrate">Comemorar</option>
-            <option value="greet">Cumprimentar</option>
-            <option value="smoke">Cigarro virtual</option>
-          </select>
-        </label>
-        {preset === "lounge" && (
-          <button onClick={() => setPoolOpen((v) => !v)}>Sinuca</button>
+        <button
+          aria-label="Abrir menu de emotes"
+          onClick={() => setRadial(true)}
+        >
+          Emotes <kbd>{emoteKey(profile)?.slice(3)}</kbd>
+        </button>
+        {preset !== "cinema" && (
+          <>
+            <button onClick={() => scene.current?.approachPool()}>
+              Sinuca
+            </button>
+            <button onClick={() => scene.current?.approachGame("truco")}>
+              Truco Paulista
+            </button>
+            <button onClick={() => scene.current?.approachGame("chess")}>
+              Xadrez
+            </button>
+          </>
         )}
       </div>
       {poolOpen && (
@@ -373,6 +444,50 @@ export default function RoomView({
           self={selfId}
           command={command}
           close={() => setPoolOpen(false)}
+          angle={state.poolAngle}
+          ready={state.poolReady}
+          aim={(angle, power) => scene.current?.setPoolAim(angle, power)}
+          shoot={() =>
+            scene.current?.shootPool() ??
+            Promise.reject(Error("Aguarde a sala carregar."))
+          }
+        />
+      )}
+      {trucoSeat >= 0 && games?.truco && (
+        <TrucoHUD
+          game={games.truco}
+          self={profile.id}
+          people={people}
+          act={(action) =>
+            command({
+              type: "game.act",
+              game: "truco",
+              revision: games.truco!.revision,
+              action,
+            })
+          }
+          leave={() => {
+            scene.current?.leaveGame("truco");
+          }}
+          covered={(v) => scene.current?.setCovered(v)}
+        />
+      )}
+      {chessSeat >= 0 && games?.chess && (
+        <ChessHUD
+          game={games.chess}
+          self={profile.id}
+          act={(action) =>
+            command({
+              type: "game.act",
+              game: "chess",
+              revision: games.chess!.revision,
+              action,
+            })
+          }
+          leave={() => {
+            scene.current?.leaveGame("chess");
+          }}
+          promote={(v) => scene.current?.setChessPromotion(v)}
         />
       )}
       {!state.ready && (
@@ -386,8 +501,13 @@ export default function RoomView({
               : "Sua próxima sessão."}
           </h2>
           <p>
-            Preparando {preset === "lounge" ? "o lounge" : "o cinema"} e seus
-            personagens…
+            Preparando{" "}
+            {preset === "lounge"
+              ? "o lounge"
+              : preset === "rooftop"
+                ? "o rooftop"
+                : "o cinema"}{" "}
+            e seus personagens…
           </p>
           <progress
             aria-label="Carregamento da sala"
@@ -406,7 +526,13 @@ export default function RoomView({
         <div className="room-identity">
           <span className="room-presence-dot" />
           <div>
-            <strong>{preset === "lounge" ? "Lounge" : "Cinema"}</strong>
+            <strong>
+              {preset === "lounge"
+                ? "Lounge"
+                : preset === "rooftop"
+                  ? "Rooftop"
+                  : "Cinema"}
+            </strong>
             <span>
               {occupancy} no ambiente ·{" "}
               {settings.proximity ? "voz por proximidade" : "voz do canal"}

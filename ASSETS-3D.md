@@ -1,4 +1,11 @@
-# Direção artística e assets das salas · 1.2.1
+# Assets e animações · atualização 1.4.0
+
+As novas mesas, baralho, peças de xadrez e Rooftop são construídos em Three.js pelo Voxy. O baralho usa texturas Canvas próprias, compartilhadas e pequenas; faces adversárias não são solicitadas ao renderer. Peças de xadrez compartilham modelos por tipo/cor. Cidade e arquitetura estática agrupam geometrias por material.
+
+O avatar mantém as malhas contínuas existentes e ganha pivô de tronco, tornozelos e IK de dois ossos para segurar objetos. O taco conserva comprimento no mundo apesar da escala do avatar; a pegada muda ao longo da haste conforme a tacada. Clientes interpolam as bolas recebidas, sem simular física própria. [Licenças e créditos](THIRD-PARTY-NOTICES.md).
+
+## Histórico dos assets existentes
+
 
 ## Reconstrução da 1.2.1
 

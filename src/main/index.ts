@@ -308,6 +308,15 @@ async function connect(invite: string, ownerKey?: string) {
     randomizationFactor: 0.25,
   });
   client = socket;
+  socket.on("room-games", (event) => {
+    if (socket !== client) return;
+    if (currentState)
+      currentState.socialGames = {
+        ...currentState.socialGames,
+        [event.channelId]: event.games,
+      };
+    emit({ ...event, type: "room-games" });
+  });
   socket.on("room-pool", (event) => {
     if (socket !== client) return;
     if (currentState)

@@ -1,6 +1,6 @@
 # Salas 3D · Voxy 1.4.0
 
-A versão 1.4.0 está em preparação para publicação; o download estável permanece na 1.3.0 até a conferência dos artefatos. Lounge e Rooftop oferecem sinuca, Truco Paulista e xadrez no cenário. O Cinema mantém a experiência de assistir. O Rooftop tem guarda-corpos, núcleo de acesso, pergolados, deck e cidade ao redor; é um ambiente externo pronto, sem editor de mapas.
+A [versão 1.4.0 está publicada](https://github.com/labarro/Voxy/releases/tag/v1.4.0), com instalador e auto update conferidos. Lounge e Rooftop oferecem sinuca, Truco Paulista e xadrez no cenário. O Cinema mantém a experiência de assistir. O Rooftop tem guarda-corpos, núcleo de acesso, pergolados, deck e cidade ao redor; é um ambiente externo pronto, sem editor de mapas.
 
 Use E perto de móveis e mesas, ou os botões de jogos para caminhar até eles. G abre a roda social; a tecla pode ser alterada nas preferências, com reserva de uma tecla livre dos atalhos de voz. Mouse controla mira e seleção diretamente nos objetos. Voz e mídia continuam disponíveis durante as partidas. [Regras, controles e reconexão](JOGOS-SOCIAIS.md).
 

@@ -2,6 +2,8 @@
 
 ## Versão 1.4.0 — 13/11/2026
 
+Passaram `npm test` (81 testes) e `npm run build`. O [workflow de release](https://github.com/labarro/Voxy/actions/runs/43536372778) concluiu os testes, geração do instalador, teste do executável empacotado/persistência e publicação. Os cinco artefatos foram baixados e conferidos contra o catálogo assinado, hashes e endpoint público. [Evidência](evidence/publication-1.4.0.json).
+
 Foram executadas partidas completas de sinuca em dois processos Electron (nove tacadas, 4×3), Truco em quatro processos (cinco mãos, 12×3) e xadrez em dois processos (mate em quatro lances). O Truco e o xadrez usam cliques nos objetos 3D; o ensaio de sinuca combina mira pelo mouse, ajuste fino de direção e reposição da branca por clique no feltro. Relatórios locais em `test-results/pool-match-1794612843261/`, `truco-app-1794614489700/` e `chess-app-1794615096498/`.
 
 O teste `social3d.app.ts` passou com dois processos: doze ações da roda sincronizadas, abertura por G, cancelamento por Esc, troca para Rooftop, voz conectada e aproximação das mesas de xadrez/sinuca. Relatório em `test-results/social-rooftop-app-1794616143979/`. A regressão `test:rooms3d:app` passou após a integração (`room3d-app-1794616312005/`), incluindo TV via WebRTC, fullscreen, modo assistir, personalização e alternância tradicional/3D.

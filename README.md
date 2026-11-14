@@ -9,20 +9,20 @@
 Voz, chat e compartilhamento de tela para o seu grupo de amigos.<br />
 Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu computador.
 
-![Versão 1.4.0 em preparação](https://img.shields.io/badge/vers%C3%A3o-1.4.0_em_preparacao-b6adff?style=flat-square)
+![Versão 1.4.0](https://img.shields.io/badge/vers%C3%A3o-1.4.0-68d6b1?style=flat-square)
 ![Windows 10 e 11 x64](https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-4389e8?style=flat-square)
 ![WebRTC P2P](https://img.shields.io/badge/WebRTC-P2P-68d6b1?style=flat-square)
 ![Até 10 participantes](https://img.shields.io/badge/at%C3%A9-10%20participantes-c9233c?style=flat-square)
 
-[⬇ Baixar Voxy 1.3.0](https://github.com/labarro/Voxy/releases/download/v1.3.0/Voxy-Setup-1.3.0-x64.exe) · [Instalar e conectar](INSTALACAO-E-CONEXAO.md) · [Atualizar o Voxy](GUIA-DE-ATUALIZACAO.md) · [Desenvolvimento](#desenvolvimento) · [Documentação](#documentação)
+[⬇ Baixar Voxy 1.4.0](https://github.com/labarro/Voxy/releases/download/v1.4.0/Voxy-Setup-1.4.0-x64.exe) · [Instalar e conectar](INSTALACAO-E-CONEXAO.md) · [Atualizar o Voxy](GUIA-DE-ATUALIZACAO.md) · [Desenvolvimento](#desenvolvimento) · [Documentação](#documentação)
 
 </div>
 
 ---
 
-## Novidades na versão 1.4.0 em preparação
+## Novidades na versão 1.4.0 publicada
 
-**Código em preparação: 1.4.0. Última versão publicada: 1.3.0.** A atualização Social & Games está em desenvolvimento e ainda não foi publicada. O download continua na release existente. A entrada 1.4.0 do catálogo será consolidada com as funcionalidades efetivamente concluídas antes do lançamento autorizado.
+**Código e última versão publicada: 1.4.0.** A [release 1.4.0](https://github.com/labarro/Voxy/releases/tag/v1.4.0) foi publicada pelo [workflow](https://github.com/labarro/Voxy/actions/runs/43536372778), incluindo teste do executável empacotado. Os cinco arquivos, assinatura Ed25519, hashes, manifesto, notas e endpoint de auto update foram conferidos. [Evidência da publicação](evidence/publication-1.4.0.json).
 
 A 1.4.0 integra sinuca, Truco Paulista 2×2 e xadrez às salas 3D. As partidas acontecem nas mesas do cenário, com câmeras próprias, objetos físicos, animações dos avatares e controles discretos. O host valida regras, turnos, física e informações privadas.
 

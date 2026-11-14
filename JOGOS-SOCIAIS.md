@@ -1,6 +1,6 @@
 # Jogos sociais · Voxy 1.4.1
 
-Atualize o host e todos os participantes para 1.4.0. Lounge e Rooftop têm mesas físicas de sinuca, Truco e xadrez. Use os botões da sala para caminhar até uma mesa, ou aproxime-se e pressione **E**. Assentos de jogos são reservados pelo host; os parceiros do Truco ficam frente a frente. Espectadores podem circular e conversar por proximidade.
+Atualize o host e todos os participantes para 1.4.1. Lounge e Rooftop têm mesas físicas de sinuca, Truco e xadrez. Use os botões da sala para caminhar até uma mesa, ou aproxime-se e pressione **E**. Assentos de jogos são reservados pelo host; os parceiros do Truco ficam frente a frente. Espectadores podem circular e conversar por proximidade.
 
 ## Sinuca: Rotation 7 do Voxy
 

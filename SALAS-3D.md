@@ -1,8 +1,8 @@
-# Salas 3D · Voxy 1.4.0
+# Salas 3D · Voxy 1.4.1
 
 Na revisão 1.4.1, clique/arraste no feltro e solte para fixar a mira da sinuca. Espaço/Enter no canvas executa; Esc desfaz a seleção. O modo de baixo consumo (Configurações → Windows) mantém a entrada tradicional por padrão e reduz a qualidade 3D quando você abrir um ambiente. Renderização e TV pausam quando o ambiente fica oculto; sair para o canal libera os recursos gráficos. [Medições e limites](STABILITY-1.4.1.md).
 
-A [versão 1.4.0 está publicada](https://github.com/labarro/Voxy/releases/tag/v1.4.0), com instalador e auto update conferidos. Lounge e Rooftop oferecem sinuca, Truco Paulista e xadrez no cenário. O Cinema mantém a experiência de assistir. O Rooftop tem guarda-corpos, núcleo de acesso, pergolados, deck e cidade ao redor; é um ambiente externo pronto, sem editor de mapas.
+A [versão 1.4.1 está publicada](https://github.com/labarro/Voxy/releases/tag/v1.4.1), com instalador e auto update conferidos. Lounge e Rooftop oferecem sinuca, Truco Paulista e xadrez no cenário. O Cinema mantém a experiência de assistir. O Rooftop tem guarda-corpos, núcleo de acesso, pergolados, deck e cidade ao redor; é um ambiente externo pronto, sem editor de mapas.
 
 Use E perto de móveis e mesas, ou os botões de jogos para caminhar até eles. G abre a roda social; a tecla pode ser alterada nas preferências, com reserva de uma tecla livre dos atalhos de voz. Mouse controla mira e seleção diretamente nos objetos. Voz e mídia continuam disponíveis durante as partidas. [Regras, controles e reconexão](JOGOS-SOCIAIS.md).
 

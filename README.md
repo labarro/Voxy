@@ -6,9 +6,9 @@
 
 ### Converse. Mostre. Fique por perto.
 
-## Novidades na versão 1.4.1 em preparação
+## Novidades na versão 1.4.1 publicada
 
-Código em preparação: **1.4.1**. Última publicação confirmada: **1.4.0**; os links abaixo continuam apontando para os artefatos existentes até a verificação da nova release. Saída do build: `release/1.4.1/`.
+Código e última publicação confirmada: **1.4.1**. O [workflow de release](https://github.com/labarro/Voxy/actions/runs/43613943906) concluiu testes, geração, assinatura do catálogo, teste do executável empacotado e publicação. Os cinco arquivos públicos, hashes, assinatura Ed25519, notas e endpoint de atualização foram conferidos. [Evidência da publicação](evidence/publication-1.4.1.json). Saída do build: `release/1.4.1/`.
 
 Esta revisão corrige a entrada na voz com indicação da etapa, timeout do microfone (12 s), inicialização/saída de áudio (5 s), confirmação do servidor e negociação de pares (20 s). Falhas oferecem **Tentar novamente** e **Ver diagnóstico**; **Copiar diagnóstico seguro** exporta etapas e estados sem nomes, IPs, convites, SDP ou credenciais. Uma entrada salva que desapareceu usa o microfone padrão. A sinalização ICE tem orçamento próprio para rajadas de várias interfaces. A causa do relato nos computadores afetados ainda requer validação com seus diagnósticos; acesso ao servidor não comprova conectividade UDP entre pares.
 
@@ -21,12 +21,12 @@ O host deixa de atualizar jogos sem partidas; medidores param de publicar nívei
 Voz, chat e compartilhamento de tela para o seu grupo de amigos.<br />
 Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu computador.
 
-![Versão 1.4.0](https://img.shields.io/badge/vers%C3%A3o-1.4.0-68d6b1?style=flat-square)
+![Versão 1.4.1](https://img.shields.io/badge/vers%C3%A3o-1.4.1-68d6b1?style=flat-square)
 ![Windows 10 e 11 x64](https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-4389e8?style=flat-square)
 ![WebRTC P2P](https://img.shields.io/badge/WebRTC-P2P-68d6b1?style=flat-square)
 ![Até 10 participantes](https://img.shields.io/badge/at%C3%A9-10%20participantes-c9233c?style=flat-square)
 
-[⬇ Baixar Voxy 1.4.0](https://github.com/labarro/Voxy/releases/download/v1.4.0/Voxy-Setup-1.4.0-x64.exe) · [Instalar e conectar](INSTALACAO-E-CONEXAO.md) · [Atualizar o Voxy](GUIA-DE-ATUALIZACAO.md) · [Desenvolvimento](#desenvolvimento) · [Documentação](#documentação)
+[⬇ Baixar Voxy 1.4.1](https://github.com/labarro/Voxy/releases/download/v1.4.1/Voxy-Setup-1.4.1-x64.exe) · [Instalar e conectar](INSTALACAO-E-CONEXAO.md) · [Atualizar o Voxy](GUIA-DE-ATUALIZACAO.md) · [Desenvolvimento](#desenvolvimento) · [Documentação](#documentação)
 
 </div>
 

@@ -1,6 +1,6 @@
 # Voxy 1.4.1: investigação, medições e validação
 
-Revisão de estabilidade em preparação. A publicação só é considerada concluída após o workflow de release e a conferência dos artefatos públicos. Este relatório não declara resolvido o relato original em todos os computadores.
+Revisão de estabilidade publicada pelo [workflow 43613943906](https://github.com/labarro/Voxy/actions/runs/43613943906), concluído com sucesso. Os cinco arquivos públicos, assinatura Ed25519, hashes, manifesto, notas e endpoint de atualização foram conferidos; [evidência da publicação](evidence/publication-1.4.1.json). Este relatório não declara resolvido o relato original em todos os computadores.
 
 ## Entrada na voz: causas encontradas e alcance da correção
 

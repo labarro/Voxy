@@ -2709,3 +2709,8 @@ dialog .checkbox input {
     font-size: 10px;
   }
 }
+:root[data-low-resource="true"] *, :root[data-low-resource="true"] *::before, :root[data-low-resource="true"] *::after {
+  animation: none !important;
+  transition: none !important;
+  backdrop-filter: none !important;
+}

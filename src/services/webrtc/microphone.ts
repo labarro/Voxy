@@ -42,6 +42,7 @@ export class MicrophonePipeline {
   private background = false;
   setBackground(value: boolean) {
     this.background = value;
+    this.schedule();
   }
   readonly stream: MediaStream;
   private source: MediaStreamAudioSourceNode;
@@ -50,16 +51,37 @@ export class MicrophonePipeline {
   private gate: GainNode;
   private limiter: WaveShaperNode;
   private destination: MediaStreamAudioDestinationNode;
-  private timer: ReturnType<typeof setInterval>;
+  private timer?: ReturnType<typeof setInterval>;
+  private sample = () => {};
+  private closed = false;
+  private gateOpen = false;
+  private schedule() {
+    clearInterval(this.timer);
+    this.timer = undefined;
+    if (this.closed) return;
+    if (this.background && !this.settings.voiceDetection) {
+      this.gateOpen = true;
+      this.gate.gain.setTargetAtTime(1, this.context.currentTime, 0.005);
+      return;
+    }
+    this.timer = setInterval(
+      this.sample,
+      this.settings.voiceDetection
+        ? 50
+        : this.settings.lowResourceMode
+          ? 250
+          : 100,
+    );
+  }
   private settings: Pick<
     Profile,
-    "inputVolume" | "voiceDetection" | "voiceThreshold"
+    "inputVolume" | "voiceDetection" | "voiceThreshold" | "lowResourceMode"
   > = {};
   private detector = new VoiceGate();
   constructor(
     private context: AudioContext,
     readonly raw: MediaStream,
-    level: (db: number) => void,
+    level: (db: number, open: boolean) => void,
   ) {
     this.source = context.createMediaStreamSource(raw);
     this.analyser = context.createAnalyser();
@@ -78,16 +100,14 @@ export class MicrophonePipeline {
       .connect(this.destination);
     this.stream = this.destination.stream;
     const buffer = new Float32Array(this.analyser.fftSize);
-    let ticks = 0;
-    let gateOpen = false;
-    this.timer = setInterval(() => {
+    this.sample = () => {
       // Keep the voice gate running in background, but do not sample for a hidden meter.
       if (
         (this.background || document.hidden) &&
         !this.settings.voiceDetection
       ) {
-        if (!gateOpen) {
-          gateOpen = true;
+        if (!this.gateOpen) {
+          this.gateOpen = true;
           this.gate.gain.setTargetAtTime(1, context.currentTime, 0.005);
         }
         return;
@@ -105,19 +125,21 @@ export class MicrophonePipeline {
         performance.now(),
         !!this.settings.voiceDetection,
       );
-      if (open !== gateOpen) {
-        gateOpen = open;
+      if (open !== this.gateOpen) {
+        this.gateOpen = open;
         this.gate.gain.setTargetAtTime(
           open ? 1 : 0,
           context.currentTime,
           open ? 0.005 : 0.015,
         );
       }
-      if (++ticks % 2 === 0 && !document.hidden && !this.background) level(db);
-    }, 50);
+      if (!document.hidden && !this.background) level(db, open);
+    };
+    this.schedule();
   }
   configure(p: Profile) {
     this.settings = p;
+    this.schedule();
     this.volume.gain.setTargetAtTime(
       p.inputVolume ?? 1,
       this.context.currentTime,
@@ -125,6 +147,7 @@ export class MicrophonePipeline {
     );
   }
   close() {
+    this.closed = true;
     clearInterval(this.timer);
     for (const t of this.raw.getTracks()) {
       t.onended = null;

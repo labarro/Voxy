@@ -1,0 +1,631 @@
+{
+  "label": "low-1.4.1",
+  "syntheticDevices": true,
+  "scope": "all Electron app.getAppMetrics processes, working set sum, CPU percent per Electron, sum GPU engine counters (not whole adapter utilization)",
+  "results": [
+    {
+      "scenario": "home",
+      "samples": [
+        {
+          "ramMiB": 561.03125,
+          "privateMiB": 326.27734375,
+          "cpu": 0,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 560.140625,
+          "privateMiB": 310.88671875,
+          "cpu": 0.020430021289730975,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 560.23828125,
+          "privateMiB": 310.89453125,
+          "cpu": 0.008250801077107057,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 560.3203125,
+          "privateMiB": 310.90234375,
+          "cpu": 0.010196053337963133,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 560.3828125,
+          "privateMiB": 310.90234375,
+          "cpu": 0.008173057253144681,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 560.44921875,
+          "privateMiB": 311.15234375,
+          "cpu": 0.010020686755561357,
+          "gpuEngineSum": 0,
+          "processes": 6
+        }
+      ],
+      "renderer": {
+        "canvases": 0,
+        "webgl": 0,
+        "heap": 10000000
+      }
+    },
+    {
+      "scenario": "server",
+      "samples": [
+        {
+          "ramMiB": 572.48046875,
+          "privateMiB": 455.55859375,
+          "cpu": 0.3566563127134663,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 572.77734375,
+          "privateMiB": 455.8515625,
+          "cpu": 0.013489084777091995,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 572.77734375,
+          "privateMiB": 452.03125,
+          "cpu": 0.01580257919646104,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 572.77734375,
+          "privateMiB": 452.03125,
+          "cpu": 0.00766271183216995,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 566.80859375,
+          "privateMiB": 446.22265625,
+          "cpu": 0.018782140896313096,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 565.90625,
+          "privateMiB": 444.87109375,
+          "cpu": 0.012817183156475195,
+          "gpuEngineSum": 0,
+          "processes": 6
+        }
+      ],
+      "renderer": {
+        "canvases": 0,
+        "webgl": 0,
+        "heap": 10000000
+      }
+    },
+    {
+      "scenario": "voice",
+      "samples": [
+        {
+          "ramMiB": 572.21484375,
+          "privateMiB": 514.6484375,
+          "cpu": 0.4408390371824159,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 572.3984375,
+          "privateMiB": 489.4453125,
+          "cpu": 0.1748511026771533,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 572.71875,
+          "privateMiB": 478.77734375,
+          "cpu": 0.1808774837103374,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 573.19140625,
+          "privateMiB": 491.56640625,
+          "cpu": 0.25231522154491665,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 572.16015625,
+          "privateMiB": 490.55859375,
+          "cpu": 0.2871507465812416,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 572.34765625,
+          "privateMiB": 422.7734375,
+          "cpu": 0.1759146654477814,
+          "gpuEngineSum": 0,
+          "processes": 6
+        }
+      ],
+      "renderer": {
+        "canvases": 0,
+        "webgl": 0,
+        "heap": 10000000
+      }
+    },
+    {
+      "scenario": "minimized",
+      "samples": [
+        {
+          "ramMiB": 570.91015625,
+          "privateMiB": 419.17578125,
+          "cpu": 0.18933608741766794,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 570.97265625,
+          "privateMiB": 419.17578125,
+          "cpu": 0.20071487975054847,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 571.015625,
+          "privateMiB": 419.40625,
+          "cpu": 0.216054721512683,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 571.08203125,
+          "privateMiB": 419.41015625,
+          "cpu": 0.1637575161549688,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 571.14453125,
+          "privateMiB": 419.41015625,
+          "cpu": 0.16427333154201168,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 571.20703125,
+          "privateMiB": 419.41015625,
+          "cpu": 0.16971352183766902,
+          "gpuEngineSum": 0,
+          "processes": 6
+        }
+      ],
+      "renderer": {
+        "canvases": 0,
+        "webgl": 0,
+        "heap": 10000000
+      }
+    },
+    {
+      "scenario": "room3d",
+      "samples": [
+        {
+          "ramMiB": 674.40625,
+          "privateMiB": 565.75,
+          "cpu": 2.9167925067954124,
+          "gpuEngineSum": 1,
+          "processes": 6
+        },
+        {
+          "ramMiB": 661.59765625,
+          "privateMiB": 528.45703125,
+          "cpu": 1.7003300001065857,
+          "gpuEngineSum": 3,
+          "processes": 6
+        },
+        {
+          "ramMiB": 661.87109375,
+          "privateMiB": 455.6796875,
+          "cpu": 1.4249740210060002,
+          "gpuEngineSum": 2,
+          "processes": 6
+        },
+        {
+          "ramMiB": 648.49609375,
+          "privateMiB": 423.98046875,
+          "cpu": 1.4296177392047296,
+          "gpuEngineSum": 3,
+          "processes": 6
+        },
+        {
+          "ramMiB": 628.625,
+          "privateMiB": 395.6640625,
+          "cpu": 1.639953446886665,
+          "gpuEngineSum": 3,
+          "processes": 6
+        },
+        {
+          "ramMiB": 628.9296875,
+          "privateMiB": 395.41015625,
+          "cpu": 1.7158341594343591,
+          "gpuEngineSum": 2,
+          "processes": 6
+        }
+      ],
+      "renderer": {
+        "canvases": 1,
+        "webgl": 1,
+        "heap": 10000000
+      }
+    },
+    {
+      "scenario": "after3d",
+      "samples": [
+        {
+          "ramMiB": 623.68359375,
+          "privateMiB": 408.82421875,
+          "cpu": 0.7489866779062793,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 621.75,
+          "privateMiB": 402.66796875,
+          "cpu": 0.34808903054226126,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 623.75390625,
+          "privateMiB": 394.4765625,
+          "cpu": 0.3584982201792753,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 618.8359375,
+          "privateMiB": 372.171875,
+          "cpu": 0.3474616478003388,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 617.4453125,
+          "privateMiB": 365.66796875,
+          "cpu": 0.35888033698991517,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 617.921875,
+          "privateMiB": 366.19140625,
+          "cpu": 0.340203591585691,
+          "gpuEngineSum": 0,
+          "processes": 6
+        }
+      ],
+      "renderer": {
+        "canvases": 0,
+        "webgl": 0,
+        "heap": 10000000
+      }
+    },
+    {
+      "scenario": "sharing",
+      "samples": [
+        {
+          "ramMiB": 693.41796875,
+          "privateMiB": 601.5625,
+          "cpu": 2.306263393515345,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 689.015625,
+          "privateMiB": 583.74609375,
+          "cpu": 0.8617081054385775,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 666.69140625,
+          "privateMiB": 448.62890625,
+          "cpu": 0.8618284071213334,
+          "gpuEngineSum": 1,
+          "processes": 6
+        },
+        {
+          "ramMiB": 657.05859375,
+          "privateMiB": 411.640625,
+          "cpu": 0.8845324987556785,
+          "gpuEngineSum": 1,
+          "processes": 6
+        },
+        {
+          "ramMiB": 653.94921875,
+          "privateMiB": 378.45703125,
+          "cpu": 0.8636335497861123,
+          "gpuEngineSum": 1,
+          "processes": 6
+        },
+        {
+          "ramMiB": 653.98828125,
+          "privateMiB": 378.42578125,
+          "cpu": 0.8450542622759631,
+          "gpuEngineSum": 1,
+          "processes": 6
+        }
+      ],
+      "renderer": {
+        "canvases": 0,
+        "webgl": 0,
+        "heap": 10000000
+      }
+    },
+    {
+      "scenario": "after5cycles",
+      "samples": [
+        {
+          "ramMiB": 768.42578125,
+          "privateMiB": 667.29296875,
+          "cpu": 2.7773448413157853,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 768.375,
+          "privateMiB": 667.5859375,
+          "cpu": 0.1705654833894833,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 765.46875,
+          "privateMiB": 664.96875,
+          "cpu": 0.2290216316973381,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 759.28515625,
+          "privateMiB": 659.99609375,
+          "cpu": 0.17119456958604637,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 702.6875,
+          "privateMiB": 600.55859375,
+          "cpu": 0.45531784044162066,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 701.87890625,
+          "privateMiB": 599.65234375,
+          "cpu": 0.17277109807798996,
+          "gpuEngineSum": 0,
+          "processes": 6
+        }
+      ],
+      "renderer": {
+        "canvases": 0,
+        "webgl": 0,
+        "heap": 10000000
+      }
+    },
+    {
+      "scenario": "soak-1",
+      "samples": [
+        {
+          "ramMiB": 682.05078125,
+          "privateMiB": 540.47265625,
+          "cpu": 0.17929796460029862,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 682.28125,
+          "privateMiB": 540.87890625,
+          "cpu": 0.17241738321213257,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 681.78125,
+          "privateMiB": 540.7421875,
+          "cpu": 0.18218344127720942,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 681.828125,
+          "privateMiB": 540.78515625,
+          "cpu": 0.18687715221400125,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 681.828125,
+          "privateMiB": 540.78515625,
+          "cpu": 0.1742241373125617,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 681.90625,
+          "privateMiB": 540.99609375,
+          "cpu": 0.18296896557917228,
+          "gpuEngineSum": 0,
+          "processes": 6
+        }
+      ],
+      "renderer": {
+        "canvases": 0,
+        "webgl": 0,
+        "heap": 10000000
+      }
+    },
+    {
+      "scenario": "soak-2",
+      "samples": [
+        {
+          "ramMiB": 676.87109375,
+          "privateMiB": 540.1171875,
+          "cpu": 0.17307886400863223,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 676.9140625,
+          "privateMiB": 540.16015625,
+          "cpu": 0.1706081332546448,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 676.90625,
+          "privateMiB": 540.14453125,
+          "cpu": 0.1797484845274699,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 676.94921875,
+          "privateMiB": 540.1875,
+          "cpu": 0.17244694252967088,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 677.0625,
+          "privateMiB": 540.5234375,
+          "cpu": 0.17431909810748386,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 677.02734375,
+          "privateMiB": 540.35546875,
+          "cpu": 0.17833422681957722,
+          "gpuEngineSum": 0,
+          "processes": 6
+        }
+      ],
+      "renderer": {
+        "canvases": 0,
+        "webgl": 0,
+        "heap": 10000000
+      }
+    },
+    {
+      "scenario": "soak-3",
+      "samples": [
+        {
+          "ramMiB": 674.62890625,
+          "privateMiB": 539.34375,
+          "cpu": 0.1662138077037953,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 674.421875,
+          "privateMiB": 539.66796875,
+          "cpu": 0.19654308876396107,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 674.59375,
+          "privateMiB": 539.6875,
+          "cpu": 0.17643983609841232,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 674.453125,
+          "privateMiB": 539.84765625,
+          "cpu": 0.18204098286261608,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 674.609375,
+          "privateMiB": 539.890625,
+          "cpu": 0.16708544189868,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 674.625,
+          "privateMiB": 539.84375,
+          "cpu": 0.17622326291724372,
+          "gpuEngineSum": 0,
+          "processes": 6
+        }
+      ],
+      "renderer": {
+        "canvases": 0,
+        "webgl": 0,
+        "heap": 10000000
+      }
+    },
+    {
+      "scenario": "soak-4",
+      "samples": [
+        {
+          "ramMiB": 674.63671875,
+          "privateMiB": 539.68359375,
+          "cpu": 0.16963381448378376,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 674.7890625,
+          "privateMiB": 540.17578125,
+          "cpu": 0.19399561941705656,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 675.140625,
+          "privateMiB": 540.53125,
+          "cpu": 0.202853627958122,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 675.0625,
+          "privateMiB": 540.4375,
+          "cpu": 0.1877059934779995,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 675.55859375,
+          "privateMiB": 540.94140625,
+          "cpu": 0.17898044660455403,
+          "gpuEngineSum": 0,
+          "processes": 6
+        },
+        {
+          "ramMiB": 675.5703125,
+          "privateMiB": 540.94921875,
+          "cpu": 0.17971500489184622,
+          "gpuEngineSum": 0,
+          "processes": 6
+        }
+      ],
+      "renderer": {
+        "canvases": 0,
+        "webgl": 0,
+        "heap": 10000000
+      }
+    }
+  ]
+}

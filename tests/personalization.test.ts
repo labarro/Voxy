@@ -279,4 +279,5 @@ test("PTT: espera, transmissão, mute prioritário e sons independentes sem repe
   engine.setPttPressed(true);
   engine.setPttPressed(false);
   assert.equal(sounds.length, 2);
+  engine.leave();
 });

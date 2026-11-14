@@ -206,6 +206,34 @@ test("dez sessões, décima primeira rejeitada; imagens, canais e persistência"
     );
     await delay(50);
     assert.equal(received, 1);
+    // Several physical/VPN adapters generate ICE candidates for every peer.
+    // A signaling burst must not exhaust the independent UI command budget.
+    const burst = await Promise.all(
+      Array.from({ length: 180 }, (_, i) =>
+        a.timeout(3000).emitWithAck("signal", {
+          to: b.id,
+          candidate: {
+            candidate: `candidate:${i} 1 udp 2122260223 192.168.1.2 ${50000 + i} typ host`,
+            sdpMid: "0",
+            sdpMLineIndex: 0,
+          },
+        }),
+      ),
+    );
+    assert(
+      burst.every((r) => r.ok),
+      "ICE burst must be delivered without consuming command capacity",
+    );
+    assert(
+      (
+        await command(a, {
+          type: "status",
+          muted: false,
+          deafened: false,
+          sharing: false,
+        })
+      ).ok,
+    );
     assert.equal(
       (
         await a.timeout(3000).emitWithAck("signal", {

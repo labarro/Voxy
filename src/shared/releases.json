@@ -1,4 +1,27 @@
 {
+  "1.4.1": {
+    "date": "2026-11-14",
+    "title": "Estabilidade, correções e redução de trabalho em segundo plano",
+    "items": [
+      "Entrada na voz com etapas visíveis, cancelamento, timeout, diagnóstico seguro e nova tentativa manual.",
+      "Mira da sinuca fixada ao soltar o mouse; deslocar o cursor até a HUD preserva a direção.",
+      "Menos consultas do host, atualizações de medidores e trabalho visual quando oculto."
+    ],
+    "features": [],
+    "improvements": [
+      "Modo de baixo consumo reduz efeitos, frequência dos medidores e qualidade 3D sem alterar o áudio ou atalhos.",
+      "Jogos não consultam snapshots em segundo plano quando não há partidas; medidores não atualizam a interface com as configurações fechadas.",
+      "Renderização 3D e vídeo da TV pausam com o ambiente oculto; recursos gráficos são liberados ao voltar ao canal."
+    ],
+    "fixes": [
+      "Sinalização ICE usa orçamento separado dos comandos, evitando rejeitar candidatos em rajadas de várias interfaces e participantes.",
+      "Captura de microfone pendente não bloqueia indefinidamente a entrada; streams que chegam após cancelamento são encerrados.",
+      "Dispositivo salvo inexistente usa a entrada padrão; falhas de saída selecionada permitem tentar a saída padrão.",
+      "Falhas de entrada desfazem a presença no canal; nova tentativa reinicia o áudio local mesmo se o servidor ainda indicava presença.",
+      "Clique/arraste no feltro define a mira; soltar fixa, Esc desfaz e Espaço/Enter executa a direção escolhida.",
+      "Modelos carregados após sair do 3D são liberados sem voltar ao cache da sala."
+    ]
+  },
   "1.4.0": {
     "date": "2026-11-13",
     "title": "Social & Games: encontros que viram partidas",

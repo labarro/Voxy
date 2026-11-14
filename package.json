@@ -1,6 +1,6 @@
 {
   "name": "voxy-desktop",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "private": true,
   "description": "Voz e tela entre amigos pela sua rede privada",
   "author": "Voxy",
@@ -12,6 +12,9 @@
     "build": "tsc --noEmit && node scripts/build.mjs",
     "start": "electron .",
     "test": "tsx --test tests/*.test.ts",
+    "test:calls": "tsx tests/callRecovery.e2e.ts",
+    "test:calls:radmin": "tsx tests/callNetwork.e2e.ts",
+    "test:resources": "tsx tests/resources.performance.ts",
     "test:media": "tsx tests/media.e2e.ts",
     "test:desktop": "tsx tests/desktop.e2e.ts",
     "dist": "npm run build && node scripts/package.mjs",
@@ -79,7 +82,7 @@
     "appId": "dev.voxy.desktop",
     "productName": "Voxy",
     "directories": {
-      "output": "release/1.4.0"
+      "output": "release/1.4.1"
     },
     "files": [
       "dist/**/*",

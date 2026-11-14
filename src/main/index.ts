@@ -1123,7 +1123,7 @@ app.whenReady().then(async () => {
       throw Error("Fonte não está mais disponível.");
     selected = { ...v, expires: Date.now() + 30000 };
   });
-  handle("copy", (raw) => clipboard.writeText(z.string().max(4000).parse(raw)));
+  handle("copy", (raw) => clipboard.writeText(z.string().max(64000).parse(raw)));
   if (dev) await win.loadURL(origin);
   else await win.loadFile(join(__dirname, "../renderer/index.html"));
   if (revealRequested) showWindow();

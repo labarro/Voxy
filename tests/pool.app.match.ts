@@ -184,6 +184,8 @@ async function main() {
             cue.z - Math.cos(input.angle) * 0.5,
           );
         await p.mouse.move(screen.x, screen.y);
+        await p.mouse.down();
+        await p.mouse.up();
         await p.waitForTimeout(250);
       }
       await p
@@ -194,9 +196,31 @@ async function main() {
       await p
         .getByRole("button", { name: "Dar tacada", exact: true })
         .waitFor();
-      await p
-        .getByRole("button", { name: "Dar tacada", exact: true })
-        .click({ timeout: 20000 });
+      const angleBefore = await p.getByLabel("Direção da tacada").inputValue();
+      await p.getByRole("button", { name: "Dar tacada", exact: true }).hover();
+      assert.equal(
+        await p.getByLabel("Direção da tacada").inputValue(),
+        angleBefore,
+        "crossing the cloth to HUD must preserve the chosen direction",
+      );
+      if (n === 1) {
+        await p
+          .getByRole("button", { name: "Dar tacada", exact: true })
+          .waitFor({ state: "visible" });
+        await p.waitForFunction(
+          () =>
+            !(
+              document.querySelector(
+                ".pool-hud button.primary",
+              ) as HTMLButtonElement
+            )?.disabled,
+        );
+        await p.locator(".room3d canvas").focus();
+        await p.keyboard.press("Space");
+      } else
+        await p
+          .getByRole("button", { name: "Dar tacada", exact: true })
+          .click({ timeout: 20000 });
       await p.waitForFunction(
         () => (window as any).pool?.phase === "preparing",
       );

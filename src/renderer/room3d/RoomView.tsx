@@ -145,6 +145,7 @@ export default function RoomView({
     fallback,
     paused,
     deafened,
+    lowResourceMode: profile.lowResourceMode,
   });
   current.current = {
     people,
@@ -157,6 +158,7 @@ export default function RoomView({
     fallback,
     paused,
     deafened,
+    lowResourceMode: profile.lowResourceMode,
   };
   useEffect(() => {
     onSource(source?.id ?? null);
@@ -169,6 +171,9 @@ export default function RoomView({
       games: current.current.games,
       settings: {
         ...current.current.settings,
+        ...(current.current.lowResourceMode
+          ? { quality: "low" as const, smokeEffects: false }
+          : {}),
         gameSounds:
           !current.current.deafened &&
           current.current.settings.gameSounds !== false,

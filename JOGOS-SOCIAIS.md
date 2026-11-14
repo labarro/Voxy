@@ -1,4 +1,4 @@
-# Jogos sociais · Voxy 1.4.0
+# Jogos sociais · Voxy 1.4.1
 
 Atualize o host e todos os participantes para 1.4.0. Lounge e Rooftop têm mesas físicas de sinuca, Truco e xadrez. Use os botões da sala para caminhar até uma mesa, ou aproxime-se e pressione **E**. Assentos de jogos são reservados pelo host; os parceiros do Truco ficam frente a frente. Espectadores podem circular e conversar por proximidade.
 
@@ -8,7 +8,7 @@ Atualize o host e todos os participantes para 1.4.0. Lounge e Rooftop têm mesas
 
 Não tocar a menor bola primeiro, não tocar nenhuma bola ou encaçapar a branca é falta. As bolas encaçapadas nessa tacada voltam à mesa, sem pontuar. O adversário recebe bola na mão em qualquer área livre do feltro; não pode sobrepor outra bola, colocar na caçapa ou fora da mesa. Ao terminar as sete bolas, vence quem tiver mais pontos. Sair ou desconectar durante uma partida concede vitória ao adversário. O placar não empata, pois há sete pontos disponíveis.
 
-Entre na partida perto da mesa. Mova o mouse sobre o feltro para mirar; o avatar caminha e ajusta a postura antes de liberar a tacada. Ajuste força e, opcionalmente, direção fina pela HUD. Arraste com o botão direito para orbitar e use a roda para zoom. Clique no feltro quando houver bola na mão. A física recebe o impulso no contato do taco, após a preparação de 650 ms. O host simula a 120 passos por segundo; os clientes interpolam snapshots, sem física concorrente. A saída de um participante e o reinício são decididos pelo host.
+Entre na partida perto da mesa. Clique ou arraste com o botão esquerdo sobre o feltro para mirar e solte para fixar a direção. Mover o cursor até a HUD não altera a mira. Ajuste força e, opcionalmente, direção fina pela HUD. O avatar caminha e ajusta a postura antes de liberar a tacada. Use **Dar tacada** ou, com o canvas em foco, **Espaço/Enter**; **Esc** desfaz a última seleção, e outro clique/arraste reajusta a mira. Arraste com o botão direito para orbitar e use a roda para zoom. Clique no feltro quando houver bola na mão. A física recebe o impulso no contato do taco, após a preparação de 650 ms. O host simula a 120 passos por segundo; os clientes interpolam snapshots, sem física concorrente. A saída de um participante e o reinício são decididos pelo host.
 
 ## Truco Paulista: duas duplas até 12
 

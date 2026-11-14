@@ -26,6 +26,11 @@ test("perfil antigo recebe padrões; UUID, volumes e tecla são validados", () =
     output: "",
   });
   assert.equal(p.pttEnabled, false);
+  assert.equal(p.lowResourceMode, false);
+  assert.equal(
+    profileSchema.parse({ ...p, lowResourceMode: true }).lowResourceMode,
+    true,
+  );
   assert.equal(p.callSounds, true);
   assert.equal(p.inputVolume, 1);
   assert.equal(p.noiseSuppression, true);

@@ -87,7 +87,7 @@ export function PoolPanel({
           <>
             <span className="game-hud-hint">
               {ready
-                ? "Mire no feltro com o mouse"
+                ? "Clique ou arraste no feltro para mirar. Solte para fixar; Espaço/Enter dá a tacada e Esc desfaz a mira."
                 : "Caminhando para a posição…"}
             </span>
             <label>

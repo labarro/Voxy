@@ -199,6 +199,16 @@ export class RoomHost {
         last = now;
         if (--budget < 0) throw Error("Muitas ações. Aguarde um momento.");
       };
+      // ICE fans out across peers and every physical/VPN interface. Keep this
+      // bounded, but independent of commands, chat and room pose traffic.
+      let signalBudget = 512,
+        signalAt = Date.now();
+      const limitSignal = () => {
+        const now = Date.now();
+        signalBudget = Math.min(512, signalBudget + (now - signalAt) * 0.128);
+        signalAt = now;
+        if (--signalBudget < 0) throw Error("Muitas mensagens de sinalização.");
+      };
       socket.on("command", (raw: unknown, ack: unknown) => {
         const reply = typeof ack === "function" ? ack : () => {};
         try {
@@ -437,7 +447,7 @@ export class RoomHost {
       socket.on("signal", (raw: unknown, ack: unknown) => {
         const reply = typeof ack === "function" ? ack : () => {};
         try {
-          limited();
+          limitSignal();
           const s = signalSchema.parse(raw),
             from = this.people.get(socket.id),
             to = this.people.get(s.to);
@@ -625,6 +635,11 @@ export class RoomHost {
         socket.emit("room-pool", { channelId, game: game.state });
   }
   private tickPool() {
+    if (!this.poolGames.size && !this.gameRooms.size) {
+      clearInterval(this.poolTimer);
+      this.poolTimer = undefined;
+      return;
+    }
     this.tickGames();
     for (const [channelId, game] of this.poolGames) {
       const channel = this.store
@@ -756,6 +771,7 @@ export class RoomHost {
         if (!games) {
           games = new GameRoom();
           this.gameRooms.set(channel.id, games);
+          this.startGameTimer();
         }
         const table = GAME_TABLES[c.game];
         if (c.type === "game.join") {
@@ -833,6 +849,7 @@ export class RoomHost {
         if (!game) {
           game = new PoolGame();
           this.poolGames.set(channel.id, game);
+          this.startGameTimer();
         }
         if (c.type === "pool.leave") game.leave(p.id);
         else {
@@ -1087,9 +1104,12 @@ export class RoomHost {
         resolve();
       });
     });
+    return (this.http.address() as { port: number }).port;
+  }
+  private startGameTimer() {
+    if (this.poolTimer) return;
     this.poolTimer = setInterval(() => this.tickPool(), 100);
     this.poolTimer.unref();
-    return (this.http.address() as { port: number }).port;
   }
   async close() {
     clearInterval(this.poolTimer);

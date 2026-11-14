@@ -97,6 +97,9 @@ export class SocialScene {
   private poolActive = false;
   private poolAngle = 0;
   private poolPower = 0.55;
+  private aimingPool = false;
+  private previousPoolAngle = 0;
+  private shootingPool = false;
   private gameYaw = 1.1;
   private gameDistance = 3.3;
   private aimSent = 0;
@@ -196,10 +199,12 @@ export class SocialScene {
     canvas.addEventListener("pointermove", this.pointermove);
     canvas.addEventListener("pointerup", this.pointerup);
     canvas.addEventListener("pointercancel", this.pointerup);
+    canvas.addEventListener("pointerleave", this.pointerup);
     canvas.addEventListener("lostpointercapture", this.pointerup);
     canvas.addEventListener("contextmenu", this.contextmenu);
     canvas.addEventListener("wheel", this.wheel, { passive: false });
     canvas.addEventListener("webglcontextlost", this.contextlost);
+    document.addEventListener("visibilitychange", this.activity);
     void this.initialize();
   }
   private async initialize() {
@@ -256,7 +261,22 @@ export class SocialScene {
       this.clearKeys();
       if (this.ready) this.flush(performance.now());
     }
+    this.activity();
   }
+  private activity = () => {
+    if (this.disposed) return;
+    if (this.data.paused || document.hidden || this.expanded) {
+      cancelAnimationFrame(this.frame);
+      this.frame = 0;
+      this.clearKeys();
+      this.video.pause();
+    } else {
+      if (!this.frame && this.environment)
+        this.frame = requestAnimationFrame(this.tick);
+      if (this.currentStream && this.video.paused)
+        void this.video.play().catch(() => {});
+    }
+  };
   correct(pose?: RoomPose) {
     this.pose = pose ? { ...pose } : spawnPose();
     this.dirty = true;
@@ -348,13 +368,23 @@ export class SocialScene {
   }
   shootPool() {
     const s = this.data.pool;
-    if (!s || !this.poolReady())
+    if (
+      !s ||
+      !this.poolReady() ||
+      this.shootingPool ||
+      s.phase !== "aiming" ||
+      s.players[s.turn] !== this.self
+    )
       return Promise.reject(Error("Aguarde o personagem se posicionar."));
+    this.aimingPool = false;
+    this.shootingPool = true;
     return this.gameCommand({
       type: "pool.shoot",
       angle: this.poolAngle,
       power: this.poolPower,
       revision: s.revision,
+    }).finally(() => {
+      this.shootingPool = false;
     });
   }
   approachPool() {
@@ -421,6 +451,7 @@ export class SocialScene {
     this.clearKeys();
     if (value) this.video.pause();
     else if (this.currentStream) void this.video.play().catch(() => {});
+    this.activity();
   }
   private resize() {
     const width = this.element.clientWidth,
@@ -458,6 +489,15 @@ export class SocialScene {
   }
   private keydown = (event: KeyboardEvent) => {
     this.sounds.unlock();
+    if (this.poolActive && ["Space", "Enter", "Escape"].includes(event.code)) {
+      event.preventDefault();
+      if (event.repeat) return;
+      if (event.code === "Escape") {
+        this.aimingPool = false;
+        this.setPoolAim(this.previousPoolAngle, this.poolPower);
+      } else void this.shootPool().catch(() => {});
+      return;
+    }
     if (event.repeat && ["KeyE", "KeyC", "KeyR"].includes(event.code)) return;
     if (
       [
@@ -498,6 +538,7 @@ export class SocialScene {
     this.keys.clear();
     this.velocity.set(0, 0);
     this.drag = null;
+    this.aimingPool = false;
     if (this.pose.moving) {
       this.pose.moving = false;
       this.dirty = true;
@@ -567,6 +608,11 @@ export class SocialScene {
           ...point,
           revision: s.revision,
         }).catch(() => {});
+      if (point && s?.phase === "aiming" && s.players[s.turn] === this.self) {
+        this.previousPoolAngle = this.poolAngle;
+        this.aimingPool = true;
+        this.pointermove(event);
+      }
       return;
     }
     this.drag = event.button === 2 ? "pan" : "rotate";
@@ -574,6 +620,7 @@ export class SocialScene {
   };
   private pointerup = () => {
     this.drag = null;
+    this.aimingPool = false;
   };
   private contextmenu = (event: Event) => event.preventDefault();
   private pointermove = (event: PointerEvent) => {
@@ -586,6 +633,15 @@ export class SocialScene {
         this.gameYaw -= event.movementX * 0.006;
         return;
       }
+      // Aiming is an explicit click/drag on the cloth. Hovering across the
+      // table to reach power or shoot controls never changes a selected shot.
+      if (
+        !this.aimingPool ||
+        !(event.buttons & 1) ||
+        document.elementFromPoint(event.clientX, event.clientY) !==
+          this.renderer.domElement
+      )
+        return;
       const s = this.data.pool,
         point = this.poolPoint(event);
       if (point && s?.phase === "aiming" && s.players[s.turn] === this.self) {
@@ -843,7 +899,12 @@ export class SocialScene {
     });
   }
   private tick = (time: number) => {
+    this.frame = 0;
     if (this.disposed) return;
+    if (document.hidden || this.data.paused || this.expanded) {
+      this.activity();
+      return;
+    }
     this.frame = requestAnimationFrame(this.tick);
     const settings = this.data.settings,
       fps =
@@ -1287,12 +1348,15 @@ export class SocialScene {
     this.disposed = true;
     cancelAnimationFrame(this.frame);
     this.observer.disconnect();
+    document.removeEventListener("visibilitychange", this.activity);
     window.removeEventListener("blur", this.clearKeys);
     this.renderer.domElement.removeEventListener(
       "webglcontextlost",
       this.contextlost,
     );
     this.video.pause();
+    this.video.removeEventListener("loadedmetadata", this.fitTV);
+    this.video.removeEventListener("resize", this.fitTV);
     this.video.srcObject = null;
     this.texture?.dispose();
     for (const model of this.models.values()) {
@@ -1309,5 +1373,9 @@ export class SocialScene {
     this.renderer.dispose();
     this.renderer.forceContextLoss();
     this.renderer.domElement.remove();
+    this.scene.clear();
+    this.currentStream = undefined;
+    this.environment = undefined;
+    this.texture = undefined;
   }
 }

@@ -373,3 +373,6 @@ Em 11/11/2026 passaram: build, 40 testes da suíte principal, salas 3D em navega
 `npm run test:gallery`, `npm run test:audio`, `npm run test:controls` e `npm run test:media` verificam os caminhos de mídia e controles preservados. Execute `npm run build` antes dos testes de navegador.
 
 Antes do lançamento, testar em dois ou mais computadores reais: proximidade com fones e alto-falantes, PTT/mute/Deafen, assistir à TV com áudio, webcams simultâneas, reconexão pela VPN, troca de ambiente, GPU integrada em qualidade baixa e sessão prolongada com dez participantes. Testes automatizados e capturas em navegador não comprovam essas condições físicas.
+# Revisão de estabilidade 1.4.1
+
+Os resultados, causas, oito cenários de RAM/CPU/GPU e limitações estão em [STABILITY-1.4.1.md](STABILITY-1.4.1.md). A suíte principal tem 83 testes. `test:calls` reproduz captura/contexto pendentes e recuperação; `test:calls:radmin` usa dois processos no adaptador local, sem substituir teste entre computadores. `test:resources` registra todos os processos Electron, e `--low --soak` mede o modo adicional e a evolução após os ciclos. O P0 nos PCs originalmente afetados e a redução significativa de RAM permanecem sem comprovação.

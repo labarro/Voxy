@@ -117,6 +117,7 @@ export type Profile = {
   launchAtLogin?: boolean;
   startMinimized?: boolean;
   closeToTray?: boolean;
+  lowResourceMode?: boolean;
   inputVolume?: number;
   noiseSuppression?: boolean;
   echoCancellation?: boolean;

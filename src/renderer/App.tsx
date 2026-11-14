@@ -1,4 +1,6 @@
 import { MediaGallery } from "./components/MediaGallery";
+import { version as appVersion } from "../../package.json";
+import { callStageLabels, deadline } from "../services/webrtc/callDiagnostics";
 import { NotificationCenter } from "./components/NotificationCenter";
 import { useNotifications } from "./hooks/useNotifications";
 import { Friends } from "./components/Friends";
@@ -176,13 +178,14 @@ export function App() {
   useEffect(() => {
     const theme = themes[profile?.theme || "voxy"];
     const root = document.documentElement;
+    root.dataset.lowResource = String(!!profile?.lowResourceMode);
     root.dataset.theme = profile?.theme || "voxy";
     for (const [key, value] of Object.entries(themeVariables(profile || {})))
       root.style.setProperty(key, String(value));
     void window.voxy
       .titlebarTheme(theme.deep, "#e7edf9")
       .catch((e) => setError(e.message));
-  }, [profile?.theme, profile?.accentColor]);
+  }, [profile?.theme, profile?.accentColor, profile?.lowResourceMode]);
   useEffect(() => {
     void window.voxy
       .pauseVoiceShortcuts(dialog === "profile" || dialog === "avatar")
@@ -198,6 +201,9 @@ export function App() {
   }, [audioNotice]);
   const effectiveMuted = useRef(false);
   const joining = useRef(false);
+  const joinAbort = useRef<AbortController | null>(null);
+  const [pendingVoice, setPendingVoice] = useState<Channel | null>(null);
+  const [failedVoice, setFailedVoice] = useState<Channel | null>(null);
   const [engine] = useState(
     () =>
       new VoiceEngine(
@@ -267,6 +273,7 @@ export function App() {
         clearNotice();
       }
       if (event.type === "connection") {
+        if (event.status !== "connected") joinAbort.current?.abort();
         setReconnectMessage(
           event.status === "reconnecting"
             ? `Reconectando${event.attempt ? ` · tentativa ${event.attempt}/${event.maxAttempts}` : ""}… O canal de voz será restaurado quando possível.`
@@ -356,7 +363,12 @@ export function App() {
       }
     });
     const changed = () => {
-      void navigator.mediaDevices.enumerateDevices().then(setDevices);
+      void navigator.mediaDevices
+        .enumerateDevices()
+        .then(setDevices)
+        .catch(() =>
+          setError("Não foi possível listar os dispositivos de áudio."),
+        );
     };
     navigator.mediaDevices.addEventListener("devicechange", changed);
     return () => {
@@ -391,10 +403,15 @@ export function App() {
   useEffect(() => {
     const eligible = !!voice?.roomPreset && !!room.features?.rooms3d;
     const entry = profile?.room3d?.entry ?? "ask";
-    setRoomMode(eligible && entry === "always");
+    setRoomMode(eligible && entry === "always" && !profile?.lowResourceMode);
     setRoomPrompt(eligible && entry === "ask");
     setTvSource(null);
-  }, [me?.channelId, voice?.roomPreset, room.features?.rooms3d]);
+  }, [
+    me?.channelId,
+    voice?.roomPreset,
+    room.features?.rooms3d,
+    profile?.lowResourceMode,
+  ]);
   const online = status === "connected";
   useEffect(() => {
     const view =
@@ -489,6 +506,9 @@ export function App() {
     document.addEventListener("visibilitychange", change);
     return () => document.removeEventListener("visibilitychange", change);
   }, [engine, page, channelId, me?.channelId, background, pipActive]);
+  useEffect(() => {
+    engine.setMetersVisible(dialog === "profile");
+  }, [engine, dialog]);
   async function run(fn: () => Promise<unknown>, close = false) {
     setError("");
     setBusy(true);
@@ -528,36 +548,115 @@ export function App() {
         setDevices(await navigator.mediaDevices.enumerateDevices()),
       );
   }
-  async function joinVoice(c: Channel) {
+  async function joinVoice(c: Channel, retry = false) {
     setPage("room");
-    if (busy || joining.current) return;
+    if (joining.current) {
+      setError(
+        "Uma conexão de voz já está em andamento. Aguarde ou cancele a tentativa.",
+      );
+      return;
+    }
+    if (busy) {
+      setError("Aguarde a operação atual e tente entrar na chamada novamente.");
+      return;
+    }
+    if (latest.current.status !== "connected" || !selfId) {
+      setError("Reconecte ao servidor antes de entrar na chamada.");
+      return;
+    }
     setChannelId(c.id);
-    if (me?.channelId === c.id) return;
-    await run(async () => {
-      joining.current = true;
+    if (
+      me?.channelId === c.id &&
+      engine.isActive() &&
+      media.callStage !== "failed" &&
+      !retry
+    )
+      return;
+    joining.current = true;
+    const abort = new AbortController();
+    joinAbort.current = abort;
+    setBusy(true);
+    setError("");
+    setPendingVoice(c);
+    setFailedVoice(null);
+    const step = <T,>(task: Promise<T>, label: string, ms = 9000) =>
+      deadline(task, ms, label, abort.signal);
+    try {
+      if (me?.channelId) {
+        engine.leave();
+        await step(
+          command({ type: "voice", channelId: null }),
+          "O servidor não confirmou a saída do canal anterior.",
+        );
+      }
+      await step(
+        engine.join(selfId, profile?.input ?? ""),
+        "A preparação do áudio excedeu o tempo limite.",
+        30000,
+      );
+      engine.stage("output");
       try {
-        if (me?.channelId) {
-          engine.leave();
-          await command({ type: "voice", channelId: null });
-        }
-        await engine.join(selfId, profile?.input ?? "");
-        await engine.setOutput(profile?.output ?? "");
-        await command({ type: "voice", channelId: c.id });
-        await command({
+        await step(
+          engine.setOutput(profile?.output ?? ""),
+          "A saída de áudio não respondeu em 5 segundos.",
+          5000,
+        );
+      } catch (e) {
+        if (abort.signal.aborted || !profile?.output) throw e;
+        engine.trace("output.default-fallback");
+        await step(
+          engine.setOutput(""),
+          "A saída padrão de áudio não respondeu.",
+          5000,
+        );
+        setAudioNotice(
+          "Saída salva indisponível; usando a saída padrão do Windows.",
+        );
+      }
+      engine.stage("server");
+      await step(
+        command({ type: "voice", channelId: c.id }),
+        "O servidor não confirmou a entrada no canal. Confira a conexão e a versão do host.",
+      );
+      await step(
+        command({
           type: "status",
           microphoneState: engine.microphoneState(),
           muted: engine.isMuted(),
           deafened,
           sharing: false,
-        });
-      } catch (e) {
-        engine.leave();
-        throw e;
-      } finally {
-        joining.current = false;
-        engine.sync(latest.current.room.participants, selfId);
+        }),
+        "O servidor não confirmou o estado do áudio.",
+      );
+      if (
+        latest.current.room.participants.find((p) => p.id === selfId)
+          ?.channelId !== c.id
+      )
+        throw Error(
+          "O servidor não confirmou sua presença no canal. Reconecte e confira a versão do host.",
+        );
+      engine.stage("connected");
+    } catch (e) {
+      engine.leave();
+      if (!abort.signal.aborted) {
+        engine.stage("failed");
+        setFailedVoice(c);
+        setError((e as Error).message);
       }
-    });
+      if (
+        latest.current.status === "connected" &&
+        latest.current.selfId === selfId
+      )
+        await command({ type: "voice", channelId: null }).catch(() =>
+          engine.trace("server.rollback-failed"),
+        );
+    } finally {
+      joinAbort.current = null;
+      joining.current = false;
+      setPendingVoice(null);
+      setBusy(false);
+      engine.sync(latest.current.room.participants, selfId);
+    }
   }
   useEffect(() => {
     if (
@@ -592,6 +691,7 @@ export function App() {
     }
   }, [room.calls, room.channels, busy]);
   async function leaveVoice() {
+    joinAbort.current?.abort();
     restoreVoice.current = null;
     engine.leave();
     setWatch(null);
@@ -1066,14 +1166,16 @@ export function App() {
               <div>
                 <i className="status-dot" />
                 <strong>
-                  {peers.length < 2
-                    ? "No canal de voz"
-                    : media.diagnostics.length === peers.length - 1 &&
-                        media.diagnostics.every(
-                          (d) => d.connection === "connected",
-                        )
-                      ? "Voz conectada"
-                      : "Conectando áudio…"}
+                  {media.callStage === "failed"
+                    ? "Falha na conexão de áudio"
+                    : peers.length < 2
+                      ? "No canal de voz"
+                      : media.diagnostics.length === peers.length - 1 &&
+                          media.diagnostics.every(
+                            (d) => d.connection === "connected",
+                          )
+                        ? "Voz conectada"
+                        : "Conectando áudio…"}
                 </strong>
                 <small>{voice.name}</small>
                 {profile.pttEnabled && (
@@ -1257,9 +1359,33 @@ export function App() {
               {reconnectMessage}
             </div>
           )}
+          {pendingVoice && (
+            <div className="error-banner" role="status" aria-live="polite">
+              <span>{callStageLabels[media.callStage ?? "microphone"]}</span>
+              <button
+                onClick={() => {
+                  joinAbort.current?.abort();
+                  engine.leave();
+                }}
+              >
+                Cancelar conexão
+              </button>
+            </div>
+          )}
           {(error || media.error) && (
             <div className="error-banner" role="alert">
               <span>{error || media.error}</span>
+              {(failedVoice || voice) && !pendingVoice && (
+                <button
+                  disabled={busy || !online}
+                  onClick={() => void joinVoice(failedVoice ?? voice!, true)}
+                >
+                  Tentar novamente
+                </button>
+              )}
+              <button onClick={() => void open("diagnostics")}>
+                Ver diagnóstico
+              </button>
               {media.error.includes("Retomar") && (
                 <button onClick={() => engine.resumeAudio()}>
                   Retomar áudio
@@ -2171,6 +2297,30 @@ export function App() {
             )}
             {dialog === "diagnostics" && (
               <div className="diagnostics">
+                <button
+                  onClick={() =>
+                    void run(() =>
+                      window.voxy.copy(
+                        engine.diagnosticReport(appVersion, status),
+                      ),
+                    )
+                  }
+                >
+                  Copiar diagnóstico seguro
+                </button>
+                <p>
+                  Etapa: {callStageLabels[media.callStage ?? "idle"]}. O
+                  relatório não inclui convites, credenciais, nomes, IPs ou
+                  identificadores de dispositivos.
+                </p>
+                <details>
+                  <summary>Etapas da conexão</summary>
+                  <pre>
+                    {media.callLog
+                      ?.map((e) => `${e.at} ${e.stage} ${e.detail}`)
+                      .join("\n")}
+                  </pre>
+                </details>
                 <p>
                   Sinalização: <strong>{status}</strong>. Mídia direta, sem
                   STUN/TURN público.

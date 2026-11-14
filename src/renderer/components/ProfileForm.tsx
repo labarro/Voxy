@@ -515,6 +515,21 @@ export function ProfileForm({
           <label className="checkbox">
             <input
               type="checkbox"
+              checked={!!profile.lowResourceMode}
+              onChange={(e) =>
+                setProfile({ ...profile, lowResourceMode: e.target.checked })
+              }
+            />
+            Modo de baixo consumo de recursos
+          </label>
+          <small>
+            Reduz efeitos, medidores e qualidade 3D. A chamada começa na
+            visualização tradicional; você pode abrir o 3D quando quiser. Voz e
+            atalhos continuam ativos.
+          </small>
+          <label className="checkbox">
+            <input
+              type="checkbox"
               checked={!!profile.launchAtLogin}
               onChange={(e) =>
                 setProfile({ ...profile, launchAtLogin: e.target.checked })

@@ -163,6 +163,7 @@ const profileObjectSchema = z.object({
   launchAtLogin: z.boolean().default(false),
   startMinimized: z.boolean().default(false),
   closeToTray: z.boolean().default(false),
+  lowResourceMode: z.boolean().default(false),
   notifications: z
     .object({
       native: z.boolean().default(true),

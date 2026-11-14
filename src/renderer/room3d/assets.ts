@@ -38,9 +38,11 @@ export class RoomAssets {
         const gltf = await loader.loadAsync(
           new URL(`${folder}/${name}.glb`, base).href,
         );
-        this.models.set(name, gltf);
         if (this.disposed) this.release(gltf);
-        else progress(++loaded / entries.length);
+        else {
+          this.models.set(name, gltf);
+          progress(++loaded / entries.length);
+        }
       }),
     );
   }

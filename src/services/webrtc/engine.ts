@@ -4,6 +4,12 @@ import { microphoneMuted } from "../../shared/preferences";
 import { shareAudioConstraints } from "../../shared/capture";
 import { VoicePlayback } from "./voicePlayback";
 import { MicrophonePipeline, microphoneConstraints } from "./microphone";
+import {
+  deadline,
+  mediaFailure,
+  networkClass,
+  type CallStage,
+} from "./callDiagnostics";
 export const qualities = {
   "720p15": { width: 1280, height: 720, fps: 15, bitrate: 1800000 },
   "720p30": { width: 1280, height: 720, fps: 30, bitrate: 3000000 },
@@ -27,8 +33,12 @@ export type Diagnostic = {
   cameraWidth?: number;
   cameraHeight?: number;
   cameraFps?: number;
+  localNetwork?: string;
+  remoteNetwork?: string;
+  protocol?: string;
 };
 type Peer = {
+  label: number;
   subscription: { screen: boolean; camera: boolean };
   pc: RTCPeerConnection;
   mic?: RTCRtpTransceiver;
@@ -47,6 +57,7 @@ type Peer = {
   lastTime: number;
   counters: Map<string, { bytes: number; time: number }>;
   restart?: ReturnType<typeof setTimeout>;
+  connectionTimeout?: ReturnType<typeof setTimeout>;
 };
 export type VoiceView = {
   streams: Map<string, MediaStream>;
@@ -60,6 +71,8 @@ export type VoiceView = {
   cameraStreams?: Map<string, MediaStream>;
   cameraActive?: boolean;
   localCamera?: MediaStream;
+  callStage?: CallStage;
+  callLog?: { at: string; stage: string; detail: string; peer?: number }[];
 };
 export class VoiceEngine {
   private spatialMix = new Map<string, { gain: number; pan: number }>();
@@ -71,6 +84,7 @@ export class VoiceEngine {
     }
   }
   private peers = new Map<string, Peer>();
+  private nextPeer = 0;
   private earlySignals = new Map<string, Signal[]>();
   private microphone?: MediaStream;
   private pipeline?: MicrophonePipeline;
@@ -106,6 +120,79 @@ export class VoiceEngine {
   private callSounds = true;
   private channel: string | null = null;
   private busy = false;
+  private metersVisible = false;
+  private localSpeakingUntil = 0;
+  private visualSamplers = new Set<() => void>();
+  private scheduleStats() {
+    clearInterval(this.interval);
+    this.interval = undefined;
+    if (this.active && !this.background)
+      this.interval = setInterval(
+        () => void this.stats(),
+        this.preferences?.lowResourceMode ? 5000 : 2000,
+      );
+  }
+  setMetersVisible(value: boolean) {
+    this.metersVisible = value;
+  }
+  private joiningAbort?: AbortController;
+  trace(stage: string, detail = "", peer?: number) {
+    // Only fixed stage names, states, error names and network classes enter this ring.
+    const entry = {
+      at: new Date().toISOString(),
+      stage,
+      detail,
+      ...(peer ? { peer } : {}),
+    };
+    this.view = {
+      ...this.view,
+      callLog: [...(this.view.callLog ?? []), entry].slice(-160),
+    };
+    console.info("[Voxy voice]", entry);
+  }
+  stage(callStage: CallStage) {
+    this.trace(callStage);
+    this.publish({ callStage });
+  }
+  isActive() {
+    return (
+      this.active &&
+      this.context?.state === "running" &&
+      this.pipeline?.raw
+        .getAudioTracks()
+        .some((t) => t.readyState === "live") === true &&
+      this.microphone?.getAudioTracks().some((t) => t.readyState === "live") ===
+        true
+    );
+  }
+  diagnosticReport(version: string, signaling: string) {
+    return JSON.stringify(
+      {
+        version,
+        signaling,
+        stage: this.view.callStage,
+        active: this.isActive(),
+        audioContext: this.context?.state ?? "none",
+        microphone: this.microphoneState(),
+        preferences: {
+          ptt: this.pttEnabled,
+          voiceDetection: !!this.preferences?.voiceDetection,
+          lowResourceMode: !!this.preferences?.lowResourceMode,
+          customInput: !!this.input,
+          customOutput: !!this.output,
+        },
+        peers: this.view.diagnostics.map(({ id, ...d }, index) => ({
+          peer: this.peers.get(id)?.label ?? index + 1,
+          ...d,
+        })),
+        log: this.view.callLog ?? [],
+        privacy:
+          "Sem nomes, IPs, SDP, candidatos completos, IDs de dispositivos, convites ou credenciais.",
+      },
+      null,
+      2,
+    );
+  }
   view: VoiceView = {
     streams: new Map(),
     speaking: new Set(),
@@ -125,16 +212,60 @@ export class VoiceEngine {
     this.update(this.view);
   }
   private error(e: unknown) {
+    this.trace(
+      "media.error",
+      [
+        "NotAllowedError",
+        "NotFoundError",
+        "NotReadableError",
+        "OperationError",
+        "InvalidStateError",
+        "TypeError",
+      ].includes((e as Error).name)
+        ? (e as Error).name
+        : "media-error",
+    );
     this.publish({ error: (e as Error).message || "Falha de mídia." });
   }
   async join(self: string, input: string) {
     this.leave();
     const generation = ++this.generation;
+    const abort = new AbortController();
+    this.joiningAbort = abort;
+    let raw: MediaStream | undefined;
+    const check = () => {
+      if (generation !== this.generation)
+        throw new DOMException("Entrada na chamada cancelada.", "AbortError");
+    };
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: microphoneConstraints(this.preferences, input),
-        video: false,
-      });
+      this.stage("microphone");
+      const capture = (device: string) =>
+        deadline(
+          navigator.mediaDevices.getUserMedia({
+            audio: microphoneConstraints(this.preferences, device),
+            video: false,
+          }),
+          12000,
+          "O microfone não respondeu em 12 segundos. Verifique o dispositivo e a permissão de áudio do Windows e tente novamente.",
+          abort.signal,
+          (s) => s.getTracks().forEach((t) => t.stop()),
+        );
+      let stream: MediaStream;
+      try {
+        stream = await capture(input);
+      } catch (e) {
+        check();
+        // Saved IDs can disappear after driver updates, USB swaps or a restored profile.
+        if (
+          input &&
+          ["NotFoundError", "OverconstrainedError"].includes((e as Error).name)
+        ) {
+          this.trace("microphone.default-fallback");
+          stream = await capture("");
+          input = "";
+        } else throw e;
+      }
+      raw = stream;
       if (generation !== this.generation) {
         stream.getTracks().forEach((t) => t.stop());
         throw Error("Entrada na chamada cancelada.");
@@ -142,25 +273,47 @@ export class VoiceEngine {
       this.self = self;
       this.input = input;
       this.active = true;
+      this.stage("audio");
       this.context = new AudioContext();
       this.pipeline = this.createMicrophone(stream);
       this.microphone = this.pipeline.stream;
-      await this.context.resume();
-      this.stopLocalMeter = this.meter(this.microphone, self);
+      await deadline(
+        this.context.resume(),
+        5000,
+        "O áudio do Windows não iniciou em 5 segundos. Confira a saída de áudio e tente novamente.",
+        abort.signal,
+      );
+      check();
       this.applyMicrophone();
-      stream.getAudioTracks()[0].onended = () =>
+      stream.getAudioTracks()[0].onended = () => {
+        this.stage("failed");
         this.error(
           Error(
             "Microfone desconectado. Selecione outra entrada nas configurações.",
           ),
         );
-      this.interval = setInterval(() => {
-        if (!this.background) void this.stats();
-      }, 2000);
+      };
+      this.scheduleStats();
       this.publish({ error: "" });
     } catch (e) {
+      const cancelled = abort.signal.aborted;
+      raw?.getTracks().forEach((t) => t.stop());
+      this.trace(
+        "join.error",
+        [
+          "NotAllowedError",
+          "NotFoundError",
+          "NotReadableError",
+          "OverconstrainedError",
+          "AbortError",
+        ].includes((e as Error).name)
+          ? (e as Error).name
+          : "audio-error",
+      );
       if (generation === this.generation) this.leave();
-      throw e;
+      if (cancelled) throw e;
+      if ((e as Error).name === "Error") throw e;
+      throw new Error(mediaFailure(e));
     }
   }
   sync(participants: Participant[], selfId: string) {
@@ -230,6 +383,7 @@ export class VoiceEngine {
     systemAudio.muted = this.deafened || !this.screens.has(id);
     systemAudio.volume = this.getVolume(id, true);
     const peer: Peer = {
+      label: ++this.nextPeer,
       subscription: {
         screen: !supportsSubscriptions,
         camera: !supportsSubscriptions,
@@ -246,6 +400,19 @@ export class VoiceEngine {
       counters: new Map(),
     };
     this.peers.set(id, peer);
+    this.trace("peer.created", "", peer.label);
+    this.stage("negotiating");
+    peer.connectionTimeout = setTimeout(() => {
+      if (this.peers.get(id) !== peer || pc.connectionState === "connected")
+        return;
+      this.trace("peer.timeout", pc.iceConnectionState, peer.label);
+      this.stage("failed");
+      this.error(
+        Error(
+          "A negociação de voz não terminou em 20 segundos. Abra o diagnóstico: confira candidatos ICE e a liberação de UDP para o Voxy no firewall dos dois computadores. O acesso ao servidor usa outra conexão.",
+        ),
+      );
+    }, 20000);
     if (this.subscriptionSupport)
       void this.send({
         to: id,
@@ -256,10 +423,21 @@ export class VoiceEngine {
       }).catch((e) => this.error(e));
     pc.onicecandidate = (e) => {
       if (e.candidate)
+        this.trace(
+          "ice.local",
+          `${e.candidate.protocol ?? "unknown"}/${e.candidate.type ?? "unknown"}/${networkClass(e.candidate.address ?? undefined)}`,
+          peer.label,
+        );
+      if (e.candidate)
         void this.send({ to: id, candidate: e.candidate.toJSON() }).catch((e) =>
           this.error(e),
         );
     };
+    pc.onicegatheringstatechange = () =>
+      this.trace("ice.gathering", pc.iceGatheringState, peer.label);
+    pc.oniceconnectionstatechange = () =>
+      this.trace("ice.state", pc.iceConnectionState, peer.label);
+    pc.onicecandidateerror = () => this.trace("ice.candidate-error");
     pc.ontrack = (e) => {
       if (e.transceiver.mid === "0") {
         peer.playback?.close();
@@ -305,6 +483,16 @@ export class VoiceEngine {
       }
     };
     pc.onconnectionstatechange = () => {
+      this.trace("peer.state", pc.connectionState, peer.label);
+      if (pc.connectionState === "connected") {
+        clearTimeout(peer.connectionTimeout);
+        if (
+          [...this.peers.values()].every(
+            (p) => p.pc.connectionState === "connected",
+          )
+        )
+          this.stage("connected");
+      }
       void this.stats();
       if (pc.connectionState === "connected" && peer.restart) {
         clearTimeout(peer.restart);
@@ -339,6 +527,7 @@ export class VoiceEngine {
       if (this.self < id) {
         await this.prepare(peer);
         await pc.setLocalDescription(await pc.createOffer());
+        this.trace("sdp.offer-sent", "", peer.label);
         await this.send({ to: id, description: pc.localDescription!.toJSON() });
       }
     });
@@ -347,6 +536,7 @@ export class VoiceEngine {
     for (const signal of pending) this.signal(signal);
   }
   private async prepare(p: Peer) {
+    this.trace("tracks.prepare", "", p.label);
     [p.mic, p.video, p.system, p.camera] = p.pc.getTransceivers();
     if (!p.mic || !p.video || !p.system || !p.camera)
       throw Error("Contrato de trilhas de mídia inválido.");
@@ -486,7 +676,7 @@ export class VoiceEngine {
           this.earlySignals.size < MAX_PARTICIPANTS - 1)
       ) {
         const pending = this.earlySignals.get(s.from) ?? [];
-        if (pending.length < 40) {
+        if (pending.length < 256) {
           pending.push(s);
           this.earlySignals.set(s.from, pending);
         }
@@ -517,7 +707,9 @@ export class VoiceEngine {
         return;
       }
       if (s.description) {
+        this.trace("sdp.remote", s.description.type, p.label);
         await p.pc.setRemoteDescription(s.description);
+        this.trace("sdp.remote-applied", s.description.type, p.label);
         if (s.description.type === "offer") {
           await this.prepare(p);
           await p.pc.setLocalDescription(await p.pc.createAnswer());
@@ -530,7 +722,8 @@ export class VoiceEngine {
         await this.bitrate(p);
       } else if (s.candidate) {
         if (p.pc.remoteDescription) await p.pc.addIceCandidate(s.candidate);
-        else p.pending.push(s.candidate);
+        else if (p.pending.length < 256) p.pending.push(s.candidate);
+        else this.trace("ice.pending-limit");
       }
     });
   }
@@ -559,6 +752,8 @@ export class VoiceEngine {
   }
   configurePreferences(p: Profile) {
     this.preferences = p;
+    this.scheduleStats();
+    for (const reset of this.visualSamplers) reset();
     this.pipeline?.configure(p);
     this.volumes = new Map(Object.entries(p.volumes ?? {}));
     this.streamVolumes = new Map(Object.entries(p.streamVolumes ?? {}));
@@ -701,6 +896,8 @@ export class VoiceEngine {
   setBackground(value: boolean) {
     this.background = value;
     this.pipeline?.setBackground(value);
+    this.scheduleStats();
+    for (const reset of this.visualSamplers) reset();
   }
   setSubscriptionSupport(value: boolean) {
     this.subscriptionSupport = value;
@@ -812,12 +1009,29 @@ export class VoiceEngine {
     this.input = id;
     stream.getAudioTracks()[0].onended = () =>
       this.error(Error("Microfone desconectado."));
-    this.stopLocalMeter = this.meter(this.microphone, this.self);
   }
   private createMicrophone(raw: MediaStream) {
     try {
-      const pipeline = new MicrophonePipeline(this.context!, raw, (db) =>
-        this.publish({ micLevelDb: db }),
+      const pipeline = new MicrophonePipeline(
+        this.context!,
+        raw,
+        (db, open) => {
+          const outputDb =
+            db + 20 * Math.log10(this.preferences?.inputVolume ?? 1);
+          if (open && outputDb > -33)
+            this.localSpeakingUntil = Date.now() + 220;
+          const active =
+            Date.now() < this.localSpeakingUntil && !this.isMuted();
+          const patch: Partial<VoiceView> = {};
+          if (active !== this.view.speaking.has(this.self)) {
+            const speaking = new Set(this.view.speaking);
+            active ? speaking.add(this.self) : speaking.delete(this.self);
+            patch.speaking = speaking;
+          }
+          if (this.metersVisible && this.view.micLevelDb !== Math.round(db))
+            patch.micLevelDb = Math.round(db);
+          if (Object.keys(patch).length) this.publish(patch);
+        },
       );
       if (this.preferences) pipeline.configure(this.preferences);
       pipeline.setBackground(this.background);
@@ -951,7 +1165,7 @@ export class VoiceEngine {
     source.connect(analyser);
     const buffer = new Float32Array(analyser.fftSize);
     let hold = 0;
-    const timer = setInterval(() => {
+    const sample = () => {
       if (this.background) return;
       analyser.getFloatTimeDomainData(buffer);
       let sum = 0;
@@ -964,9 +1178,19 @@ export class VoiceEngine {
         active ? speaking.add(id) : speaking.delete(id);
         this.publish({ speaking });
       }
-    }, 100);
+    };
+    let timer: ReturnType<typeof setInterval> | undefined;
+    const reset = () => {
+      clearInterval(timer);
+      timer = this.background
+        ? undefined
+        : setInterval(sample, this.preferences?.lowResourceMode ? 250 : 100);
+    };
+    this.visualSamplers.add(reset);
+    reset();
     return () => {
       clearInterval(timer);
+      this.visualSamplers.delete(reset);
       source.disconnect();
       analyser.disconnect();
     };
@@ -1034,6 +1258,22 @@ export class VoiceEngine {
                 typeof s.currentRoundTripTime === "number"
                   ? Math.round(s.currentRoundTripTime * 1000)
                   : undefined;
+            if (
+              s.type === "candidate-pair" &&
+              s.state === "succeeded" &&
+              s.nominated
+            ) {
+              const local = stats.get(s.localCandidateId),
+                remote = stats.get(s.remoteCandidateId);
+              d.localNetwork = networkClass(local?.address);
+              d.remoteNetwork = networkClass(remote?.address);
+              d.protocol =
+                local?.protocol === "udp"
+                  ? "udp"
+                  : local?.protocol === "tcp"
+                    ? "tcp"
+                    : "unknown";
+            }
           });
         } catch {
           /* Closed during stats. */
@@ -1049,6 +1289,10 @@ export class VoiceEngine {
     const p = this.peers.get(id);
     if (!p) return;
     clearTimeout(p.restart);
+    clearTimeout(p.connectionTimeout);
+    p.pc.onicegatheringstatechange = null;
+    p.pc.oniceconnectionstatechange = null;
+    p.pc.onicecandidateerror = null;
     p.pc.onconnectionstatechange = null;
     p.pc.onicecandidate = null;
     p.pc.ontrack = null;
@@ -1072,6 +1316,8 @@ export class VoiceEngine {
   }
   leave() {
     ++this.generation;
+    this.joiningAbort?.abort();
+    this.joiningAbort = undefined;
     this.active = false;
     this.channel = null;
     this.screens.clear();
@@ -1105,6 +1351,7 @@ export class VoiceEngine {
       cameraStreams: new Map(),
       cameraActive: false,
       localCamera: undefined,
+      callStage: "idle",
     });
   }
 }

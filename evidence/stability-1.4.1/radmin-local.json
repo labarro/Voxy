@@ -1,0 +1,10 @@
+{
+  "checks": [
+    "two real Electron clients use host signaling bound to the local Radmin interface; media peers connect",
+    "saved missing USB input falls back to the default; copied report omits invitation, address, names and device IDs",
+    "global F9 Push-to-Talk opens and closes the microphone while minimized",
+    "one minute minimized preserves voice connection (initial packet loss counter: 0)"
+  ],
+  "syntheticDevices": true,
+  "limitation": "Two processes on one Windows host. Local Radmin binding does not validate routes, firewall or microphone hardware on a second computer."
+}

@@ -1,0 +1,130 @@
+[
+  {
+    "scenario": "home",
+    "before": {
+      "ramMiB": 550.6640625,
+      "privateMiB": 315.30078125,
+      "cpu": 0.013890095548727796,
+      "gpuEngineSum": 0
+    },
+    "after": {
+      "ramMiB": 555.5,
+      "privateMiB": 322.37109375,
+      "cpu": 0.02349305853618982,
+      "gpuEngineSum": 0
+    },
+    "canvasAfter": 0
+  },
+  {
+    "scenario": "server",
+    "before": {
+      "ramMiB": 563.03125,
+      "privateMiB": 417.1796875,
+      "cpu": 0.022050717849837625,
+      "gpuEngineSum": 0
+    },
+    "after": {
+      "ramMiB": 567.80078125,
+      "privateMiB": 421.875,
+      "cpu": 0.013700731910133703,
+      "gpuEngineSum": 0
+    },
+    "canvasAfter": 0
+  },
+  {
+    "scenario": "voice",
+    "before": {
+      "ramMiB": 573.3828125,
+      "privateMiB": 351.328125,
+      "cpu": 0.29474880654385327,
+      "gpuEngineSum": 0
+    },
+    "after": {
+      "ramMiB": 572.8125,
+      "privateMiB": 336.09375,
+      "cpu": 0.3090671330638118,
+      "gpuEngineSum": 0
+    },
+    "canvasAfter": 0
+  },
+  {
+    "scenario": "minimized",
+    "before": {
+      "ramMiB": 569.3828125,
+      "privateMiB": 334.71484375,
+      "cpu": 0.19134519708911735,
+      "gpuEngineSum": 0
+    },
+    "after": {
+      "ramMiB": 573.15234375,
+      "privateMiB": 332.29296875,
+      "cpu": 0.17535746835043406,
+      "gpuEngineSum": 0
+    },
+    "canvasAfter": 0
+  },
+  {
+    "scenario": "room3d",
+    "before": {
+      "ramMiB": 669.33203125,
+      "privateMiB": 463.5078125,
+      "cpu": 1.9523563826609298,
+      "gpuEngineSum": 1
+    },
+    "after": {
+      "ramMiB": 672.66796875,
+      "privateMiB": 471.90625,
+      "cpu": 1.7905430315922417,
+      "gpuEngineSum": 1
+    },
+    "canvasAfter": 1
+  },
+  {
+    "scenario": "after3d",
+    "before": {
+      "ramMiB": 615.1640625,
+      "privateMiB": 414.48046875,
+      "cpu": 0.3331228844437688,
+      "gpuEngineSum": 0
+    },
+    "after": {
+      "ramMiB": 615.1328125,
+      "privateMiB": 381.57421875,
+      "cpu": 0.3608503980472331,
+      "gpuEngineSum": 0
+    },
+    "canvasAfter": 0
+  },
+  {
+    "scenario": "sharing",
+    "before": {
+      "ramMiB": 659.16015625,
+      "privateMiB": 402.51171875,
+      "cpu": 0.899694298169275,
+      "gpuEngineSum": 0
+    },
+    "after": {
+      "ramMiB": 658.421875,
+      "privateMiB": 397.50390625,
+      "cpu": 0.8712098627823112,
+      "gpuEngineSum": 1
+    },
+    "canvasAfter": 0
+  },
+  {
+    "scenario": "after5cycles",
+    "before": {
+      "ramMiB": 769.3515625,
+      "privateMiB": 584.41796875,
+      "cpu": 0.40148407557136284,
+      "gpuEngineSum": 0
+    },
+    "after": {
+      "ramMiB": 770.64453125,
+      "privateMiB": 697.1015625,
+      "cpu": 0.26924980690241196,
+      "gpuEngineSum": 0
+    },
+    "canvasAfter": 0
+  }
+]

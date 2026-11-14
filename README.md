@@ -6,6 +6,18 @@
 
 ### Converse. Mostre. Fique por perto.
 
+## Novidades na versão 1.4.1 em preparação
+
+Código em preparação: **1.4.1**. Última publicação confirmada: **1.4.0**; os links abaixo continuam apontando para os artefatos existentes até a verificação da nova release. Saída do build: `release/1.4.1/`.
+
+Esta revisão corrige a entrada na voz com indicação da etapa, timeout do microfone (12 s), inicialização/saída de áudio (5 s), confirmação do servidor e negociação de pares (20 s). Falhas oferecem **Tentar novamente** e **Ver diagnóstico**; **Copiar diagnóstico seguro** exporta etapas e estados sem nomes, IPs, convites, SDP ou credenciais. Uma entrada salva que desapareceu usa o microfone padrão. A sinalização ICE tem orçamento próprio para rajadas de várias interfaces. A causa do relato nos computadores afetados ainda requer validação com seus diagnósticos; acesso ao servidor não comprova conectividade UDP entre pares.
+
+Na sinuca, clique ou arraste no feltro e solte para fixar a direção; mova até a força ou o botão sem alterar a mira. No canvas, **Espaço/Enter** executa e **Esc** desfaz a última seleção. Física, animação e turnos continuam no host.
+
+O host deixa de atualizar jogos sem partidas; medidores param de publicar níveis com as configurações fechadas e suspendem timers visuais em segundo plano. O 3D continua sob demanda, pausa quando oculto e libera recursos ao sair. Em **Configurações → Windows**, o **Modo de baixo consumo de recursos** reduz efeitos, medidores e qualidade 3D adicionalmente. Voz, PTT, reconexão, notificações e PiP preservam seus caminhos existentes.
+
+[Investigação, medições e pendências da 1.4.1](STABILITY-1.4.1.md). Testes com dispositivos sintéticos não substituem validação com microfones físicos e dois computadores pela VPN.
+
 Voz, chat e compartilhamento de tela para o seu grupo de amigos.<br />
 Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu computador.
 
@@ -22,7 +34,7 @@ Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu compu
 
 ## Novidades na versão 1.4.0 publicada
 
-**Código e última versão publicada: 1.4.0.** A [release 1.4.0](https://github.com/labarro/Voxy/releases/tag/v1.4.0) foi publicada pelo [workflow](https://github.com/labarro/Voxy/actions/runs/43536372778), incluindo teste do executável empacotado. Os cinco arquivos, assinatura Ed25519, hashes, manifesto, notas e endpoint de auto update foram conferidos. [Evidência da publicação](evidence/publication-1.4.0.json).
+**Histórico publicado: 1.4.0.** A [release 1.4.0](https://github.com/labarro/Voxy/releases/tag/v1.4.0) foi publicada pelo [workflow](https://github.com/labarro/Voxy/actions/runs/43536372778), incluindo teste do executável empacotado. Os cinco arquivos, assinatura Ed25519, hashes, manifesto, notas e endpoint de auto update foram conferidos. [Evidência da publicação](evidence/publication-1.4.0.json).
 
 A 1.4.0 integra sinuca, Truco Paulista 2×2 e xadrez às salas 3D. As partidas acontecem nas mesas do cenário, com câmeras próprias, objetos físicos, animações dos avatares e controles discretos. O host valida regras, turnos, física e informações privadas.
 

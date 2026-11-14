@@ -183,3 +183,10 @@ A 0.4.0 inclui o atualizador remoto. O canal já está configurado: novas versõ
 ## Conversas e presença na 1.3.0
 
 O instalador está na [release publicada 1.3.0](https://github.com/labarro/Voxy/releases/tag/v1.3.0); ao gerar localmente, fica em `C:\projects\Voxy\release\1.3.0\Voxy-Setup-1.3.0-x64.exe`. Instale sobre a versão existente, sem desinstalar. Atualize o host e os interlocutores para compartilhar presença e usar DMs. A barra esquerda agora mantém também os servidores salvos/offline. Veja o passo a passo de [status e mensagens privadas](CONVERSAS-E-STATUS.md).
+# Diagnóstico de voz na revisão 1.4.1
+
+Se o servidor abre mas a chamada não entra, observe a etapa mostrada: microfone, áudio do Windows, saída, confirmação do servidor ou negociação de mídia. Aguarde o timeout, use **Ver diagnóstico → Copiar diagnóstico seguro** e tente novamente após corrigir o dispositivo ou a rede. O relatório omite nomes, IPs, SDP, convites e credenciais.
+
+`microphone.default-fallback` indica um dispositivo salvo que deixou de existir. `sdp.offer-sent` sem `sdp.remote-applied` aponta para negociação/sinalização; `ice.gathering` completo seguido de `peer.timeout` indica que os candidatos não estabeleceram a mídia. `radmin-range` classifica a faixa 26/8, sem expor o IP e sem comprovar o adaptador no computador remoto. O host e os clientes devem ser atualizados para receber a correção do limite de sinalização.
+
+A porta TCP do convite (43120 por padrão) só comprova acesso à sinalização. WebRTC utiliza portas de mídia negociadas dinamicamente entre os participantes, sem STUN/TURN público. Verifique a permissão de rede privada e UDP do executável Voxy no firewall **dos dois computadores**; não é necessário desativar o firewall. Verifique também **Privacidade e segurança → Microfone → Permitir que aplicativos da área de trabalho acessem o microfone**, o dispositivo padrão do Windows e eventual uso exclusivo por outro aplicativo.

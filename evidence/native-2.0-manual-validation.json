@@ -1,0 +1,13 @@
+{
+  "date": "2026-11-16",
+  "version": "1.4.1",
+  "source": "Relato direto do usuário nesta conversa",
+  "statement": "Os testes físicos da versão atual foram satisfatórios.",
+  "result": "satisfatório, conforme validação manual do usuário",
+  "detailsProvided": false,
+  "limitations": [
+    "O usuário não detalhou dispositivos, quantidade de participantes, topologia de rede, duração ou métricas.",
+    "Esta validação se aplica à versão 1.4.1, não à implementação Rust 2.0.",
+    "Não comprova CGNAT/TURN, latência quantitativa ou consumo da versão nativa."
+  ]
+}

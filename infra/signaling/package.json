@@ -1,0 +1,23 @@
+{
+  "name": "voxy-native-signaling",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --local --port 8787",
+    "test": "node --test test/*.test.mjs",
+    "test:native": "node test/native-e2e.mjs",
+    "test:host": "node test/host-e2e.mjs",
+    "check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "latest",
+    "miniflare": "4.20260730.0",
+    "typescript": "latest",
+    "wrangler": "4.163.0"
+  },
+  "overrides": {
+    "undici": "7.30.1",
+    "sharp": "0.35.5"
+  }
+}

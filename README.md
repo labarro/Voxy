@@ -6,9 +6,27 @@
 
 ### Converse. Mostre. Fique por perto.
 
+## Novidades na versão 2.0.0 em preparação
+
+**Código em desenvolvimento: 2.0.0. Última publicação estável: 1.4.1.** A branch `migration/2.0-native-audit` agora contém executáveis Rust/Iced nativos em `native/`, sem Electron, Chromium, WebView ou Node no desktop nativo. A implementação Electron da 1.x permanece no repositório para manutenção e comparação; a `main`, a instalação estável e seus dados foram preservados. Nenhuma versão 2.0 foi publicada.
+
+Este incremento implementa Home com nova linguagem visual de vidro escuro, camadas e Acrylic opcional do Windows, configurações com rascunho, quatro paletas, espaços/canais e chat local. O núcleo inclui SQLite nativo, identidade Ed25519 protegida por DPAPI, backup/importação inicial de perfil, captura/reprodução nativa e teste privado de microfone. A sinalização assinada e o host autoritativo de mensagens funcionam em testes com dois processos Rust e Worker/DO **local**; a mídia Opus/SRTP também foi verificada localmente com áudio sintético.
+
+**Ainda não substitui a 1.4.1:** faltam homologação física do áudio Rust, rede pública/CGNAT/TURN com corte financeiro comprovado, integração completa das chamadas à UI, mídia de vídeo, amigos/DMs/cargos completos, salas 3D, jogos e atualização/instalador nativos. A configuração de implantação está desativada e a publicação estável/empacotamento Electron da 2.0 estão bloqueados. O relato de testes físicos satisfatórios do usuário se refere à **1.4.1**, não à versão Rust.
+
+Para executar a versão nativa no Windows com Rust MSVC e CMake: `npm run native:dev`. Valide com `npm run native:test`, `npm run native:check` e compile com `npm run native:build`. Os executáveis ficam em `native/target/release/`; `release/2.0.0/` está reservado para futura distribuição homologada. Dados em `%APPDATA%/voxy-native-experimental` ou `VOXY_NATIVE_DATA_DIR`, separados da 1.x. [Instruções nativas e testes locais](native/README.md).
+
+[Plano](PLAN.md) · [Progresso e pendências](PROGRESS.md) · [Auditoria da 1.x](AUDIT.md) · [Arquitetura proposta](ARCHITECTURE.md) · [Infraestrutura e limites gratuitos](INFRASTRUCTURE.md) · [Benchmarks medidos](BENCHMARKS.md) · [Inventário de paridade](FEATURE_PARITY.md).
+
+[Nova direção visual nativa](native/DESIGN.md) · [Home renderizada](evidence/native-2.0/ui/home.png) · [Configurações renderizadas](evidence/native-2.0/ui/appearance.png).
+
+As medições locais usam perfis isolados; testes sintéticos não comprovam qualidade acústica nem conexão entre provedores. A gratuidade do fallback TURN depende de proteção financeira ainda não validada. O catálogo da 2.0 descreve somente este incremento experimental; os downloads abaixo continuam apontando para a distribuição estável existente.
+
 ## Novidades na versão 1.4.1 publicada
 
-Código e última publicação confirmada: **1.4.1**. O [workflow de release](https://github.com/labarro/Voxy/actions/runs/43613943906) concluiu testes, geração, assinatura do catálogo, teste do executável empacotado e publicação. Os cinco arquivos públicos, hashes, assinatura Ed25519, notas e endpoint de atualização foram conferidos. [Evidência da publicação](evidence/publication-1.4.1.json). Saída do build: `release/1.4.1/`.
+Em 16/11/2026, o usuário confirmou que os testes físicos da versão atual foram satisfatórios. [Registro da validação manual](evidence/native-2.0-manual-validation.json); a confirmação aplica-se à 1.4.1 e não homologa o áudio da versão Rust.
+
+Última publicação estável confirmada: **1.4.1**. O [workflow de release](https://github.com/labarro/Voxy/actions/runs/43613943906) concluiu testes, geração, assinatura do catálogo, teste do executável empacotado e publicação. Os cinco arquivos públicos, hashes, assinatura Ed25519, notas e endpoint de atualização foram conferidos. [Evidência da publicação](evidence/publication-1.4.1.json). Saída do build: `release/1.4.1/`.
 
 Esta revisão corrige a entrada na voz com indicação da etapa, timeout do microfone (12 s), inicialização/saída de áudio (5 s), confirmação do servidor e negociação de pares (20 s). Falhas oferecem **Tentar novamente** e **Ver diagnóstico**; **Copiar diagnóstico seguro** exporta etapas e estados sem nomes, IPs, convites, SDP ou credenciais. Uma entrada salva que desapareceu usa o microfone padrão. A sinalização ICE tem orçamento próprio para rajadas de várias interfaces. A causa do relato nos computadores afetados ainda requer validação com seus diagnósticos; acesso ao servidor não comprova conectividade UDP entre pares.
 

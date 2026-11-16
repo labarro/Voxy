@@ -1,0 +1,78 @@
+{
+  "head": "7df27bc684c0743fa52e12bfe6aae5073dd02371",
+  "method": "Median of last five of six samples in each scenario; first sample discarded. No peer, synthetic capture, Electron process sums only. GPU engine sum is not full-adapter utilization.",
+  "summary": [
+    {
+      "scenario": "home",
+      "ramMiB": 555.80859375,
+      "privateMiB": 315.859375,
+      "cpu": 0.009118656135841239,
+      "gpuEngineSum": 0,
+      "processes": 6,
+      "webglCanvases": 0
+    },
+    {
+      "scenario": "server",
+      "ramMiB": 566.3125,
+      "privateMiB": 356.90625,
+      "cpu": 0.015451287604009874,
+      "gpuEngineSum": 0,
+      "processes": 6,
+      "webglCanvases": 0
+    },
+    {
+      "scenario": "voice",
+      "ramMiB": 573.0078125,
+      "privateMiB": 344.6796875,
+      "cpu": 0.2672271362507469,
+      "gpuEngineSum": 0,
+      "processes": 6,
+      "webglCanvases": 0
+    },
+    {
+      "scenario": "minimized",
+      "ramMiB": 572.28125,
+      "privateMiB": 330.85546875,
+      "cpu": 0.1926031091661975,
+      "gpuEngineSum": 0,
+      "processes": 6,
+      "webglCanvases": 0
+    },
+    {
+      "scenario": "room3d",
+      "ramMiB": 663.3515625,
+      "privateMiB": 454.7109375,
+      "cpu": 2.135840542786071,
+      "gpuEngineSum": 1,
+      "processes": 6,
+      "webglCanvases": 1
+    },
+    {
+      "scenario": "after3d",
+      "ramMiB": 615.625,
+      "privateMiB": 371.1953125,
+      "cpu": 0.4331252532969626,
+      "gpuEngineSum": 0,
+      "processes": 6,
+      "webglCanvases": 0
+    },
+    {
+      "scenario": "sharing",
+      "ramMiB": 665.90625,
+      "privateMiB": 407.24609375,
+      "cpu": 0.9914622436736337,
+      "gpuEngineSum": 0,
+      "processes": 6,
+      "webglCanvases": 0
+    },
+    {
+      "scenario": "after5cycles",
+      "ramMiB": 744.06640625,
+      "privateMiB": 662.26171875,
+      "cpu": 0.20809350036036592,
+      "gpuEngineSum": 0,
+      "processes": 6,
+      "webglCanvases": 0
+    }
+  ]
+}

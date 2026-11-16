@@ -1,0 +1,27 @@
+{
+  "measuredAt": "2026-11-16T18:51:13.519Z",
+  "head": "7df27bc684c0743fa52e12bfe6aae5073dd02371",
+  "os": "Microsoft Windows 11 Pro",
+  "build": "26200",
+  "cpu": [
+    "AMD Ryzen 5 9600X 6-Core Processor             "
+  ],
+  "gpus": [
+    {
+      "name": "AMD Radeon(TM) Graphics",
+      "driver": "32.0.11024.2"
+    },
+    {
+      "name": "NVIDIA GeForce RTX 5060 Ti",
+      "driver": "32.0.16.1088"
+    }
+  ],
+  "logicalCpus": 12,
+  "ramBytes": 33408684032,
+  "node": "v24.13.0",
+  "electron": "44.9.0",
+  "packaged": false,
+  "syntheticDevices": true,
+  "pttHelperEnabled": false,
+  "note": "No hostname, account name, IP, invite, device identifier or installed profile recorded. Resource scenario harness counts Electron processes; no PTT helper in these scenarios."
+}

@@ -1,0 +1,28 @@
+{
+  "head": "7df27bc684c0743fa52e12bfe6aae5073dd02371",
+  "measuredAt": "2026-11-16T18:51:17.518Z",
+  "method": "Wall clock before Playwright Electron launch to settings button visible. Fresh isolated profile each trial, warm OS cache, first-run notes may still be visible; not cold boot or installed executable. Electron process sums only, no PTT helper.",
+  "startup": [
+    {
+      "trial": 1,
+      "elapsedMs": 1236.7628999999997,
+      "workingSetMiB": 536.86328125,
+      "privateMiB": 228.82421875,
+      "processes": 6
+    },
+    {
+      "trial": 2,
+      "elapsedMs": 1227.0074999999997,
+      "workingSetMiB": 538.328125,
+      "privateMiB": 230.31640625,
+      "processes": 6
+    },
+    {
+      "trial": 3,
+      "elapsedMs": 1190.7003000000004,
+      "workingSetMiB": 535.44140625,
+      "privateMiB": 225.10546875,
+      "processes": 6
+    }
+  ]
+}

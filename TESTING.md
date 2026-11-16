@@ -1,5 +1,19 @@
 # Validação do Voxy
 
+## Verificação nativa experimental
+
+Ver [native/README.md](native/README.md) para executar testes Rust, emulador de sinalização e dois processos nativos. Screenshots são produzidas pelo próprio Iced (nove estados), sem navegador e sem cliques humanos. Sondagem de dispositivos/frames não é homologação acústica. Resultados e bloqueadores em [PROGRESS.md](PROGRESS.md); métricas em [BENCHMARKS.md](BENCHMARKS.md).
+
+Em **16/11/2026**, o usuário informou testes físicos satisfatórios da versão **1.4.1**. [Registro manual](evidence/native-2.0-manual-validation.json). Essa confirmação é distinta dos testes automatizados e não homologa o áudio da 2.0.
+
+## Auditoria e baseline para a migração 2.0
+
+O executável continua 1.4.1. [BENCHMARKS.md](BENCHMARKS.md) registra metodologia, dados brutos e cenários ainda não medidos; [PROGRESS.md](PROGRESS.md) distingue testes executados nesta etapa dos testes apenas existentes no repositório.
+
+Após `npm run build`, executar `npm run test:resources -- --label=<referência>` com perfis isolados e depois `node scripts/audit-native-baseline.mjs <metrics.json>` para inventário do commit HEAD, ambiente e três inicializações. A ferramenta grava em `evidence/native-2.0-phase0`; preservar resultados anteriores antes de repetir. Os testes existentes usam Chromium/Electron para medir a 1.x, sem implicar seu uso na arquitetura nativa final.
+
+Para comparar com Rust, contabilizar todos os processos, inclusive helper PTT da 1.x e core/UI/world/media da 2.x. Baseline sintética local não mede chamada entre duas máquinas, boca-ouvido, NAT traversal público, CGNAT, isolamento físico de áudio ou sessão prolongada. Esses gates continuam pendentes.
+
 ## Versão 1.4.0 — 13/11/2026
 
 Passaram `npm test` (81 testes) e `npm run build`. O [workflow de release](https://github.com/labarro/Voxy/actions/runs/43536372778) concluiu os testes, geração do instalador, teste do executável empacotado/persistência e publicação. Os cinco artefatos foram baixados e conferidos contra o catálogo assinado, hashes e endpoint público. [Evidência](evidence/publication-1.4.0.json).

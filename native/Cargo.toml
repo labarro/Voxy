@@ -1,0 +1,35 @@
+[workspace]
+members = ["crates/voxy-core", "crates/voxy-voice", "crates/voxy-network", "crates/voxy-desktop", "crates/voxy-cli"]
+resolver = "2"
+
+[workspace.package]
+version = "2.0.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+publish = false
+
+[workspace.dependencies]
+anyhow = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.18", features = ["v4", "serde"] }
+rusqlite = { version = "0.37", features = ["bundled", "backup"] }
+ed25519-dalek = { version = "2.2", features = ["rand_core"] }
+rand = "0.8"
+base64 = "0.22"
+sha2 = "0.10"
+tokio = { version = "1.48", features = ["rt-multi-thread", "macros", "sync", "time", "net", "io-util"] }
+tempfile = "3.23"
+voxy-core = { path = "crates/voxy-core" }
+voxy-voice = { path = "crates/voxy-voice" }
+voxy-network = { path = "crates/voxy-network" }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "debuginfo"
+
+[workspace.lints.clippy]
+dbg_macro = "deny"
+todo = "deny"

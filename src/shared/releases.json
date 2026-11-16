@@ -1,4 +1,27 @@
 {
+  "2.0.0": {
+    "date": "2026-11-16",
+    "title": "Desenvolvimento nativo 2.0 — incremento experimental, não publicado",
+    "items": [
+      "Workspace Rust nativo independente da implementação Electron preservada.",
+      "Interface nativa com nova direção visual, Home, configurações, temas e chat local.",
+      "Identidade Ed25519/DPAPI, SQLite nativo e transporte WebRTC testado localmente."
+    ],
+    "features": [
+      "Desktop Rust/Iced com superfícies em camadas, Acrylic opcional do Windows e modo de efeitos reduzidos.",
+      "Espaços, canais de texto e voz cadastrados localmente, mensagens persistentes e proteção de autoria.",
+      "Teste privado nativo de microfone e núcleo de áudio independente da GUI.",
+      "Convites e sinalização assinados, Worker/DO experimental e host de mensagens por DataChannel nativo."
+    ],
+    "improvements": [
+      "Dados experimentais isolados da 1.4.1 e importação inicial de perfil com backup verificável.",
+      "Filas e framing de rede limitados, credenciais de sessão com expiração, rate limiting e bloqueio de relay faturável.",
+      "Toolchain, testes Rust, integrações locais e workflow de validação sem publicação automática."
+    ],
+    "fixes": [
+      "Pipeline de áudio nativo mantém os streams durante a sessão e não trata underrun inicial recuperável como falha permanente."
+    ]
+  },
   "1.4.1": {
     "date": "2026-11-14",
     "title": "Estabilidade, correções e redução de trabalho em segundo plano",

@@ -3,6 +3,8 @@ import { createHash } from "node:crypto";
 import { readFileSync, mkdirSync, copyFileSync, writeFileSync } from "node:fs";
 import { resolve, join, basename } from "node:path";
 import { signReleaseAssets } from "./release-assets.mjs";
+if (JSON.parse(readFileSync("package.json", "utf8")).voxyMigration?.nativeReady === false)
+  throw Error("O instalador da 2.0 nativa ainda não foi homologado. Use npm run native:build para os executáveis experimentais.");
 const require = createRequire(import.meta.url);
 const { build, Platform, Arch } = require("electron-builder");
 const { version } = JSON.parse(readFileSync("package.json", "utf8"));

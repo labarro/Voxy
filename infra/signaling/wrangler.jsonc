@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "voxy-native-signaling-experimental",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-07-30",
+  "workers_dev": false,
+  "preview_urls": false,
+  "vars": {
+    "VOXY_DEPLOYMENT_ENABLED": "false",
+    "VOXY_RELAY_ENABLED": "false",
+    "VOXY_DAILY_ADMISSIONS": "1000",
+    "VOXY_MAX_ROOMS": "10"
+  },
+  "durable_objects": {
+    "bindings": [
+      { "name": "ROOMS", "class_name": "SignalRoom" },
+      { "name": "ADMISSION", "class_name": "AdmissionBudget" }
+    ]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SignalRoom", "AdmissionBudget"] }],
+  "observability": { "enabled": false }
+}

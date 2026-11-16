@@ -1,4 +1,146 @@
-# Arquitetura do Voxy
+# Arquitetura do Voxy — proposta 2.0 e base 1.x
+
+## Arquitetura efetivamente implementada — 16/11/2026
+
+Workspace em `native/`: `voxy-core` (identidade/dados/autoridade/sessões), `voxy-network` (convites/sinalização/ICE/DTLS/SCTP/SRTP/framing), `voxy-voice` (dispositivos/DSP/codec/PTT/mix), `voxy-cli` (host e verificações headless) e `voxy-desktop` (Iced/tiny-skia/Win32). O código Rust é permanente e evolutivo, com gates antes da homologação.
+
+```mermaid
+flowchart LR
+  UI[Desktop Iced] --> CORE[Core / SQLite / DPAPI]
+  UI --> MIC[Teste privado CPAL]
+  CLI[CLI headless] --> CORE
+  CLI --> NET[webrtc-rs / UDP / DTLS]
+  CLI --> VOICE[Duplex CPAL / AEC3 / Opus]
+  NET <-->|WSS / sinais assinados| SIG[Worker / Durable Objects]
+  NET <-->|SCTP dados / SRTP Opus| PEER[Peer nativo]
+```
+
+A UI ainda não controla uma chamada remota; o CLI de host/mensagem e o pipeline duplex são caminhos independentes testados. Não existe IPC/core daemon compartilhado pela UI neste incremento. A divisão em processos descarregáveis para mundo/mídia/UI continua objetivo, não capacidade já entregue.
+
+Protocolo **v3**: convite Ed25519 com chave do host/capacidade aleatória/expiração/WSS; admissão com prova assinada e nonce de sessão; sinais assinados com destinatário, sequência, expiração e vínculo ao nonce anunciado na admissão. Host autoritativo valida identidade vinculada ao UUID, autoria, canal, tamanhos e command ID idempotente. Dados usam framing limitado a 2 MiB, chunks de 10 KiB e hash; sinalização limitada a 64 KiB. DTLS autentica o transporte via fingerprints do SDP assinado. O host é confiável e vê mensagens; P2P expõe endereços aos participantes. Isso não é E2EE contra o host.
+
+Dados experimentais em %APPDATA%/voxy-native-experimental ou diretório explicitamente isolado. Caminhos legados, componentes relativos ascendentes e aliases para diretórios legados são recusados. SQLite WAL/FULL; chave privada DPAPI por usuário Windows. Importação faz backup antes da conversão, hashes por streaming e não altera a origem. Somente perfil convertido inicialmente.
+
+Áudio: callback sem locks/alocações move samples por SPSC limitado; worker executa AEC/NS/AGC, gate, ganho, Opus 20 ms e mix/jitter por peer. Referência de eco vem dos samples realmente reproduzidos; fluxo transmitido respeita mute/deafen/PTT. Erros recuperáveis de CPAL não matam a sessão; invalidação de dispositivo fecha transmissão. Recuperação automática/hotplug e qualidade acústica ainda precisam de trabalho. Sem mic aberto ao entrar na Home. Drop encerra worker e streams; teste privado para ao sair da tela.
+
+O renderer usa eventos e não tem timer permanente de animação; somente medidor de microfone ativo solicita atualização periódica. Acrylic por janela com fallback opaco e modo reduzido. Sem 3D, vídeo ou assets pesados carregados atualmente. As seções propostas anteriores abaixo continuam sendo requisitos, não comprovantes de implementação.
+
+## Estado e fronteira da migração
+
+2026-11-16: apenas Fase 0. O aplicativo em execução continua **Electron 1.4.1**. Os diagramas nativos abaixo são proposta técnica; não representam módulos já implementados. Auditoria da base em [AUDIT.md](AUDIT.md), decisões/alternativas em [PLAN.md](PLAN.md), custo e limites em [INFRASTRUCTURE.md](INFRASTRUCTURE.md). O histórico 1.x está preservado depois da seção nativa; afirmações históricas não substituem o código atual.
+
+## Organização nativa proposta
+
+Começar com quatro crates de domínio (core, network, voice, desktop); separar media/world/games quando suas fases começarem. Não criar um serviço ou processo por conceito.
+
+| Módulo | Responsabilidade | Não pode depender de |
+| --- | --- | --- |
+| `voxy-core` | Estado, sessões, eventos limitados, identidade, persistência e permissões | UI, Bevy, dispositivos de vídeo |
+| `voxy-network` | Descoberta/convite, WSS, ICE/PeerConnection, DataChannels, reconexão e política de relay | Widgets e mundo |
+| `voxy-voice` | Captura/playout, Opus, DSP, PTT/mute/deafen, mixer e voz espacial | GUI, física, renderização e vídeo |
+| `voxy-desktop` | Iced, launcher/chat/settings/temas, projeção do estado e Windows | Acesso arbitrário ao disco/segredos via widgets |
+| `voxy-media` | WGC, áudio de processo, câmera, hardware codec e entrega de frames | Áudio de chamada misturado ao screen audio |
+| `voxy-world` | Bevy/wgpu, ambientes, geometria/rigs, câmera, TV e interação | Autoridade sobre partidas ou acesso direto à identidade |
+| `voxy-games` | Regras, RNG e física autoritativos; views por participante/espectador | Renderizador ou segredos de outros jogadores no cliente |
+
+```mermaid
+flowchart TB
+  UI[voxy-ui.exe — UI nativa descartável] <-->|Named pipe autenticado / DTOs| C[voxy-core.exe — sessão, tray, teclas, voz, rede]
+  W[voxy-world.exe — Bevy opcional] <-->|Named pipe / estado validado| C
+  C --> DB[(SQLite local + DPAPI)]
+  C <-->|WSS TLS: só rendezvous| S[Worker + Durable Object]
+  S <-->|WSS TLS| H[Core do host amigo]
+  C <-->|ICE + DTLS/SCTP: dados| H
+  C <-->|ICE + DTLS-SRTP: voz/vídeo P2P| P[Demais participantes]
+  C -.->|fallback aprovado, se necessário| T[TURN]
+  T -.-> P
+```
+
+Core é o único processo obrigatório durante chamada. UI e mundo são processos nativos que podem terminar; o núcleo mantém rede/voz/tray/atalhos. Não usar subprocesso Node/PowerShell. Avaliar um worker de mídia separado somente se permitir liberar codecs/GPU e isolar falhas com custo justificável. Sua existência e memória sempre entram no total. Dois renderizadores em processos distintos têm custo; medir antes de fixar desenho final. UI mínima da PoC pode viver no mesmo executável desde que o núcleo compile e opere sem ela; a independência final exige ensaio real de encerramento da UI.
+
+Named pipes com ACL para o usuário Windows, nome aleatório/token de sessão local, framing versionado e tamanhos máximos. Não aceitar caminho, comando de shell ou URL arbitrária da UI. Job Objects/lifetime policies devem encerrar workers órfãos; o core não deve ser morto porque a UI saiu. Uma segunda inicialização pede abrir UI à instância existente. O host executa domínio de servidores/jogos dentro do core, sem VM na nuvem.
+
+## Fluxo de conexão pública proposto
+
+```mermaid
+sequenceDiagram
+  participant Host as Host nativo
+  participant S as Worker/DO
+  participant Join as Participante nativo
+  Host->>S: Registrar sala, chave pública e prova de posse
+  S-->>Host: ID opaco + capacidade de convite revogável
+  Join->>S: Resgatar convite + nonce + prova de identidade
+  S->>Host: Solicitação autenticada e geração da sessão
+  Host-->>S: Admissão / permissões
+  S-->>Join: Sessão curta vinculada ao host
+  Host->>S: SDP/fingerprint assinados + candidatos ICE
+  S->>Join: Sinalização autenticada
+  Join->>Host: ICE direto ou TURN permitido
+  Host-->>Join: DTLS + canal de controle, snapshot autorizado
+  Join->>Host: JoinVoice com ID idempotente
+  Host-->>Join: Confirmação de canal
+  Join->>Host: Mídia Opus/SRTP e reconhecimento de recepção
+```
+
+Ainda é necessário especificar o handshake criptográfico em detalhe e revisá-lo; não inventar criptografia de transporte. Usar TLS/WSS e DTLS/SRTP/SCTP das bibliotecas, assinaturas padronizadas e biblioteca criptográfica revisada. Host e participantes têm chaves persistentes protegidas por DPAPI; preservar UUID legado como identificador de perfil, sem tratá-lo como prova de posse. Assinar vínculo entre roomId, hostKey, peerKey, fingerprint DTLS, nonce, expiração, versão e geração. Servidor de sinalização comprometido não deve poder trocar o peer silenciosamente. Convites são capacidades; expiração, revogação, limite de uso e política de admissão precisam de testes.
+
+Nova versão de protocolo independente da versão semântica. Não reutilizar `protocol:2` para um transporte incompatível. Convites 1.x permanecem reconhecidos como legado e não são convertidos para público sem o host registrar a sala. Nenhum usuário terá porta aberta automaticamente; host também inicia WSS outbound. ICE faz descoberta/hole punching e seleciona caminho, com TURN quando autorizado. QUIC puro não resolve sozinho NAT traversal e não é substituto automático do ICE.
+
+## Transporte de todos os recursos
+
+| Dados | Canal e semântica proposta |
+| --- | --- |
+| Identidade/admissão/SDP/ICE | WSS curto via DO, sessões autenticadas, sem histórico de aplicação |
+| Servidores/canais/cargos/ACL/presença/chat/DM/convites de jogo | DataChannel confiável ordenado cliente↔host, commandId idempotente, ack, revisão e snapshot; autorização por comando |
+| Imagens/anexos | DataChannel confiável separado, chunks ≤16 KiB inicialmente, hash/tamanho/MIME, backpressure e cota; não aceitar caminhos enviados pelo peer |
+| Poses, mira e snapshots frequentes | Canal não confiável/não ordenado, sequência e geração, frequência limitada, descartar atrasados; decisões críticas continuam confiáveis |
+| Truco e xadrez | Ações confiáveis, relógio/revisão/turno do host, snapshots privados por viewer; mãos adversárias jamais serializadas ao cliente |
+| Sinuca | Impulso/ação no host, passo fixo; snapshots interpolados, sem física cliente autoritativa |
+| Voz, tela e webcam | RTP/SRTP com codecs/RTCP; slots/trilhas explícitos, subscrição e prioridade de voz |
+| TV virtual | Assinatura da transmissão existente, uma decodificação por stream quando viável; seleção da TV sincronizada pelo host |
+
+Conexões de dados em estrela com host; mídia inicialmente em malha até dez participantes. Uma PeerConnection por par pode multiplexar trilhas e DataChannels, sem permitir que arquivos bloqueiem voz. Configurar buffers e agendamento por prioridade; testar concorrência de anexos/transmissões. Não exigir que todos mantenham DataChannel completo entre si para simples chat. Se malha falhar nos benchmarks, avaliar SFU sob novo gate de custo, sem migrar autoridade de servidor para a nuvem por padrão.
+
+Reconexão usa máquina de estados `Idle → Resolving → Authenticating → Connecting → Connected → Recovering/Failed`, backoff com jitter e tentativas limitadas, geração cancelável e filas limitadas. Controle conectado não significa áudio conectado. Conservar etapas de captura/contexto/ack/ICE/recepção e diagnóstico redigido da 1.4.1; deadlines iniciais equivalentes (12 s mic, 5 s saída/contexto, 20 s negociação) são referência, ajustável por medição. Dispositivo removido usa fallback visível. Captura tardia é encerrada. Renovar credenciais TURN antes de expirar e revalidar orçamento; não reiniciar tela/webcam silenciosamente após reconexão.
+
+## Áudio em tempo real
+
+Captura e reprodução independem do loop da UI. Um caminho de captura: WASAPI via AudioDeviceModule libwebrtc **ou** CPAL + APM/codec, nunca dois microfones simultâneos. Filas prealocadas limitadas entre callback/DSP/transporte, sem I/O/locks bloqueantes no callback. Resampling e conversão de canais explícitos, jitter e PLC/FEC, drift entre dispositivos e hotplug precisam de ensaio. AEC recebe referência do mixer final no dispositivo de saída, inclusive voz e sons locais apropriados, sem realimentar captura de tela.
+
+Mixer de voz mantém volume 0–200%, limiter, mute local, deafen e panorama/atenuação recebidos do mundo. Ao sair do mundo, restaurar mix tradicional sem recriar chamada. Prioridade de segurança: deafen/mute manual prevalecem sobre PTT; falha de leitura da tecla fecha PTT. Ganho inicial deve ser confortável, mas só medição física permite homologá-lo. Teste privado é pipeline isolado, sem envio por rede e com restauração do estado anterior. Medidores publicam para UI apenas quando observados; VAD/PTT não dependem de renderização.
+
+## Mídia e Windows
+
+WGC para monitor/janela, WASAPI process-loopback para árvore do processo escolhido, Media Foundation para câmera e MFTs de hardware. [O sample oficial de captura por processo requer build 20348+](https://learn.microsoft.com/en-us/samples/microsoft/windows-classic-samples/applicationloopbackaudio-sample/). Em Windows incompatível, tela sem áudio com explicação; nunca loopback irrestrito como fallback. Não prometer áudio por processo em toda edição do Windows 10. Recusar captura do próprio Voxy e de árvore que inclua sua reprodução. Determinar o PID a partir da janela validada, tratar saída/reuso de PID e mudanças de fonte.
+
+Textures GPU com pool limitado e identificadores/handles seguros; preferir D3D11 compartilhado/interop com backend efetivo do wgpu. Iced/wgpu/DX12 e captura D3D11 não garantem zero-copy entre si: validar sincronização, lifetime de handles, fence e número de cópias. Se necessário, aceitar caminho com cópia limitada e medir em vez de afirmar zero-copy. GPU encoding não é garantido para todo codec/GPU; negociar H.264/VP8 conforme interoperabilidade e revisar avisos/patentes. Decoder só para stream assinada/visível, inclusive PiP/TV; fullscreen/PiP podem justificar continuar vídeo com janela principal oculta.
+
+## Ciclo de vida dos recursos
+
+| Estado | Recursos ativos | Ao sair |
+| --- | --- | --- |
+| Home | Core ocioso, UI sob demanda; sem microfone/câmera/3D | Encerrar UI pode deixar só tray, se configurado |
+| Chamada tradicional | Core, dispositivo/DSP/Opus/rede, teclas/tray | Drop cancela tarefas, para streams e deixa sockets/timers necessários à sessão |
+| Minimizada/tray | Voz/rede/atalhos/notificações; UI sem redraw ou encerrada | Reabrir UI consome snapshot limitado, não recria áudio |
+| Tela/câmera/PiP | Captura e codec só por fonte ativa; playout por assinante | Parar/liberar dispositivo, pool, frames pendentes e subscriptions |
+| Mundo aberto | Worker Bevy, assets/rigs/física visual e TV necessária | Cancelar loads, fechar handles/texturas, encerrar worker e comprovar término/memória GPU |
+| Jogo sem jogadores | Nenhum tick de simulação de partida | Autoridade de regras só roda quando houver sessão ativa |
+
+Cada controlador possui token de cancelamento, geração e teardown idempotente. Encerramento tem prazo; worker não responsivo pode ser terminado pelo supervisor após salvar estado permitido. O encerramento do mundo não cancela voz. Caches têm teto e proprietário explícito; não guardar textures por singleton no core. Memória devolvida será medida por private bytes/working set e GPU, não inferida apenas de `Drop` ou contador zero.
+
+## Persistência, segurança e atualizações
+
+SQLite nativo com schema versionado, transações, FKs, migrações idempotentes e writer único; anexos com quota/hash e escrita atômica. Dados experimentais totalmente separados da 1.x; o importador lê cópias, faz backup verificável e gera recibo antes de habilitar estado novo. Detalhes de todos os arquivos/LevelDB/DPAPI em AUDIT. Não regenerar identidade ou converter convites sem informar perda de vínculo.
+
+Host continua autoridade confiável para histórico, cargos e jogos; DMs ficam privadas para os demais clientes, mas visíveis ao host. Criptografia de transporte não deve ser anunciada como E2EE contra o host. P2P revela IP público aos pares; relay-only pode ocultá-lo dos outros participantes, mas não do relay/provedor e aumenta consumo. Sem relay autorizado, informar impossibilidade desse modo.
+
+Novo updater Rust reutilizará modelo Ed25519 + hash/tamanho/versão + allowlist, não o código electron-updater. Catálogo deve distinguir plataforma, arquitetura e canal experimental; impedir downgrade e execução antes de revalidar pacote no staging privado. Instalação NSIS deve preservar appId final, caminho e desinstalador só na transição homologada; encerrar processos antigos, confirmar backup e testar falha de energia/interrupção/recuperação em VM. Não misturar executáveis 1.x e 2.x no mesmo diretório experimental. A 1.x continuará consultando apenas o canal estável existente até autorização explícita de rollout.
+
+---
+
+## Histórico da arquitetura 1.x (preservado)
+
+As seções abaixo foram escritas nas versões indicadas. Para a situação atual 1.4.1, prevalecem o código e AUDIT.md: limite dez, quatro transceivers, AGC padrão habilitado, subscriptions de vídeo quando suportadas e histórico paginado. Números antigos permanecem como histórico, não requisitos atuais.
 
 ## Áudio e reconexão na 0.6.0
 

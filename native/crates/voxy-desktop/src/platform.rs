@@ -1,0 +1,43 @@
+/// Apply per-window Windows 11 Acrylic. Failure keeps the opaque fallback;
+/// never changes system transparency or privacy settings.
+pub fn set_backdrop(window: &dyn iced::window::Window, reduced: bool) -> bool {
+    #[cfg(windows)]
+    {
+        use iced::window::raw_window_handle::RawWindowHandle;
+        use windows_sys::Win32::{
+            Graphics::Dwm::{DwmExtendFrameIntoClientArea, DwmSetWindowAttribute},
+            UI::Controls::MARGINS,
+        };
+        let Ok(handle) = window.window_handle() else {
+            return false;
+        };
+        let RawWindowHandle::Win32(handle) = handle.as_raw() else {
+            return false;
+        };
+        let hwnd = handle.hwnd.get() as *mut std::ffi::c_void;
+        let backdrop = if reduced { 1_i32 } else { 3_i32 };
+        let dark = 1_i32;
+        let rounded = 2_i32;
+        // Attributes are optional on unsupported Windows versions. No fallback to undocumented APIs.
+        unsafe {
+            let _ = DwmSetWindowAttribute(hwnd, 20, &dark as *const _ as *const _, 4);
+            let _ = DwmSetWindowAttribute(hwnd, 33, &rounded as *const _ as *const _, 4);
+            let result = DwmSetWindowAttribute(hwnd, 38, &backdrop as *const _ as *const _, 4);
+            let margins = MARGINS {
+                cxLeftWidth: -1,
+                cxRightWidth: -1,
+                cyTopHeight: -1,
+                cyBottomHeight: -1,
+            };
+            if !reduced {
+                let _ = DwmExtendFrameIntoClientArea(hwnd, &margins);
+            }
+            result >= 0
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (window, reduced);
+        false
+    }
+}

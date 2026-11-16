@@ -1,0 +1,22 @@
+{
+  "actions": "internal application messages, no Windows input automation",
+  "messages": 1,
+  "microphoneOpened": false,
+  "nativeRenderer": "Iced/tiny-skia",
+  "publicNetwork": false,
+  "releaseAcknowledged": true,
+  "screenshots": [
+    "home",
+    "create-space",
+    "chat",
+    "profile",
+    "audio",
+    "appearance",
+    "kuromi",
+    "news",
+    "home-900"
+  ],
+  "spaces": 1,
+  "version": "2.0.0",
+  "windowsBackdropAccepted": true
+}

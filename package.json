@@ -1,6 +1,6 @@
 {
   "name": "voxy-desktop",
-  "version": "1.4.1",
+  "version": "2.0.0",
   "private": true,
   "description": "Voz e tela entre amigos pela sua rede privada",
   "author": "Voxy",
@@ -46,7 +46,12 @@
     "test:games:truco": "tsx tests/truco.app.ts",
     "test:games:chess": "tsx tests/chess.app.ts",
     "test:games:social": "tsx tests/social3d.app.ts",
-    "test:games:visual": "tsx tests/games.visual.ts"
+    "test:games:visual": "tsx tests/games.visual.ts",
+    "native:dev": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native.ps1 dev",
+    "native:build": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native.ps1 build",
+    "native:test": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native.ps1 test",
+    "native:check": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native.ps1 check",
+    "native:core": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native.ps1 core"
   },
   "dependencies": {
     "chess.js": "1.4.0",
@@ -82,7 +87,7 @@
     "appId": "dev.voxy.desktop",
     "productName": "Voxy",
     "directories": {
-      "output": "release/1.4.1"
+      "output": "release/2.0.0"
     },
     "files": [
       "dist/**/*",
@@ -122,5 +127,10 @@
       "url": "https://www.devbarros.com/voxy/updates/"
     },
     "executableName": "Voxy"
+  },
+  "voxyMigration": {
+    "channel": "experimental",
+    "nativeReady": false,
+    "publishedVersion": "1.4.1"
   }
 }

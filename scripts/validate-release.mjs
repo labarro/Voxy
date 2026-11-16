@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+if (pkg.voxyMigration?.nativeReady === false)
+  throw Error("A migração nativa está em desenvolvimento. Publicação estável bloqueada até homologação e autorização explícita.");
 const tag = process.env.GITHUB_REF_NAME;
 if (tag !== `v${pkg.version}`)
   throw Error("A tag precisa corresponder à versão do package.json.");

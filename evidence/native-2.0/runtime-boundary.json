@@ -1,0 +1,52 @@
+{
+    "checkedAt":  "2026-11-16T20:13:58.6813284Z",
+    "rendererReady":  true,
+    "process":  "voxy-desktop.exe",
+    "loadedModules":  [
+                          "advapi32.dll",
+                          "bcryptprimitives.dll",
+                          "cfgmgr32.dll",
+                          "clbcatq.dll",
+                          "combase.dll",
+                          "dataexchange.dll",
+                          "DEVOBJ.dll",
+                          "dwmapi.dll",
+                          "explorerframe.dll",
+                          "GDI32.dll",
+                          "gdi32full.dll",
+                          "imm32.dll",
+                          "kernel.appcore.dll",
+                          "KERNEL32.DLL",
+                          "KERNELBASE.dll",
+                          "mmdevapi.dll",
+                          "MSCTF.dll",
+                          "msvcp_win.dll",
+                          "msvcrt.dll",
+                          "ntdll.dll",
+                          "ole32.dll",
+                          "oleaut32.dll",
+                          "powrprof.dll",
+                          "RPCRT4.dll",
+                          "sechost.dll",
+                          "shcore.dll",
+                          "shell32.dll",
+                          "SHLWAPI.dll",
+                          "textinputframework.dll",
+                          "twinapi.appcore.dll",
+                          "ucrtbase.dll",
+                          "UMPDC.dll",
+                          "USER32.dll",
+                          "uxtheme.dll",
+                          "VCRUNTIME140.dll",
+                          "voxy-desktop.exe",
+                          "win32u.dll"
+                      ],
+    "childProcessNames":  [
+
+                          ],
+    "forbiddenModules":  [
+
+                         ],
+    "microphoneOpened":  false,
+    "publicNetwork":  false
+}

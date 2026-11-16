@@ -1,0 +1,16 @@
+{
+    "acousticQualityValidated":  false,
+    "audioRecorded":  false,
+    "capturedSamples":  145440,
+    "deviceFailed":  false,
+    "deviceStreamsOpened":  true,
+    "encodedFrames":  150,
+    "guiLoaded":  false,
+    "microphoneMutedBeforeEncode":  true,
+    "networkTransmission":  false,
+    "processedBlocks":  303,
+    "recoverableDeviceEvents":  1,
+    "renderedSamples":  145056,
+    "seconds":  3,
+    "checkedAt":  "2026-11-16T20:13:56.8059125Z"
+}

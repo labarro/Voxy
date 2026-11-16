@@ -1,0 +1,4056 @@
+{
+  "head": "7df27bc684c0743fa52e12bfe6aae5073dd02371",
+  "generatedAt": "2026-11-16T18:51:12.121Z",
+  "scope": "Tracked source, assets, tests, scripts, workflow and guides; static coverage is not a line-by-line correctness or security proof.",
+  "files": [
+    {
+      "path": ".github/workflows/release.yml",
+      "bytes": 3041,
+      "sha256": "95abc87fe67c5ab8a1bad32754b872e830f4356bf2642131d2690e7ebf136bbb",
+      "lines": 71,
+      "imports": [
+        "./package.json"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "AGENTS.md",
+      "bytes": 4354,
+      "sha256": "97e6282fad52dbd5084cfdea8e2499373cd65b237b0697c12eb7ac5017eeb2e8",
+      "lines": 40,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "ANALYSIS.md",
+      "bytes": 3490,
+      "sha256": "42498850767eda81370f72f533e9578ea0dba543d6d41a5d66962ccd0dfc3c77",
+      "lines": 29,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "ARCHITECTURE.md",
+      "bytes": 23529,
+      "sha256": "907bec770ea30909eb7b8823def2acb5f8b998a5cc5e930bc085bcc6d9ab6ac6",
+      "lines": 127,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": [
+        40,
+        76,
+        77,
+        94,
+        116,
+        118
+      ]
+    },
+    {
+      "path": "ASSETS-3D.md",
+      "bytes": 6459,
+      "sha256": "f5de09065bbfec891e42daa25f3c5786a3fc034159b4a706d452a53a063670f8",
+      "lines": 42,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "ATUALIZACOES-REMOTAS.md",
+      "bytes": 16417,
+      "sha256": "0b0d6e8599c9a122202b52f6908e323ba6698f5f4ed31209f1bf2e935c7cb360",
+      "lines": 147,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": [
+        3,
+        146
+      ]
+    },
+    {
+      "path": "AUDIO-E-CONEXAO.md",
+      "bytes": 9394,
+      "sha256": "a72b1295c8c619a2a852437f936b29ac8c07e78b14f8ee37f2aa64da021c3909",
+      "lines": 70,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": [
+        53
+      ]
+    },
+    {
+      "path": "CONVERSAS-E-STATUS.md",
+      "bytes": 5320,
+      "sha256": "09f01781baf45815bebe455db5745576974ca3ade86555858bec486580f3392c",
+      "lines": 55,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": [
+        40
+      ]
+    },
+    {
+      "path": "DESIGN-SYSTEM.md",
+      "bytes": 6355,
+      "sha256": "b5c627f15c7bad446586677e7b61ceb84857b4850c0b228d634e68c88c8d6ce4",
+      "lines": 51,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "GUIA-DE-ATUALIZACAO.md",
+      "bytes": 16286,
+      "sha256": "b77e7a90246066d5f63eb2ca2bb17f697124a26b3105cf8d32e76462477bab9c",
+      "lines": 147,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "INSTALACAO-E-CONEXAO.md",
+      "bytes": 13039,
+      "sha256": "9a9a7134c0d48f619c1106bf9dfa4853e04e0befaf9eb04cc75935655e8b5cb0",
+      "lines": 193,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": [
+        9,
+        57,
+        59,
+        61,
+        63,
+        67,
+        71,
+        75,
+        78,
+        80,
+        84,
+        89,
+        105,
+        111,
+        156,
+        162,
+        177,
+        190
+      ]
+    },
+    {
+      "path": "JOGOS-SOCIAIS.md",
+      "bytes": 7521,
+      "sha256": "957b91fec9c8dc4da725fa03ec6d01ec5568dd8767c5a143aaea3b01e3a616db",
+      "lines": 51,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "NOTIFICACOES-E-WINDOWS.md",
+      "bytes": 5825,
+      "sha256": "4e1900955a509a1d4d2046cbb5f4ff999cd0b24546bdd275efd0073de40ec574",
+      "lines": 49,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "PLANO-1.0.md",
+      "bytes": 25677,
+      "sha256": "f216799fac32358cf7e2a602dd9aacbcf6e5189031eafaa09d12ff83932ca647",
+      "lines": 293,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": [
+        12,
+        106,
+        153,
+        216
+      ]
+    },
+    {
+      "path": "README.md",
+      "bytes": 41334,
+      "sha256": "bf93d2bcdf9c2eac2d4a18aae79e0f1f2893ddbec0b1477e8f5733c80f10f02e",
+      "lines": 426,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": [
+        135,
+        174,
+        176,
+        181,
+        219,
+        300,
+        358,
+        365,
+        367,
+        369,
+        371,
+        375,
+        414
+      ]
+    },
+    {
+      "path": "SALAS-3D.md",
+      "bytes": 12440,
+      "sha256": "5f25b063f1b9936df85b543da5f02b5cedbbd019992d55034fefbb678ae9123c",
+      "lines": 86,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "SOCIAL-E-PERSONALIZACAO.md",
+      "bytes": 9761,
+      "sha256": "59349375a9bf3da446916fc06570289248d9436a42890317dc0046b7b2ed64fc",
+      "lines": 69,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "STABILITY-1.4.1.md",
+      "bytes": 14947,
+      "sha256": "c6a26438ecb64172fad3308997fb112399d7f7ff06274a0e8672ccc5f24c7747",
+      "lines": 94,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": [
+        18,
+        83,
+        93
+      ]
+    },
+    {
+      "path": "TESTING.md",
+      "bytes": 71670,
+      "sha256": "34a011e812746899bbe11622b72f39e9868c4029e8614105f174c5b6b62f7b63",
+      "lines": 379,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": [
+        155,
+        173,
+        190,
+        215,
+        225,
+        242,
+        264,
+        272,
+        280,
+        282,
+        284,
+        334,
+        339,
+        354,
+        359,
+        378
+      ]
+    },
+    {
+      "path": "THIRD-PARTY-NOTICES.md",
+      "bytes": 472,
+      "sha256": "fcbf0bc31c53f4dea712867d376bbe7b2751a500b8e920944c6c616d7f087fe4",
+      "lines": 4,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "build/icon.ico",
+      "bytes": 270398,
+      "sha256": "a8674e0ae2440edbff00c3bc78fde1c2f91ed6958216bd1e2d18460d2b59ea31"
+    },
+    {
+      "path": "build/icon.svg",
+      "bytes": 432,
+      "sha256": "036d057cfa43e12f019971d034a7542303bd697223d9435ed754846b6dfeca06"
+    },
+    {
+      "path": "build/installer.nsh",
+      "bytes": 461,
+      "sha256": "70dda71a1b7b4e79f718f052609f21887eecd44f4f30deed32cf26438491c82f",
+      "lines": 11,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 218001,
+      "sha256": "02aea8c1b32beb3edcefbf0b8f67e856ed31b0075178a671a53d19b8e8790ece",
+      "lines": 6346,
+      "imports": [
+        "node:util"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "package.json",
+      "bytes": 4254,
+      "sha256": "1b2901c9a76336dfcc3da0379c7942c892317f6c56a5451b8e2d2b1cd8487f64",
+      "lines": 127,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": [
+        16
+      ]
+    },
+    {
+      "path": "scripts/build.mjs",
+      "bytes": 446,
+      "sha256": "9ae7078b0319a12573445e00195692213ad7740a88325d1bcfb9432b1c173c79",
+      "lines": 21,
+      "imports": [
+        "esbuild",
+        "vite"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "scripts/compare-resources.mjs",
+      "bytes": 1380,
+      "sha256": "9eda9d090fe0959e5f8dd9a9154b3e1c5a4856d1295e68b2e1eaee9460fff3b1",
+      "lines": 34,
+      "imports": [
+        "node:fs"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "scripts/dev.mjs",
+      "bytes": 803,
+      "sha256": "2c27f2cc9a9469700f67fd02ca9373a33cc4315e9218bc60522a39f577010975",
+      "lines": 31,
+      "imports": [
+        "esbuild",
+        "vite",
+        "node:child_process",
+        "electron"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "scripts/icon.mjs",
+      "bytes": 1298,
+      "sha256": "5919cd59d1281d10e589b102cff41e898f36fd3d2306336b6bbcf77b23558d8e",
+      "lines": 41,
+      "imports": [
+        "node:fs"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "scripts/package.mjs",
+      "bytes": 2849,
+      "sha256": "bc0b90c456f7490ed6d1c3db2bba57c0b0f8258e99d961ed96b04ac335ec40d7",
+      "lines": 74,
+      "imports": [
+        "node:module",
+        "node:crypto",
+        "node:fs",
+        "node:path",
+        "./release-assets.mjs",
+        "electron-builder"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "scripts/release-assets.mjs",
+      "bytes": 2801,
+      "sha256": "6e8f3c77e966036cd69556b0735c8145453c4671549908ab30c1a4c1c6987151",
+      "lines": 87,
+      "imports": [
+        "node:crypto",
+        "node:fs",
+        "node:path",
+        "./update-key-store.mjs"
+      ],
+      "exports": [
+        "signReleaseAssets"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "scripts/room-asset-manifest.mjs",
+      "bytes": 1473,
+      "sha256": "6e6cfc79185a95b12f3f7f36e82b7631fc236247f370a6c4dd55c0c94aaa90e5",
+      "lines": 50,
+      "imports": [
+        "node:fs/promises",
+        "node:path",
+        "node:crypto"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "scripts/test-updater.mjs",
+      "bytes": 872,
+      "sha256": "bb0b28b525d8f8f35894099e89506489cc7dcd246c7e30fd1d7bb8f7b52ffe17",
+      "lines": 34,
+      "imports": [
+        "esbuild",
+        "node:child_process",
+        "node:fs",
+        "electron"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "scripts/update-key-store.mjs",
+      "bytes": 1373,
+      "sha256": "e8e7cd7a1b3cd3fd809834e0231f96ff8c8c59acf99625e9e3c10f04441ad2f4",
+      "lines": 37,
+      "imports": [
+        "node:child_process",
+        "node:path"
+      ],
+      "exports": [
+        "protectKey"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "scripts/update-keys.mjs",
+      "bytes": 1952,
+      "sha256": "49153ba3f862be719323cc31c42d33a98d1ca6ba0f7c6706c040ae7241f56cfa",
+      "lines": 45,
+      "imports": [
+        "node:crypto",
+        "node:fs",
+        "node:child_process",
+        "node:path",
+        "./update-key-store.mjs"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "scripts/validate-release.mjs",
+      "bytes": 858,
+      "sha256": "d4fe25cad2cbefaf191179147a3b84b4b4330ff30536bf0d44a9bf13269b34c2",
+      "lines": 25,
+      "imports": [
+        "node:fs",
+        "node:child_process"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "scripts/verify-publication.mjs",
+      "bytes": 4488,
+      "sha256": "b789563c4e04a496f153dd9fb4bca2e0b53110239f7a6fabdcb44a39189276f6",
+      "lines": 130,
+      "imports": [
+        "node:fs",
+        "node:crypto",
+        "node:child_process",
+        "node:assert/strict"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/database/direct.ts",
+      "bytes": 9238,
+      "sha256": "da48c885009b7f2cc8de7f581dfb1acab57c850be112fd7b041f0b501a6816a1",
+      "lines": 247,
+      "imports": [
+        "sql.js",
+        "node:crypto",
+        "../shared/types"
+      ],
+      "exports": [
+        "DirectStore"
+      ],
+      "ipcHandlers": [],
+      "tables": [
+        "direct_contacts",
+        "profile_auth",
+        "direct_messages",
+        "direct_images",
+        "direct_reactions"
+      ],
+      "radminLines": []
+    },
+    {
+      "path": "src/database/social.ts",
+      "bytes": 2744,
+      "sha256": "15c69cb57796a4f9d61ebe3632b453a5170764e11d483196caf14837d5cc70d2",
+      "lines": 86,
+      "imports": [
+        "sql.js",
+        "../shared/types"
+      ],
+      "exports": [
+        "SocialStore"
+      ],
+      "ipcHandlers": [],
+      "tables": [
+        "friendships"
+      ],
+      "radminLines": []
+    },
+    {
+      "path": "src/database/store.ts",
+      "bytes": 14850,
+      "sha256": "baabace3ffd12aef55ca3807620ea52d655f9dafb97f5e3ac57e07951afcc159",
+      "lines": 403,
+      "imports": [
+        "sql.js",
+        "node:fs",
+        "node:path",
+        "node:crypto",
+        "../shared/types",
+        "./direct",
+        "./social",
+        "../services/atomicFile",
+        "sql.js/dist/sql-wasm.wasm"
+      ],
+      "exports": [
+        "Store"
+      ],
+      "ipcHandlers": [],
+      "tables": [
+        "servers",
+        "channels",
+        "messages",
+        "images",
+        "avatars",
+        "roles",
+        "member_roles",
+        "public_profiles",
+        "reactions"
+      ],
+      "radminLines": []
+    },
+    {
+      "path": "src/main/addresses.ts",
+      "bytes": 664,
+      "sha256": "dc90c9b18d81a3d05289b0d91c7b35431ada801555eef3219be0cf42d07a9da3",
+      "lines": 17,
+      "imports": [
+        "node:os",
+        "../shared/validation"
+      ],
+      "exports": [
+        "roomAddresses"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": [
+        2,
+        11
+      ]
+    },
+    {
+      "path": "src/main/desktopIdentity.ts",
+      "bytes": 1330,
+      "sha256": "0a1cc8eb57f058606a90e1c3a4dac5235f9b64c1884ab8ada3d1e47862502312",
+      "lines": 49,
+      "imports": [
+        "node:path",
+        "node:fs",
+        "electron"
+      ],
+      "exports": [
+        "APP_NAME",
+        "APP_ID",
+        "desktopIdentity",
+        "startHidden",
+        "repairShortcut"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/main/deviceIdentity.ts",
+      "bytes": 1164,
+      "sha256": "b272d789330951ff8c2272a7b425453fb9eca31464e7abce16972d657f889c67",
+      "lines": 36,
+      "imports": [
+        "node:crypto",
+        "node:fs",
+        "../services/atomicFile"
+      ],
+      "exports": [
+        "deviceCredential"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/main/directInbox.ts",
+      "bytes": 4035,
+      "sha256": "bf3ff4471a54d789a0c16dfde6c84cd58e8f883a339ef7810780f7aaa6531741",
+      "lines": 137,
+      "imports": [
+        "node:fs",
+        "../services/atomicFile",
+        "zod",
+        "../shared/validation",
+        "../shared/types"
+      ],
+      "exports": [
+        "DirectInbox"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/main/index.ts",
+      "bytes": 35946,
+      "sha256": "01480b94882b77d83426221b5550d99edb8cbde812c48785f8594b46a7b87b60",
+      "lines": 1155,
+      "imports": [
+        "electron",
+        "../shared/links",
+        "node:child_process",
+        "./updates",
+        "./releaseNotes",
+        "node:os",
+        "../shared/capture",
+        "node:path",
+        "node:fs",
+        "node:crypto",
+        "socket.io-client",
+        "zod",
+        "../database/store",
+        "../services/signaling/host",
+        "../services/atomicFile",
+        "../shared/validation",
+        "../shared/types",
+        "./pushToTalk",
+        "./desktopIdentity",
+        "./log",
+        "./addresses",
+        "./recentRooms",
+        "../shared/releases.json",
+        "electron-updater",
+        "./remoteUpdates",
+        "../shared/update-trust.json",
+        "./directInbox",
+        "./deviceIdentity",
+        "./notifications"
+      ],
+      "exports": [],
+      "ipcHandlers": [
+        "voxy:",
+        "profile",
+        "notifications",
+        "readNotification",
+        "notificationView",
+        "openNotification",
+        "minimizeToTray",
+        "captureAudioAvailable",
+        "pauseVoiceShortcuts",
+        "titlebarTheme",
+        "profileImage",
+        "chatHistory",
+        "inbox",
+        "markDirectRead",
+        "directImage",
+        "authorizeCamera",
+        "releaseHistory",
+        "remoteUpdateState",
+        "checkRemoteUpdate",
+        "downloadRemoteUpdate",
+        "installRemoteUpdate",
+        "savedRooms",
+        "roomAvailability",
+        "removeRoom",
+        "visitServer",
+        "releaseNotes",
+        "markReleaseNotes",
+        "updateInfo",
+        "chooseUpdate",
+        "installUpdate",
+        "saveProfile",
+        "setVolume",
+        "setParticipantMuted",
+        "image",
+        "addresses",
+        "host",
+        "reconnectRoom",
+        "connect",
+        "openExternal",
+        "disconnect",
+        "command",
+        "signal",
+        "sources",
+        "selectSource",
+        "copy"
+      ],
+      "tables": [],
+      "radminLines": [
+        35,
+        228,
+        230,
+        468,
+        493,
+        1052
+      ]
+    },
+    {
+      "path": "src/main/log.ts",
+      "bytes": 706,
+      "sha256": "bf120b1a63bf6d7a9ae5df21bdcb2234d6b587fc0a7e08943cf74da28bd4deed",
+      "lines": 25,
+      "imports": [
+        "node:fs"
+      ],
+      "exports": [
+        "configureLog",
+        "log"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/main/notifications.ts",
+      "bytes": 9853,
+      "sha256": "ff5426f6a6bed4dab8eaeee7ab5181c24d8d405db1b8d80980e8ee9ccd014cfd",
+      "lines": 316,
+      "imports": [
+        "node:fs",
+        "../services/atomicFile",
+        "node:crypto",
+        "zod",
+        "../shared/types"
+      ],
+      "exports": [
+        "notificationViewSchema",
+        "Notifications"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/main/pushToTalk.ts",
+      "bytes": 4408,
+      "sha256": "d43ea8c6d16f05fcaca0b4488203965ed6d27de8cd5cef35afb3216898d1ba1e",
+      "lines": 122,
+      "imports": [
+        "node:child_process",
+        "node:path",
+        "../shared/preferences"
+      ],
+      "exports": [
+        "PushToTalk"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/main/recentRooms.ts",
+      "bytes": 6115,
+      "sha256": "0cc3077a63b5e5364ea91693c31f0b89f223a5dc523e6e6bd5cde3d62c2700e5",
+      "lines": 201,
+      "imports": [
+        "node:fs",
+        "../services/atomicFile",
+        "node:crypto",
+        "node:http",
+        "zod",
+        "../shared/validation",
+        "../shared/types"
+      ],
+      "exports": [
+        "RecentRooms",
+        "probeRoom"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/main/releaseNotes.ts",
+      "bytes": 1099,
+      "sha256": "2105d7e9fa8c5755d6116ba41288833dc5884269125e2e1078e5ad96338ea72f",
+      "lines": 35,
+      "imports": [
+        "node:fs",
+        "../services/atomicFile",
+        "../shared/releases.json",
+        "../shared/types"
+      ],
+      "exports": [
+        "ReleaseNotesStore"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/main/remoteUpdates.ts",
+      "bytes": 9110,
+      "sha256": "5c7386c10d22a5c19a7f38074717dd9d224575931652091a5d602d3b588c4cab",
+      "lines": 278,
+      "imports": [
+        "node:crypto",
+        "node:fs",
+        "../services/atomicFile",
+        "electron-updater",
+        "builder-util-runtime",
+        "../shared/types",
+        "./updateTrust",
+        "./updateTransport",
+        "./updates"
+      ],
+      "exports": [
+        "RemoteUpdateOptions",
+        "RemoteUpdates"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/main/updateTransport.ts",
+      "bytes": 2199,
+      "sha256": "4ba8270edc5e6fda527e6a80bd9bd44c4c6456a2bc31eb2f7962c0574131d06b",
+      "lines": 78,
+      "imports": [
+        "node:https",
+        "./updateTrust"
+      ],
+      "exports": [
+        "fetchUpdateText"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/main/updateTrust.ts",
+      "bytes": 3255,
+      "sha256": "adf412828198e97c34c45c9bde6b737787194718ad0e466370a107a3e55bc83c",
+      "lines": 102,
+      "imports": [
+        "node:crypto",
+        "node:fs",
+        "zod"
+      ],
+      "exports": [
+        "signedReleaseSchema",
+        "SignedRelease",
+        "TrustConfig",
+        "verifyReleaseEnvelope",
+        "hash512",
+        "releaseBase"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/main/updates.ts",
+      "bytes": 3976,
+      "sha256": "0a39b851015b9829fe5f20f38802d3c44e550169e7ef6e46ddd719f4de9eac59",
+      "lines": 108,
+      "imports": [
+        "node:crypto",
+        "node:fs",
+        "node:fs/promises",
+        "node:path",
+        "../shared/types"
+      ],
+      "exports": [
+        "newerVersion",
+        "fileHash",
+        "UpdateManager"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/preload/index.ts",
+      "bytes": 3034,
+      "sha256": "8f76b1bcd5e93d408da60c1d286beda00c3f1856bf464953018ba0c9c7ee9d5c",
+      "lines": 68,
+      "imports": [
+        "electron",
+        "../shared/types"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/App.tsx",
+      "bytes": 86565,
+      "sha256": "8745d030242f93b6a8899d35e585aa0d4716d5842dfffdd3cba688e1e8d8c5d9",
+      "lines": 2379,
+      "imports": [
+        "./components/MediaGallery",
+        "../../package.json",
+        "../services/webrtc/callDiagnostics",
+        "./components/NotificationCenter",
+        "./hooks/useNotifications",
+        "./components/Friends",
+        "../shared/identity",
+        "./components/Roles",
+        "./components/Personalization",
+        "../shared/constants",
+        "../shared/preferences",
+        "./components/Avatar",
+        "./components/ParticipantStatus",
+        "./components/Chat",
+        "./components/ParticipantMenu",
+        "./components/ProfileForm",
+        "./components/ShareForm",
+        "./components/ServerManager",
+        "./components/Home",
+        "./components/ServerRail",
+        "./components/Presence",
+        "./components/DirectMessages",
+        "./hooks/useSavedRooms",
+        "./hooks/useInbox",
+        "./directThreads",
+        "./components/ReleaseChannel",
+        "./components/RemoteUpdate",
+        "react",
+        "./room3d/RoomBoundary",
+        "./room3d/RoomView",
+        "./room3d/AvatarCreator",
+        "lucide-react",
+        "../shared/types",
+        "../services/webrtc/engine",
+        "./components/Modal"
+      ],
+      "exports": [
+        "App"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": [
+        2064,
+        2088,
+        2089,
+        2119,
+        2361
+      ]
+    },
+    {
+      "path": "src/renderer/components/Avatar.tsx",
+      "bytes": 622,
+      "sha256": "3aff55435114fbc90096adea094b8aac010d86c98d79bc9e74ad5d3e32116fea",
+      "lines": 23,
+      "imports": [
+        "react"
+      ],
+      "exports": [
+        "AvatarImages",
+        "Avatar"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/CameraTile.tsx",
+      "bytes": 1715,
+      "sha256": "a40a0dc16b387d38fc7329359f323802b5407b7007ae2962181569c85501777b",
+      "lines": 69,
+      "imports": [
+        "react",
+        "lucide-react"
+      ],
+      "exports": [
+        "CameraTile"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/Chat.tsx",
+      "bytes": 22122,
+      "sha256": "b9efc7f66fe7f625772d9912a34001f083c074c8a48ef53d88905a26ea242e1b",
+      "lines": 686,
+      "imports": [
+        "../../shared/types",
+        "../hooks/useChatHistory",
+        "./MessageText",
+        "react",
+        "lucide-react",
+        "../../shared/constants",
+        "./Avatar",
+        "./Modal"
+      ],
+      "exports": [
+        "Chat"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/DirectMessages.tsx",
+      "bytes": 9651,
+      "sha256": "9b3debf19284b11219343e54da0707d5a1de042496a1fbff23dcc6c4cdd8b145",
+      "lines": 304,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../shared/types",
+        "./Avatar",
+        "./Presence",
+        "./Chat",
+        "../directThreads"
+      ],
+      "exports": [
+        "DirectList",
+        "DirectConversation"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/Friends.tsx",
+      "bytes": 7884,
+      "sha256": "63eeeb3a97d925d5a08929b21d6fdda4068c83486641f6d344098465f544987e",
+      "lines": 238,
+      "imports": [
+        "react",
+        "../../shared/types",
+        "./Avatar",
+        "./Presence",
+        "../directThreads"
+      ],
+      "exports": [
+        "Friends"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/Home.tsx",
+      "bytes": 7419,
+      "sha256": "b03b65c8f259eac0d9bc62f061658303c068cf562b1ddad3f86fe7ebcfd8985f",
+      "lines": 226,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../shared/types",
+        "../hooks/useSavedRooms",
+        "./Personalization"
+      ],
+      "exports": [
+        "Home"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": [
+        117,
+        127
+      ]
+    },
+    {
+      "path": "src/renderer/components/HubNavigation.tsx",
+      "bytes": 1943,
+      "sha256": "024977decbd50d6729d2fa28988e70b347102bdf7356c3d9f240f2894a5fed95",
+      "lines": 73,
+      "imports": [
+        "lucide-react",
+        "react"
+      ],
+      "exports": [
+        "HubPage",
+        "HubNavigation"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/ManageRow.tsx",
+      "bytes": 1938,
+      "sha256": "b9d83ac67affa7f8c27d275160e3b72be3e50272595d6620c15d38911062b351",
+      "lines": 80,
+      "imports": [
+        "react",
+        "lucide-react"
+      ],
+      "exports": [
+        "ManageRow"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/MediaGallery.tsx",
+      "bytes": 4531,
+      "sha256": "3823e7480e3aa33309f894f5844ae6b8592ba9e15dd0b0a3f7ac74d810f4a1d7",
+      "lines": 145,
+      "imports": [
+        "react",
+        "../../shared/types",
+        "../../services/webrtc/engine",
+        "./Player"
+      ],
+      "exports": [
+        "MediaGallery"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/MessageText.tsx",
+      "bytes": 1722,
+      "sha256": "e5faa00c904df4856f02f2c1832dbbcaaafa2032f620f9d56dc87b2885a500bc",
+      "lines": 59,
+      "imports": [
+        "react",
+        "../../shared/links",
+        "../../shared/types"
+      ],
+      "exports": [
+        "MessageText"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/MicrophonePreview.tsx",
+      "bytes": 2928,
+      "sha256": "eeb168f63cd33f49b393e0785d36fcbf7d4c5a64b0c8a34e4c6e3ea7a3ce7986",
+      "lines": 106,
+      "imports": [
+        "react",
+        "../../shared/types",
+        "../../services/webrtc/microphoneTest"
+      ],
+      "exports": [
+        "MicrophonePreview"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/Modal.tsx",
+      "bytes": 929,
+      "sha256": "f08da4b2cccb7aecf15e2ff1e733180cd1cacf9666f88d3b465bef06adf425c1",
+      "lines": 42,
+      "imports": [
+        "react",
+        "lucide-react"
+      ],
+      "exports": [
+        "Modal"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/NotificationCenter.tsx",
+      "bytes": 2532,
+      "sha256": "e0ba959ae5e0460cf00e431b8dfd96b69dc039acb8b0a24eaf42c1cc9f967a4c",
+      "lines": 82,
+      "imports": [
+        "react",
+        "../../shared/types"
+      ],
+      "exports": [
+        "NotificationCenter"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/NotificationSettings.tsx",
+      "bytes": 4346,
+      "sha256": "b7cd5c0581361825044a009dc2cb97ff8e799ef038f56e1bc028411ed2701631",
+      "lines": 137,
+      "imports": [
+        "../../shared/types",
+        "../../shared/preferences"
+      ],
+      "exports": [
+        "NotificationSettings"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/ParticipantMenu.tsx",
+      "bytes": 4891,
+      "sha256": "86978a9eeb66ce41754fcdd7fa8e1a033579d614e075512831eef42944afa5c1",
+      "lines": 166,
+      "imports": [
+        "react",
+        "react-dom",
+        "../../shared/types",
+        "./Avatar",
+        "./Presence",
+        "./Roles"
+      ],
+      "exports": [
+        "ParticipantMenu"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/ParticipantStatus.tsx",
+      "bytes": 1987,
+      "sha256": "15b4b8a484a057d686710d57ec1baef2e8ba295c43968d23e5db76bf8c373424",
+      "lines": 78,
+      "imports": [
+        "lucide-react"
+      ],
+      "exports": [
+        "ParticipantStatus"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/Personalization.tsx",
+      "bytes": 8186,
+      "sha256": "6f79492d6fff5e852b4112a0e8bc208c85876a967ec4cfdbd403a521bafac95f",
+      "lines": 299,
+      "imports": [
+        "react",
+        "../../shared/types"
+      ],
+      "exports": [
+        "accentInk",
+        "themes",
+        "themeVariables",
+        "KuromiMark",
+        "KuromiArtwork",
+        "ThemePicker",
+        "BannerPicker"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/Player.tsx",
+      "bytes": 7539,
+      "sha256": "99bc97c52323ed13557b3c0ef1c9ba7b9ebd4adc7ceff40e6272d1c002d9bfea",
+      "lines": 247,
+      "imports": [
+        "react",
+        "lucide-react"
+      ],
+      "exports": [
+        "Player"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/Presence.tsx",
+      "bytes": 604,
+      "sha256": "5d6aa79ab2b70689f22333dec52c3919162e6aaf25b15fa0676aca084754629d",
+      "lines": 26,
+      "imports": [
+        "../../shared/types"
+      ],
+      "exports": [
+        "presenceLabels",
+        "Presence"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/ProfileForm.tsx",
+      "bytes": 29849,
+      "sha256": "6b557eb9e85dab7f9e577b5968eab6b051284844821d2a0f07b976b5a6ddbae6",
+      "lines": 882,
+      "imports": [
+        "../room3d/RoomSettings",
+        "../../shared/types",
+        "./NotificationSettings",
+        "react",
+        "./Avatar",
+        "../../shared/preferences",
+        "./ShortcutPicker",
+        "./MicrophonePreview",
+        "./Personalization",
+        "./Updates",
+        "lucide-react",
+        "./HubNavigation"
+      ],
+      "exports": [
+        "ProfileForm"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": [
+        841
+      ]
+    },
+    {
+      "path": "src/renderer/components/ReleaseChannel.tsx",
+      "bytes": 2424,
+      "sha256": "f03f2c48225d2e23014b7d5dbaafd0b18b625fd6c8614d6a88d6cd32bb5e3c61",
+      "lines": 74,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../shared/types"
+      ],
+      "exports": [
+        "ReleaseChannel"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/RemoteUpdate.tsx",
+      "bytes": 3710,
+      "sha256": "8917aff44a58d9ac86e1d287e578c2d5c2df4a824105149869aded2dbf0c4f20",
+      "lines": 113,
+      "imports": [
+        "react",
+        "../../shared/types",
+        "lucide-react"
+      ],
+      "exports": [
+        "RemoteUpdate"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/Roles.tsx",
+      "bytes": 4116,
+      "sha256": "e96e8073016d8114dda708f3e72a63eb3ccb5d5d728d1ae34cacebc25ee01e48",
+      "lines": 151,
+      "imports": [
+        "react",
+        "../../shared/types"
+      ],
+      "exports": [
+        "RoleBadges",
+        "Roles"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/ServerImage.tsx",
+      "bytes": 2015,
+      "sha256": "e762de63c21a9032bd8d5e5330be6505311602b134a6be8f3c8fd9180d6c755f",
+      "lines": 68,
+      "imports": [
+        "react",
+        "../../shared/types",
+        "./Avatar",
+        "../photos"
+      ],
+      "exports": [
+        "ServerImage"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/ServerManager.tsx",
+      "bytes": 11844,
+      "sha256": "c1890d34e21d5dfda82ce312be2b7c2d37eb599f5c2a6321c093a448209d3ec2",
+      "lines": 368,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../shared/types",
+        "./HubNavigation",
+        "./ManageRow",
+        "./Roles",
+        "./ServerImage"
+      ],
+      "exports": [
+        "ServerManager"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/ServerRail.tsx",
+      "bytes": 6519,
+      "sha256": "b03ea39787d8ab36799d82476d2a5872cc8c7d2b9ad8a6fdab1ed74a7e74d78b",
+      "lines": 214,
+      "imports": [
+        "lucide-react",
+        "../../shared/types",
+        "../hooks/useSavedRooms",
+        "./Avatar"
+      ],
+      "exports": [
+        "AppPage",
+        "ServerRail"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/ShareForm.tsx",
+      "bytes": 3054,
+      "sha256": "4f348f08996a8eab3049eb6ab9a4a00dc32ab16528bb14e150cc70d313f75085",
+      "lines": 102,
+      "imports": [
+        "../../shared/types",
+        "react",
+        "../../services/webrtc/engine"
+      ],
+      "exports": [
+        "ShareForm"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/ShortcutPicker.tsx",
+      "bytes": 2209,
+      "sha256": "eedccc5a5e76ac39d369ab002d884a2cdbf152b48e66e68893b5ca311aa3285f",
+      "lines": 87,
+      "imports": [
+        "react",
+        "../../shared/preferences"
+      ],
+      "exports": [
+        "ShortcutPicker"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/components/Updates.tsx",
+      "bytes": 2692,
+      "sha256": "6dc77974d99822ccc4a823dda0f5e3dd8d2112942bf3b5cf7138879511fed1d9",
+      "lines": 87,
+      "imports": [
+        "react",
+        "../../shared/types",
+        "./RemoteUpdate"
+      ],
+      "exports": [
+        "Updates"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/design-system.css",
+      "bytes": 33204,
+      "sha256": "2e5bc0888807d3abdbc15b542ea6ddca6f474024a2854df4460e66e2b7c27d7d",
+      "lines": 1650,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/directThreads.ts",
+      "bytes": 1012,
+      "sha256": "849e7eed76973c1e525054f01b72e59eee0150d7025609f6722de2527946d047",
+      "lines": 30,
+      "imports": [
+        "../shared/types"
+      ],
+      "exports": [
+        "DirectTarget",
+        "conversation",
+        "unreadTotal",
+        "findConversation"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/env.d.ts",
+      "bytes": 38,
+      "sha256": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
+      "lines": 2,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/hooks/useChatHistory.ts",
+      "bytes": 6656,
+      "sha256": "b53b40465e81cd3d29766a166c237e8d366f3e29f1bec5f4cb19523092b9b2da",
+      "lines": 225,
+      "imports": [
+        "react",
+        "../../shared/types"
+      ],
+      "exports": [
+        "useChatHistory"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/hooks/useInbox.ts",
+      "bytes": 1106,
+      "sha256": "9a17365e9bb099c4739ce6766113139cdda8a8300fb0645eed6305a175e167ae",
+      "lines": 36,
+      "imports": [
+        "react",
+        "../../shared/types"
+      ],
+      "exports": [
+        "useInbox"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/hooks/useNotifications.ts",
+      "bytes": 2054,
+      "sha256": "b8599e3bbe8edcd02bd334907d243697c599aefb19550b8f3dcdbe8dae89a48f",
+      "lines": 67,
+      "imports": [
+        "react",
+        "../../shared/types"
+      ],
+      "exports": [
+        "useNotifications"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/hooks/useSavedRooms.ts",
+      "bytes": 2188,
+      "sha256": "8cb62ed9379041c8dd1a15b6c64b7ef6b92de680764b2a18ae6106c03826bbad",
+      "lines": 66,
+      "imports": [
+        "react",
+        "../../shared/types"
+      ],
+      "exports": [
+        "useSavedRooms",
+        "SavedRoomsView"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/index.html",
+      "bytes": 577,
+      "sha256": "09cddf57f22831d256a7c6927f673a9a7d4fd90436e39e004b5bd06bd00b8ee9",
+      "lines": 17,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/main.tsx",
+      "bytes": 217,
+      "sha256": "d41498646ebc9685599754f32a5a4151b517cf492488c90758ba172c2ad00540",
+      "lines": 7,
+      "imports": [
+        "react",
+        "react-dom/client",
+        "./App"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/photos.ts",
+      "bytes": 1056,
+      "sha256": "15d68849a043d700b1d83c1edf5c27006774829409ccf938510b9cc9689c73d1",
+      "lines": 39,
+      "imports": [],
+      "exports": [
+        "preparePhoto"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/public/assets/licenses/chess.js.txt",
+      "bytes": 1315,
+      "sha256": "0b3a3c2b4432a26bb18f9d06f5bba4de015bcc980306b7db28b06025495e2186"
+    },
+    {
+      "path": "src/renderer/public/assets/room3d/characters/LICENSE.txt",
+      "bytes": 704,
+      "sha256": "92aba6c40f4d09ea7c637c50b36147946632e5ade3c0296ca78be1effcd81661"
+    },
+    {
+      "path": "src/renderer/public/assets/room3d/characters/Textures/colormap.png",
+      "bytes": 10852,
+      "sha256": "3aba07b39c13e9fa9a02cba6246fdd9d711bb15702e00e10ad84595b25452f95"
+    },
+    {
+      "path": "src/renderer/public/assets/room3d/characters/character-female-b.glb",
+      "bytes": 249988,
+      "sha256": "3a0e6c3e431ae9d2016c2c9a91ec3abe8bb45243016a5cae80cbde0b61f8f2a9"
+    },
+    {
+      "path": "src/renderer/public/assets/room3d/characters/character-female-e.glb",
+      "bytes": 245116,
+      "sha256": "265a52129eb18106c16aa25863ef691c97eb959a19b43f63857df933f6439b58"
+    },
+    {
+      "path": "src/renderer/public/assets/room3d/characters/character-female-f.glb",
+      "bytes": 256600,
+      "sha256": "67ec9b7d30a59f292dbd9a864cc4ef118f98b156203f2285addb1ab6997f9106"
+    },
+    {
+      "path": "src/renderer/public/assets/room3d/characters/character-male-d.glb",
+      "bytes": 243700,
+      "sha256": "bded80fb516310186bf151b040696295395043b520a77d09533e20445dd4c02a"
+    },
+    {
+      "path": "src/renderer/public/assets/room3d/characters/character-male-f.glb",
+      "bytes": 247520,
+      "sha256": "83fa60802557199778ab606e5ee3b2da2140ef35839ac4fb557ef95dbac9c5d4"
+    },
+    {
+      "path": "src/renderer/public/assets/room3d/furniture/LICENSE.txt",
+      "bytes": 614,
+      "sha256": "bc0de1a0742cb490f9ed4bae0bd284286ebb27e23149b9917c7d8c0d590b8b29"
+    },
+    {
+      "path": "src/renderer/public/assets/room3d/furniture/bookcaseOpenLow.glb",
+      "bytes": 11520,
+      "sha256": "6d4d625faf977a2dbf155f1313cd32c6310e463114a1cd4c08cb9f80a5fb1d75"
+    },
+    {
+      "path": "src/renderer/public/assets/room3d/furniture/books.glb",
+      "bytes": 6864,
+      "sha256": "b8dc56e5d29f6fc1f4727fccb1b9642627fee9942c48060a00034e98df02701c"
+    },
+    {
+      "path": "src/renderer/public/assets/room3d/furniture/lampRoundFloor.glb",
+      "bytes": 6600,
+      "sha256": "50fe1b5b588edf15bfa9cc880f71a02a4fda6036350b24733d0ef4de5cc5e908"
+    },
+    {
+      "path": "src/renderer/public/assets/room3d/furniture/loungeChair.glb",
+      "bytes": 9648,
+      "sha256": "ddfe6bc4b3451bca61666d7b614552d6ed2a03d82fc76244b72ae3155874dc6c"
+    },
+    {
+      "path": "src/renderer/public/assets/room3d/furniture/loungeDesignChair.glb",
+      "bytes": 9136,
+      "sha256": "f0766a7d5698974b711adac18a2108f0e74e3a036fa4e4e0ccf91195b0ee5abf"
+    },
+    {
+      "path": "src/renderer/public/assets/room3d/furniture/loungeSofa.glb",
+      "bytes": 9644,
+      "sha256": "1886b811c0d3ad0d8525a4fd43adf4112c497c8e0ed906f06877ca3517f4c7dd"
+    },
+    {
+      "path": "src/renderer/public/assets/room3d/furniture/loungeSofaOttoman.glb",
+      "bytes": 6960,
+      "sha256": "79087654136d7d69653fdc3b52a02d7833fe13e6a0a56b8dcdf652c611dbd959"
+    },
+    {
+      "path": "src/renderer/public/assets/room3d/furniture/pottedPlant.glb",
+      "bytes": 7576,
+      "sha256": "5b760eda2766f75fda36b2c5df652a1662f82981ef64cd8fa7fe7bcd386b3a15"
+    },
+    {
+      "path": "src/renderer/public/assets/room3d/furniture/tableCoffee.glb",
+      "bytes": 8256,
+      "sha256": "e38bea760fbd514efbb75528d09b4752c91af44677bbb97e6d4386c263525179"
+    },
+    {
+      "path": "src/renderer/public/assets/room3d/manifest.json",
+      "bytes": 3204,
+      "sha256": "02d6ca8b366c52fcb39c0f60d3e1dcc53c02ec4d243ef652eec45c9822de8e3b",
+      "lines": 106,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/public/assets/themes/kuromi/CREDITS.md",
+      "bytes": 736,
+      "sha256": "9b6f2dec7690df2ed4dcab9f6b4fc93a97b77700eef0f2e4decf0dd3ff198e77",
+      "lines": 12,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/public/assets/themes/kuromi/gallery.png",
+      "bytes": 68812,
+      "sha256": "b148f9965124e714a44efb355a9d78b2c78014ddffffb70e91f4532d45feaab7"
+    },
+    {
+      "path": "src/renderer/public/assets/themes/kuromi/portrait.png",
+      "bytes": 48500,
+      "sha256": "3dc52aac57897374436c3394c434de26090482a8c11e6bdf4bd7f3dce581d4d0"
+    },
+    {
+      "path": "src/renderer/room3d/ArmIK.ts",
+      "bytes": 1576,
+      "sha256": "f65c5b4638846245c96ee2672a62a68d611b01185a9969c07e7d69d2b6466df1",
+      "lines": 45,
+      "imports": [
+        "three"
+      ],
+      "exports": [
+        "armIK"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/AvatarCreator.tsx",
+      "bytes": 34120,
+      "sha256": "7a7c185083e746bd6aeae0d5b4e3c6eafad03921036baddb6865005bee57df07",
+      "lines": 1017,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../shared/validation",
+        "../../shared/types",
+        "../../shared/room3d",
+        "./AvatarPreview"
+      ],
+      "exports": [
+        "AvatarCreator"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/AvatarPreview.tsx",
+      "bytes": 7151,
+      "sha256": "babcefa3d0bba5d61ffd4892a6fadf20db90d7040a8e068d16e281b2693eae82",
+      "lines": 217,
+      "imports": [
+        "react",
+        "three",
+        "three/addons/controls/OrbitControls.js",
+        "../../shared/types",
+        "./assets",
+        "./avatar",
+        "./resources"
+      ],
+      "exports": [
+        "AvatarPreview"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/CardDeck.ts",
+      "bytes": 3139,
+      "sha256": "077c77c5e12bd0558f3bb0537bcc0b6cd538330511ea23b5cd4c8b6df2e4c703",
+      "lines": 105,
+      "imports": [
+        "three",
+        "./resources",
+        "../../shared/truco"
+      ],
+      "exports": [
+        "CardDeck"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/ChessHUD.tsx",
+      "bytes": 4339,
+      "sha256": "790953ce397fd54fefa6fdd766f203bb98bd390fdc047523a6476393ddfce4f0",
+      "lines": 136,
+      "imports": [
+        "react",
+        "../../shared/chess"
+      ],
+      "exports": [
+        "ChessHUD"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/ChessPieces.ts",
+      "bytes": 3737,
+      "sha256": "182eb04a7e613065002aabd4d54b120f6e8c1c66666c57c44e21a642977a89d9",
+      "lines": 160,
+      "imports": [
+        "three",
+        "./resources"
+      ],
+      "exports": [
+        "chessPiece"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/ChessTable.ts",
+      "bytes": 6132,
+      "sha256": "672ae888afd534d1f7e196aee3d18ba1abd377cbf359c3635b217a67c19ef194",
+      "lines": 181,
+      "imports": [
+        "three",
+        "./resources",
+        "./ChessPieces",
+        "../../shared/gameTables",
+        "../../shared/chessMotion",
+        "../../shared/chess"
+      ],
+      "exports": [
+        "ChessTable"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/EmoteWheel.tsx",
+      "bytes": 3604,
+      "sha256": "777e08e834152ab20cd822e48a1856c3229b56edca56ac800ae446679253b553",
+      "lines": 121,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../shared/types"
+      ],
+      "exports": [
+        "SOCIAL_EMOTES",
+        "EmoteWheel"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/GameSounds.ts",
+      "bytes": 1903,
+      "sha256": "3ef195b380146482c8e7e04dd35ef7c5e5ffa5b50ab5c7c66deb39a687a267bb",
+      "lines": 60,
+      "imports": [],
+      "exports": [
+        "GameSounds"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/GameTimeline.ts",
+      "bytes": 1663,
+      "sha256": "d62c002c954b05b55ea0442c47c0fd1a93c3cbc81f4baa0b20b8a3c57c970233",
+      "lines": 51,
+      "imports": [
+        "../../shared/pool"
+      ],
+      "exports": [
+        "PoolTimeline"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/PlayingCue.ts",
+      "bytes": 778,
+      "sha256": "bdfed899ff660641e8f3a78327c582189ccbb50a497d7856486e73a0c2d5faad",
+      "lines": 29,
+      "imports": [
+        "three",
+        "../../shared/pool",
+        "./resources"
+      ],
+      "exports": [
+        "playingCue"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/PoolPanel.tsx",
+      "bytes": 5178,
+      "sha256": "28d10f81d5f7f08143c494f5a941366a187033fd8116e309f0ab3c88085258c5",
+      "lines": 174,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../shared/pool",
+        "../../shared/types"
+      ],
+      "exports": [
+        "PoolPanel"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/PoolTable.ts",
+      "bytes": 9076,
+      "sha256": "86076d930957e1d0d457f789308f50d357e9abe7b1bf98d12c8220479a46a57e",
+      "lines": 302,
+      "imports": [
+        "three",
+        "../../shared/pool",
+        "./resources",
+        "./PlayingCue"
+      ],
+      "exports": [
+        "PoolTable"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/Rooftop.ts",
+      "bytes": 12962,
+      "sha256": "7ebde8633edd0e3485f44ef13fc261a2877bb4570e2890abacdf9ad480ed8473",
+      "lines": 418,
+      "imports": [
+        "three",
+        "./resources",
+        "../../shared/room3d",
+        "./environment"
+      ],
+      "exports": [
+        "buildRooftop"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/RoomBoundary.tsx",
+      "bytes": 503,
+      "sha256": "04565d6775ce34fc1d55798a149242ea62c9876bda9b496e4da7286e4857bf59",
+      "lines": 21,
+      "imports": [
+        "react"
+      ],
+      "exports": [
+        "RoomBoundary"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/RoomSettings.tsx",
+      "bytes": 6344,
+      "sha256": "4539fb6e68c6f0cec2d8f89231bcac6914413f1000e034e2020f8cf4769bea8f",
+      "lines": 198,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../shared/types",
+        "../../shared/room3d",
+        "../components/Modal",
+        "../../shared/emotes",
+        "./AvatarCreator"
+      ],
+      "exports": [
+        "RoomSettings"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/RoomView.tsx",
+      "bytes": 28377,
+      "sha256": "8391e0c8af2c6beb09ba1085b82f62cbae5b142add656aa2a1199ab49bc389a8",
+      "lines": 930,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../shared/types",
+        "../../services/webrtc/engine",
+        "../../shared/room3d",
+        "./scene",
+        "../components/Player",
+        "../components/Avatar",
+        "../../shared/pool",
+        "./PoolPanel",
+        "./TrucoHUD",
+        "./ChessHUD",
+        "./EmoteWheel",
+        "../../shared/emotes"
+      ],
+      "exports": [
+        "RoomView"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/TrucoHUD.tsx",
+      "bytes": 4164,
+      "sha256": "767444d2578db47ca58859176afc73b0a24ac807ab8dd5c86c1689184ec4800f",
+      "lines": 136,
+      "imports": [
+        "react",
+        "../../shared/truco",
+        "../../shared/types"
+      ],
+      "exports": [
+        "TrucoHUD"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/TrucoTable.ts",
+      "bytes": 8177,
+      "sha256": "25e453b8d5ccbe258f374cf362679374d1ef0cda79101fe40d710346ccc295ab",
+      "lines": 240,
+      "imports": [
+        "three",
+        "../../shared/gameTables",
+        "../../shared/truco",
+        "./resources",
+        "./CardDeck"
+      ],
+      "exports": [
+        "TrucoTable"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/assets.ts",
+      "bytes": 2638,
+      "sha256": "76e8e2af6c489111c70dd741878a099f4f3ff78affd9aeca77cdbb376231bc58",
+      "lines": 90,
+      "imports": [
+        "three",
+        "three/addons/loaders/GLTFLoader.js",
+        "three/addons/utils/SkeletonUtils.js"
+      ],
+      "exports": [
+        "furnitureNames",
+        "characterNames",
+        "RoomAssets"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/avatar.ts",
+      "bytes": 27606,
+      "sha256": "58024c6d87b8ee1944349455beab32870e94a2b61d1d55f013b1bfd75f537359",
+      "lines": 885,
+      "imports": [
+        "three",
+        "../../shared/types",
+        "./assets",
+        "./resources",
+        "./ArmIK",
+        "./PlayingCue",
+        "../../shared/poolMotion",
+        "./characterGeometry"
+      ],
+      "exports": [
+        "SocialAvatar"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/camera.ts",
+      "bytes": 8530,
+      "sha256": "f9e74c9bfa07c7f4a1063719900760611cb65289fa1c99f945f4c9607d4b4b3d",
+      "lines": 258,
+      "imports": [
+        "three",
+        "../../shared/types"
+      ],
+      "exports": [
+        "CameraMode",
+        "RoomCamera"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/characterGeometry.ts",
+      "bytes": 13713,
+      "sha256": "7fc3da9066389e64c6b567655ea619945fe9d84ac2ac17d59b5af0757fa0e381",
+      "lines": 477,
+      "imports": [
+        "three",
+        "../../shared/types",
+        "./resources"
+      ],
+      "exports": [
+        "Ring",
+        "smoothRadialNormals",
+        "profileGeometry",
+        "surface",
+        "swept",
+        "skinnedLimb",
+        "buildHair",
+        "headSurface",
+        "buildFace"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/environment.ts",
+      "bytes": 21228,
+      "sha256": "578869af32fa245208f9bf6d6ff95ba3d733d294cbc7fcc5a82d42b6f5375195",
+      "lines": 640,
+      "imports": [
+        "three",
+        "../../shared/types",
+        "../../shared/room3d",
+        "./resources",
+        "./assets",
+        "./Rooftop"
+      ],
+      "exports": [
+        "RoomEnvironment",
+        "buildEnvironment"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/resources.ts",
+      "bytes": 6067,
+      "sha256": "e1fd3d04c01f8d235d17e660354e8b9d15a20a660306a3f717edd68b137ca011",
+      "lines": 197,
+      "imports": [
+        "three",
+        "three/addons/geometries/RoundedBoxGeometry.js",
+        "three/addons/utils/BufferGeometryUtils.js"
+      ],
+      "exports": [
+        "Resources"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/rooms.css",
+      "bytes": 25190,
+      "sha256": "54008cddf6f2dffd6ec04eb2253f16e28b17f19f92e3eaeaf2b5aed405104648",
+      "lines": 1336,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/room3d/scene.ts",
+      "bytes": 44291,
+      "sha256": "a90b46873a9aa97b87e9f7d4063eed97337cd93a9d13e9d697a20d26a89c4ef2",
+      "lines": 1382,
+      "imports": [
+        "three",
+        "../../shared/room3d",
+        "../../shared/types",
+        "./assets",
+        "./avatar",
+        "./camera",
+        "./environment",
+        "./resources",
+        "../../shared/pool",
+        "./PoolTable",
+        "./GameTimeline",
+        "../../shared/poolMotion",
+        "../../shared/navigation",
+        "../../shared/gameTables",
+        "./TrucoTable",
+        "../../shared/cardMotion",
+        "./ChessTable",
+        "../../shared/chessMotion",
+        "./GameSounds"
+      ],
+      "exports": [
+        "SceneSnapshot",
+        "SceneState",
+        "SocialScene"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/renderer/style.css",
+      "bytes": 47552,
+      "sha256": "af326d2c4370a08b16870b250d44b087000648bd223c501c48ba792833484d5d",
+      "lines": 2717,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/services/atomicFile.ts",
+      "bytes": 1240,
+      "sha256": "bf965c8bbaa2b5e9a86622d1a300fd9cf6d824a8434efbbb8e8709f878f46ae3",
+      "lines": 43,
+      "imports": [
+        "node:fs",
+        "node:crypto"
+      ],
+      "exports": [
+        "writeAtomicFileSync"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/services/signaling/gameRoom.ts",
+      "bytes": 1649,
+      "sha256": "cbe560ae97f92ecf480cffc078d14b212d9f4cd0ab80d51ddeb38175befe25fa",
+      "lines": 47,
+      "imports": [
+        "node:crypto",
+        "../../shared/truco",
+        "../../shared/chess",
+        "../../shared/types",
+        "../../shared/gameTables"
+      ],
+      "exports": [
+        "GameRoom"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/services/signaling/host.ts",
+      "bytes": 39457,
+      "sha256": "8c452cfcdfc32ccdce1132293cf0e9b45b8376275d209987599740e63aadba38",
+      "lines": 1124,
+      "imports": [
+        "node:http",
+        "node:crypto",
+        "socket.io",
+        "zod",
+        "../../database/store",
+        "../../shared/constants",
+        "../../shared/validation",
+        "../../shared/types",
+        "../../shared/image",
+        "../../shared/room3d",
+        "../../shared/pool",
+        "../../shared/poolMotion",
+        "./gameRoom",
+        "../../shared/gameTables"
+      ],
+      "exports": [
+        "RoomHost"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/services/webrtc/callDiagnostics.ts",
+      "bytes": 2797,
+      "sha256": "b66f12dffa5fdda7dfca2a593889ba90bb5016fea1dc19f727dd0ab3ef01e2c3",
+      "lines": 89,
+      "imports": [],
+      "exports": [
+        "CallStage",
+        "callStageLabels",
+        "deadline",
+        "mediaFailure",
+        "networkClass"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": [
+        82
+      ]
+    },
+    {
+      "path": "src/services/webrtc/engine.ts",
+      "bytes": 45065,
+      "sha256": "94354c7c1a6591345a9ca66308b8467a614475631684ed32d43df24d23dac425",
+      "lines": 1358,
+      "imports": [
+        "../../shared/types",
+        "../../shared/constants",
+        "../../shared/preferences",
+        "../../shared/capture",
+        "./voicePlayback",
+        "./microphone",
+        "./callDiagnostics"
+      ],
+      "exports": [
+        "qualities",
+        "Quality",
+        "Diagnostic",
+        "VoiceView",
+        "VoiceEngine"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": [
+        520
+      ]
+    },
+    {
+      "path": "src/services/webrtc/microphone.ts",
+      "bytes": 4852,
+      "sha256": "d31bcb231914d2d3fd54af2258aef9c600426dc9ca499157a2c2826aa3a8562e",
+      "lines": 165,
+      "imports": [
+        "./peakLimiter",
+        "../../shared/types"
+      ],
+      "exports": [
+        "microphoneConstraints",
+        "VoiceGate",
+        "MicrophonePipeline"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/services/webrtc/microphoneTest.ts",
+      "bytes": 1892,
+      "sha256": "8d62c9199d60cf42fbd1f6df96cd309171d342f1402ae463fceb125b4510687b",
+      "lines": 60,
+      "imports": [
+        "../../shared/types",
+        "./microphone"
+      ],
+      "exports": [
+        "MicrophoneTest"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/services/webrtc/peakLimiter.ts",
+      "bytes": 601,
+      "sha256": "4e5cfe632b3a7c8df5a8defc420326093130284d71642b82ff593869458ef1ff",
+      "lines": 19,
+      "imports": [],
+      "exports": [
+        "peakLimiter"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/services/webrtc/voicePlayback.ts",
+      "bytes": 1779,
+      "sha256": "31d1cdc3118c65f517045000b0e3f1379d26f7760278be36c5a05fd88aaaf478",
+      "lines": 60,
+      "imports": [
+        "./peakLimiter"
+      ],
+      "exports": [
+        "VoicePlayback"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/shared/capture.ts",
+      "bytes": 625,
+      "sha256": "47eee5005f73e246b1bdc761cb283539ff1c69b3f1d66fd60c30d64a0a9b2cbb",
+      "lines": 24,
+      "imports": [],
+      "exports": [
+        "safeSystemAudio",
+        "shareAudioConstraints"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/shared/cardMotion.ts",
+      "bytes": 1144,
+      "sha256": "f12be07ca7a9eadddc689abd265e545ed59d8b8251143724fe90dc5a6ac2e788",
+      "lines": 30,
+      "imports": [
+        "./gameTables",
+        "./truco"
+      ],
+      "exports": [
+        "cardMotion"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/shared/chess.ts",
+      "bytes": 8408,
+      "sha256": "fa4e2d622ef029868e3ecb3600c2995b07fb3ef71f08b8b05590cf2f0e402c56",
+      "lines": 272,
+      "imports": [
+        "chess.js",
+        "./gameSession"
+      ],
+      "exports": [
+        "ChessMoveInput",
+        "ChessAction",
+        "ChessView",
+        "ChessGame"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/shared/chessMotion.ts",
+      "bytes": 1755,
+      "sha256": "e61374fff7aaf2259ea10eba9884dcf9b79beabbdc537c689dff7933ec2fb60b",
+      "lines": 54,
+      "imports": [
+        "./gameTables",
+        "./chess"
+      ],
+      "exports": [
+        "CHESS_SQUARE",
+        "chessSquare",
+        "chessTravel",
+        "chessMotion"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/shared/constants.ts",
+      "bytes": 84,
+      "sha256": "7c02c3b509b1b07a6aef22adba022e9489cfaf946a43c7588137e28562b91122",
+      "lines": 3,
+      "imports": [],
+      "exports": [
+        "MAX_PARTICIPANTS",
+        "MAX_IMAGE_BYTES"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/shared/emotes.ts",
+      "bytes": 421,
+      "sha256": "ab4bf0c2ebabe65622e79f701c43d5a86e4faefa428e52ead045025b1ca304ca",
+      "lines": 13,
+      "imports": [
+        "./types"
+      ],
+      "exports": [
+        "EMOTE_KEYS",
+        "emoteKey"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/shared/gameSession.ts",
+      "bytes": 2071,
+      "sha256": "cd72d28adfbfb135331f52d690ea4a40dc55f7cd1df49de90113e8705fc9877d",
+      "lines": 65,
+      "imports": [],
+      "exports": [
+        "GameSeats"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/shared/gameTables.ts",
+      "bytes": 1320,
+      "sha256": "4def22febde98243ff44273f2e26c3421477b2e73c96b18d239bb9496bbc68ca",
+      "lines": 41,
+      "imports": [],
+      "exports": [
+        "TableGame",
+        "GAME_TABLES",
+        "tableSeat",
+        "tableSeats",
+        "tableCamera"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/shared/identity.ts",
+      "bytes": 719,
+      "sha256": "ac2d1fe9d01cccacd114bd2d49bff197e17af028bd4869681d4a17ff65fe4d30",
+      "lines": 27,
+      "imports": [
+        "./types"
+      ],
+      "exports": [
+        "memberRoles",
+        "nicknameColor"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/shared/image.ts",
+      "bytes": 2567,
+      "sha256": "8c3ebcd8d207dd684c59e594d9992bcb6cfbd3f5642a9218ec63ac6afc27b45a",
+      "lines": 80,
+      "imports": [
+        "./constants"
+      ],
+      "exports": [
+        "validateImage"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/shared/links.ts",
+      "bytes": 1261,
+      "sha256": "60d81824cf308d88d0c5d2950665f4abfffed286820f0c4067969c2895f17505",
+      "lines": 41,
+      "imports": [],
+      "exports": [
+        "externalUrl",
+        "messageParts"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/shared/navigation.ts",
+      "bytes": 3424,
+      "sha256": "949a6d095723dc0bf00feefa2890c8bc95b7111ab8528a630b3309f71d4867b7",
+      "lines": 110,
+      "imports": [
+        "./room3d",
+        "./types"
+      ],
+      "exports": [
+        "clearWalk",
+        "walkPath"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/shared/pool.ts",
+      "bytes": 9842,
+      "sha256": "bd8bb454ba7725589857ad553337875d6fc449e31be92c5e80cc8a254d096fca",
+      "lines": 320,
+      "imports": [],
+      "exports": [
+        "POOL",
+        "PoolBall",
+        "PoolState",
+        "pockets",
+        "newPool",
+        "PoolGame"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/shared/poolMotion.ts",
+      "bytes": 5774,
+      "sha256": "9406df4fffa8cbff259e4ae9c7cbfd64403a45d8f434d5c6c01006f7263a7f06",
+      "lines": 184,
+      "imports": [
+        "./pool",
+        "./types"
+      ],
+      "exports": [
+        "Point3",
+        "poolStroke"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/shared/preferences.ts",
+      "bytes": 3939,
+      "sha256": "05f0a3169b0b3ba19889db8995a7c8643166543d589aaba59da11be26d1ac305",
+      "lines": 139,
+      "imports": [],
+      "exports": [
+        "DEFAULT_NOTIFICATIONS",
+        "PTT_KEYS",
+        "PttKey",
+        "isPttKey",
+        "microphoneMuted",
+        "VoiceShortcut",
+        "shortcutLabel",
+        "shortcutConflict"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/shared/releases.json",
+      "bytes": 27269,
+      "sha256": "a7709046d57a0e99b8fe45dbdde14d36753fffef201a87af53eb94eed5d97c47",
+      "lines": 433,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": [
+        264,
+        287
+      ]
+    },
+    {
+      "path": "src/shared/room3d.ts",
+      "bytes": 5420,
+      "sha256": "ea682e9871236676f2188f22d2a824127953fb4fff099b0e3661afd4d4a63d72",
+      "lines": 189,
+      "imports": [
+        "./pool",
+        "./gameTables",
+        "./types"
+      ],
+      "exports": [
+        "defaultAvatar",
+        "defaultRoomSettings",
+        "Seat",
+        "seats",
+        "spawnPose",
+        "roomBounds",
+        "walkable",
+        "spatialVoice"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/shared/truco.ts",
+      "bytes": 14186,
+      "sha256": "f205480320a03f9193ffc2f8df5b518c2926ad2685e0ae1ae005c24f7393a321",
+      "lines": 481,
+      "imports": [
+        "./gameSession"
+      ],
+      "exports": [
+        "TRUCO_RANKS",
+        "TRUCO_SUITS",
+        "Card",
+        "cardId",
+        "manilha",
+        "cardStrength",
+        "Play",
+        "TrucoView",
+        "TrucoAction",
+        "handWinner",
+        "TrucoGame"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/shared/types.ts",
+      "bytes": 14891,
+      "sha256": "50a361406751d6e70f834091c6c1124b4edfe387d67ca48fa3f2b429b8b05727",
+      "lines": 539,
+      "imports": [
+        "./pool",
+        "./truco",
+        "./gameTables",
+        "./chess",
+        "./preferences"
+      ],
+      "exports": [
+        "SocialGamesView",
+        "Presence",
+        "RoomPreset",
+        "RoomPose",
+        "Avatar3D",
+        "RoomSettings",
+        "Profile",
+        "Community",
+        "Channel",
+        "Participant",
+        "Message",
+        "RoomState",
+        "Signal",
+        "Command",
+        "ServerRole",
+        "MemberRole",
+        "Friendship",
+        "DirectCall",
+        "HistoryQuery",
+        "DirectMessage",
+        "DirectContact",
+        "DirectSnapshot",
+        "DirectRoom",
+        "Inbox",
+        "Reply",
+        "NetworkEvent",
+        "PttEvent",
+        "HostInfo",
+        "Source",
+        "UpdatePackage",
+        "ReleaseNotes",
+        "ReleasePost",
+        "RemoteUpdateState",
+        "SavedRoom",
+        "RoomAvailability",
+        "DesktopAPI",
+        "NotificationKind",
+        "NotificationPreferences",
+        "NotificationView",
+        "AppNotification",
+        "NotificationState"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/shared/update-trust.json",
+      "bytes": 286,
+      "sha256": "57a5c3b84d41896505ff002baae98bdbf22adb0f6993e164d9491b60f9cf3a55",
+      "lines": 10,
+      "imports": [],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "src/shared/validation.ts",
+      "bytes": 16351,
+      "sha256": "fe06603d288dff24a39cd23f5dd6665904c127b903cb308db195e1d17a73e6c3",
+      "lines": 537,
+      "imports": [
+        "zod",
+        "./preferences",
+        "./constants",
+        "./image"
+      ],
+      "exports": [
+        "avatarSchema",
+        "colorSchema",
+        "bannerSchema",
+        "avatar3dSchema",
+        "profileSchema",
+        "publicProfileSchema",
+        "imageSchema",
+        "commandSchema",
+        "signalSchema",
+        "historySchema",
+        "privateIPv4",
+        "parseInvite",
+        "radminIPv4",
+        "roomIPv4"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": [
+        529,
+        530,
+        531,
+        535
+      ]
+    },
+    {
+      "path": "tests/atomicFile.test.ts",
+      "bytes": 2722,
+      "sha256": "b94ec21a5d546b3ea36e0046b7698eccb9cc583ddf76bb7e00b41bf2e7b5b937",
+      "lines": 77,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:fs",
+        "node:os",
+        "node:path",
+        "../src/services/atomicFile"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/audio.e2e.ts",
+      "bytes": 11529,
+      "sha256": "b3763ca893a31f43c3b2c1d53ab2cc847fc57e09550824fdcd40e430536c5db9",
+      "lines": 313,
+      "imports": [
+        "playwright",
+        "node:net",
+        "node:fs/promises",
+        "node:path",
+        "node:assert/strict"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/callDiagnostics.test.ts",
+      "bytes": 1489,
+      "sha256": "1ccf682637e1bbae411a91b0a7c23f8774615077a1acf9a4d566f7451c1ea056",
+      "lines": 53,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/services/webrtc/callDiagnostics"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": [
+        37
+      ]
+    },
+    {
+      "path": "tests/callNetwork.e2e.ts",
+      "bytes": 5501,
+      "sha256": "24a016a0854b777f6fda178445afbd47f1164a6c64570069cf35c23579ca6ad6",
+      "lines": 169,
+      "imports": [
+        "playwright",
+        "node:fs/promises",
+        "node:path",
+        "node:crypto",
+        "node:assert/strict",
+        "./support/keyboard"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": [
+        64,
+        66,
+        67,
+        74,
+        76,
+        91,
+        114,
+        156
+      ]
+    },
+    {
+      "path": "tests/callRecovery.e2e.ts",
+      "bytes": 4845,
+      "sha256": "b2bcd594dc2a262d17f1018b5f2cf605810585f7aab54abe0070b8338bafb0fe",
+      "lines": 144,
+      "imports": [
+        "playwright",
+        "node:fs/promises",
+        "node:path",
+        "node:assert/strict"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/captureAudio.e2e.ts",
+      "bytes": 4755,
+      "sha256": "09b8d96b3f854eb6e9b1a260b3d11097bd8360dfaffa6872c681061292ad2a5d",
+      "lines": 131,
+      "imports": [
+        "playwright",
+        "node:fs/promises",
+        "node:path",
+        "node:assert/strict"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/chess.app.ts",
+      "bytes": 4044,
+      "sha256": "fde7c321c608808d83da924ed04dd36e34e12d9b05f67f0b951c29af0a69cabc",
+      "lines": 125,
+      "imports": [
+        "./games.app.harness",
+        "node:path",
+        "node:fs/promises",
+        "node:assert/strict",
+        "../src/shared/chess",
+        "../src/shared/gameTables",
+        "../src/shared/chessMotion",
+        "three"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/chess.test.ts",
+      "bytes": 5605,
+      "sha256": "0e5331d4f717271fcd17a958b2c368d48c8ca23bb8c692801e50931652168a04",
+      "lines": 165,
+      "imports": [
+        "chess.js",
+        "node:test",
+        "node:assert/strict",
+        "../src/shared/chess"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/desktop.e2e.ts",
+      "bytes": 27317,
+      "sha256": "0f0d765cd8b0861f1ee3e322eb7b06c4686b73090602c1cdb9ac23c1748f7473",
+      "lines": 766,
+      "imports": [
+        "playwright",
+        "node:fs/promises",
+        "node:path",
+        "node:assert/strict",
+        "./support/keyboard"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/desktopIdentity.test.ts",
+      "bytes": 2094,
+      "sha256": "eefdb15db2779df1962161f3bdb647b4d4e003b48fda3f6e1482bdeb4444a893",
+      "lines": 52,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:fs",
+        "node:os",
+        "node:path",
+        "../src/main/desktopIdentity"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/dev.e2e.ts",
+      "bytes": 1360,
+      "sha256": "86adbd4f86fd01317845c8646c8fbb58734ecab79195046f6166cce5075fc139",
+      "lines": 42,
+      "imports": [
+        "playwright",
+        "node:path",
+        "node:assert/strict",
+        "vite"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/direct.test.ts",
+      "bytes": 10683,
+      "sha256": "0577b1ecf1f67faf81b9fd4a97550aa444b387797d490fb356866d670c986502",
+      "lines": 334,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:os",
+        "node:path",
+        "node:crypto",
+        "socket.io-client",
+        "../src/database/store",
+        "../src/services/signaling/host",
+        "../src/main/directInbox",
+        "../src/main/deviceIdentity",
+        "../src/shared/validation",
+        "../src/renderer/directThreads",
+        "../src/shared/types"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/gallery.e2e.ts",
+      "bytes": 4733,
+      "sha256": "dd479a9426e7f96ba8c34da07a00571486828e793a445e0577f29e6af3c6bfb0",
+      "lines": 140,
+      "imports": [
+        "playwright",
+        "esbuild",
+        "node:fs/promises",
+        "node:http",
+        "node:assert/strict"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/gallery.fixture.tsx",
+      "bytes": 2798,
+      "sha256": "21f8b9e672ef07b34b31b8eccd7c7deca17d8a7770bda49455ec995b4471575a",
+      "lines": 101,
+      "imports": [
+        "react-dom/client",
+        "react",
+        "../src/renderer/components/MediaGallery",
+        "../src/shared/types"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/games.app.harness.ts",
+      "bytes": 4406,
+      "sha256": "8faadc6baa046f1e96eaad7435b8e0c7c5d668bd3763a1633ddf90bd8752ae58",
+      "lines": 145,
+      "imports": [
+        "playwright",
+        "node:fs/promises",
+        "node:path",
+        "node:crypto"
+      ],
+      "exports": [
+        "gameClients"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/games.visual.fixture.ts",
+      "bytes": 6216,
+      "sha256": "a25ba5ed2c0ab21bdd064acab1700ffa5cc325117b00d4167eb3d3db62eb863c",
+      "lines": 186,
+      "imports": [
+        "three",
+        "../src/renderer/room3d/avatar",
+        "../src/renderer/room3d/assets",
+        "../src/renderer/room3d/resources",
+        "../src/renderer/room3d/TrucoTable",
+        "../src/renderer/room3d/ChessTable",
+        "../src/renderer/room3d/PoolTable",
+        "../src/renderer/room3d/Rooftop",
+        "../src/shared/truco",
+        "../src/shared/chess",
+        "../src/shared/cardMotion",
+        "../src/shared/chessMotion",
+        "../src/shared/gameTables",
+        "../src/shared/room3d",
+        "../src/shared/pool",
+        "../src/shared/types"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/games.visual.ts",
+      "bytes": 3581,
+      "sha256": "eff65bcf06ccb9e699b5143facdf21a166e6c39276b14c8bfde99b326e0514de",
+      "lines": 117,
+      "imports": [
+        "playwright",
+        "esbuild",
+        "node:http",
+        "node:fs/promises",
+        "node:assert/strict"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/links.test.ts",
+      "bytes": 1624,
+      "sha256": "de8488c44692db3e9c7673d30aa7ca2563853bd47da8a4b43ade2258d8cce2e5",
+      "lines": 49,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/shared/links",
+        "../src/services/webrtc/microphone"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/media.e2e.ts",
+      "bytes": 25520,
+      "sha256": "dcdf85ccabf2db248538ae868f8734cf6d23c0d869bfca5712ad9e0fcb8eff96",
+      "lines": 722,
+      "imports": [
+        "playwright",
+        "esbuild",
+        "node:fs/promises",
+        "node:os",
+        "node:path",
+        "node:http",
+        "node:assert/strict"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/microphone.e2e.ts",
+      "bytes": 6018,
+      "sha256": "053029dd2b0ce569558354141b17b8e03cdfbb214cc38b05e7bc583bbd2b1c5d",
+      "lines": 180,
+      "imports": [
+        "playwright",
+        "esbuild",
+        "node:assert/strict"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/notifications.test.ts",
+      "bytes": 5512,
+      "sha256": "ce22e61efaa1f8e2059c2a83a18a1c24ffb44daf6a8cb83fcbc8b6421aad7f71",
+      "lines": 143,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:os",
+        "node:path",
+        "node:crypto",
+        "../src/main/notifications",
+        "../src/shared/validation",
+        "../src/shared/types"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/packaged.e2e.ts",
+      "bytes": 10285,
+      "sha256": "600544c07a0175b359b54da4bae3491e8acd8bf95af0409c43b90f3507ffeeda",
+      "lines": 263,
+      "imports": [
+        "playwright",
+        "node:fs/promises",
+        "node:path",
+        "node:fs",
+        "node:assert/strict",
+        "socket.io-client",
+        "node:crypto",
+        "node:child_process"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/personalization.test.ts",
+      "bytes": 8002,
+      "sha256": "51135bc76c87fc65c9d565e558b6a711798fe0335d34a1d61355380c956f6511",
+      "lines": 284,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:crypto",
+        "node:fs/promises",
+        "node:os",
+        "node:path",
+        "socket.io-client",
+        "../src/database/store",
+        "../src/services/signaling/host",
+        "../src/shared/identity",
+        "../src/shared/validation",
+        "../src/services/webrtc/engine",
+        "../src/shared/types"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/pool.app.match.ts",
+      "bytes": 11250,
+      "sha256": "6fa4cd06b25149b46074025ac27262f7f57d555456af6dff07fa4222bae2d92e",
+      "lines": 344,
+      "imports": [
+        "playwright",
+        "node:fs/promises",
+        "node:path",
+        "node:crypto",
+        "three",
+        "../src/shared/pool",
+        "./pool.bot",
+        "node:assert/strict"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/pool.bot.ts",
+      "bytes": 2511,
+      "sha256": "f867d89a8c69fabfd2cbc543a7e3fe1399a7a7a4bd6d52786095fdd6fdc05374",
+      "lines": 70,
+      "imports": [
+        "../src/shared/pool"
+      ],
+      "exports": [
+        "placement",
+        "chooseShot"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/pool.match.ts",
+      "bytes": 1002,
+      "sha256": "5581aa3d4967c0f7e1a619424a333a1d08e9a5165625889007d31a44f24fc221",
+      "lines": 35,
+      "imports": [
+        "../src/shared/pool",
+        "./pool.bot",
+        "node:assert/strict"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/pool.test.ts",
+      "bytes": 9922,
+      "sha256": "049e41118e573e6a4efd06590bda1d66b6d3199afd4e5a27374cd363ecfcdf49",
+      "lines": 302,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:crypto",
+        "node:fs/promises",
+        "node:os",
+        "node:path",
+        "socket.io-client",
+        "../src/shared/poolMotion",
+        "../src/shared/pool",
+        "../src/database/store",
+        "../src/services/signaling/host",
+        "../src/shared/room3d",
+        "../src/shared/validation",
+        "../src/shared/types",
+        "../src/main/releaseNotes"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/pool.visual.fixture.ts",
+      "bytes": 4379,
+      "sha256": "d2c29d4f6299914bbd03dbed36ba1c735845a5dad6dda74813dab32ca0ed4b00",
+      "lines": 126,
+      "imports": [
+        "three",
+        "../src/renderer/room3d/avatar",
+        "../src/renderer/room3d/PoolTable",
+        "../src/renderer/room3d/assets",
+        "../src/shared/room3d",
+        "../src/shared/pool",
+        "../src/shared/poolMotion"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/pool.visual.ts",
+      "bytes": 2163,
+      "sha256": "435cf369dffc944b3552c5c07a4ae265b67833bfc2ec0cbcf89d9464c8b7e8fb",
+      "lines": 66,
+      "imports": [
+        "playwright",
+        "esbuild",
+        "node:http",
+        "node:fs/promises",
+        "node:assert/strict"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/preferences.test.ts",
+      "bytes": 5828,
+      "sha256": "da005a95722cd3d6d4e6e57bffc20d587d75fdb201ddef2eb8e89429303c3583",
+      "lines": 173,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:crypto",
+        "../src/shared/validation",
+        "../src/shared/preferences",
+        "../src/services/webrtc/microphone",
+        "../src/shared/image",
+        "sql.js",
+        "../src/database/store",
+        "node:fs/promises",
+        "node:os",
+        "node:path",
+        "sql.js/dist/sql-wasm.wasm"
+      ],
+      "exports": [
+        "PNG"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/pushToTalk.e2e.ts",
+      "bytes": 1918,
+      "sha256": "655df1b27cf4acee725184d8a79f1d70782b035e68f3998aa916999e5a0179cf",
+      "lines": 64,
+      "imports": [
+        "../src/main/pushToTalk",
+        "./support/keyboard",
+        "node:assert/strict"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/redesign.e2e.ts",
+      "bytes": 16891,
+      "sha256": "df10c70f1bd9f33911ee3e991d87ce6bdceae9d355c0f53cc26ac2b93eb7d523",
+      "lines": 485,
+      "imports": [
+        "playwright",
+        "node:fs/promises",
+        "node:path",
+        "node:assert/strict"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/remoteUpdates.test.ts",
+      "bytes": 9407,
+      "sha256": "364af594d8db1e74d3ccf97dc4d6fe10043a99697967a5d968fbd1c3ac8525f1",
+      "lines": 291,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:crypto",
+        "node:fs/promises",
+        "node:path",
+        "node:os",
+        "node:events",
+        "electron-updater",
+        "../src/main/remoteUpdates",
+        "../src/main/updateTrust",
+        "../src/main/updateTransport"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/resources.performance.ts",
+      "bytes": 6843,
+      "sha256": "22c7da1a1e75e06e96f8ee048dc021db3fbe45a2a6b79a68b197b6b8d089b247",
+      "lines": 207,
+      "imports": [
+        "playwright",
+        "node:fs/promises",
+        "node:path",
+        "node:child_process"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/room3d-polish.test.ts",
+      "bytes": 6099,
+      "sha256": "6886cfbf7bb2e8adda41d67ef6160413971e372b7e784b4e3bd19e2962bcaf29",
+      "lines": 164,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:crypto",
+        "node:fs/promises",
+        "node:path",
+        "three",
+        "zod",
+        "../src/renderer/room3d/camera",
+        "../src/shared/validation",
+        "../src/shared/room3d"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/room3d-rebuild.test.ts",
+      "bytes": 7678,
+      "sha256": "ee6c45d21f1c2b7ec89aa13acc39b61b957f4ca1a54888c5b98894613ea94e8a",
+      "lines": 255,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "three",
+        "../src/renderer/room3d/camera",
+        "../src/renderer/room3d/resources",
+        "../src/renderer/room3d/characterGeometry",
+        "../src/shared/room3d",
+        "../src/renderer/room3d/PlayingCue",
+        "../src/shared/pool"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/room3d.app.e2e.ts",
+      "bytes": 19027,
+      "sha256": "059b2ca544be22c4ceaac1ca61c6d89fa27f65efeefa414d50dd4d7aa38e97ef",
+      "lines": 530,
+      "imports": [
+        "playwright",
+        "node:fs/promises",
+        "node:path",
+        "node:assert/strict"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/room3d.e2e.ts",
+      "bytes": 12709,
+      "sha256": "1d77976477563030ce87f07b7cc62fb1090c890256cb7af911de33e77200e092",
+      "lines": 354,
+      "imports": [
+        "playwright",
+        "esbuild",
+        "node:fs/promises",
+        "node:http",
+        "node:assert/strict",
+        "node:path"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/room3d.fixture.tsx",
+      "bytes": 5764,
+      "sha256": "fc19ae428a9be8779ab9df3f4ccc3bcf0915863212214d496d8987c48d4fb6ee",
+      "lines": 205,
+      "imports": [
+        "react-dom/client",
+        "react",
+        "../src/renderer/room3d/RoomView",
+        "../src/renderer/room3d/RoomSettings",
+        "../src/renderer/components/MediaGallery",
+        "../src/services/webrtc/voicePlayback",
+        "../src/services/webrtc/engine",
+        "../src/shared/types",
+        "../src/shared/room3d"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/room3d.performance.ts",
+      "bytes": 6549,
+      "sha256": "4954070bd4ab2cc90ea8b037b715958237edd5145636ace891615eb4953dcf69",
+      "lines": 208,
+      "imports": [
+        "playwright",
+        "esbuild",
+        "node:http",
+        "node:fs/promises",
+        "node:path",
+        "node:child_process"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/room3d.test.ts",
+      "bytes": 8916,
+      "sha256": "477575badcdf62cfdfd4696786021b5c5a73bd8b7f797599fae34178e1d6d552",
+      "lines": 302,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:crypto",
+        "node:fs/promises",
+        "node:os",
+        "node:path",
+        "socket.io-client",
+        "../src/database/store",
+        "../src/services/signaling/host",
+        "../src/shared/room3d",
+        "../src/shared/validation",
+        "../src/main/releaseNotes",
+        "../src/shared/types"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/room3d.visual.fixture.ts",
+      "bytes": 6047,
+      "sha256": "4327492d4a45e06c627fd93a0f5f0c57e3d5f365f87886c62fce1ed3f5f056b2",
+      "lines": 246,
+      "imports": [
+        "three",
+        "../src/renderer/room3d/avatar",
+        "../src/renderer/room3d/assets",
+        "../src/renderer/room3d/scene",
+        "../src/shared/room3d",
+        "../src/shared/types"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/room3d.visual.ts",
+      "bytes": 10718,
+      "sha256": "76e679d609832774aa27afe6517306360a84654b01fc530668a7ac7264613569",
+      "lines": 337,
+      "imports": [
+        "playwright",
+        "esbuild",
+        "node:http",
+        "node:fs/promises",
+        "node:path",
+        "node:assert/strict"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/rooms.test.ts",
+      "bytes": 6085,
+      "sha256": "844e293960f9c48fee20a1e4c95c9ea2efe1ca95b06b8849804fb5d565c0e19c",
+      "lines": 156,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:os",
+        "node:path",
+        "node:crypto",
+        "sql.js",
+        "../src/main/recentRooms",
+        "../src/database/store",
+        "../src/services/signaling/host",
+        "../src/shared/releases.json",
+        "sql.js/dist/sql-wasm.wasm"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/signaling.test.ts",
+      "bytes": 12562,
+      "sha256": "0aafe0915ec4eb12b2971c3530410759a07926ac689675d3e098622f949830f9",
+      "lines": 417,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:os",
+        "node:path",
+        "node:crypto",
+        "socket.io-client",
+        "../src/database/store",
+        "../src/services/signaling/host",
+        "../src/shared/validation",
+        "../src/main/addresses",
+        "../src/shared/types",
+        "../src/main/recentRooms"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": [
+        65
+      ]
+    },
+    {
+      "path": "tests/social.e2e.ts",
+      "bytes": 10543,
+      "sha256": "6b42f99c69c5c2dac77edd488bdfb5dae7177fb40f3d1b5f5126324ee45d7387",
+      "lines": 284,
+      "imports": [
+        "playwright",
+        "node:fs/promises",
+        "node:path",
+        "node:crypto",
+        "node:assert/strict"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/social.test.ts",
+      "bytes": 7880,
+      "sha256": "e3bb1fd11fe8f2048ec487e2a02adc6d2cf73c79622c252d8a7e9d340ce08255",
+      "lines": 274,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:crypto",
+        "node:fs/promises",
+        "node:os",
+        "node:path",
+        "socket.io-client",
+        "../src/database/store",
+        "../src/services/signaling/host",
+        "../src/shared/types"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/social3d.app.ts",
+      "bytes": 3878,
+      "sha256": "3783d13a4dfc121c8bc5248c70d3c7b399f1160a1831e536cac3ea658fecd01d",
+      "lines": 120,
+      "imports": [
+        "./games.app.harness",
+        "node:path",
+        "node:fs/promises",
+        "node:assert/strict",
+        "../src/renderer/room3d/EmoteWheel"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/socialGames.test.ts",
+      "bytes": 7339,
+      "sha256": "4e8483e4a18cdcf5dbdba6d6e28f452263492057940dc990e98994395965e85b",
+      "lines": 219,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:crypto",
+        "node:fs/promises",
+        "node:os",
+        "node:path",
+        "socket.io-client",
+        "../src/database/store",
+        "../src/services/signaling/host",
+        "../src/shared/validation",
+        "../src/shared/gameTables",
+        "../src/shared/room3d",
+        "../src/shared/truco",
+        "../src/shared/navigation",
+        "../src/shared/types"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/support/keyboard.ts",
+      "bytes": 1503,
+      "sha256": "67861d4e4b3b90083865042bdddda62d6edf2180bf023684291594a5c0dac5fe",
+      "lines": 35,
+      "imports": [
+        "node:child_process",
+        "node:path"
+      ],
+      "exports": [
+        "key"
+      ],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/systemFeatures.e2e.ts",
+      "bytes": 13468,
+      "sha256": "085c25bbfbf234e85ba0c0840404a3d353a31a5df178ab717d5a9a88f1accc84",
+      "lines": 397,
+      "imports": [
+        "playwright",
+        "node:fs/promises",
+        "node:path",
+        "node:assert/strict"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/truco.app.ts",
+      "bytes": 4792,
+      "sha256": "02ae186253dbc8b8d8fd9d3f6c8b1aee79884f1e6289d53d5c9f65f329a1909b",
+      "lines": 147,
+      "imports": [
+        "./games.app.harness",
+        "node:path",
+        "node:fs/promises",
+        "node:assert/strict",
+        "../src/shared/truco",
+        "../src/shared/gameTables",
+        "../src/shared/cardMotion",
+        "three"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/truco.test.ts",
+      "bytes": 8949,
+      "sha256": "986e0f8c8579210735a309bd4c4aeedefcf0d31bc75b8ca0516fc8c7ea455f25",
+      "lines": 247,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/shared/truco"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/ui-themes.test.ts",
+      "bytes": 2000,
+      "sha256": "5f9bb6d35f3617f2f97decc8a7afc0ef4038dfbfb9711701bdc8fdaff8abfe04",
+      "lines": 62,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/renderer/components/Personalization"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/updater.runtime.ts",
+      "bytes": 7544,
+      "sha256": "acef11270a76ffb2c3b7ba45836e164dafd4517d5827a2e1ad24aa267618969e",
+      "lines": 244,
+      "imports": [
+        "electron",
+        "electron-updater",
+        "electron-updater/out/electronHttpExecutor",
+        "node:http",
+        "node:fs",
+        "node:path",
+        "node:crypto",
+        "../src/main/remoteUpdates",
+        "node:assert/strict"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/updates.test.ts",
+      "bytes": 5663,
+      "sha256": "f3eacd760e300c9a7f5a3c82645cc9cd824dd78bccef272ec010d71f9f1c6430",
+      "lines": 152,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:path",
+        "node:os",
+        "../src/main/updates",
+        "../src/main/releaseNotes",
+        "../package.json",
+        "../src/shared/releases.json"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/ux.e2e.ts",
+      "bytes": 16691,
+      "sha256": "ca032204f4c1222615d7c914c44543179afb5be28dbe5015a539860ec9d72fb2",
+      "lines": 503,
+      "imports": [
+        "playwright",
+        "node:fs/promises",
+        "node:path",
+        "node:crypto",
+        "node:assert/strict"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/voiceControls.e2e.ts",
+      "bytes": 6525,
+      "sha256": "b1c73567263e040c6998e6b87dbc797803a397baf4b5d3393983a0f054acafdc",
+      "lines": 204,
+      "imports": [
+        "playwright",
+        "node:fs/promises",
+        "node:path",
+        "node:assert/strict",
+        "./support/keyboard"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    },
+    {
+      "path": "tests/voiceControls.test.ts",
+      "bytes": 3085,
+      "sha256": "be60e28dbe3493857cc4dae0ed0c8e024966a430f3f742ed738c9b7ce84104d2",
+      "lines": 101,
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "node:crypto",
+        "../src/shared/validation",
+        "../src/shared/preferences",
+        "../src/shared/capture",
+        "../src/services/webrtc/engine"
+      ],
+      "exports": [],
+      "ipcHandlers": [],
+      "tables": [],
+      "radminLines": []
+    }
+  ]
+}

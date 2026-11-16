@@ -1,0 +1,67 @@
+{
+  "checkedAt": "2026-11-16T18:57:21.630Z",
+  "baseCommit": "7df27bc684c0743fa52e12bfe6aae5073dd02371",
+  "branch": "migration/2.0-native-audit",
+  "stableVersion": "1.4.1",
+  "targetVersion": "2.0.0",
+  "phase": "0-in-progress",
+  "runtimeChanged": false,
+  "stableHashesLFNormalized": {
+    "package.json": "1b2901c9a76336dfcc3da0379c7942c892317f6c56a5451b8e2d2b1cd8487f64",
+    "package-lock.json": "02aea8c1b32beb3edcefbf0b8f67e856ed31b0075178a671a53d19b8e8790ece",
+    "src/shared/releases.json": "a7709046d57a0e99b8fe45dbdde14d36753fffef201a87af53eb94eed5d97c47",
+    ".github/workflows/release.yml": "95abc87fe67c5ab8a1bad32754b872e830f4356bf2642131d2690e7ebf136bbb"
+  },
+  "localDocumentLinks": "all referenced local paths in seven migration documents exist",
+  "checks": [
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "tests": 83,
+      "passed": 83
+    },
+    {
+      "command": "npm run build",
+      "exitCode": 0,
+      "warning": "existing chunk >500kB"
+    },
+    {
+      "command": "npm run test:calls",
+      "exitCode": 0,
+      "syntheticDevices": true,
+      "checksPassed": 5
+    },
+    {
+      "command": "npm run test:resources -- --label=2.0-phase0",
+      "exitCode": 0,
+      "syntheticDevices": true,
+      "peers": 0,
+      "scenarios": 8
+    },
+    {
+      "command": "npm run test:rooms3d:performance -- --gpu --label=2.0-phase0",
+      "exitCode": 0,
+      "scope": "Edge headless Lounge fixture, ten synthetic avatars, three qualities"
+    },
+    {
+      "command": "node --check scripts/audit-native-baseline.mjs",
+      "exitCode": 0
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0
+    }
+  ],
+  "notValidated": [
+    "physical audio",
+    "multiple physical computers",
+    "public internet traversal",
+    "CGNAT and symmetric NAT",
+    "TURN hard financial cutoff",
+    "mouth-to-ear latency",
+    "long session",
+    "Rust implementation or resource reduction"
+  ],
+  "publication": false,
+  "externalServicesActivated": false
+}

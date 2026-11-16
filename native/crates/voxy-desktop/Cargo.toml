@@ -1,0 +1,23 @@
+[package]
+name = "voxy-desktop"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+tokio.workspace = true
+png = "0.18"
+voxy-core.workspace = true
+voxy-voice.workspace = true
+iced = { version = "=0.14.0", default-features = false, features = ["tiny-skia", "tokio", "advanced", "canvas"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Graphics_Dwm", "Win32_UI_Controls", "Win32_Foundation"] }
+
+[lints]
+workspace = true

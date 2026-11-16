@@ -1,0 +1,50 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { generateKeyPairSync, randomBytes, randomUUID, sign } from 'node:crypto';
+import { build } from 'esbuild';
+import { Miniflare } from 'miniflare';
+
+const bundle = await build({ entryPoints: ['src/worker.ts'], bundle: true, write: false, format: 'esm', platform: 'browser', target: 'es2022' });
+const makeKey = () => { const pair = generateKeyPairSync('ed25519'); return { privateKey: pair.privateKey, key: pair.publicKey.export({type:'spki',format:'der'}).subarray(-32).toString('base64url') }; };
+function invite(host, room=randomUUID()) {
+  const body = { protocol:3,room,host_key:host.key,signal_url:`ws://localhost/v3/${room}`,capability:randomBytes(32).toString('base64url'),expires_at:Date.now()+60000,signature:'' };
+  body.signature=sign(null,Buffer.from(JSON.stringify(['voxy-invite-v3',3,body.room,body.host_key,body.signal_url,body.capability,body.expires_at])),host.privateKey).toString('base64url');return body;
+}
+function headers(invite, peer) {
+  const nonce=randomBytes(16).toString('base64url'), now=Date.now();
+  const proof=sign(null,Buffer.from(JSON.stringify(['voxy-admission-v3',invite.room,invite.capability,peer.key,nonce,now])),peer.privateKey).toString('base64url');
+  return { Upgrade:'websocket','X-Voxy-Invite':`voxy://join/${Buffer.from(JSON.stringify(invite)).toString('base64url')}`,'X-Voxy-Peer':peer.key,'X-Voxy-Nonce':nonce,'X-Voxy-Time':String(now),'X-Voxy-Proof':proof };
+}
+function setup(extra={}) { return new Miniflare({ modules:true,script:bundle.outputFiles[0].text,compatibilityDate:'2026-07-30',durableObjects:{ROOMS:{className:'SignalRoom',useSQLite:true},ADMISSION:{className:'AdmissionBudget',useSQLite:true}},bindings:{VOXY_DEPLOYMENT_ENABLED:'true',VOXY_RELAY_ENABLED:'false',VOXY_DAILY_ADMISSIONS:'1000',VOXY_MAX_ROOMS:'10',...extra} }); }
+const nextMessage = socket => new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('WebSocket timeout')),3000);socket.addEventListener('message',e=>{clearTimeout(timer);resolve(JSON.parse(e.data));},{once:true});});
+
+test('deployment and relay fail closed; invalid invites never admit',async()=>{
+  for(const config of [{VOXY_DEPLOYMENT_ENABLED:'false'},{VOXY_RELAY_ENABLED:'true'}]){const mf=setup(config);try{assert.equal((await mf.dispatchFetch('http://localhost/health')).status,503);}finally{await mf.dispose();}}
+  const mf=setup();try{const host=makeKey(),body=invite(host);const h=headers(body,host);h['X-Voxy-Proof']=randomBytes(64).toString('base64url');assert.equal((await mf.dispatchFetch(body.signal_url.replace('ws:','http:'),{headers:h})).status,403);body.expires_at=0;assert.equal((await mf.dispatchFetch(body.signal_url.replace('ws:','http:'),{headers:headers(body,host)})).status,403);}finally{await mf.dispose();}
+});
+test('native admission, hibernating WebSockets, private routing, nonce replay and quotas',async()=>{
+  const mf=setup({VOXY_DAILY_ADMISSIONS:'3'});let sockets=[];
+  try{
+    const host=makeKey(),guest=makeKey(),body=invite(host),url=body.signal_url.replace('ws:','http:');const hh=headers(body,host);
+    const response=await mf.dispatchFetch(url,{headers:hh});assert.equal(response.status,101);const hs=response.webSocket;sockets.push(hs);const welcome=nextMessage(hs);hs.accept();assert.equal((await welcome).type,'welcome');
+    assert.equal((await mf.dispatchFetch(url,{headers:hh})).status,429);
+    const joined=nextMessage(hs);const guestResponse=await mf.dispatchFetch(url,{headers:headers(body,guest)});assert.equal(guestResponse.status,101);const gs=guestResponse.webSocket;sockets.push(gs);const gw=nextMessage(gs);gs.accept();assert.equal((await gw).peers[0].key,host.key);assert.equal((await joined).key,guest.key);
+    const received=nextMessage(gs);hs.send(JSON.stringify({room:body.room,from:host.key,to:guest.key,session_nonce:hh['X-Voxy-Nonce'],sequence:1,expires_at:Date.now()+10000,payload:{description:'encrypted-transport-fingerprint'},signature:'verified-by-endpoints'}));assert.equal((await received).from,host.key);
+    const other=makeKey();assert.equal((await mf.dispatchFetch(url,{headers:headers(body,other)})).status,101);assert.equal((await mf.dispatchFetch(url,{headers:headers(body,makeKey())})).status,429);
+  }finally{for(const socket of sockets){try{socket.close()}catch{}}await mf.dispose();}
+});
+
+test('a signal from an old admission nonce closes only the offending peer',async()=>{
+  const mf=setup();const sockets=[];
+  const open=async(body,peer)=>{const h=headers(body,peer);const r=await mf.dispatchFetch(body.signal_url.replace('ws:','http:'),{headers:h});assert.equal(r.status,101);const s=r.webSocket;sockets.push(s);const welcome=nextMessage(s);s.accept();await welcome;return {s,h};};
+  try {
+    const host=makeKey(),guest=makeKey(),body=invite(host);
+    const {s:hs}=await open(body,host);const joined=nextMessage(hs);
+    const {s:gs}=await open(body,guest);await joined;
+    const closed=new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('Peer not closed')),3000);gs.addEventListener('close',e=>{clearTimeout(timer);resolve(e.code)},{once:true});});
+    gs.send(JSON.stringify({room:body.room,from:guest.key,to:host.key,session_nonce:randomBytes(16).toString('base64url'),sequence:1,expires_at:Date.now()+10000,payload:{},signature:'invalid-session'}));
+    assert.equal(await closed,1008);
+    // A new valid participant can still join the same authoritative host.
+    const {s:replacement}=await open(body,makeKey());assert.ok(replacement);
+  } finally {for(const socket of sockets){try{socket.close()}catch{}}await mf.dispose();}
+});

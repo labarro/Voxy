@@ -1,0 +1,47 @@
+name: Validar Voxy nativo experimental
+on:
+  push:
+    branches: ["migration/**"]
+  pull_request:
+    paths: ["native/**", "infra/signaling/**", "scripts/native.ps1", ".github/workflows/native.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-native:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: "24"
+      - name: Preparar Rust e CMake
+        shell: pwsh
+        run: |
+          rustup toolchain install 1.100.0 --profile minimal --component rustfmt --component clippy
+          cmake --version
+      - name: Formato, Clippy e testes Rust
+        working-directory: native
+        run: |
+          cargo fmt --all -- --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo clippy --locked --workspace --all-targets -- -D warnings
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo test --locked --workspace
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo build --locked --workspace
+      - name: Testar Worker e dois processos Rust sem serviço externo
+        run: |
+          npm ci --prefix infra/signaling --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run check --prefix infra/signaling
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm test --prefix infra/signaling
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:native --prefix infra/signaling
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:host --prefix infra/signaling
+      - name: Compilar os executáveis nativos otimizados
+        working-directory: native
+        run: cargo build --locked --release --workspace
+      # Deliberately no release, deployment, signing secret or stable updater step.

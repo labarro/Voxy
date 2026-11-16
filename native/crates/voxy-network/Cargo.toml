@@ -1,0 +1,28 @@
+[package]
+name = "voxy-network"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+tokio.workspace = true
+base64.workspace = true
+sha2.workspace = true
+rand.workspace = true
+voxy-core.workspace = true
+webrtc = "=0.21.1"
+url = "2.5"
+bytes = "1.10"
+async-trait = "0.1"
+rtc = "=0.21.1"
+tokio-tungstenite = { version = "0.28", features = ["rustls-tls-webpki-roots"] }
+futures-util = "0.3"
+
+[lints]
+workspace = true

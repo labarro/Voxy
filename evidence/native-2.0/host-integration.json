@@ -1,0 +1,11 @@
+{
+  "checkedAt": "2026-11-16T20:06:56.221Z",
+  "messageId": "ca5a04de-ade3-4983-9584-0ec08962789a",
+  "messagePosted": true,
+  "publicInternet": false,
+  "transport": "native DTLS/SCTP",
+  "nativeProcesses": 2,
+  "workerEmulator": true,
+  "syntheticProfiles": true,
+  "microphoneOpened": false
+}

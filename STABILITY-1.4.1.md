@@ -91,3 +91,6 @@ Após os cinco ciclos, os working sets tiveram medianas de 759,3, 681,8, 676,9, 
 Os testes não usaram os microfones físicos dos usuários nem múltiplos computadores. Não foi realizada uma sessão de horas, uma matriz de drivers/rede/firewall ou uma medição com um jogo pesado concorrente. Essas validações permanecem pendentes, assim como a confirmação do P0 nos PCs afetados e uma redução de RAM demonstrável sob voz com participantes remotos.
 
 Reprodução: `npm run build`; `npm run test:resources -- --label=medicao`; `npm run test:resources -- --label=baixo --low --soak`. Feche outras instâncias de teste para medir; não compare uma máquina sob carga com outra ociosa. `test:calls:radmin` exige o adaptador Radmin ativo e falha explicitamente se ele estiver ausente. Para comparar JSON: `node scripts/compare-resources.mjs caminho/antes.json caminho/depois.json`.
+# Validação manual informada em 16/11/2026
+
+O usuário relatou que **os testes físicos da versão atual foram satisfatórios**. Registro em [evidence/native-2.0-manual-validation.json](evidence/native-2.0-manual-validation.json). O relato valida a experiência manual da 1.4.1, sem métricas ou detalhes de dispositivos/redes. As limitações dos ensaios automatizados históricos permanecem; não extrapolar para a implementação Rust, CGNAT/TURN ou latência quantitativa.

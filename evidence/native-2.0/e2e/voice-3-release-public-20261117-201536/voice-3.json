@@ -1,0 +1,166 @@
+{
+  "binaries": "target/release",
+  "checks": [
+    {
+      "atSeconds": 21.842113494873047,
+      "check": "instâncias reais independentes",
+      "detail": {
+        "instances": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 26.04630470275879,
+      "check": "host registrado na sinalização pública",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 26.771743774414062,
+      "check": "convite copiado pela interface",
+      "detail": {
+        "length": 531,
+        "scheme": "voxy-native://"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 30.455839157104492,
+      "check": "Bruno entrou por convite",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 33.63608169555664,
+      "check": "Clara entrou por convite",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 35.61836624145508,
+      "check": "Ana em chamada confirmada pelo host",
+      "detail": {
+        "members": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 35.61848449707031,
+      "check": "Bruno em chamada confirmada pelo host",
+      "detail": {
+        "members": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 35.618587493896484,
+      "check": "Clara em chamada confirmada pelo host",
+      "detail": {
+        "members": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 40.1299934387207,
+      "check": "Ana ouve o som de entrada na chamada",
+      "detail": {
+        "join520Fraction": 0.159
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 44.130714416503906,
+      "check": "Ana: recebe todos os outros, não a própria voz",
+      "detail": {
+        "140Hz": 0.0032,
+        "210Hz": 0.0439,
+        "330Hz": 0.046,
+        "rms": 0.0845,
+        "windows": 7
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 48.13104248046875,
+      "check": "Bruno: recebe todos os outros, não a própria voz",
+      "detail": {
+        "140Hz": 0.042,
+        "210Hz": 0.0003,
+        "330Hz": 0.0439,
+        "rms": 0.0794,
+        "windows": 7
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 52.13154220581055,
+      "check": "Clara: recebe todos os outros, não a própria voz",
+      "detail": {
+        "140Hz": 0.0476,
+        "210Hz": 0.0511,
+        "330Hz": 0.0098,
+        "rms": 0.0952,
+        "windows": 7
+      },
+      "passed": false
+    }
+  ],
+  "durationSeconds": 55.36430740356445,
+  "error": "Falhou: Clara: recebe todos os outros, não a própria voz {\"140Hz\":0.0476,\"210Hz\":0.0511,\"330Hz\":0.0098,\"rms\":0.0952,\"windows\":7}",
+  "method": "independent voxy-desktop processes with own data dirs/identities/session processes; clicks are physical SendInput mouse input on visible labels, verified by the app's received-click position; text fields and pick-list choices applied as their widget messages; invite read from the clipboard written by the app's copy button; audio source/sink are the synthetic device boundary (VOXY_TEST_SYNTHETIC_AUDIO) feeding the unchanged DSP/Opus/SRTP/jitter/mixer pipeline",
+  "passed": false,
+  "physicalDevices": false,
+  "resourcesAtEnd": [
+    {
+      "cpuSeconds": 0.96875,
+      "participant": "Ana",
+      "pid": 19788,
+      "privateMiB": 10.91015625,
+      "workingSetMiB": 30.01953125
+    },
+    {
+      "cpuSeconds": 1.328125,
+      "participant": "Ana",
+      "pid": 11684,
+      "privateMiB": 9.54296875,
+      "workingSetMiB": 28.58203125
+    },
+    {
+      "cpuSeconds": 0.859375,
+      "participant": "Bruno",
+      "pid": 2888,
+      "privateMiB": 11.40234375,
+      "workingSetMiB": 30.15234375
+    },
+    {
+      "cpuSeconds": 1.3125,
+      "participant": "Bruno",
+      "pid": 7500,
+      "privateMiB": 9.1171875,
+      "workingSetMiB": 28.015625
+    },
+    {
+      "cpuSeconds": 0.84375,
+      "participant": "Clara",
+      "pid": 2008,
+      "privateMiB": 11.28125,
+      "workingSetMiB": 30.3125
+    },
+    {
+      "cpuSeconds": 1.203125,
+      "participant": "Clara",
+      "pid": 4760,
+      "privateMiB": 9.4921875,
+      "workingSetMiB": 28.1640625
+    }
+  ],
+  "sameMachine": true,
+  "scenario": "voice-3",
+  "signal": "wss://voxy.devbarros.com"
+}

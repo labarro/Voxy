@@ -1,0 +1,148 @@
+{
+  "binaries": "target/release",
+  "checks": [
+    {
+      "atSeconds": 22.14134979248047,
+      "check": "instâncias reais independentes",
+      "detail": {
+        "instances": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 25.943920135498047,
+      "check": "host registrado na sinalização pública",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 26.771116256713867,
+      "check": "convite copiado pela interface",
+      "detail": {
+        "length": 531,
+        "scheme": "voxy-native://"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 29.848899841308594,
+      "check": "Bruno entrou por convite",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 33.62986373901367,
+      "check": "Clara entrou por convite",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 35.60597610473633,
+      "check": "Ana em chamada confirmada pelo host",
+      "detail": {
+        "members": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 35.60609817504883,
+      "check": "Bruno em chamada confirmada pelo host",
+      "detail": {
+        "members": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 35.606201171875,
+      "check": "Clara em chamada confirmada pelo host",
+      "detail": {
+        "members": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 47.418495178222656,
+      "check": "Ana transmite tela com áudio e Bruno publica a câmera",
+      "detail": {},
+      "passed": true
+    },
+    {
+      "atSeconds": 50.07321548461914,
+      "check": "Clara recebe tela de Ana e câmera de Bruno ao mesmo tempo",
+      "detail": {
+        "camera": 58,
+        "screen": 25
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 54.776100158691406,
+      "check": "Clara ouve Ana, Bruno e o aplicativo compartilhado",
+      "detail": {
+        "140Hz": 0.0096,
+        "210Hz": 0.06,
+        "470Hz": 0.0352,
+        "windows": 7
+      },
+      "passed": false
+    }
+  ],
+  "durationSeconds": 57.33769226074219,
+  "error": "Falhou: Clara ouve Ana, Bruno e o aplicativo compartilhado {\"140Hz\":0.0096,\"210Hz\":0.06,\"470Hz\":0.0352,\"windows\":7}",
+  "method": "independent voxy-desktop processes with own data dirs/identities/session processes; clicks are physical SendInput mouse input on visible labels, verified by the app's received-click position; text fields and pick-list choices applied as their widget messages; invite read from the clipboard written by the app's copy button; audio source/sink are the synthetic device boundary (VOXY_TEST_SYNTHETIC_AUDIO) feeding the unchanged DSP/Opus/SRTP/jitter/mixer pipeline",
+  "passed": false,
+  "physicalDevices": false,
+  "resourcesAtEnd": [
+    {
+      "cpuSeconds": 1.765625,
+      "participant": "Ana",
+      "pid": 8376,
+      "privateMiB": 17.06640625,
+      "workingSetMiB": 44.80859375
+    },
+    {
+      "cpuSeconds": 3.375,
+      "participant": "Ana",
+      "pid": 14388,
+      "privateMiB": 314.85546875,
+      "workingSetMiB": 222.16015625
+    },
+    {
+      "cpuSeconds": 1.390625,
+      "participant": "Bruno",
+      "pid": 9424,
+      "privateMiB": 11.9296875,
+      "workingSetMiB": 30.375
+    },
+    {
+      "cpuSeconds": 3.015625,
+      "participant": "Bruno",
+      "pid": 18404,
+      "privateMiB": 97.60546875,
+      "workingSetMiB": 94.75390625
+    },
+    {
+      "cpuSeconds": 3.296875,
+      "participant": "Clara",
+      "pid": 7952,
+      "privateMiB": 40.5390625,
+      "workingSetMiB": 58.53515625
+    },
+    {
+      "cpuSeconds": 1.296875,
+      "participant": "Clara",
+      "pid": 3476,
+      "privateMiB": 9.87109375,
+      "workingSetMiB": 28.54296875
+    }
+  ],
+  "sameMachine": true,
+  "scenario": "multi-3",
+  "signal": "wss://voxy.devbarros.com"
+}

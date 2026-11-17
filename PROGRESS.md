@@ -17,14 +17,18 @@ Commits locais: `38bf0e5` (design system, tela de chamada, sons, correções de 
 | --- | --- | --- | --- | --- | --- |
 | Tela de chamada, grade, destaque, dock | sim | sim | sim (voice-3, screen-2, camera-2, tour-3) | não | `e2e/*-20261117-19*`, `visual/after` |
 | Indicador verde de fala | sim | sim | sim (memberView) | não (fonte sintética) | voice-3 redesign |
-| Sons | sim | sim | parcial (cue detectado no analisador; sem E2E dedicado) | não | `sounds.rs`, `cues.rs` |
+| Sons | sim | sim | sim no voice-3 (entrada por dominância espectral; mute ouvido localmente e 0,0 na chamada); cue de participante entrando não verificável (harmônico da voz sintética na mesma sonda) | não | voice-3 (execuções 20:10–20:15) |
 | Webcam | sim | sim | sim (camera-2) | não (câmera sintética) | camera-2-…-193136 |
 | PiP | sim | sim | sim (screen-2) | não | screen-2-…-193214 |
 | Áudio compartilhado isolado | sim | sim | sim (share-audio-3) | tons físicos no dispositivo padrão | share-audio-3-…-193728 |
-| Multimídia simultânea 3 participantes | — | — | **pendente** | não | — |
+| Multimídia simultânea 3 participantes | sim (cenário multi-3) | sim | **falhou** — Clara recebe tela+câmera e o áudio do app, mas o microfone de Ana chega mudo a todos e a sessão de Ana cresce a 315 MiB privados (Bruno 98 MiB) com tela e câmera publicadas ao mesmo tempo; causa em investigação | não | e2e/multi-3-release-public-20261117-201129 |
 | Encoder por hardware / bitrate por rede | não | — | — | — | — |
 
-Pendências técnicas: cenário multimídia simultâneo, E2E dedicado de sons e PTT, sincronia A/V precisa, H.264 por hardware e adaptação por RTT/perda, foto/capa/emoji de perfil, reações/respostas em DMs, chamadas privadas, Snap Layouts, migração privada, atualizador (download/aplicação/rollback), instalação em VM. Homologação física pendente: microfones e câmeras reais, computadores e redes distintas, DPI ≠ 100 %.
+**Intermitência sob carga:** com o Roblox aberto, a verificação "não ouve a própria voz" falhou de forma intermitente (0,0094–0,0098 contra limite 0,006, com 480 amostras de underrun); com a máquina ociosa a mesma build passou 28/28 (0,0009/0,0/0,0007). Não declarado como resolvido.
+
+Instalador e ZIP experimentais regenerados com o código deste checkpoint (hashes em `evidence/native-2.0/public/verification.json`; não assinados, não instalados em VM, não publicados).
+
+Pendências técnicas: defeito do multi-3 (microfone do transmissor mudo e crescimento de memória com tela+câmera simultâneas), intermitência de áudio sob carga, E2E dedicado de sons e PTT, sincronia A/V precisa, H.264 por hardware e adaptação por RTT/perda, foto/capa/emoji de perfil, reações/respostas em DMs, chamadas privadas, Snap Layouts, migração privada, atualizador (download/aplicação/rollback), instalação em VM. Homologação física pendente: microfones e câmeras reais, computadores e redes distintas, DPI ≠ 100 %.
 
 
 ## Checkpoint 17/11/2026 (tarde) — validação real com instâncias do aplicativo

@@ -21,34 +21,34 @@
     "localSessionTestsPassed": 3
   },
   "publicPeersOnSameComputer": true,
-  "physicalAudioTested": false,
+  "physicalAudioTested": "only consented tones for shared-application isolation (share-audio-3); no microphone or call acoustics",
   "distinctNetworksTested": false,
   "installerInstalled": false,
   "automaticUpdaterComplete": false,
   "artifacts": [
     {
       "file": "Voxy-Native-Experimental-2.0.0-win-x64.zip",
-      "bytes": 17586774,
-      "sha256": "142ad46c6474d3af074140f2017a2de14a12a9e002e39b56fb8b92640d41f474"
+      "bytes": 18809855,
+      "sha256": "5542f5e7f12a8838f3a7608318f7afc09e25ca71f9577303ef2477aa5b9f1a95"
     },
     {
       "file": "Voxy-Native-Experimental-Setup-2.0.0-win-x64.exe",
-      "bytes": 11266709,
-      "sha256": "a8d67c9f589c1bc195f39607e3a745820bb6bd86d313640a308a3103a946d304"
+      "bytes": 12050825,
+      "sha256": "1cd45a748c984db78665ac96975c0e50a4bbe4dee4726722d5e465ad75522930"
     }
   ],
   "binaries": {
     "voxy-core.exe": {
-      "bytes": 18525184,
-      "sha256": "d41c1a1e2286adacd42b9e537295a12a756745ea150b4d6c76b08fede015efb1"
+      "bytes": 19133440,
+      "sha256": "abfa0d904f992dba736a908fdf96514359e40377022c63d3c50c3c5e10d60943"
     },
     "voxy-desktop.exe": {
-      "bytes": 13135872,
-      "sha256": "597d2940d24a05b774a3995ec2a9c042197f89b1d4d1fd13f5a1ad69a4e8a515"
+      "bytes": 16239616,
+      "sha256": "eadcebd108183e58cf73838bf2a87213ad9c57ac17f07439117bc8cffc4009f1"
     },
     "voxy-world.exe": {
       "bytes": 5535232,
-      "sha256": "8427f1316539c0fa60730e742d36e7dc4ec7cfea0c8c836084bb675a704dc1e7"
+      "sha256": "cea1f8b605b5193853c7d8b4b6e7d3db4c23ecaf60930ec57aed72995e2bda3e"
     }
   },
   "packagedProbes": {

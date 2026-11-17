@@ -1,5 +1,6 @@
 //! Persistent session process: no window, renderer, world or browser dependency.
 mod notifications;
+mod recovery;
 mod transport;
 mod tray;
 use anyhow::{Context, Result, ensure};
@@ -81,6 +82,8 @@ pub(crate) async fn run(
     let (opened_tx, mut opened) = mpsc::channel::<(u64, Result<CallAudio, String>)>(2);
     let (encoded_tx, mut encoded) = mpsc::channel(8);
     let mut audio: Option<CallAudio> = None;
+    let mut audio_configured: Option<CallConfig> = None;
+    let mut audio_recovery: Option<recovery::AudioRecovery> = None;
     let mut audio_generation = 0_u64;
     let mut network_generation = 0_u64;
     let mut stats = tokio::time::interval(Duration::from_secs(1));
@@ -174,18 +177,11 @@ pub(crate) async fn run(
                         audio=None;state.voice=Some(channel);state.microphone_ready=false;
                         state.phase="Abrindo microfone e saída de áudio".into();
                         control.muted.store(state.muted,Ordering::Release);control.deafened.store(state.deafened,Ordering::Release);control.device_failed.store(false,Ordering::Release);control.set_gain(profile.input_volume);
-                        let tx=opened_tx.clone();let control=control.clone();
-                        tokio::task::spawn_local(async move {
-                            let worker_control=control.clone();
-                            let task=tokio::task::spawn_blocking(move||CallAudio::start_for_generation(audio_config(&profile),worker_control,generation));
-                            let result=match tokio::time::timeout(Duration::from_secs(12),task).await {
-                                Ok(Ok(Ok(audio)))=>Ok(audio),
-                                _=>Err("Não foi possível iniciar o áudio em 12 s. Verifique permissões e dispositivos; tente novamente.".into())
-                            };
-                            let _=tx.send((generation,result)).await;
-                        });
+                        audio_recovery=None;
+                        let config=audio_config(&profile);audio_configured=Some(config.clone());
+                        open_audio(config,control.clone(),generation,opened_tx.clone());
                     },
-                    Request::VoiceLeave=>{audio_generation+=1;control.prepare_audio_generation(audio_generation,control.ptt.load(Ordering::Acquire));audio=None;state.voice=None;state.microphone_ready=false;send(&network,action(Action::VoiceLeave)).await?;state.phase="Conectado".into();},
+                    Request::VoiceLeave=>{audio_recovery=None;audio_configured=None;audio_generation+=1;control.prepare_audio_generation(audio_generation,control.ptt.load(Ordering::Acquire));audio=None;state.voice=None;state.microphone_ready=false;send(&network,action(Action::VoiceLeave)).await?;state.phase="Conectado".into();},
                     Request::Controls{muted,deafened}=>{
                         state.muted=muted;state.deafened=deafened;
                         control.muted.store(muted,Ordering::Release);control.deafened.store(deafened,Ordering::Release);
@@ -202,6 +198,7 @@ pub(crate) async fn run(
                         }
                     },
                     Request::Disconnect|Request::Shutdown=>{
+                        audio_recovery=None;audio_configured=None;
                         audio_generation+=1;control.prepare_audio_generation(audio_generation,control.ptt.load(Ordering::Acquire));audio=None;
                         if let Some(sender)=network.take(){let _=sender.send(Input::Stop).await;}
                         if let Some(task)=network_task.take(){let _=tokio::time::timeout(Duration::from_secs(4),task).await;}
@@ -219,10 +216,17 @@ pub(crate) async fn run(
                         let receiver=call.take_encoded();let sender=encoded_tx.clone();
                         tokio::task::spawn_blocking(move||{while let Ok(frame)=receiver.recv(){let _=sender.try_send((generation,frame));}});
                         for peer in &state.peers{let _=call.input.volume(peer.id,peer.volume,false);}
-                        audio=Some(call);state.microphone_ready=true;state.phase="Entrando no canal de voz".into();
+                        audio_recovery=None;state.error=None;audio=Some(call);state.microphone_ready=true;state.phase="Entrando no canal de voz".into();
                         if let Some(channel)=state.voice{let _=send(&network,action(Action::VoiceJoin{channel})).await;let _=send(&network,action(Action::VoiceState{muted:state.muted,deafened:state.deafened})).await;}
                     },
-                    Err(error)=>{state.voice=None;state.microphone_ready=false;state.error=Some(error);state.phase="Falha no áudio — tente novamente".into();}
+                    Err(error)=>{
+                        state.microphone_ready=false;
+                        if audio_recovery.as_mut().is_some_and(|retry|retry.failed(std::time::Instant::now())) {
+                            state.error=Some("Dispositivo ainda indisponível; próxima tentativa automática com o mesmo dispositivo. Microfone silenciado".into());
+                        }else{
+                            audio_recovery=None;state.voice=None;state.error=Some(error);state.phase="Falha no áudio — selecione o dispositivo e tente novamente".into();
+                        }
+                    }
                 }
                 states.send_replace(state.clone());
             },
@@ -248,7 +252,7 @@ pub(crate) async fn run(
             event=events.recv()=>if let Some((generation,event))=event {
                 if generation!=network_generation{continue}
                 match event {
-                    Event::Ended=>{audio_generation+=1;control.prepare_audio_generation(audio_generation,control.ptt.load(Ordering::Acquire));audio=None;state.voice=None;state.microphone_ready=false;state.snapshot=None;state.peers.clear();network=None;network_task=None;state.phase="Sessão encerrada".into();if ui_detached{break}},
+                    Event::Ended=>{audio_recovery=None;audio_configured=None;audio_generation+=1;control.prepare_audio_generation(audio_generation,control.ptt.load(Ordering::Acquire));audio=None;state.voice=None;state.microphone_ready=false;state.snapshot=None;state.peers.clear();network=None;network_task=None;state.phase="Sessão encerrada".into();if ui_detached{break}},
                     Event::Acknowledged(id)=>{state.acknowledged=Some(id);if !state.acknowledgements.contains(&id){state.acknowledgements.push(id);if state.acknowledgements.len()>64{state.acknowledgements.remove(0);}}},
                     Event::Replied(id,value)=>{
                         state.acknowledged=Some(id);
@@ -281,11 +285,11 @@ pub(crate) async fn run(
                         if recent_server.as_ref()!=Some(&snapshot.server.name) && let Some(invite)=&state.invite {
                             let _=Store::open(&path.join("voxy.sqlite")).and_then(|store|store.save_recent(&snapshot.server,invite));recent_server=Some(snapshot.server.name.clone());
                         }
-                        if state.voice.is_some_and(|id|!snapshot.channels.iter().any(|c|c.id==id)) {audio_generation+=1;control.prepare_audio_generation(audio_generation,control.ptt.load(Ordering::Acquire));audio=None;state.voice=None;state.microphone_ready=false;state.error=Some("O canal de voz foi removido pelo servidor.".into());}
+                        if state.voice.is_some_and(|id|!snapshot.channels.iter().any(|c|c.id==id)) {audio_recovery=None;audio_configured=None;audio_generation+=1;control.prepare_audio_generation(audio_generation,control.ptt.load(Ordering::Acquire));audio=None;state.voice=None;state.microphone_ready=false;state.error=Some("O canal de voz foi removido pelo servidor.".into());}
                         if let Some(channel)=state.voice {
                             let own=snapshot.members.iter().find(|m|m.id==local_id);
                             if state.microphone_ready && own.is_some_and(|m|m.voice!=Some(channel)) {let _=send(&network,action(Action::VoiceJoin{channel})).await;}
-                            state.phase=if own.is_some_and(|m|m.voice==Some(channel)) && state.microphone_ready {"Em chamada"}else{"Entrando no canal de voz"}.into();
+                            state.phase=if audio_recovery.is_some(){"Recuperando áudio — microfone silenciado"}else if own.is_some_and(|m|m.voice==Some(channel)) && state.microphone_ready {"Em chamada"}else{"Entrando no canal de voz"}.into();
                         }else{state.phase="Conectado".into();}
                         state.snapshot=Some(snapshot);
                     },
@@ -296,15 +300,31 @@ pub(crate) async fn run(
                 }
                 states.send_replace(state.clone());
             },
-            _=stats.tick(),if audio.is_some()=>{
+            _=stats.tick(),if audio.is_some() || audio_recovery.is_some()=>{
                 state.decoded_frames=control.decoded_frames.load(Ordering::Relaxed);state.playback_samples=control.rendered_samples.load(Ordering::Relaxed);
                 state.input_level=control.level();
-                if control.device_failed.load(Ordering::Acquire)||audio.as_ref().is_some_and(CallAudio::is_finished){audio_generation+=1;control.prepare_audio_generation(audio_generation,control.ptt.load(Ordering::Acquire));audio=None;state.microphone_ready=false;state.voice=None;state.error=Some("Dispositivo ou processamento de áudio interrompido. Selecione a entrada e tente novamente.".into());let _=send(&network,action(Action::VoiceLeave)).await;}
+                if audio.is_some() && (control.device_failed.load(Ordering::Acquire)||audio.as_ref().is_some_and(CallAudio::is_finished)) {
+                    audio_generation+=1;recovery::silence_failed_device(&mut state,&control,audio_generation);audio=None;
+                    audio_recovery=audio_configured.clone().filter(|_|state.voice.is_some()).map(|config|recovery::AudioRecovery::new(config,std::time::Instant::now()));
+                    if audio_recovery.is_none(){state.voice=None;}
+                    state.error=Some("Dispositivo interrompido; microfone silenciado. Recuperando o mesmo dispositivo em até três tentativas; desative o mudo explicitamente após a recuperação".into());
+                    let _=send(&network,action(Action::VoiceLeave)).await;
+                    let _=send(&network,action_voice_state(&state)).await;
+                }
+                if let Some(config)=audio_recovery.as_mut().and_then(|retry|retry.take_attempt(std::time::Instant::now())) {
+                    audio_generation+=1;control.prepare_audio_generation(audio_generation,config.ptt_key.is_some());control.device_failed.store(false,Ordering::Release);
+                    state.phase="Recuperando microfone e saída — mesma seleção".into();
+                    open_audio(config,control.clone(),audio_generation,opened_tx.clone());
+                }
                 states.send_replace(state.clone());
             }
         }
     }
     control.muted.store(true, Ordering::Release);
+    control.prepare_audio_generation(
+        audio_generation.saturating_add(1),
+        control.ptt.load(Ordering::Acquire),
+    );
     drop(audio);
     if let Some(network) = network {
         let _ = network.send(Input::Stop).await;
@@ -313,6 +333,27 @@ pub(crate) async fn run(
         let _ = tokio::time::timeout(Duration::from_secs(4), task).await;
     }
     Ok(())
+}
+fn open_audio(
+    config: CallConfig,
+    control: Arc<VoiceControl>,
+    generation: u64,
+    opened: mpsc::Sender<(u64, Result<CallAudio, String>)>,
+) {
+    tokio::task::spawn_local(async move {
+        let worker_control = control.clone();
+        let task = tokio::task::spawn_blocking(move || {
+            CallAudio::start_for_generation(config, worker_control, generation)
+        });
+        let result=match tokio::time::timeout(Duration::from_secs(12),task).await {
+            Ok(Ok(Ok(audio)))=>Ok(audio),
+            _=>Err("Não foi possível iniciar o áudio em 12 s. Verifique permissões e dispositivos; tente novamente.".into())
+        };
+        if result.is_err() {
+            control.cancel_audio_generation(generation);
+        }
+        let _ = opened.send((generation, result)).await;
+    });
 }
 fn audio_config(profile: &Profile) -> CallConfig {
     CallConfig {

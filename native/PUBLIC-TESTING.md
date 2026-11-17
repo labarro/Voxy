@@ -12,9 +12,10 @@
 6. Envie solicitação de amizade pelo ID, aceite e teste DM, imagem, edição/exclusão próprias, leitura e **Mensagens anteriores/Recentes**. A conta do host mantém o histórico; não há diretório global nem inbox offline completo.
 7. O dono deve conseguir renomear um canal; convidados devem ter alterações administrativas recusadas. Em outro canal, confirme isolamento de voz.
 8. Em um canal de voz, teste primeiro mute/deafen, depois libere o microfone e converse com headset. Teste PTT, Mouse 4/5 e combinações durante um jogo, volumes individuais, ruído e eco. Nunca certifique acústica por teste sintético ou reprodução em zero.
-9. Feche completamente a interface, conserve a chamada e reabra o aplicativo. A UI deve recuperar a mesma sessão. Teste abrir/mute/deafen/sair pela bandeja. Encerrar tudo deve liberar microfone e processos.
-10. Interrompa e restaure a rede. Verifique reconexão, histórico e ausência de mensagens duplicadas. Revogue o convite no host: conexões anteriores devem cair e o convite antigo deve ser recusado; compartilhe o novo para reconectar.
-11. Desconecte um servidor salvo e use **Remover salvo**. Isso não deve excluir dados ou histórico no computador do dono. Sem o convite, a reconexão exige recebê-lo novamente.
+9. Desconecte e reconecte o headset durante a chamada: o microfone deve ficar mudo; até três tentativas usam a mesma seleção e o retorno exige desmutar explicitamente. Sair durante a recuperação deve cancelar e impedir reabertura tardia. Padrão segue o Windows; seleção nomeada não deve trocar para outro microfone. Registre tempos e resultados reais.
+10. Feche completamente a interface, conserve a chamada e reabra o aplicativo. A UI deve recuperar a mesma sessão. Teste abrir/mute/deafen/sair pela bandeja. Encerrar tudo deve liberar microfone e processos.
+11. Interrompa e restaure a rede. Verifique reconexão, histórico e ausência de mensagens duplicadas. Revogue o convite no host: conexões anteriores devem cair e o convite antigo deve ser recusado; compartilhe o novo para reconectar.
+12. Desconecte um servidor salvo e use **Remover salvo**. Isso não deve excluir dados ou histórico no computador do dono. Sem o convite, a reconexão exige recebê-lo novamente.
 
 ## Matriz externa a preencher
 

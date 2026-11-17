@@ -35,7 +35,8 @@
       "Regras Rust de Truco Paulista, sinuca Rotação 7 e xadrez comparadas com fixtures TypeScript; apresentação 3D ainda pendente.",
       "Pipeline privado e chamada compartilham processamento selecionado; AEC pode ser desativado mantendo NS/AGC.",
       "Backend Windows H.264 software e transporte de vídeo RTP/SRTP testados localmente com frames sintéticos; interface de transmissão e webcam completas ainda pendentes.",
-      "Testes de sessão contra WSS público com chat, imagens, malha Opus sintética, isolamento, revogação e reconexão; participantes na mesma máquina, sem homologação entre redes."
+      "Testes de sessão contra WSS público com chat, imagens, malha Opus sintética, isolamento, revogação e reconexão; participantes na mesma máquina, sem homologação entre redes.",
+      "Recuperação de captura/saída após falha de chamada ativa: até três tentativas com a mesma seleção, cancelamento por geração e microfone silenciado até ação explícita; hotplug físico ainda pendente."
     ],
     "fixes": [
       "Avatares deixam de se expandir e deslocar mensagens, nomes e participantes.",
@@ -51,7 +52,8 @@
       "Controle de respostas IPC limitado evita perder blocos ao receber confirmações simultâneas de voz.",
       "Convites experimentais usam voxy-native:// sem disputar a associação voxy:// da instalação estável.",
       "Timeout de P2P distingue sinalização disponível de rota direta bloqueada e informa que TURN está desativado.",
-      "Leitura de DMs em lote limitado e transacional evita saturar o IPC; mensagens não autorizadas revertem o lote completo."
+      "Leitura de DMs em lote limitado e transacional evita saturar o IPC; mensagens não autorizadas revertem o lote completo.",
+      "Timeout de abertura de áudio cancela a geração para impedir ativação tardia de captura ou PTT."
     ]
   },
   "1.4.1": {

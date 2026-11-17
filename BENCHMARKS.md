@@ -13,8 +13,8 @@ Coleta em 2026-11-17T02:09:13.7215688Z, build release. Seis amostras por cenári
 
 | Cenário | Working set médio | Private bytes médio | CPU média amostrada |
 | --- | --- | --- | --- |
-| core-idle | 20.86 MiB | 4.23 MiB | 0.000% | n?o medido |
-| home | 48.71 MiB | 15.21 MiB | 0.021% | 339 ms |
-| home-minimized | 47.10 MiB | 12.97 MiB | 0.341% | 190 ms |
+| core-idle | 20.84 MiB | 4.17 MiB | 0.000% | não medido |
+| home | 48.18 MiB | 14.26 MiB | 0.021% | 340 ms |
+| home-minimized | 43.57 MiB | 9.46 MiB | 0.000% | 191 ms |
 
 Core-idle é o comando hold sem chamada; seu tempo usa espera fixa de 300 ms mais criação do processo, não prontidão. Home inclui o processo de sessão quando presente; inicialização termina no marcador de screenshot. CPU zero significa resolução/amostragem, não ausência absoluta de trabalho. Não foram medidos nesta execução chamada física, mídia, GPU/VRAM, mundo/jogos, liberação 3D ou soak. As chamadas e tabelas anteriores são históricas; não representam este build nem comparação equivalente com Electron. Tamanhos e hashes atuais do instalador/ZIP constam no recibo; instalação em VM permanece pendente.

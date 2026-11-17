@@ -16,6 +16,8 @@ A sinalização experimental está implantada em **wss://voxy.devbarros.com**, c
 
 Testes contra a infraestrutura pública passaram com processos nesta máquina: chat/imagens, respostas/reações/busca, DMs/leitura, cargos/presença, IPC/reabertura, malha sintética de três peers, revogação e reconexão. Isso não homologa computadores em redes distintas, CGNAT, IPv6, qualidade acústica ou hotplug. O resolvedor DNS local desta máquina recusou o novo hostname; o teste usou DNS sobre HTTPS e override exclusivo de debug, preservando a validação TLS. O executável release usa o DNS normal do Windows, sem IP fixo ou override.
 
+Falhas de captura/saída em chamada ativa agora silenciam o microfone e tentam recuperar a mesma seleção em até três tentativas. Sair, desconectar ou remover o canal cancela a recuperação. O retorno exige desmutar explicitamente; hotplug e recuperação física ainda não estão homologados.
+
 A administração permite renomear canais; DMs têm páginas privadas de até 100 mensagens/256 KiB, incluindo imagens e leitura. A Home lista os servidores salvos e permite removê-los sem apagar dados do host. Respostas/reações de DMs, inbox offline completo e chamadas privadas reservadas continuam pendentes.
 
 Para desenvolver: **npm run native:dev**. Instalador local disponível em release/2.0.0/native-experimental/Voxy-Native-Experimental-Setup-2.0.0-win-x64.exe, com ZIP e hashes em artifacts.json. Sem assinatura Authenticode ou teste de instalação em VM. Empacotamento: powershell -File scripts/package-native.ps1. Não instala nem publica automaticamente. [Guia nativo](native/README.md) e [homologação pública](native/PUBLIC-TESTING.md).

@@ -1,10 +1,10 @@
 {
-  "checkedAt": "2026-11-17T18:10:07.255Z",
+  "checkedAt": "2026-11-17T18:22:19.175Z",
   "version": "2.0.0",
   "publishedVersion": "1.4.1",
   "branch": "migration/2.0-native-audit",
   "rust": {
-    "passed": 72,
+    "passed": 74,
     "optInIgnored": 8,
     "clippyWarningsDenied": true,
     "releaseBuild": true
@@ -34,24 +34,24 @@
     "artifacts": [
       {
         "file": "Voxy-Native-Experimental-2.0.0-win-x64.zip",
-        "bytes": 17199935,
-        "sha256": "0e8c61a0ca6e33b1dbe902a972a03088836e906ad8e1cc6239b26225816895df"
+        "bytes": 17203328,
+        "sha256": "a4f9173c378b5a9e95f16c6fe3d83371d676ef5f764eac753b8a13ea557e089d"
       },
       {
         "file": "Voxy-Native-Experimental-Setup-2.0.0-win-x64.exe",
-        "bytes": 10984315,
-        "sha256": "eead9759a866954103df6167cb705b1936993300d57ada755c28c00a9ff081e1"
+        "bytes": 10986358,
+        "sha256": "557f2bbfd03e8cfcb8bd644739f46d6cfcad5e8336a4416958e09f465623d029"
       }
     ]
   },
   "binaries": {
     "voxy-core.exe": {
-      "bytes": 18518016,
-      "sha256": "2aaea951697069de1802676a58a9d866f3dedf430d35005dc78a7e569ab0f9e4"
+      "bytes": 18525184,
+      "sha256": "d41c1a1e2286adacd42b9e537295a12a756745ea150b4d6c76b08fede015efb1"
     },
     "voxy-desktop.exe": {
-      "bytes": 13135360,
-      "sha256": "03e7372a36e75206080ccf1bfeff406cec0af737567920594665d97f08b9dfae"
+      "bytes": 13135872,
+      "sha256": "597d2940d24a05b774a3995ec2a9c042197f89b1d4d1fd13f5a1ad69a4e8a515"
     },
     "voxy-world.exe": {
       "bytes": 5535232,
@@ -66,7 +66,7 @@
       "communities": 0,
       "guiLoaded": false,
       "microphoneOpen": false,
-      "profileId": "733febe7-8185-40d3-8a8a-dae4a2111c3e",
+      "profileId": "f5618059-1c58-438e-8256-211e949e6205",
       "publicKeyBytes": 32,
       "relayEnabled": false,
       "version": "2.0.0",
@@ -126,12 +126,20 @@
     "geometryFailures": 0,
     "syntheticFixture": true,
     "humanApproval": false,
-    "packagedExecutable": true
+    "packagedExecutable": true,
+    "scope": "Packaged fixture validation earlier in this session; recovery failure states and new device behavior were not physically exercised"
   },
   "applicationPublished": false,
   "mainModified": false,
   "stableDataModified": false,
   "debugAddressOverrideAbsentFromRelease": true,
   "defaultPublicEndpointInDesktop": true,
-  "resourcesMeasuredAt": "2026-11-17T18:09:44.1765375Z"
+  "resourcesMeasuredAt": "2026-11-17T18:21:09.3889942Z",
+  "audioRecovery": {
+    "integratedInSession": true,
+    "logicalTestsPassed": 2,
+    "maxAutomaticAttempts": 3,
+    "automaticUnmute": false,
+    "physicalHotplugValidated": false
+  }
 }

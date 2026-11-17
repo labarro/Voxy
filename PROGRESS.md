@@ -28,7 +28,7 @@ Chat, imagens PNG/JPEG até 3 MiB, respostas/menções/reações, busca/paginaç
 
 ## Verificações deste conjunto
 
-72 testes Rust comuns passaram (oito opt-in separados); Clippy com warnings negados passou. Sete testes Worker e tsc passaram. Integrações de sessão local 3/3 e pública 3/3 passaram; sem microfone físico. npm test 83/83 e npm run build passaram, com aviso de chunk Vite preexistente. Oráculos diferenciais existentes preservados. Novas coletas de recursos somente para core ocioso/Home; consultar BENCHMARKS antes de comparar.
+74 testes Rust comuns passaram (oito opt-in separados); Clippy com warnings negados passou. Sete testes Worker e tsc passaram. Integrações de sessão local 3/3 e pública 3/3 passaram; sem microfone físico. npm test 83/83 e npm run build passaram, com aviso de chunk Vite preexistente. Oráculos diferenciais existentes preservados. Novas coletas de recursos somente para core ocioso/Home; consultar BENCHMARKS antes de comparar.
 
 Correções descobertas na validação: espera fixa do teste de admissão substituída por snapshot confirmado; teste de histórico não espera um snapshot adicional após consulta sem mutação; processo de probe empacotado passou a usar código de saída confiável; sintaxe /oname do NSIS corrigida. Falhas não foram contadas como aprovação.
 
@@ -37,3 +37,13 @@ Versões npm/lock/Cargo, catálogo completo e saída release/2.0.0 permanecem co
 ## Próxima tarefa
 
 Integrar captura/publicação/recepção H.264 ao processo de sessão e à UI com seleção explícita, filas limitadas, preview e liberação. Em seguida áudio WASAPI isolado, webcam e grade. Preservar motores de regras e catálogos; não substituir mundo/jogos por popups. Continuar pelos gates de FEATURE_PARITY.md. Para amigos/dispositivos/redes externas e VM, usar [roteiro de homologação](native/PUBLIC-TESTING.md). Sem conectividade universal, qualidade acústica ou paridade completa declaradas.
+
+## Continuidade após d5ee590 — recuperação de áudio
+
+Recuperação integrada à sessão após falha de captura/saída ou watchdog em chamada ativa. Mute é imposto antes de descartar áudio e invalidar a geração; o host recebe VoiceLeave. Até três tentativas usam a seleção original, com intervalos de 2/4/8 s e timeout de 12 s. Sucesso reentra no canal mantendo mute; exige desmutar explicitamente. Seleção Padrão segue o Windows; seleção nomeada não usa fallback silencioso.
+
+Sair, desconectar, encerrar sessão, iniciar outro canal ou remover o canal invalida a geração e descarta resultados tardios. Falha inicial de abertura não inicia recuperação automática. Timeout cancela explicitamente a geração. Testes lógicos verificam tentativas, seleção e gate, sem homologar dispositivos. Uma chamada de abertura do Windows pode permanecer bloqueada além do timeout; resultados tardios são invalidados e cada ciclo tem limite de três tentativas. Homologação física pendente.
+
+## Interrupção solicitada pelo usuário
+
+Execução encerrada a pedido do usuário após concluir o build, empacotamento e coleta em andamento. Nenhuma nova frente foi iniciada após o pedido. Instalador experimental local e ZIP em release/2.0.0/native-experimental; hashes atualizados em artifacts.json e evidence/native-2.0/public/verification.json. Fluxo de criar/hospedar/entrar por convite disponível, mas sem homologação entre redes e com falha do DNS normal desta máquina registrada. Próxima tarefa funcional permanece integração completa de compartilhamento H.264 na sessão/UI, seguida de áudio isolado e webcam. Relatório consolidado: SESSION-2026-11-17.md.

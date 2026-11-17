@@ -70,3 +70,7 @@ Enviar imagem: no chat conectado ou DM, escolher Enviar imagem, selecionar PNG/J
 Testes públicos executam os fluxos reais de sessão (IPC/P2P), imagens, chat/DMs, malha Opus sintética de três peers, canais isolados, revogação e quatro reconexões. Evidência: evidence/native-2.0/public/session-integration.json. Todos os peers estão nesta máquina; não é homologação de redes distintas ou dispositivos. O resolvedor do sistema retorna ENOTFOUND para o novo domínio; DNS sobre HTTPS encontra A e HTTPS/TLS são válidos. Somente o teste debug permite endereço resolvido externamente, mantendo SNI/certificado; release não lê esse override.
 
 Integrado neste conjunto: endpoint público/STUN padrão; convites voxy-native:// com leitura compatível de convites nativos anteriores; renomeação de canal na UI; páginas privadas de DMs com cursor tempo+ID, limites de bytes e sem recibos persistentes; lista/remoção de recentes. Não reimplementados motores de jogos ou catálogos. Compartilhamento/webcam completos, mundo dinâmico, avatares/mesas, migração privada e updater transacional permanecem abertos. Design & Release Polish congelado.
+
+## Recuperação de áudio em chamada ativa
+
+Falha/watchdog força mute, remove temporariamente a associação de voz no host e tenta reabrir a mesma seleção até três vezes (2/4/8 s, timeout de 12 s por tentativa). O retorno exige desmutar explicitamente. Sair/desconectar/remover o canal cancela a geração. Seleção nomeada não troca de microfone; Padrão segue o Windows. Implementação e testes lógicos não homologam hotplug, drivers ou acústica.

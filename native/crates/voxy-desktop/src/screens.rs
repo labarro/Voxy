@@ -436,7 +436,7 @@ fn friends(app: &App) -> Element<'_, Msg> {
                 column![
                     text(name).size(13).font(bold()),
                     text(if unread > 0 {
-                        format!("{status} · {unread} não lidas")
+                        format!("{status} · {unread} não lidas recentes")
                     } else {
                         status.into()
                     })

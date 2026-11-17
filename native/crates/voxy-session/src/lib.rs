@@ -137,7 +137,14 @@ pub(crate) async fn run(
                 if matches!(request,Request::Detached) && network.is_none(){break}
                 if matches!(request,Request::Detached){ui_detached=true;}
                 let result=async {match request {
-                    Request::Detached=>{},
+                    Request::Detached=>{
+                        // No window means no visible indicator or control for video: stop
+                        // screen and camera publication; the voice call keeps running.
+                        if publisher.is_some()||camera_publisher.is_some(){
+                            screen_generation+=1;camera_generation+=1;publisher=None;camera_publisher=None;state.screen=None;state.camera=None;
+                            if network.is_some(){let _=send(&network,media_action(&state)).await;}
+                        }
+                    },
                     Request::Attached=>{ui_detached=false;},
                     Request::Host{server,endpoint,stun}=>{
                         ensure!(network.is_none(),"Desconecte o servidor atual antes de hospedar");

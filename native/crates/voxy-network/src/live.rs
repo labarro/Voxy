@@ -208,8 +208,8 @@ pub async fn run(
                     Some(Input::Command(command))=>{
                         if let Some(room)=room.as_mut(){
                             let id=command.id;
-                            match room.handle(&local,command){Err(_)=>{output.send(Event::Error("Comando recusado pelo servidor")).await.ok();},Ok(value)=>{output.send(Event::Replied(id,value)).await.ok();output.send(Event::Acknowledged(id)).await.ok();}}
-                            snapshot=Some(publish(room,&links,output).await?);
+                            let changes=command.action.changes_snapshot();
+                            match room.handle(&local,command){Err(_)=>{output.send(Event::Error("Comando recusado pelo servidor")).await.ok();},Ok(value)=>{output.send(Event::Replied(id,value)).await.ok();output.send(Event::Acknowledged(id)).await.ok();if changes{snapshot=Some(publish(room,&links,output).await?);}}}
                         }else if let Some(channel)=links.get(&config.invite.host_key).and_then(|l|l.channel.as_ref()) {
                             send_packet(channel,&ClientPacket::Command{command}).await?;
                         }else{output.send(Event::Error("O canal ainda está conectando")).await.ok();}
@@ -319,14 +319,15 @@ if let Some(room)=room.as_mut(){room.remove(&signal.from);snapshot=Some(publish(
                             let packet=if link.rate.allow(){link.assembler.push(&bytes)}else{Err(anyhow::anyhow!("Limite de dados"))};
                             let payload=match packet{Ok(Some(p))=>p,Ok(None)=>continue,Err(_)=>{if let Some(link)=links.remove(&key){link.close().await;}continue}};
                             if let Some(room)=room.as_mut(){
+                                let mut changes=false;
                                 let result=(||->Result<Option<ServerPacket>> {
                                     match serde_json::from_slice::<ClientPacket>(&payload)? {
-                                        ClientPacket::Hello{id,name}=>{ensure!(!link.admitted,"Já autenticado");room.admit(key.clone(),id,name)?;link.admitted=true;},
-                                        ClientPacket::Command{command}=>{ensure!(link.admitted,"Perfil não admitido");let id=command.id;let value=room.handle(&key,command)?;return Ok(Some(ServerPacket::Reply{id,value}));}
+                                        ClientPacket::Hello{id,name}=>{ensure!(!link.admitted,"Já autenticado");room.admit(key.clone(),id,name)?;link.admitted=true;changes=true;},
+                                        ClientPacket::Command{command}=>{ensure!(link.admitted,"Perfil não admitido");let id=command.id;let changed=command.action.changes_snapshot();let value=room.handle(&key,command)?;changes=changed;return Ok(Some(ServerPacket::Reply{id,value}));}
                                     };Ok(None)
                                 })();
                                 if let Some(channel)=&link.channel {match result {Ok(Some(reply))=>{let _=send_packet(channel,&reply).await;},Ok(None)=>{},Err(_)=>{let _=send_packet(channel,&ServerPacket::Error{message:"Comando recusado: verifique autoria e permissões".into()}).await;}}}
-                                snapshot=Some(publish(room,&links,output).await?);
+                                if changes{snapshot=Some(publish(room,&links,output).await?);}
                             }else{
                                 match serde_json::from_slice::<ServerPacket>(&payload)? {
                                     ServerPacket::State{snapshot:state}=>{ensure!(state.server.id==config.invite.room && state.members.len()<=10,"Snapshot fora da sessão");ready=true;snapshot=Some(*state.clone());output.send(Event::Snapshot(*state)).await.ok();},

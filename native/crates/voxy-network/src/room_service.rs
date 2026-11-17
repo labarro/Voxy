@@ -200,8 +200,10 @@ pub async fn host(
                         if !link.rate.allow(){if let Some(link)=links.remove(&key){link.close().await;}room.remove(&key);continue}
                         let payload=match link.assembler.push(&bytes){Ok(Some(payload))=>payload,Ok(None)=>continue,Err(_)=>{if let Some(link)=links.remove(&key){link.close().await;}room.remove(&key);continue}};
                         let packet:ClientPacket=match serde_json::from_slice(&payload){Ok(packet)=>packet,Err(_)=>{if let Some(link)=links.remove(&key){link.close().await;}room.remove(&key);continue}};
-                        let result=(||->Result<Option<ServerPacket>>{match packet{ClientPacket::Hello{id,name}=>{ensure!(!link.admitted,"Sessão já autenticada");room.admit(key.clone(),id,name).map(|()|{link.admitted=true;None})},ClientPacket::Command{command}=>{ensure!(link.admitted,"Envie o perfil antes de comandos");let id=command.id;room.handle(&key,command).map(|value|Some(ServerPacket::Reply{id,value}))}}})();
-                        if let Some(channel)=&link.channel{match result{Ok(Some(reply))=>{let _=send_packet(channel,&reply).await;},Ok(None)=>{},Err(error)=>{let _=send_packet(channel,&ServerPacket::Error{message:error.to_string()}).await;}}}broadcast(room,&mut links).await?;
+                        let mut changes=false;
+                        let result=(||->Result<Option<ServerPacket>>{match packet{ClientPacket::Hello{id,name}=>{ensure!(!link.admitted,"Sessão já autenticada");room.admit(key.clone(),id,name).map(|()|{link.admitted=true;changes=true;None})},ClientPacket::Command{command}=>{ensure!(link.admitted,"Envie o perfil antes de comandos");let id=command.id;let changed=command.action.changes_snapshot();room.handle(&key,command).map(|value|{changes=changed;Some(ServerPacket::Reply{id,value})})}}})();
+                        if let Some(channel)=&link.channel{match result{Ok(Some(reply))=>{let _=send_packet(channel,&reply).await;},Ok(None)=>{},Err(error)=>{let _=send_packet(channel,&ServerPacket::Error{message:error.to_string()}).await;}}}
+                        if changes{broadcast(room,&mut links).await?;}
                     },PeerEvent::Closed=>{if let Some(link)=links.remove(&key){link.close().await;}room.remove(&key);broadcast(room,&mut links).await?;},_=>{}
                 }}
             }

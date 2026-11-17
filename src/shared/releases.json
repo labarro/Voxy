@@ -18,7 +18,9 @@
       "Respostas, menções por ID, reações, busca e paginação no host; notificações privadas e DMs com edição, exclusão e leitura.",
       "Cargos de identificação atribuídos pelo proprietário, presença Online/Ausente/Ocupado e links HTTP/S pelo Windows.",
       "Revogação autenticada de convites com encerramento dos vínculos antigos após confirmação.",
-      "Importador em cópia de servidores com dono, canais, mensagens, respostas e reações preservando IDs, backup verificado e rollback."
+      "Importador em cópia de servidores com dono, canais, mensagens, respostas e reações preservando IDs, backup verificado e rollback.",
+      "Anexos PNG/JPEG de chat e DM com envio em blocos, limites, hash, autorização, persistência e galeria nativa.",
+      "Prévias nativas dos catálogos Lounge/Cinema/Rooftop em processo opcional com confirmação do primeiro frame; mundo social completo ainda pendente."
     ],
     "improvements": [
       "Controles e ícones vetoriais com dimensões fixas, avatares corrigidos, ações contextuais e rolagem sem encobrir conteúdo.",
@@ -27,7 +29,9 @@
       "Validação visual com fixtures isoladas, dez participantes e consulta dos limites reais dos widgets no renderer.",
       "Históricos limitados por bytes UTF-8 e quantidade; consultas não inflam recibos persistentes.",
       "Verificação Rust offline do catálogo assinado legado e de artefatos; downloader e instalação pendentes.",
-      "Regras Rust de Truco Paulista, sinuca Rotação 7 e xadrez comparadas com fixtures TypeScript; apresentação 3D ainda pendente."
+      "Regras Rust de Truco Paulista, sinuca Rotação 7 e xadrez comparadas com fixtures TypeScript; apresentação 3D ainda pendente.",
+      "Pipeline privado e chamada compartilham processamento selecionado; AEC pode ser desativado mantendo NS/AGC.",
+      "Backend Windows H.264 software e transporte de vídeo RTP/SRTP testados localmente com frames sintéticos; interface de transmissão e webcam completas ainda pendentes."
     ],
     "fixes": [
       "Avatares deixam de se expandir e deslocar mensagens, nomes e participantes.",
@@ -37,7 +41,10 @@
       "Dispositivo selecionado ausente não troca silenciosamente para outro microfone.",
       "Lease PTT, watchdog de captura/saída e gate antes de cada envio fecham a transmissão em falhas.",
       "Jitter recupera após pausas de RTP por mute/PTT, limitando perdas e reordenação.",
-      "Autores importados ficam reservados contra apropriação por novas chaves remotas até associação autenticada."
+      "Autores importados ficam reservados contra apropriação por novas chaves remotas até associação autenticada.",
+      "Falha transacional no commit de imagem preserva o upload para repetição segura.",
+      "Seletor de imagem preserva o destino original e cancela ao mudar de conversa.",
+      "Controle de respostas IPC limitado evita perder blocos ao receber confirmações simultâneas de voz."
     ]
   },
   "1.4.1": {

@@ -294,3 +294,8 @@ O main consulta após dez segundos e a cada seis horas em produção, mostra est
 Host persiste respostas, reações, cargos de identificação, presença e notificações. Consultas retornam pelo DataChannel/IPC com ID; não geram recibos duráveis. Snapshots filtram DMs/amigos/notificações. Tombstones e revisão persistida invalidam exclusões no cache. Páginas/snapshots limitam histórico público a 384 KiB e privado a 256 KiB serializados.
 
 O gate da sessão reavalia mute/deafen/PTT/dispositivo antes de cada envio SRTP; descarta frames antigos e gerações de áudio canceladas. Renovação de convite só muda estado após ack do DO e encerra links antigos; retry usa a capacidade confirmada. update.rs verifica offline o protocolo de confiança v1 sem substituir o updater instalado. Jogos têm autoridade por canal e snapshots por espectador; regras não substituem apresentação 3D.
+
+
+## Consolidação da retomada
+
+Uploads de imagem têm contexto/autor, quota, TTL e blocos limitados; leitura revalida ACL. Somente commit muta snapshot. Consultas e blocos não geram broadcast nem recibos duráveis; o commit confirma arquivo/mensagem na mesma transação. A UI mantém uma transferência e um preview, com destino congelado e timeout; respostas IPC têm até 16 entradas/512 KiB para não perder blocos quando controles de voz respondem simultaneamente. O renderer wgpu é filho opcional da UI, encerrado por seu proprietário; nunca é dependência da sessão de voz.

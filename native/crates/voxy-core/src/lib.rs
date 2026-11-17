@@ -1,5 +1,6 @@
 pub mod game_service;
 pub mod identity;
+pub mod images;
 pub mod ipc;
 pub mod links;
 pub mod migration;

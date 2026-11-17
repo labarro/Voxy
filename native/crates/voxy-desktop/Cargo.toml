@@ -12,13 +12,14 @@ serde_json.workspace = true
 serde.workspace = true
 uuid.workspace = true
 tokio.workspace = true
+base64.workspace = true
 png = "0.18"
 voxy-core.workspace = true
 voxy-voice.workspace = true
-iced = { version = "=0.14.0", default-features = false, features = ["tiny-skia", "tokio", "advanced", "canvas"] }
+iced = { version = "=0.14.0", default-features = false, features = ["tiny-skia", "tokio", "advanced", "canvas", "image-without-codecs"] }
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.61", features = ["Win32_Graphics_Dwm", "Win32_UI_Controls", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_Foundation", "Win32_System_Time", "Win32_System_Registry", "Win32_Security"] }
+windows-sys = { version = "0.61", features = ["Win32_Graphics_Dwm", "Win32_UI_Controls", "Win32_UI_Controls_Dialogs", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_Foundation", "Win32_System_Time", "Win32_System_Registry", "Win32_Security"] }
 
 [lints]
 workspace = true

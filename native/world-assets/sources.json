@@ -1,0 +1,20 @@
+{
+  "src/renderer/room3d/environment.ts": "578869af32fa245208f9bf6d6ff95ba3d733d294cbc7fcc5a82d42b6f5375195",
+  "src/renderer/room3d/Rooftop.ts": "7ebde8633edd0e3485f44ef13fc261a2877bb4570e2890abacdf9ad480ed8473",
+  "src/renderer/room3d/resources.ts": "e1fd3d04c01f8d235d17e660354e8b9d15a20a660306a3f717edd68b137ca011",
+  "src/renderer/room3d/avatar.ts": "58024c6d87b8ee1944349455beab32870e94a2b61d1d55f013b1bfd75f537359",
+  "src/renderer/room3d/characterGeometry.ts": "7fc3da9066389e64c6b567655ea619945fe9d84ac2ac17d59b5af0757fa0e381",
+  "src/renderer/room3d/ArmIK.ts": "f65c5b4638846245c96ee2672a62a68d611b01185a9969c07e7d69d2b6466df1",
+  "src/renderer/room3d/PlayingCue.ts": "bdfed899ff660641e8f3a78327c582189ccbb50a497d7856486e73a0c2d5faad",
+  "src/renderer/room3d/PoolTable.ts": "86076d930957e1d0d457f789308f50d357e9abe7b1bf98d12c8220479a46a57e",
+  "src/renderer/room3d/TrucoTable.ts": "25e453b8d5ccbe258f374cf362679374d1ef0cda79101fe40d710346ccc295ab",
+  "src/renderer/room3d/ChessTable.ts": "672ae888afd534d1f7e196aee3d18ba1abd377cbf359c3635b217a67c19ef194",
+  "src/renderer/room3d/ChessPieces.ts": "182eb04a7e613065002aabd4d54b120f6e8c1c66666c57c44e21a642977a89d9",
+  "src/renderer/room3d/CardDeck.ts": "077c77c5e12bd0558f3bb0537bcc0b6cd538330511ea23b5cd4c8b6df2e4c703",
+  "src/shared/room3d.ts": "ea682e9871236676f2188f22d2a824127953fb4fff099b0e3661afd4d4a63d72",
+  "src/shared/gameTables.ts": "4def22febde98243ff44273f2e26c3421477b2e73c96b18d239bb9496bbc68ca",
+  "src/shared/pool.ts": "bd8bb454ba7725589857ad553337875d6fc449e31be92c5e80cc8a254d096fca",
+  "src/renderer/public/assets/room3d/furniture/tableCoffee.glb": "e38bea760fbd514efbb75528d09b4752c91af44677bbb97e6d4386c263525179",
+  "src/renderer/public/assets/room3d/furniture/bookcaseOpenLow.glb": "6d4d625faf977a2dbf155f1313cd32c6310e463114a1cd4c08cb9f80a5fb1d75",
+  "src/renderer/public/assets/room3d/furniture/books.glb": "b8dc56e5d29f6fc1f4727fccb1b9642627fee9942c48060a00034e98df02701c"
+}

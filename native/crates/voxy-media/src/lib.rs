@@ -61,6 +61,8 @@ impl CaptureOptions {
 mod windows_capture;
 #[cfg(windows)]
 pub use windows_capture::*;
+#[cfg(windows)]
+pub mod codec;
 
 #[cfg(test)]
 mod tests {

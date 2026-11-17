@@ -95,3 +95,8 @@ Dependências externas: toolchain Rust/MSVC/Windows SDK, dispositivos físicos, 
 Redesign exclusivamente estético suspenso. **Design & Release Polish** é etapa obrigatória posterior à implementação funcional completa e integrada: revisar telas, ambientes, personagens e efeitos, medir impacto e colher aprovação estética do usuário. Não autoriza publicação.
 
 Dependências abertas: rede pública e áudio homologados; mídia Windows com isolamento; mundo sob demanda e apresentação fiel dos jogos; migração autenticada de dados privados; instalador/rollback. Regras puras não encerram paridade das mesas 3D.
+
+
+## Consolidação da retomada
+
+Consolidar a integração existente antes de ampliar novas frentes. Permanecem os gates de mídia completa, mundo interativo/multiplayer, migração privada, instalador/updater e homologação física. Design & Release Polish continua obrigatório somente após a implementação funcional completa.

@@ -16,10 +16,13 @@ pub enum PeerEvent {
     Data(Vec<u8>),
     Audio { sequence: u16, payload: Vec<u8> },
     Closed,
+    VideoError(&'static str),
 }
 struct Handler {
     events: mpsc::Sender<PeerEvent>,
     audio_claimed: std::sync::atomic::AtomicBool,
+    video: Option<mpsc::Sender<crate::video::VideoFrame>>,
+    video_claimed: Arc<std::sync::atomic::AtomicUsize>,
 }
 #[async_trait::async_trait]
 impl PeerConnectionEventHandler for Handler {
@@ -35,6 +38,84 @@ impl PeerConnectionEventHandler for Handler {
         spawn_channel(channel, self.events.clone());
     }
     async fn on_track(&self, track: Arc<dyn TrackRemote>) {
+        if track.kind().await == rtc::rtp_transceiver::rtp_sender::RtpCodecKind::Video {
+            let Some(video) = self.video.clone() else {
+                track.stop().await;
+                return;
+            };
+            if self
+                .video_claimed
+                .fetch_add(1, std::sync::atomic::Ordering::AcqRel)
+                >= 2
+            {
+                self.video_claimed
+                    .fetch_sub(1, std::sync::atomic::Ordering::AcqRel);
+                track.stop().await;
+                return;
+            }
+            let claimed = self.video_claimed.clone();
+            let events = self.events.clone();
+            tokio::spawn(async move {
+                let mut assembler = crate::video::VideoAssembler::default();
+                // A bounded 4 MiB IDR may arrive as ~3500 MTU-sized packets in a
+                // scheduler burst. Permit one such frame without ending the track.
+                let mut rate = crate::policy::RateLimit::new(4096, 5000);
+                let stream_id = track.track_id().await;
+                let mut verified_codec = false;
+                while let Some(event) = track.poll().await {
+                    match event {
+                        TrackRemoteEvent::OnEnded
+                        | TrackRemoteEvent::OnEnding
+                        | TrackRemoteEvent::OnError => break,
+                        TrackRemoteEvent::OnRtpPacket(packet) => {
+                            if !verified_codec {
+                                if !track.codec(packet.header.ssrc).await.is_some_and(|codec| {
+                                    codec.mime_type.eq_ignore_ascii_case("video/h264")
+                                }) {
+                                    break;
+                                }
+                                verified_codec = true;
+                            }
+                            if !rate.allow() {
+                                let _ = events.try_send(PeerEvent::VideoError(
+                                    "Vídeo excedeu o limite de pacotes",
+                                ));
+                                break;
+                            }
+                            match assembler.push(
+                                packet.header.timestamp,
+                                packet.header.sequence_number,
+                                packet.header.marker,
+                                &packet.payload,
+                            ) {
+                                Ok(Some(mut frame)) => {
+                                    frame.stream_id = stream_id.clone();
+                                    if let Err(error) = video.try_send(frame) {
+                                        match error {
+                                            mpsc::error::TrySendError::Closed(_) => break,
+                                            mpsc::error::TrySendError::Full(_) => {
+                                                assembler.request_recovery()
+                                            }
+                                        }
+                                    }
+                                }
+                                Ok(None) => {}
+                                Err(_) => {
+                                    let _ = events.try_send(PeerEvent::VideoError(
+                                        "Vídeo H.264 inválido ou fora dos limites",
+                                    ));
+                                    break;
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                track.stop().await;
+                claimed.fetch_sub(1, std::sync::atomic::Ordering::AcqRel);
+            });
+            return;
+        }
         if track.kind().await != rtc::rtp_transceiver::rtp_sender::RtpCodecKind::Audio
             || self
                 .audio_claimed
@@ -105,11 +186,24 @@ fn spawn_channel(channel: Arc<dyn DataChannel>, events: mpsc::Sender<PeerEvent>)
 pub struct Peer {
     pub connection: Arc<dyn PeerConnection>,
     pub events: mpsc::Receiver<PeerEvent>,
+    pub video: Option<mpsc::Receiver<crate::video::VideoFrame>>,
 }
 impl Peer {
     pub async fn new(policy: &NetworkPolicy, offerer: bool) -> Result<Self> {
+        Self::build(policy, offerer, false).await
+    }
+    pub async fn with_video(policy: &NetworkPolicy, offerer: bool) -> Result<Self> {
+        Self::build(policy, offerer, true).await
+    }
+    async fn build(policy: &NetworkPolicy, offerer: bool, enable_video: bool) -> Result<Self> {
         policy.validate()?;
         let (events, receiver) = mpsc::channel(128);
+        let (video_sender, video_receiver) = if enable_video {
+            let (tx, rx) = mpsc::channel(2);
+            (Some(tx), Some(rx))
+        } else {
+            (None, None)
+        };
         let config = RTCConfigurationBuilder::default()
             .with_ice_servers(
                 policy
@@ -133,6 +227,8 @@ impl Peer {
                 .with_handler(Arc::new(Handler {
                     events: events.clone(),
                     audio_claimed: std::sync::atomic::AtomicBool::new(false),
+                    video: video_sender,
+                    video_claimed: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
                 }))
                 .with_udp_addrs(vec!["0.0.0.0:0", "[::]:0"])
                 .with_data_channel_send_buffer_limit(256 * 1024)
@@ -148,6 +244,7 @@ impl Peer {
         Ok(Self {
             connection,
             events: receiver,
+            video: video_receiver,
         })
     }
     pub async fn offer(&self) -> Result<RTCSessionDescription> {
@@ -206,6 +303,80 @@ impl Peer {
         );
         self.connection.add_track(track.clone()).await?;
         Ok(OpusTrack { track, ssrc })
+    }
+    pub async fn add_h264_track(&self) -> Result<H264Track> {
+        ensure!(
+            self.video.is_some(),
+            "Peer de voz não habilitou transporte de vídeo"
+        );
+        use rtc::{
+            media_stream::MediaStreamTrack,
+            rtp_transceiver::rtp_sender::{
+                RTCRtpCodec, RTCRtpCodingParameters, RTCRtpEncodingParameters, RtpCodecKind,
+            },
+        };
+        let ssrc = rand::random::<u32>().max(1);
+        let codec = RTCRtpCodec {
+            mime_type: "video/H264".into(),
+            clock_rate: 90_000,
+            channels: 0,
+            sdp_fmtp_line: "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f"
+                .into(),
+            ..Default::default()
+        };
+        let track = Arc::new(
+            webrtc::media_stream::track_local::static_sample::TrackLocalStaticSample::new(
+                std::time::Instant::now(),
+                MediaStreamTrack::new(
+                    "voxy-video".into(),
+                    uuid::Uuid::new_v4().to_string(),
+                    "screen-or-camera".into(),
+                    RtpCodecKind::Video,
+                    vec![RTCRtpEncodingParameters {
+                        rtp_coding_parameters: RTCRtpCodingParameters {
+                            ssrc: Some(ssrc),
+                            ..Default::default()
+                        },
+                        codec,
+                        active: true,
+                        max_bitrate: 20_000_000,
+                        ..Default::default()
+                    }],
+                ),
+            )?,
+        );
+        self.connection.add_track(track.clone()).await?;
+        Ok(H264Track { track, ssrc })
+    }
+}
+
+pub struct H264Track {
+    track: Arc<webrtc::media_stream::track_local::static_sample::TrackLocalStaticSample>,
+    ssrc: u32,
+}
+impl H264Track {
+    pub async fn send(&self, frame: &[u8], duration: std::time::Duration) -> Result<()> {
+        ensure!(
+            !frame.is_empty()
+                && frame.len() <= crate::video::MAX_VIDEO_FRAME
+                && (std::time::Duration::from_millis(1)..=std::time::Duration::from_secs(1))
+                    .contains(&duration),
+            "Frame H.264 ou duração fora dos limites"
+        );
+        let now = std::time::Instant::now();
+        self.track
+            .write_sample(
+                self.ssrc,
+                102,
+                &rtc::media::Sample {
+                    data: bytes::Bytes::copy_from_slice(frame),
+                    duration,
+                    ..rtc::media::Sample::new(now)
+                },
+                &[],
+            )
+            .await?;
+        Ok(())
     }
 }
 

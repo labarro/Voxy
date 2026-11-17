@@ -289,6 +289,69 @@ async fn independent_session_processes_deliver_chat_survive_ui_detach_and_reject
         .find(|m| m.id != profile.id)
         .unwrap()
         .id;
+    let image_fixture: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/image.json"))?;
+    let upload = uuid::Uuid::new_v4();
+    issue(
+        &mut bw,
+        &mut br,
+        Action::ImageBegin {
+            upload,
+            target: voxy_core::images::ImageTarget::Channel { channel },
+            name: "fixture.png".into(),
+            total_bytes: image_fixture["size"].as_u64().unwrap() as u32,
+            sha256: image_fixture["sha256"].as_str().unwrap().into(),
+        },
+    )
+    .await?;
+    issue(
+        &mut bw,
+        &mut br,
+        Action::ImageChunk {
+            upload,
+            offset: 0,
+            data: image_fixture["data"].as_str().unwrap().into(),
+        },
+    )
+    .await?;
+    let image_reply = issue(
+        &mut bw,
+        &mut br,
+        Action::ImageCommit {
+            upload,
+            text: "Anexo controlado".into(),
+        },
+    )
+    .await?;
+    let image = uuid::Uuid::parse_str(
+        image_reply["image"]["id"]
+            .as_str()
+            .context("Image commit metadata missing")?,
+    )?;
+    until(&mut ar, |state| {
+        state.snapshot.as_ref().is_some_and(|snapshot| {
+            snapshot.messages.iter().any(|message| {
+                message
+                    .attachments
+                    .iter()
+                    .any(|attachment| attachment.id == image)
+            })
+        })
+    })
+    .await?;
+    let image_bytes = issue(
+        &mut aw,
+        &mut ar,
+        Action::ImageRead {
+            id: image,
+            offset: 0,
+        },
+    )
+    .await?;
+    ensure!(
+        image_bytes["done"] == true && image_bytes["data"] == image_fixture["data"],
+        "Image bytes changed across IPC/P2P transfer"
+    );
     issue(
         &mut aw,
         &mut ar,

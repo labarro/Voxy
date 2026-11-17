@@ -441,3 +441,8 @@ Não há bots, sincronização offline, anexos de outros formatos ou assinatura 
 <div align="center">
   <sub>Voxy · Uma sala para conversar, mostrar e ficar por perto.</sub>
 </div>
+
+
+## Consolidação da retomada
+
+A versão 2.0.0 em preparação também inclui envio de PNG/JPEG em blocos com hash e validação completa, anexos de chat/DM e visualização ampliada. Prévias nativas de Lounge/Cinema/Rooftop abrem em processo separado, com confirmação do primeiro frame e encerramento sob controle da interface. São prévias: avatar dinâmico, multiplayer, interações e jogos apresentados no cenário ainda não estão completos. H.264 e RTP/SRTP possuem testes locais de backend, sem anunciar compartilhamento ou webcam completos. O instalador experimental tem fontes preparadas; distribuição e instalação em VM seguem pendentes. Nenhuma publicação foi realizada.

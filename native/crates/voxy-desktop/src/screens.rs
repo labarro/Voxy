@@ -485,11 +485,27 @@ fn friends(app: &App) -> Element<'_, Msg> {
         );
     }
     list.push(rule::horizontal(1))
-        .push(text("Salas 3D").size(13).font(bold()))
+        .push(text("Prévias 3D nativas").size(13).font(bold()))
         .push(
-            text("Indisponíveis nesta versão nativa.")
+            text("Sem multiplayer, avatar dinâmico ou interação com jogos nesta prévia.")
                 .size(12)
                 .color(m.muted),
+        )
+        .push(
+            app.action("Lounge", Msg::World("lounge"), false)
+                .width(Fill),
+        )
+        .push(
+            app.action("Cinema", Msg::World("cinema"), false)
+                .width(Fill),
+        )
+        .push(
+            app.action("Rooftop", Msg::World("rooftop"), false)
+                .width(Fill),
+        )
+        .push(
+            app.action("Encerrar prévia", Msg::CloseWorld, false)
+                .width(Fill),
         )
         .into()
 }
@@ -720,6 +736,16 @@ pub(super) fn chat(app: &App) -> Element<'_, Msg> {
             }
             content = content.push(reactions);
         }
+        for attachment in &message.attachments {
+            content = content.push(app.action(
+                &format!(
+                    "Abrir imagem · {} · {}×{}",
+                    attachment.name, attachment.width, attachment.height
+                ),
+                Msg::OpenImage(attachment.clone()),
+                false,
+            ));
+        }
         if app.message_menu == Some(message.id) {
             let mut menu = row![
                 app.action("Responder", Msg::ReplyMessage(message.id), false),
@@ -755,6 +781,9 @@ pub(super) fn chat(app: &App) -> Element<'_, Msg> {
         );
     }
     let mut composer = column![].spacing(6);
+    if app.is_remote() {
+        composer = composer.push(image_actions(app));
+    }
     if app.editing_message.is_some() || app.replying_message.is_some() {
         composer = composer.push(row![
             text(if app.editing_message.is_some() {
@@ -982,6 +1011,16 @@ pub(super) fn direct(app: &App) -> Element<'_, Msg> {
                 actions = actions.push(text("editada").size(10).color(m.muted));
             }
             body = body.push(actions);
+            for attachment in &message.attachments {
+                body = body.push(app.action(
+                    &format!(
+                        "Abrir imagem · {} · {}×{}",
+                        attachment.name, attachment.width, attachment.height
+                    ),
+                    Msg::OpenImage(attachment.clone()),
+                    false,
+                ));
+            }
             history = history.push(row![avatar(author, m, 30), body].spacing(10));
         }
     }
@@ -1006,6 +1045,7 @@ pub(super) fn direct(app: &App) -> Element<'_, Msg> {
             .height(Fill)
             .direction(design::vertical_scrollbar())
             .style(m.scroll()),
+        image_actions(app),
         row![
             text_input(
                 if app.editing_message.is_some() {
@@ -1038,6 +1078,28 @@ pub(super) fn direct(app: &App) -> Element<'_, Msg> {
     .padding(26)
     .into()
 }
+fn image_actions(app: &App) -> Element<'_, Msg> {
+    if app.image_transfer.is_some() {
+        row![
+            text("Transferindo imagem…").size(12),
+            space::horizontal(),
+            app.action("Cancelar transferência", Msg::CancelImage, false)
+        ]
+        .spacing(8)
+        .align_y(iced::Center)
+        .into()
+    } else {
+        row![
+            app.action("Enviar imagem", Msg::PickImage, false),
+            text("PNG/JPEG · até 3 MiB")
+                .size(11)
+                .color(app.palette().muted)
+        ]
+        .spacing(8)
+        .align_y(iced::Center)
+        .into()
+    }
+}
 pub(super) fn settings(app: &App) -> Element<'_, Msg> {
     let m = app.palette();
     let mut nav = column![
@@ -1068,9 +1130,9 @@ pub(super) fn settings(app: &App) -> Element<'_, Msg> {
             let inputs:Vec<String>=std::iter::once("Padrão do Windows".into()).chain(app.devices.iter().filter(|d|d.input).map(|d|d.name.clone())).collect();
             let outputs:Vec<String>=std::iter::once("Padrão do Windows".into()).chain(app.devices.iter().filter(|d|!d.input).map(|d|d.name.clone())).collect();
             let input=app.devices.iter().find(|d|d.id==app.editing.input).map(|d|d.name.clone()).unwrap_or_else(||"Padrão do Windows".into());let output=app.devices.iter().find(|d|d.id==app.editing.output).map(|d|d.name.clone()).unwrap_or_else(||"Padrão do Windows".into());let ins=app.devices.clone();let outs=app.devices.clone();
-            column![row![text("Áudio e voz").size(22).font(bold()),space::horizontal(),app.action("Atualizar",Msg::Refresh,false)],row![column![section("Microfone",m),pick_list(inputs,Some(input),move|name|Msg::Input(ins.iter().find(|d|d.input&&d.name==name).map(|d|d.id.clone()).unwrap_or_default())).padding(10).width(Fill).style(m.select()).menu_style(m.menu())].spacing(7).width(Fill),column![section("Saída",m),pick_list(outputs,Some(output),move|name|Msg::Output(outs.iter().find(|d|!d.input&&d.name==name).map(|d|d.id.clone()).unwrap_or_default())).padding(10).width(Fill).style(m.select()).menu_style(m.menu())].spacing(7).width(Fill)].spacing(16),rule::horizontal(1),row![text("Volume do microfone").size(14),space::horizontal(),text(format!("{}%",(app.editing.input_volume*100.)as i32)).size(12).color(m.muted)],slider(0.0..=2.0,app.editing.input_volume,Msg::Gain).step(0.01_f32).style(m.slider()),row![app.action(if app.mic_test.is_some(){"Encerrar teste"}else{"Teste privado"},Msg::Test,false),widget::progress_bar(0.0..=0.4,app.control.level()).length(Fill).style(move |_|widget::progress_bar::Style{background:alpha(m.ink,0.06).into(),bar:m.accent.into(),border:Border{radius:3.0.into(),..Default::default()}})].spacing(16).align_y(iced::Center),text("Use fones no teste privado. O monitor local não usa cancelamento de eco.").size(12).color(m.muted),rule::horizontal(1),row![row_label("Push-to-Talk","Funciona no núcleo mesmo com a janela fechada.",m),space::horizontal(),toggler(app.editing.ptt_enabled).on_toggle(Msg::Ptt).style(m.toggle())].align_y(iced::Center),pick_list(vec!["Mouse4".into(),"Mouse5".into(),"Space".into(),"F8".into(),"F9".into()],Some(app.editing.ptt_key.clone()),Msg::PttKey).padding(9).width(190).style(m.select()).menu_style(m.menu()),text("As alterações de dispositivo e PTT entram em vigor na próxima entrada na chamada.").size(12).color(m.muted)].spacing(17).into()
+            let base=column![row![text("Áudio e voz").size(22).font(bold()),space::horizontal(),app.action("Atualizar",Msg::Refresh,false)],row![column![section("Microfone",m),pick_list(inputs,Some(input),move|name|Msg::Input(ins.iter().find(|d|d.input&&d.name==name).map(|d|d.id.clone()).unwrap_or_default())).padding(10).width(Fill).style(m.select()).menu_style(m.menu())].spacing(7).width(Fill),column![section("Saída",m),pick_list(outputs,Some(output),move|name|Msg::Output(outs.iter().find(|d|!d.input&&d.name==name).map(|d|d.id.clone()).unwrap_or_default())).padding(10).width(Fill).style(m.select()).menu_style(m.menu())].spacing(7).width(Fill)].spacing(16),rule::horizontal(1),row![text("Volume do microfone").size(14),space::horizontal(),text(format!("{}%",(app.editing.input_volume*100.)as i32)).size(12).color(m.muted)],slider(0.0..=2.0,app.editing.input_volume,Msg::Gain).step(0.01_f32).style(m.slider()),row![app.action(if app.mic_test.is_some(){"Encerrar teste"}else{"Teste privado"},Msg::Test,false),widget::progress_bar(0.0..=0.4,app.mic_control.level()).length(Fill).style(move |_|widget::progress_bar::Style{background:alpha(m.ink,0.06).into(),bar:m.accent.into(),border:Border{radius:3.0.into(),..Default::default()}})].spacing(16).align_y(iced::Center),text("Use fones no teste privado. O monitor local não usa cancelamento de eco.").size(12).color(m.muted),rule::horizontal(1),row![row_label("Push-to-Talk","Funciona no núcleo mesmo com a janela fechada.",m),space::horizontal(),toggler(app.editing.ptt_enabled).on_toggle(Msg::Ptt).style(m.toggle())].align_y(iced::Center),pick_list(vec!["Mouse4".into(),"Mouse5".into(),"Space".into(),"F8".into(),"F9".into()],Some(app.editing.ptt_key.clone()),Msg::PttKey).padding(9).width(190).style(m.select()).menu_style(m.menu()),text("As alterações de dispositivo e PTT entram em vigor na próxima entrada na chamada.").size(12).color(m.muted)].spacing(17);column![base,rule::horizontal(1),row![text("Supressão de ruído"),space::horizontal(),toggler(app.editing.retained.get("noiseSuppression").and_then(|v|v.as_bool()).unwrap_or(true)).on_toggle(|v|Msg::AudioBoolean("noiseSuppression",v)).style(m.toggle())],row![text("Ganho automático"),space::horizontal(),toggler(app.editing.retained.get("autoGainControl").and_then(|v|v.as_bool()).unwrap_or(true)).on_toggle(|v|Msg::AudioBoolean("autoGainControl",v)).style(m.toggle())],row![text("Detecção de atividade de voz"),space::horizontal(),toggler(app.editing.voice_detection).on_toggle(|v|Msg::AudioBoolean("voiceDetection",v)).style(m.toggle())],text(format!("Sensibilidade: {:.0} dB",app.editing.voice_threshold)).size(12),slider(-80.0..=-10.0,app.editing.voice_threshold,Msg::VoiceThreshold).step(1.0_f32).style(m.slider()),text_input("Tecla PTT: Mouse4, Mouse5, KeyK, F8…",&app.editing.ptt_key).on_input(Msg::PttKey).padding(9).style(m.input()),text("Atalhos globais: modificadores Control, Alt e Shift; vazio desativa.").size(12).color(m.muted),text_input("Mudo: Control+Shift+KeyM",&app.mute_shortcut).on_input(|v|Msg::Shortcut("mute",v)).padding(9).style(m.input()),text_input("Ensurdecer: Control+Shift+KeyD",&app.deafen_shortcut).on_input(|v|Msg::Shortcut("deafen",v)).padding(9).style(m.input())].spacing(17).into()
         },
-        Section::Windows=>column![text("Windows").size(22).font(bold()),text("Somente a identidade experimental; protocolo estavel preservado.").size(12).color(m.muted),row![text("Iniciar ao entrar no Windows"),space::horizontal(),toggler(app.windows_settings.launch_at_login).on_toggle(|v|Msg::WindowsSetting("launch",v)).style(m.toggle())],row![text("Iniciar minimizado no login"),space::horizontal(),toggler(app.windows_settings.start_minimized).on_toggle(|v|Msg::WindowsSetting("minimized",v)).style(m.toggle())],row![text("Registrar voxy-native://"),space::horizontal(),toggler(app.windows_settings.register_experimental_protocol).on_toggle(|v|Msg::WindowsSetting("protocol",v)).style(m.toggle())],text("Aplicado somente ao Salvar. Iniciar o aplicativo nunca abre o microfone automaticamente.").size(12).color(m.muted)].spacing(18).into(),
+        Section::Windows=>column![text("Windows").size(22).font(bold()),row![text("Fechar janela conserva a chamada na bandeja"),space::horizontal(),toggler(app.editing.retained.get("closeToTray").and_then(|v|v.as_bool()).unwrap_or(true)).on_toggle(|v|Msg::WindowsSetting("close",v)).style(m.toggle())],app.action("Alternar tela cheia (Esc retorna)",Msg::Fullscreen,false),text("Somente a identidade experimental; protocolo estavel preservado.").size(12).color(m.muted),row![text("Iniciar ao entrar no Windows"),space::horizontal(),toggler(app.windows_settings.launch_at_login).on_toggle(|v|Msg::WindowsSetting("launch",v)).style(m.toggle())],row![text("Iniciar minimizado no login"),space::horizontal(),toggler(app.windows_settings.start_minimized).on_toggle(|v|Msg::WindowsSetting("minimized",v)).style(m.toggle())],row![text("Registrar voxy-native://"),space::horizontal(),toggler(app.windows_settings.register_experimental_protocol).on_toggle(|v|Msg::WindowsSetting("protocol",v)).style(m.toggle())],row![text("Alertas nativos com interface encerrada"),space::horizontal(),toggler(app.editing.retained.get("notifications").and_then(|p|p.get("native")).and_then(|v|v.as_bool()).unwrap_or(true)).on_toggle(|v|Msg::NotificationPreference("native",v)).style(m.toggle())],row![text("Som dos alertas do Windows"),space::horizontal(),toggler(app.editing.retained.get("notifications").and_then(|p|p.get("sounds")).and_then(|v|v.as_bool()).unwrap_or(true)).on_toggle(|v|Msg::NotificationPreference("sounds",v)).style(m.toggle())],row![text("Não Perturbe por uma hora"),space::horizontal(),toggler(app.editing.retained.get("notifications").and_then(|p|p.get("dndUntil")).and_then(|v|v.as_i64()).is_some_and(|t|t>voxy_core::store::now_ms())).on_toggle(Msg::DndHour).style(m.toggle())],text("Aplicado somente ao Salvar. Iniciar o aplicativo nunca abre o microfone automaticamente.").size(12).color(m.muted)].spacing(18).into(),
         Section::Privacy=>column![text("Rede e privacidade").size(22).font(bold()),section("Sinalização do host",m),text_input("wss://seu-subdomínio",&app.endpoint).on_input(Msg::EndpointText).padding(10).style(m.input()),section("STUN (separar por vírgula)",m),text_input("stun:servidor:3478",&app.stun_text).on_input(Msg::StunText).padding(10).style(m.input()),text("O convite informa a sinalização aos convidados. Nenhum IP manual é necessário para entrar.").size(12).color(m.muted),rule::horizontal(1),text("P2P compartilha endereços de rede com os participantes. O host armazena as mensagens e consegue ler seu conteúdo.").size(13),text("TURN bloqueado: não há limite financeiro rígido homologado. Redes que exigem retransmissão ainda podem falhar.").size(13).color(m.muted),text("Dados da 1.4.1 permanecem separados. Nenhum plano pago é ativado pelo aplicativo.").size(12).color(m.muted)].spacing(15).into(),
     };
     row![

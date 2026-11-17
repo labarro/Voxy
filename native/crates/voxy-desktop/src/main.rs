@@ -4,10 +4,13 @@ mod bridge;
 mod chrome;
 mod design;
 mod fixtures;
+mod image_transfer;
 mod platform;
+mod preferences;
 mod qa;
 mod screens;
 mod windows_integration;
+mod world;
 use design::{Materials, alpha};
 use iced::{
     Border, Color, Element, Font,
@@ -70,6 +73,11 @@ enum Msg {
     Presence(String),
     NicknameColor(String),
     WindowsSetting(&'static str, bool),
+    Shortcut(&'static str, String),
+    AudioBoolean(&'static str, bool),
+    VoiceThreshold(f32),
+    NotificationPreference(&'static str, bool),
+    DndHour(bool),
     Search(String),
     OpenLink(String),
     Mention(uuid::Uuid),
@@ -132,6 +140,19 @@ enum Msg {
     Maximized(bool),
     Geometry(u8, Vec<qa::Bounds>),
     Close,
+    CloseTimeout,
+    Fullscreen,
+    World(&'static str),
+    WorldReady(
+        u64,
+        Result<Arc<std::sync::Mutex<world::WorldProcess>>, String>,
+    ),
+    CloseWorld,
+    PickImage,
+    ImagePicked(Result<Option<image_transfer::Picked>, String>),
+    OpenImage(voxy_core::images::ImageMetadata),
+    CancelImage,
+    CloseImage,
     MarkNotes,
     SmokeStep(u8),
     Captured(u8, iced::window::Screenshot),
@@ -160,6 +181,8 @@ struct App {
     profile: Profile,
     editing: Profile,
     windows_settings: windows_integration::WindowsSettings,
+    mute_shortcut: String,
+    deafen_shortcut: String,
     page: Page,
     section: Section,
     communities: Vec<Community>,
@@ -176,12 +199,21 @@ struct App {
     status: String,
     devices: Vec<AudioDevice>,
     control: Arc<VoiceControl>,
+    mic_control: Arc<VoiceControl>,
     mic_test: Option<MicrophoneTest>,
     atmosphere: art::Atmosphere,
     notes_pending: bool,
     smoke_dir: Option<std::path::PathBuf>,
     backdrop: bool,
     maximized: bool,
+    fullscreen: bool,
+    closing_session: bool,
+    world: Option<Arc<std::sync::Mutex<world::WorldProcess>>>,
+    world_generation: u64,
+    image_transfer: Option<image_transfer::Transfer>,
+    image_preview: Option<image_transfer::Preview>,
+    pending_image_target: Option<(uuid::Uuid, voxy_core::images::ImageTarget, String)>,
+    shutdown_sent: bool,
     geometry_failures: usize,
     geometry_nodes: usize,
     ready_file: Option<std::path::PathBuf>,
@@ -275,6 +307,8 @@ impl App {
                 store,
                 profile: profile.clone(),
                 windows_settings: windows_integration::WindowsSettings::from_profile(&profile),
+                mute_shortcut: preferences::shortcut_text(&profile, "muteShortcut"),
+                deafen_shortcut: preferences::shortcut_text(&profile, "deafenShortcut"),
                 editing: profile,
                 page: Page::Home,
                 section: Section::Profile,
@@ -307,12 +341,21 @@ impl App {
                 },
                 devices,
                 control: Arc::new(VoiceControl::default()),
+                mic_control: Arc::new(VoiceControl::default()),
                 mic_test: None,
                 atmosphere: Default::default(),
                 notes_pending,
                 smoke_dir,
                 backdrop: false,
                 maximized: false,
+                fullscreen: false,
+                closing_session: false,
+                world: None,
+                world_generation: 0,
+                image_transfer: None,
+                image_preview: None,
+                pending_image_target: None,
+                shutdown_sent: false,
                 geometry_failures: 0,
                 geometry_nodes: 0,
                 ready_file: args
@@ -480,13 +523,14 @@ impl App {
                 .then_some(Msg::Cancel)
             }),
             iced::window::resize_events().map(|(id, _)| Msg::WindowResized(id)),
+            iced::window::close_requests().map(|_| Msg::Close),
             if self.smoke_dir.is_none() {
                 Subscription::run(bridge::stream)
             } else {
                 Subscription::none()
             },
             iced::window::open_events().map(Msg::Ready),
-            if self.mic_test.is_some() {
+            if self.mic_test.is_some() || self.image_transfer.is_some() {
                 iced::time::every(std::time::Duration::from_millis(100)).map(|_| Msg::Tick)
             } else {
                 Subscription::none()
@@ -600,14 +644,58 @@ impl App {
                     .store(state.deafened, Ordering::Release);
                 self.status = state.error.clone().unwrap_or_else(|| state.phase.clone());
                 self.remote = state;
+                if let Some(transfer) = &self.image_transfer
+                    && let Some((_, value)) = self
+                        .remote
+                        .command_results
+                        .iter()
+                        .find(|(id, _)| *id == transfer.command.id)
+                        .cloned()
+                {
+                    match self.image_transfer.as_mut().unwrap().reply(&value) {
+                        Ok(image_transfer::Step::Next(action)) => self.send_image_action(action),
+                        Ok(image_transfer::Step::Uploaded(text)) => {
+                            if self.draft == text {
+                                self.draft.clear();
+                            }
+                            self.image_transfer = None;
+                            self.status = "Imagem confirmada pelo host.".into();
+                        }
+                        Ok(image_transfer::Step::Downloaded(preview)) => {
+                            self.image_preview = Some(preview);
+                            self.image_transfer = None;
+                        }
+                        Err(error) => {
+                            self.image_transfer = None;
+                            self.status = error.to_string();
+                        }
+                    }
+                }
                 if let Some(id) = notification {
                     let _ = self.update(Msg::NotificationOpen(id));
                 }
+                if self.closing_session
+                    && self.remote.voice.is_none()
+                    && self.remote.snapshot.is_none()
+                {
+                    return iced::exit();
+                }
+                if self.closing_session && self.remote.muted && !self.shutdown_sent {
+                    self.shutdown_sent = self.send_service(voxy_core::ipc::Request::Shutdown);
+                }
                 if focus {
-                    return iced::window::latest().and_then(iced::window::gain_focus);
+                    return iced::window::latest().and_then(|id| {
+                        Task::batch([
+                            iced::window::minimize(id, false),
+                            iced::window::gain_focus(id),
+                        ])
+                    });
                 }
             }
             Msg::ServiceError(error) => {
+                if self.closing_session && self.shutdown_sent {
+                    return iced::exit();
+                }
                 self.service = None;
                 self.status = error;
             }
@@ -706,10 +794,177 @@ impl App {
                     .insert("nicknameColor".into(), serde_json::json!(value));
             }
             Msg::Search(value) => self.search = value,
+            Msg::PickImage => {
+                if self.pending_image_target.is_some() {
+                    return Task::none();
+                }
+                let target = if self.page == Page::Direct {
+                    self.direct_peer
+                        .map(|to| voxy_core::images::ImageTarget::Direct { to })
+                } else {
+                    self.channel
+                        .map(|channel| voxy_core::images::ImageTarget::Channel { channel })
+                };
+                let Some(target) = target else {
+                    return Task::none();
+                };
+                let Some(server) = self.remote.snapshot.as_ref().map(|s| s.server.id) else {
+                    return Task::none();
+                };
+                if self.image_transfer.is_some() {
+                    self.status = "Conclua ou cancele a transferência atual.".into();
+                    return Task::none();
+                }
+                if !self.is_remote() {
+                    self.status = "Conecte o servidor antes de enviar uma imagem.".into();
+                    return Task::none();
+                }
+                self.pending_image_target = Some((server, target, self.draft.clone()));
+                return Task::perform(
+                    async {
+                        tokio::task::spawn_blocking(image_transfer::pick)
+                            .await
+                            .map_err(|error| error.to_string())
+                            .and_then(|value| value.map_err(|error| error.to_string()))
+                    },
+                    Msg::ImagePicked,
+                );
+            }
+            Msg::ImagePicked(result) => {
+                let selected = self.pending_image_target.take();
+                match result {
+                    Ok(Some(picked)) => {
+                        if let Some((server, target, text)) = selected {
+                            let same_target = match &target {
+                                voxy_core::images::ImageTarget::Channel { channel } => {
+                                    self.page == Page::Chat && self.channel == Some(*channel)
+                                }
+                                voxy_core::images::ImageTarget::Direct { to } => {
+                                    self.page == Page::Direct && self.direct_peer == Some(*to)
+                                }
+                            };
+                            if !same_target
+                                || self
+                                    .remote
+                                    .snapshot
+                                    .as_ref()
+                                    .is_none_or(|s| s.server.id != server)
+                            {
+                                self.status="Destino alterado; imagem não enviada. Selecione novamente no destino correto.".into();
+                                return Task::none();
+                            }
+                            let (transfer, action) =
+                                image_transfer::Transfer::upload(picked, target, text);
+                            self.image_transfer = Some(transfer);
+                            self.send_image_action(action);
+                        }
+                    }
+                    Ok(None) => {}
+                    Err(error) => self.status = error,
+                }
+            }
+            Msg::OpenImage(metadata) => {
+                if self.image_transfer.is_some() {
+                    return Task::none();
+                }
+                let transfer = image_transfer::Transfer::read(metadata);
+                let action = transfer.command.action.clone();
+                self.image_transfer = Some(transfer);
+                self.send_image_action(action);
+            }
+            Msg::CancelImage => {
+                if let Some(transfer) = self.image_transfer.take()
+                    && let Some(action) = transfer.cancel()
+                {
+                    self.send_action(action);
+                }
+                self.status = "Transferência de imagem cancelada.".into();
+            }
+            Msg::CloseImage => self.image_preview = None,
+            Msg::World(preset) => {
+                self.world = None;
+                self.world_generation += 1;
+                let generation = self.world_generation;
+                self.status = "Abrindo o renderer nativo; aguardando o primeiro frame.".into();
+                return Task::perform(
+                    async move {
+                        tokio::task::spawn_blocking(move || {
+                            world::WorldProcess::start(preset)
+                                .map(|world| Arc::new(std::sync::Mutex::new(world)))
+                                .map_err(|error| error.to_string())
+                        })
+                        .await
+                        .unwrap_or_else(|error| Err(error.to_string()))
+                    },
+                    move |result| Msg::WorldReady(generation, result),
+                );
+            }
+            Msg::WorldReady(generation, result) => {
+                if generation == self.world_generation {
+                    match result {
+                        Ok(world) => {
+                            self.world = Some(world);
+                            self.status="Prévia nativa em outra janela. Multiplayer, avatar dinâmico e jogos 3D ainda em migração.".into();
+                        }
+                        Err(error) => self.status = error,
+                    }
+                }
+            }
+            Msg::CloseWorld => {
+                self.world_generation += 1;
+                self.world = None;
+                self.status = "Mundo encerrado; processo gráfico liberado.".into();
+            }
+            Msg::Shortcut(field, value) => match field {
+                "mute" => self.mute_shortcut = value,
+                "deafen" => self.deafen_shortcut = value,
+                _ => {}
+            },
+            Msg::AudioBoolean(field, value) => {
+                if field == "voiceDetection" {
+                    self.editing.voice_detection = value;
+                } else {
+                    self.editing
+                        .retained
+                        .insert(field.into(), serde_json::json!(value));
+                }
+            }
+            Msg::VoiceThreshold(value) => self.editing.voice_threshold = value,
+            Msg::NotificationPreference(field, value) => {
+                let prefs = self
+                    .editing
+                    .retained
+                    .entry("notifications".into())
+                    .or_insert_with(|| serde_json::json!({}));
+                if !prefs.is_object() {
+                    *prefs = serde_json::json!({});
+                }
+                prefs[field] = serde_json::json!(value);
+            }
+            Msg::DndHour(value) => {
+                let prefs = self
+                    .editing
+                    .retained
+                    .entry("notifications".into())
+                    .or_insert_with(|| serde_json::json!({}));
+                if !prefs.is_object() {
+                    *prefs = serde_json::json!({});
+                }
+                prefs["dndUntil"] = serde_json::json!(if value {
+                    voxy_core::store::now_ms() + 3_600_000
+                } else {
+                    0
+                });
+            }
             Msg::WindowsSetting(field, value) => match field {
                 "launch" => self.windows_settings.launch_at_login = value,
                 "minimized" => self.windows_settings.start_minimized = value,
                 "protocol" => self.windows_settings.register_experimental_protocol = value,
+                "close" => {
+                    self.editing
+                        .retained
+                        .insert("closeToTray".into(), serde_json::json!(value));
+                }
                 _ => {}
             },
             Msg::OpenLink(url) => {
@@ -1048,6 +1303,9 @@ impl App {
                     self.editing = self.profile.clone();
                     self.windows_settings =
                         windows_integration::WindowsSettings::from_profile(&self.profile);
+                    self.mute_shortcut = preferences::shortcut_text(&self.profile, "muteShortcut");
+                    self.deafen_shortcut =
+                        preferences::shortcut_text(&self.profile, "deafenShortcut");
                 }
                 self.page = page;
                 self.atmosphere.cache.clear();
@@ -1078,6 +1336,14 @@ impl App {
             }
             Msg::Name(name) => self.editing.name = name,
             Msg::Save => {
+                if let Err(error) = preferences::write_shortcuts(
+                    &mut self.editing,
+                    &self.mute_shortcut,
+                    &self.deafen_shortcut,
+                ) {
+                    self.status = error.to_string();
+                    return Task::none();
+                }
                 let previous_windows =
                     windows_integration::WindowsSettings::from_profile(&self.profile);
                 let apply_windows =
@@ -1154,7 +1420,7 @@ impl App {
             }
             Msg::Gain(gain) => {
                 self.editing.input_volume = gain;
-                self.control.set_gain(gain);
+                self.mic_control.set_gain(gain);
             }
             Msg::Ptt(value) => self.editing.ptt_enabled = value,
             Msg::PttKey(key) => self.editing.ptt_key = key,
@@ -1181,12 +1447,30 @@ impl App {
                     self.mic_test = None;
                     self.status = "Teste encerrado. Microfone liberado.".into();
                 } else {
-                    self.control.device_failed.store(false, Ordering::Release);
-                    self.control.set_gain(self.editing.input_volume);
-                    match MicrophoneTest::start(
-                        self.editing.input.clone(),
-                        self.editing.output.clone(),
-                        self.control.clone(),
+                    self.mic_control = Arc::new(VoiceControl::default());
+                    self.mic_control.set_gain(self.editing.input_volume);
+                    match MicrophoneTest::start_config(
+                        voxy_voice::call::CallConfig {
+                            input: self.editing.input.clone(),
+                            output: self.editing.output.clone(),
+                            noise_suppression: self
+                                .editing
+                                .retained
+                                .get("noiseSuppression")
+                                .and_then(|v| v.as_bool())
+                                .unwrap_or(true),
+                            automatic_gain: self
+                                .editing
+                                .retained
+                                .get("autoGainControl")
+                                .and_then(|v| v.as_bool())
+                                .unwrap_or(true),
+                            echo_cancellation: false,
+                            voice_detection: self.editing.voice_detection,
+                            threshold: self.editing.voice_threshold,
+                            ptt_key: None,
+                        },
+                        self.mic_control.clone(),
                     ) {
                         Ok(test) => {
                             self.mic_test = Some(test);
@@ -1198,10 +1482,24 @@ impl App {
                 }
             }
             Msg::Tick => {
-                if self.control.device_failed.load(Ordering::Acquire) {
+                if self.mic_test.is_some()
+                    && (self.mic_control.device_failed.load(Ordering::Acquire)
+                        || self
+                            .mic_test
+                            .as_ref()
+                            .is_some_and(MicrophoneTest::is_finished))
+                {
                     self.mic_test = None;
                     self.status =
                         "Dispositivo desconectado. Escolha a entrada e tente novamente.".into();
+                }
+                if self.image_transfer.as_ref().is_some_and(|transfer| {
+                    transfer.sent.elapsed() > std::time::Duration::from_secs(15)
+                }) {
+                    let _ = self.update(Msg::CancelImage);
+                    self.status =
+                        "Imagem sem confirmação em 15 s. Transferência cancelada; tente novamente."
+                            .into();
                 }
             }
             Msg::NewServer => {
@@ -1210,6 +1508,12 @@ impl App {
             }
             Msg::ServerName(name) => self.server_name = name,
             Msg::Cancel => {
+                if self.image_preview.take().is_some() {
+                    return Task::none();
+                }
+                if self.fullscreen && !self.modal && !self.join_dialog {
+                    return self.update(Msg::Fullscreen);
+                }
                 self.modal = false;
                 self.join_dialog = false;
                 self.message_menu = None;
@@ -1361,7 +1665,45 @@ impl App {
             Msg::Maximized(value) => self.maximized = value,
             Msg::Close => {
                 self.mic_test = None;
+                if self
+                    .profile
+                    .retained
+                    .get("closeToTray")
+                    .and_then(|v| v.as_bool())
+                    == Some(false)
+                    && self.service.is_some()
+                {
+                    if self.send_service(voxy_core::ipc::Request::Controls {
+                        muted: true,
+                        deafened: self.remote.deafened,
+                    }) {
+                        self.closing_session = true;
+                        self.shutdown_sent = false;
+                        return Task::perform(
+                            async {
+                                tokio::time::sleep(std::time::Duration::from_secs(4)).await;
+                            },
+                            |_| Msg::CloseTimeout,
+                        );
+                    }
+                    return Task::none();
+                }
                 return iced::exit();
+            }
+            Msg::CloseTimeout => {
+                if self.closing_session {
+                    self.closing_session = false;
+                    self.status="O núcleo não confirmou o encerramento. Confira a bandeja e tente novamente.".into();
+                }
+            }
+            Msg::Fullscreen => {
+                self.fullscreen = !self.fullscreen;
+                let mode = if self.fullscreen {
+                    iced::window::Mode::Fullscreen
+                } else {
+                    iced::window::Mode::Windowed
+                };
+                return iced::window::latest().and_then(move |id| iced::window::set_mode(id, mode));
             }
             Msg::MarkNotes => {
                 if let Err(error) = self.store.mark_release(voxy_core::VERSION) {
@@ -1495,6 +1837,22 @@ impl App {
             deafened: self.control.deafened.load(Ordering::Relaxed),
         });
     }
+    fn send_image_action(&mut self, action: voxy_core::room::Action) {
+        let command = voxy_core::room::Command {
+            id: uuid::Uuid::new_v4(),
+            action,
+        };
+        if self.send_service(voxy_core::ipc::Request::Command {
+            command: command.clone(),
+        }) {
+            if let Some(transfer) = &mut self.image_transfer {
+                transfer.command = command;
+                transfer.sent = std::time::Instant::now();
+            }
+        } else {
+            self.image_transfer = None;
+        }
+    }
     fn action<'a>(&self, label: &str, msg: Msg, primary: bool) -> widget::Button<'a, Msg> {
         button(text(label.to_owned()).size(13))
             .padding([8, 12])
@@ -1523,7 +1881,39 @@ impl App {
         ]
         .height(Fill);
         let content: Element<'_, Msg> = stack![self.atmosphere.view(m), shell].into();
-        if self.join_dialog {
+        if let Some(preview) = &self.image_preview {
+            stack![
+                content,
+                container(
+                    container(
+                        column![
+                            row![
+                                text(&preview.name).size(16),
+                                space::horizontal(),
+                                self.action("Fechar", Msg::CloseImage, false)
+                            ]
+                            .align_y(iced::Center),
+                            widget::image(preview.handle.clone())
+                                .width(Fill)
+                                .height(Fill)
+                                .content_fit(iced::ContentFit::Contain)
+                        ]
+                        .spacing(12)
+                    )
+                    .padding(22)
+                    .width(Fill)
+                    .height(Fill)
+                    .style(move |_| m.dialog())
+                )
+                .padding(30)
+                .center(Fill)
+                .style(|_| container::Style {
+                    background: Some(alpha(Color::BLACK, 0.85).into()),
+                    ..Default::default()
+                })
+            ]
+            .into()
+        } else if self.join_dialog {
             stack![content,container(container(column![row![text("Entrar em servidor").font(bold()).size(20),space::horizontal(),self.action("×",Msg::Cancel,false)],text("Cole o convite enviado pelo dono do servidor.").size(13).color(m.muted),text_input("voxy://join/…",&self.invite_text).on_input(Msg::InviteText).on_submit(Msg::JoinRemote).padding(12).style(m.input()),text("Conexões diretas compartilham seu IP com os participantes. O host armazena as mensagens. TURN está desativado.").size(12).color(m.muted),row![space::horizontal(),self.action("Cancelar",Msg::Cancel,false),self.action("Entrar",Msg::JoinRemote,true)].spacing(8)].spacing(16)).padding(24).width(470).style(move |_|m.dialog())).center(Fill).style(|_|container::Style{background:Some(alpha(Color::BLACK,0.65).into()),..Default::default()})].into()
         } else if self.modal {
             stack![content,container(container(column![row![text("Criar servidor").font(bold()).size(20),space::horizontal(),self.action("×",Msg::Cancel,false)],text("Um lugar para o seu grupo, com canais de texto e voz.").size(14).color(m.muted),text_input("Nome do servidor",&self.server_name).on_input(Msg::ServerName).on_submit(Msg::CreateServer).padding(15).style(m.input()),text("Depois de criar, hospede o servidor e copie o convite para seu grupo.").color(m.muted).size(12),row![space::horizontal(),self.action("Cancelar",Msg::Cancel,false),self.action("Criar servidor",Msg::CreateServer,true)].spacing(10)].spacing(22)).padding(32).width(530).style(move|_|m.dialog())).center(Fill).width(Fill).height(Fill).style(|_|container::Style{background:Some(alpha(Color::BLACK,0.65).into()),..Default::default()})].into()
@@ -1568,6 +1958,7 @@ fn main() -> iced::Result {
             size: iced::Size::new(1240.0, 820.0),
             min_size: Some(iced::Size::new(900.0, 640.0)),
             decorations: false,
+            exit_on_close_request: false,
             ..Default::default()
         })
         .centered()

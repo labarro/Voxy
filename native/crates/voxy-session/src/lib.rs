@@ -255,7 +255,7 @@ pub(crate) async fn run(
                         if !state.acknowledgements.contains(&id){state.acknowledgements.push(id);if state.acknowledgements.len()>64{state.acknowledgements.remove(0);}}
                         state.command_results.retain(|(previous,_)|*previous!=id);
                         state.command_results.push((id,value));
-                        if state.command_results.len()>1{state.command_results.remove(0);}
+                        while state.command_results.len()>16 || (state.command_results.len()>1 && serde_json::to_vec(&state.command_results).is_ok_and(|bytes|bytes.len()>512*1024)){state.command_results.remove(0);}
                     },
                     Event::InviteRotated(invite)=>{
                         match invite.encode(){Ok(encoded)=>{
@@ -318,6 +318,11 @@ fn audio_config(profile: &Profile) -> CallConfig {
     CallConfig {
         input: profile.input.clone(),
         output: profile.output.clone(),
+        echo_cancellation: profile
+            .retained
+            .get("echoCancellation")
+            .and_then(|value| value.as_bool())
+            .unwrap_or(true),
         noise_suppression: profile
             .retained
             .get("noiseSuppression")

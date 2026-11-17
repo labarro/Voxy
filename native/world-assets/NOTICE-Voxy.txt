@@ -1,0 +1,1 @@
+Geometria procedural e texturas autorais geradas a partir do repositório Voxy. A licença declarada em package.json é MIT. Os hashes e caminhos de autoria constam em sources.json. O repositório não contém um arquivo LICENSE raiz; consolidar o aviso completo de copyright/licença antes da distribuição pública.

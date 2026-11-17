@@ -241,36 +241,126 @@ pub struct MicrophoneTest {
 }
 impl MicrophoneTest {
     pub fn start(input: String, output: String, control: Arc<VoiceControl>) -> Result<Self> {
-        let capture = Capture::start(&input, control.clone())?;
-        let playback = Playback::start(&output, control.clone())?;
+        Self::start_config(
+            crate::call::CallConfig {
+                input,
+                output,
+                ..Default::default()
+            },
+            control,
+        )
+    }
+    /// The private monitor uses the same NS/AGC/manual gain/VAD chain as calls.
+    /// AEC is bypassed deliberately: monitoring one's own voice through speakers
+    /// is not a far-end reference. Use headphones; no network exists in this path.
+    pub fn start_config(
+        config: crate::call::CallConfig,
+        control: Arc<VoiceControl>,
+    ) -> Result<Self> {
+        anyhow::ensure!(
+            config.threshold.is_finite() && (-100.0..=0.0).contains(&config.threshold),
+            "Sensibilidade inválida"
+        );
+        let capture = Capture::start(&config.input, control.clone())?;
+        let playback = Playback::start(&config.output, control.clone())?;
         let stop = Arc::new(std::sync::atomic::AtomicBool::new(false));
         let stopping = stop.clone();
+        let (ready_tx, ready_rx) = std::sync::mpsc::sync_channel(1);
         let worker = std::thread::Builder::new()
             .name("voxy-mic-test".into())
             .spawn(move || {
                 // Retain the device owners, including their streams, for the full test.
                 let mut capture = capture;
                 let mut playback = playback;
+                // The upstream graph is thread-confined, so construct and drop
+                // it on this owner instead of asserting an unsafe Send contract.
+                let mut processor = match crate::processing::CaptureProcessor::new(
+                    false,
+                    config.noise_suppression,
+                    config.automatic_gain,
+                    config.threshold,
+                    config.voice_detection,
+                ) {
+                    Ok(processor) => processor,
+                    Err(error) => {
+                        let _ = ready_tx.send(Err(error.to_string()));
+                        return;
+                    }
+                };
+                let mut capture_block = [0.0; crate::processing::BLOCK];
+                let mut count = 0;
+                let mut processed = [0.0; crate::processing::BLOCK];
+                let mut ready = Some(ready_tx);
+                let mut watchdog =
+                    crate::call::DeviceWatchdog::new(std::time::Instant::now(), &control);
                 while !stopping.load(Ordering::Acquire)
                     && !control.device_failed.load(Ordering::Acquire)
                 {
-                    let mut count = 0;
-                    while let Ok(sample) = capture.samples.pop() {
-                        let _ = playback
-                            .samples
-                            .push((sample * control.gain()).clamp(-0.98, 0.98));
-                        count += 1;
-                        if count >= 960 {
-                            break;
+                    if !watchdog.healthy(std::time::Instant::now(), &control) {
+                        control.device_failed.store(true, Ordering::Release);
+                        break;
+                    }
+                    while count < crate::processing::BLOCK {
+                        match capture.samples.pop() {
+                            Ok(sample) => {
+                                capture_block[count] = sample;
+                                count += 1;
+                            }
+                            Err(_) => break,
                         }
                     }
-                    std::thread::sleep(std::time::Duration::from_millis(2));
+                    if count == crate::processing::BLOCK {
+                        match processor.process(
+                            &[0.0; crate::processing::BLOCK],
+                            &capture_block,
+                            &mut processed,
+                            &control,
+                        ) {
+                            Ok(true) => {
+                                for sample in processed {
+                                    let _ = playback.samples.push(sample);
+                                }
+                                if let Some(ready) = ready.take() {
+                                    let _ = ready.send(Ok(()));
+                                }
+                            }
+                            Ok(false) => {}
+                            Err(_) => {
+                                control.device_failed.store(true, Ordering::Release);
+                                break;
+                            }
+                        }
+                        count = 0;
+                        for _ in 0..crate::processing::BLOCK {
+                            let _ = playback.rendered.pop();
+                        }
+                    } else {
+                        std::thread::sleep(std::time::Duration::from_millis(1));
+                    }
                 }
             })?;
+        match ready_rx.recv_timeout(std::time::Duration::from_secs(3)) {
+            Ok(Ok(())) => {}
+            failure => {
+                stop.store(true, Ordering::Release);
+                let _ = worker.join();
+                if let Ok(Err(error)) = failure {
+                    bail!("{error}");
+                }
+                bail!(
+                    "Teste privado não produziu áudio no prazo; verifique dispositivos e processamento"
+                );
+            }
+        }
         Ok(Self {
             stop,
             worker: Some(worker),
         })
+    }
+    pub fn is_finished(&self) -> bool {
+        self.worker
+            .as_ref()
+            .is_none_or(|worker| worker.is_finished())
     }
 }
 impl Drop for MicrophoneTest {

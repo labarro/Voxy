@@ -1,0 +1,7 @@
+{
+  "name": "voxy-native-world-authoring",
+  "private": true,
+  "type": "module",
+  "scripts": { "export": "node ../../node_modules/esbuild/bin/esbuild export-scenes.ts --bundle --platform=node --format=esm --external:@napi-rs/canvas --outfile=.generated/export-scenes.mjs && node .generated/export-scenes.mjs" },
+  "dependencies": { "@napi-rs/canvas": "1.1.1" }
+}

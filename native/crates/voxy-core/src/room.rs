@@ -27,6 +27,29 @@ pub struct Command {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum Action {
+    ImageBegin {
+        upload: Uuid,
+        target: crate::images::ImageTarget,
+        name: String,
+        total_bytes: u32,
+        sha256: String,
+    },
+    ImageChunk {
+        upload: Uuid,
+        offset: u32,
+        data: String,
+    },
+    ImageCancel {
+        upload: Uuid,
+    },
+    ImageCommit {
+        upload: Uuid,
+        text: String,
+    },
+    ImageRead {
+        id: Uuid,
+        offset: u32,
+    },
     Game {
         channel: Uuid,
         command: crate::game_service::GameCommand,
@@ -128,6 +151,19 @@ pub enum Action {
         deafened: bool,
     },
 }
+impl Action {
+    pub fn changes_snapshot(&self) -> bool {
+        !matches!(
+            self,
+            Self::ImageBegin { .. }
+                | Self::ImageChunk { .. }
+                | Self::ImageCancel { .. }
+                | Self::ImageRead { .. }
+                | Self::History { .. }
+                | Self::Search { .. }
+        )
+    }
+}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Snapshot {
     pub server: Community,
@@ -209,6 +245,8 @@ pub struct DirectMessage {
     pub edited_at: Option<i64>,
     #[serde(default)]
     pub read_at: Option<i64>,
+    #[serde(default)]
+    pub attachments: Vec<crate::images::ImageMetadata>,
 }
 pub struct RoomHost {
     store: Store,
@@ -216,6 +254,7 @@ pub struct RoomHost {
     owner_key: String,
     members: BTreeMap<String, Member>,
     games: crate::game_service::GameService,
+    uploads: crate::images::Uploads,
 }
 fn validate_color(color: &str, allow_empty: bool) -> Result<()> {
     ensure!(
@@ -245,12 +284,14 @@ impl RoomHost {
             "INSERT OR IGNORE INTO native_history_revision(server) VALUES(?1)",
             [server.id.to_string()],
         )?;
+        crate::images::initialize_direct(&store)?;
         Ok(Self {
             store,
             server,
             owner_key,
             members: Default::default(),
             games: Default::default(),
+            uploads: Default::default(),
         })
     }
     pub fn admit(&mut self, key: String, id: Uuid, name: String) -> Result<()> {
@@ -314,6 +355,9 @@ impl RoomHost {
         Ok(())
     }
     pub fn remove(&mut self, key: &str) {
+        if let Some(member) = self.members.get(key) {
+            self.uploads.remove_owner(member.id);
+        }
         self.members.remove(key);
     }
     pub fn advance_games(&mut self, now: i64) -> Result<bool> {
@@ -389,10 +433,14 @@ impl RoomHost {
                     time,
                     edited_at,
                     read_at,
+                    attachments: Default::default(),
                 })
             })
             .collect::<Result<Vec<_>>>()?;
         direct.reverse();
+        for message in &mut direct {
+            message.attachments = crate::images::attachments(&self.store, message.id, true)?;
+        }
         crate::store::bound_history(&mut direct, 256 * 1024)?;
         let channels = self.store.channels(self.server.id)?;
         let mut messages = Vec::new();
@@ -449,6 +497,48 @@ impl RoomHost {
         }
         // Read-only history is bounded and must not bloat durable replay receipts.
         match &command.action {
+            Action::ImageBegin {
+                upload,
+                target,
+                name,
+                total_bytes,
+                sha256,
+            } => {
+                self.require_image_target(member.id, target)?;
+                let received = self.uploads.begin(
+                    member.id,
+                    *upload,
+                    target.clone(),
+                    name.clone(),
+                    *total_bytes,
+                    sha256.clone(),
+                    now_ms(),
+                )?;
+                return Ok(serde_json::json!({"upload":upload,"received":received}));
+            }
+            Action::ImageChunk {
+                upload,
+                offset,
+                data,
+            } => {
+                let received = self
+                    .uploads
+                    .chunk(member.id, *upload, *offset, data, now_ms())?;
+                return Ok(serde_json::json!({"upload":upload,"received":received}));
+            }
+            Action::ImageCancel { upload } => {
+                self.uploads.cancel(member.id, *upload)?;
+                return Ok(serde_json::json!({"cancelled":upload}));
+            }
+            Action::ImageRead { id, offset } => {
+                return crate::images::read_chunk(
+                    &self.store,
+                    self.server.id,
+                    member.id,
+                    *id,
+                    *offset,
+                );
+            }
             Action::History { channel, before } => {
                 self.require_channel(*channel)?;
                 return Ok(serde_json::to_value(
@@ -477,9 +567,86 @@ impl RoomHost {
         }
         let previous_members = self.members.clone();
         let previous_server = self.server.clone();
+        let committed_upload = match &command.action {
+            Action::ImageCommit { upload, .. } => Some(*upload),
+            _ => None,
+        };
         self.store.db.execute_batch("BEGIN IMMEDIATE")?;
         let result = (|| -> Result<serde_json::Value> {
             let value = match command.action {
+                Action::ImageBegin { .. }
+                | Action::ImageChunk { .. }
+                | Action::ImageCancel { .. }
+                | Action::ImageRead { .. } => {
+                    unreachable!("Ephemeral image transfer handled outside persistent receipts")
+                }
+                Action::ImageCommit { upload, text } => {
+                    ensure!(
+                        text.chars().count() <= 4000 && !text.contains('\0'),
+                        "Legenda excede o limite"
+                    );
+                    let (target, image) = self.uploads.finish(member.id, upload, now_ms())?;
+                    self.require_image_target(member.id, &target)?;
+                    let id = Uuid::new_v4();
+                    match target {
+                        crate::images::ImageTarget::Channel { channel } => {
+                            self.store.db.execute(
+                                "INSERT INTO native_messages VALUES(?1,?2,?3,?4,?5,?6,NULL)",
+                                rusqlite::params![
+                                    id.to_string(),
+                                    channel.to_string(),
+                                    member.id.to_string(),
+                                    member.name,
+                                    text.trim(),
+                                    now_ms()
+                                ],
+                            )?;
+                            crate::images::persist(
+                                &self.store,
+                                self.server.id,
+                                member.id,
+                                id,
+                                false,
+                                &image,
+                            )?;
+                            self.notify_mentions(&Message {
+                                id,
+                                channel_id: channel,
+                                author: member.id,
+                                name: member.name.clone(),
+                                text: text.trim().into(),
+                                time: now_ms(),
+                                edited_at: None,
+                                reply_to: None,
+                                reactions: Default::default(),
+                                attachments: vec![image.metadata.clone()],
+                            })?;
+                        }
+                        crate::images::ImageTarget::Direct { to } => {
+                            self.store.db.execute(
+                                "INSERT INTO native_direct VALUES(?1,?2,?3,?4,?5,?6)",
+                                rusqlite::params![
+                                    id.to_string(),
+                                    self.server.id.to_string(),
+                                    member.id.to_string(),
+                                    to.to_string(),
+                                    text.trim(),
+                                    now_ms()
+                                ],
+                            )?;
+                            crate::images::persist(
+                                &self.store,
+                                self.server.id,
+                                member.id,
+                                id,
+                                true,
+                                &image,
+                            )?;
+                            self.notify(to, "direct", member.id, Some(id), None)?;
+                        }
+                    }
+                    serde_json::json!({"id":id,"image":image.metadata})
+                }
                 Action::Game { .. } => {
                     unreachable!("game command handled outside persistent social transaction")
                 }
@@ -813,6 +980,9 @@ impl RoomHost {
         match result {
             Ok(value) => {
                 self.store.db.execute_batch("COMMIT")?;
+                if let Some(upload) = committed_upload {
+                    self.uploads.cancel(member.id, upload)?;
+                }
                 for (key, previous) in &previous_members {
                     if self.members.get(key).and_then(|m| m.voice) != previous.voice
                         && let Some(channel) = previous.voice
@@ -836,6 +1006,20 @@ impl RoomHost {
             .into_iter()
             .find(|c| c.id == id)
             .context("Canal não pertence a este servidor")
+    }
+    fn require_image_target(&self, actor: Uuid, target: &crate::images::ImageTarget) -> Result<()> {
+        match target {
+            crate::images::ImageTarget::Channel { channel } => ensure!(
+                self.require_channel(*channel)?.kind == ChannelKind::Text,
+                "Canal não permite imagens"
+            ),
+            crate::images::ImageTarget::Direct { to } => {
+                ensure!(*to != actor, "Destinatário inválido");
+                let friends:bool=self.store.db.query_row("SELECT EXISTS(SELECT 1 FROM native_friends WHERE server=?1 AND accepted=1 AND ((requester=?2 AND recipient=?3) OR (requester=?3 AND recipient=?2)))",rusqlite::params![self.server.id.to_string(),actor.to_string(),to.to_string()],|row|row.get(0))?;
+                ensure!(friends, "Aceite a amizade antes da imagem privada");
+            }
+        }
+        Ok(())
     }
     fn invalidate_history(&self) -> Result<()> {
         self.store.db.execute(

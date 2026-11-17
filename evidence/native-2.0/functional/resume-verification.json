@@ -1,0 +1,27 @@
+{
+  "checkedAt": "2026-11-17T17:06:01.316Z",
+  "version": "2.0.0",
+  "publishedVersion": "1.4.1",
+  "native": {
+    "passed": 70,
+    "ignored": 8,
+    "failed": 0,
+    "clippyWarningsDenied": true
+  },
+  "legacy": {
+    "passed": 83,
+    "failed": 0,
+    "buildPassed": true
+  },
+  "localSessionIntegration": {
+    "passed": 3,
+    "imageUploadCommitReadOverIpcAndP2p": true,
+    "publicInternet": false,
+    "physicalMicrophone": false
+  },
+  "nativeProductionBuildCurrent": false,
+  "installerValidatedInVm": false,
+  "published": false,
+  "subagentsRunning": false,
+  "newResourceBenchmarks": false
+}

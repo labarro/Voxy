@@ -114,3 +114,8 @@ Envio arbitrário de arquivos além de imagens não foi identificado na base atu
 ## Execução contínua — 17/11/2026
 
 Estados distinguem implementação, integração e teste automático da homologação física. As portas de jogos não substituem mesas 3D por interfaces alternativas. Nenhuma paridade global é declarada. Evidências em evidence/native-2.0/functional.
+
+
+## Consolidação da retomada
+
+CH01 e SO02 avançaram: imagens PNG/JPEG com upload/read autenticados, persistência, limites e galeria nativa integrados; continuam pendentes os formatos/fluxos legados ainda não migrados e a homologação física. WD01–WD03 têm geometria procedural/catalogação e renderer nativo verificáveis, sem declarar ambientes socialmente completos. Vídeo tem captura e codec/transporte em testes isolados; MV/NEW06 não estão homologados. UP03/UP04 têm preparação de fontes de empacotamento, sem release, instalador homologado ou updater nativo completo.

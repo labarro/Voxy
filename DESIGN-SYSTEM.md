@@ -69,3 +69,8 @@ Capturas, testes executados e limitações ficam em [TESTING.md](TESTING.md). N�
 ## Execução contínua — 17/11/2026
 
 **Design & Release Polish** obrigatório e adiado até conclusão funcional. Liquid Glass, paletas, reflexos e animações decorativas estão congelados. Implementar apenas interfaces necessárias aos fluxos e corrigir impedimentos de uso. Capturas verificam renderização/geometria, sem aprovação estética automática.
+
+
+## Consolidação da retomada
+
+Interfaces de anexo, galeria, controles de áudio/Windows e abertura de prévias foram adicionadas para uso funcional, preservando o congelamento estético. Não representam aprovação artística, paridade do avatar ou Design & Release Polish executado.

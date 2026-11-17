@@ -51,7 +51,9 @@ impl Store {
             PRAGMA user_version=1;")?;
         db.execute_batch("CREATE TABLE IF NOT EXISTS native_replies(message TEXT PRIMARY KEY REFERENCES native_messages(id) ON DELETE CASCADE,target TEXT REFERENCES native_messages(id) ON DELETE SET NULL);
             CREATE TABLE IF NOT EXISTS native_reactions(message TEXT NOT NULL REFERENCES native_messages(id) ON DELETE CASCADE,actor TEXT NOT NULL,emoji TEXT NOT NULL,PRIMARY KEY(message,actor,emoji));")?;
-        Ok(Self { db })
+        let store = Self { db };
+        crate::images::initialize(&store)?;
+        Ok(store)
     }
     pub fn profile(&self) -> Result<Profile> {
         let raw = self
@@ -284,6 +286,7 @@ impl Store {
             edited_at: None,
             reply_to: None,
             reactions: Default::default(),
+            attachments: Default::default(),
         };
         self.db.execute(
             "INSERT INTO native_messages VALUES(?1,?2,?3,?4,?5,?6,NULL)",
@@ -345,6 +348,7 @@ impl Store {
                     edited_at,
                     reply_to: None,
                     reactions: Default::default(),
+                    attachments: Default::default(),
                 })
             })
             .collect::<Result<_>>()?;
@@ -355,6 +359,7 @@ impl Store {
     }
     fn decorate_messages(&self, messages: &mut [Message]) -> Result<()> {
         for message in messages {
+            message.attachments = crate::images::attachments(self, message.id, false)?;
             let target: Option<String> = self
                 .db
                 .query_row(
@@ -460,6 +465,7 @@ impl Store {
                     edited_at,
                     reply_to: None,
                     reactions: Default::default(),
+                    attachments: Default::default(),
                 })
             })
             .collect::<Result<Vec<_>>>()?;

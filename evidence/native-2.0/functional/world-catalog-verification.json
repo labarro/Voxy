@@ -1,0 +1,47 @@
+{
+  "date": "2026-11-17T16:56:58.999Z",
+  "method": "Preserved procedural authoring sources baked into native asset data; checksum and layout verification, not physical gameplay approval",
+  "sources": 18,
+  "scenes": [
+    {
+      "preset": "lounge",
+      "vertices": 50934,
+      "draws": 334,
+      "materials": 113,
+      "textures": 18,
+      "colliders": 32,
+      "seats": 15,
+      "meshBytes": 2241096
+    },
+    {
+      "preset": "cinema",
+      "vertices": 50250,
+      "draws": 218,
+      "materials": 63,
+      "textures": 4,
+      "colliders": 22,
+      "seats": 12,
+      "meshBytes": 2211000
+    },
+    {
+      "preset": "rooftop",
+      "vertices": 92316,
+      "draws": 242,
+      "materials": 85,
+      "textures": 15,
+      "colliders": 38,
+      "seats": 19,
+      "meshBytes": 4061904
+    },
+    {
+      "preset": "avatar-default-rest",
+      "vertices": 22026,
+      "draws": 28,
+      "materials": 24,
+      "textures": 2,
+      "colliders": 0,
+      "seats": 0,
+      "meshBytes": 969144
+    }
+  ]
+}

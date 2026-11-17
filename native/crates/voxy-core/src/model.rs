@@ -100,6 +100,8 @@ pub struct Message {
     pub reply_to: Option<Uuid>,
     #[serde(default)]
     pub reactions: std::collections::BTreeMap<String, Vec<Uuid>>,
+    #[serde(default)]
+    pub attachments: Vec<crate::images::ImageMetadata>,
 }
 
 pub fn validate_text(value: &str, max: usize) -> anyhow::Result<()> {

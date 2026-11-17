@@ -56,3 +56,17 @@ Suíte Rust comum: **56 testes passaram**, seis integrações opt-in ficam ignor
 WGC/D3D11 real: 14 frames de uma janela própria de teste, dois ciclos MTA, seis capturas/liberações e dois redimensionamentos. Uma câmera teve apenas metadados enumerados; não foi ativada. Corrigidas falhas de ciclo COM detectadas durante esse teste. Backend ainda sem streaming/encode/decode/UI/áudio. Bandeja nativa tem abrir/mute/deafen/sair e ciclo de criação/destruição verificado por API; notificações usam balão Shell somente com UI encerrada, respeitando tipos/DND/Busy/som e sem reemitir histórico. Clique humano e toast/Action Center não homologados.
 
 Inicialização automática e protocolo **voxy-native://** são preferências explícitas experimentais, com rollback de registro testado em memória. **voxy://** estável não é substituído. Nenhum registro real foi alterado nos testes. Código, package/lock, saída e catálogo permanecem **2.0.0 em preparação**; última publicação **1.4.1**. Sem push, deploy, tag ou release.
+
+
+## Consolidação da retomada
+
+Retomada após interrupção por limite de uso. Os agentes auxiliares foram encerrados após a solicitação de reduzir consumo; nenhuma frente nova será aberta neste checkpoint. Código consolidado: imagens PNG/JPEG até 3 MiB em blocos de 32 KiB, quotas/TTL/ACL/hash/decodificação limitada, commit transacional repetível e anexos sem bytes nos snapshots; UI com seletor nativo, cancelamento, timeout e galeria. O destino de envio fica vinculado à seleção original para impedir envio a outra conversa após navegar.
+
+Mundo: catálogos com geometria/material/texturas/colisores/assentos originais, renderer wgpu separado, quatro capturas GPU e handshake do primeiro frame; ainda sem avatar dinâmico, multiplayer, interações completas ou apresentação dos jogos. Voz: pipeline privado/chamada compartilha NS/AGC/ganho/VAD; AEC pode ser desativado sem desligar os outros estágios; teste privado usa controle independente e não tem rede. Backend de vídeo: Media Foundation H.264 software e roundtrip RTP/SRTP local sintético; hardware obrigatório é recusado explicitamente.
+
+Verificações da retomada: core 27 testes e Clippy passaram; suíte workspace comum passou antes da última proteção de contexto do seletor; Clippy workspace passou. Backend de mídia teve 10 testes de rede, dois de codec e um de vídeo opt-in aprovados, sem capturar conteúdo pessoal ou ativar webcam. As verificações finais e resultados entre processos ficam na evidência de sessão. Não foram medidos novos benchmarks de memória/CPU/GPU/VRAM, acústica ou soak. Fontes de instalador/portable preparadas; pacote com os binários mais recentes e ensaio de instalação/desinstalação em VM ainda precisam de validação.
+
+Próxima retomada: validar os artefatos nativos atuais, ampliar integração visual e de mídia, webcam/áudio seguro por processo, multiplayer/avatar/animações/mesas 3D, dados legados privados e updater com recuperação. Rede pública, custo de TURN e homologação física continuam bloqueadores externos. Redesign permanece congelado.
+
+
+Checkpoint validation: 70 Rust tests passed, 8 opt-in ignored; Clippy passed; npm test 83/83 and npm run build passed. Local session integration 3/3 includes image upload/commit/read over IPC/P2P. Version/catalog/output 2.0.0 synchronized. Evidence: evidence/native-2.0/functional/resume-verification.json. Current native production build and VM installer validation remain pending. No publication.

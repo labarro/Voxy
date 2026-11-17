@@ -119,3 +119,8 @@ Nenhum procedimento acima foi executado na conta do usuário. Diagnóstico expor
 ## Execução contínua — 17/11/2026
 
 Worker verifica sala, esquema, deadline, sequência por destino/nonce, tamanhos e orçamento de bytes. Renovação exige host autenticado; após ack, o host encerra os vínculos antigos. Eventos peer-left são vinculados à geração. Testes locais não homologam internet pública. Sem deploy ou plano pago; TURN bloqueado. Configuração externa agrupada: conta Free/account ID, subdomínio, login Wrangler escopado, revisão de cotas e duas redes reais. Nunca incluir token no binário ou convite. Preparação local e bundle sem deploy em infra/signaling/README.md.
+
+
+## Consolidação da retomada
+
+Comandos de imagem Begin/Chunk/Read/Cancel não retransmitem snapshots completos; bytes via DataChannel, sem levar imagens ao Worker. Novo teste de sessão percorre upload, commit, metadados e leitura pelo IPC/P2P local. Isso não homologa redes externas, NAT restritivo ou relay financeiro.

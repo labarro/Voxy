@@ -124,3 +124,8 @@ Fase 0 ainda não está integralmente homologada por causa dessas lacunas. Nenhu
 ## Execução contínua — 17/11/2026
 
 Limites de filas/frames, watchdogs e páginas são controles de recursos, não benchmarks de ganho. Não foi comprovada redução adicional de RAM/CPU, latência acústica ou GPU/VRAM neste conjunto. A referência Electron de 572,3 MiB continua restrita ao cenário original; regras sem renderização não são comparáveis ao mundo 3D completo.
+
+
+## Consolidação da retomada
+
+Não houve nova medição comparável de recursos nesta retomada. O backend H.264 foi testado com padrões NV12 sintéticos, não com conteúdo real em compartilhamento. RMS/correlação sintéticos de DSP/Opus são testes de regressão de sinal, sem equivaler a inteligibilidade, latência ou ausência de eco física.

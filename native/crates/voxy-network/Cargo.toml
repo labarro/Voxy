@@ -21,6 +21,7 @@ url = "2.5"
 bytes = "1.10"
 async-trait = "0.1"
 rtc = "=0.21.1"
+rtp = { package = "rtc-rtp", version = "=0.21.1" }
 tokio-tungstenite = { version = "0.28", features = ["rustls-tls-webpki-roots"] }
 futures-util = "0.3"
 

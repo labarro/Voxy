@@ -1,0 +1,25 @@
+[package]
+name = "voxy-world"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+bytemuck = { version = "=1.25.2", features = ["derive"] }
+glam = "=0.30.9"
+pollster = "=0.4.0"
+png = "0.18"
+wgpu = { version = "=27.0.1", default-features = false, features = ["dx12", "wgsl"] }
+winit = { version = "=0.30.13", default-features = false, features = ["rwh_06"] }
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

@@ -4,8 +4,7 @@ use crate::{
     codec::{FRAME_SAMPLES, VoiceDecoder, VoiceEncoder},
     control::{GlobalPtt, VoiceControl},
     devices::{Capture, Playback},
-    dsp::VoiceGate,
-    processing::{AudioProcessing, BLOCK},
+    processing::{BLOCK, CaptureProcessor},
 };
 use anyhow::{Context, Result, ensure};
 use std::{
@@ -30,14 +29,14 @@ pub struct EncodedVoice {
 }
 
 /// Detect callback loss even when the backend fails to deliver an error event.
-struct DeviceWatchdog {
+pub(crate) struct DeviceWatchdog {
     captured: u64,
     rendered: u64,
     capture_progress: Instant,
     render_progress: Instant,
 }
 impl DeviceWatchdog {
-    fn new(now: Instant, control: &VoiceControl) -> Self {
+    pub(crate) fn new(now: Instant, control: &VoiceControl) -> Self {
         Self {
             captured: control.captured_samples.load(Ordering::Relaxed),
             rendered: control.rendered_samples.load(Ordering::Relaxed),
@@ -45,7 +44,7 @@ impl DeviceWatchdog {
             render_progress: now,
         }
     }
-    fn healthy(&mut self, now: Instant, control: &VoiceControl) -> bool {
+    pub(crate) fn healthy(&mut self, now: Instant, control: &VoiceControl) -> bool {
         let captured = control.captured_samples.load(Ordering::Relaxed);
         let rendered = control.rendered_samples.load(Ordering::Relaxed);
         if captured != self.captured {
@@ -100,6 +99,7 @@ pub struct CallConfig {
     pub input: String,
     pub output: String,
     pub noise_suppression: bool,
+    pub echo_cancellation: bool,
     pub automatic_gain: bool,
     pub voice_detection: bool,
     pub threshold: f32,
@@ -111,6 +111,7 @@ impl Default for CallConfig {
             input: String::new(),
             output: String::new(),
             noise_suppression: true,
+            echo_cancellation: true,
             automatic_gain: true,
             voice_detection: false,
             threshold: -45.0,
@@ -267,7 +268,7 @@ impl CallAudio {
                 let mut playback = playback;
                 let _ptt = ptt;
                 let mut processor =
-                    match AudioProcessing::new(40, config.noise_suppression, config.automatic_gain)
+                    match CaptureProcessor::new(config.echo_cancellation, config.noise_suppression, config.automatic_gain,config.threshold,config.voice_detection)
                     {
                         Ok(processor) => processor,
                         Err(error) => {
@@ -284,7 +285,6 @@ impl CallAudio {
                 let mut processed = [0.0; BLOCK];
                 let mut outgoing = [0.0; FRAME_SAMPLES];
                 let mut outgoing_count = 0;
-                let mut gate = VoiceGate::default();
                 let mut packet = [0; 1275];
                 let mut next_playout = Instant::now();
                 let mut device_watchdog = DeviceWatchdog::new(Instant::now(), &worker_control);
@@ -392,21 +392,12 @@ impl CallAudio {
                             *sample = playback.rendered.pop().unwrap_or(0.0);
                         }
                         let produced =
-                            processor.process(&render, &capture_block, &mut processed)?;
+                            processor.process(&render, &capture_block, &mut processed,&worker_control)?;
                         worker_control
                             .processed_blocks
                             .fetch_add(1, Ordering::Relaxed);
                         capture_count = 0;
                         if produced {
-                            gate.process(
-                                &mut processed,
-                                config.threshold,
-                                config.voice_detection,
-                                worker_control.gain(),
-                            );
-                            if !worker_control.may_transmit() {
-                                processed.fill(0.0);
-                            }
                             outgoing[outgoing_count..outgoing_count + BLOCK]
                                 .copy_from_slice(&processed);
                             outgoing_count += BLOCK;

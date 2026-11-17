@@ -57,3 +57,8 @@ Importador: voxy-core import-legacy <origem-fechada> <destino-vazio>. Executar s
 Chat conectado: Responder e reagir no menu; Buscar consulta o host, Anteriores pede outra página. Menções usam @{UUID} ou Mencionar no participante. Home mostra notificações do servidor. DMs permitem edição/exclusão próprias e leitura explícita. Administração oferece cargos de identificação e atribuição a membros conectados, sem poderes administrativos novos. Revogar e gerar novo remove convidados atuais após confirmação.
 
 Importação: somente sobre cópia fechada e destino vazio. Converte perfil, servidores com dono, canais, mensagens, respostas e reações; verifica integridade/FKs e contagens. Não reivindica servidores sem dono. Autores legados ficam reservados até migração autenticada. Anexos, DMs, amigos, DPAPI Electron e presets LevelDB continuam no backup, sem alegar conversão. Em erro, reverte a transação e mantém backup; repetir em outro destino vazio.
+
+
+## Consolidação da retomada
+
+Enviar imagem: no chat conectado ou DM, escolher Enviar imagem, selecionar PNG/JPEG até 3 MiB; o host confirma o arquivo validado. Abrir imagem busca blocos autenticados e mostra a galeria; Esc fecha. Trocar o destino durante o seletor cancela o envio. Transferências têm cancelamento e timeout. As prévias de mundo exigem voxy-world.exe e world-assets; confirmam o primeiro frame, preservam a sessão de voz e são encerradas com a UI. As configurações de áudio incluem NS/AEC/AGC/VAD/sensibilidade e atalhos nativos; o teste privado não usa rede nem AEC e exige fones. Windows oferece início automático/minimizado, fechamento configurável, fullscreen e protocolo experimental separado.

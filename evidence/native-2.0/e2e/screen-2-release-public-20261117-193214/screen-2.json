@@ -1,0 +1,219 @@
+{
+  "binaries": "target/release",
+  "checks": [
+    {
+      "atSeconds": 14.978724479675293,
+      "check": "instâncias reais independentes",
+      "detail": {
+        "instances": 2
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 18.881010055541992,
+      "check": "host registrado na sinalização pública",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 19.50674819946289,
+      "check": "convite copiado pela interface",
+      "detail": {
+        "length": 531,
+        "scheme": "voxy-native://"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 23.18613052368164,
+      "check": "Bruno entrou por convite",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 24.436294555664062,
+      "check": "Ana em chamada confirmada pelo host",
+      "detail": {
+        "members": 2
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 24.436410903930664,
+      "check": "Bruno em chamada confirmada pelo host",
+      "detail": {
+        "members": 2
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 30.499311447143555,
+      "check": "Ana: seletor lista a janela de teste e mostra prévia",
+      "detail": {},
+      "passed": true
+    },
+    {
+      "atSeconds": 32.22715377807617,
+      "check": "Ana: captura WGC e codificação H.264 reais",
+      "detail": {
+        "audio": false,
+        "audio_packets": 0,
+        "bitrate_kbps": 2500,
+        "captured": 26,
+        "dropped": 0,
+        "encoded": 14,
+        "encoder": "H.264 software (Media Foundation)",
+        "fps": 30,
+        "height": 720,
+        "keyframes": 1,
+        "label": "Voxy E2E Padrao",
+        "preset": "720p30",
+        "sent_kbps": 40,
+        "watchers": 0,
+        "width": 1280
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 33.756202697753906,
+      "check": "Bruno: imagem decodificada corresponde ao padrão da janela de origem",
+      "detail": {
+        "height": 720,
+        "mismatches": [],
+        "row0": [
+          214,
+          50,
+          213,
+          50,
+          213,
+          49,
+          213,
+          50
+        ],
+        "width": 1280
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 35.25681686401367,
+      "check": "Bruno: quadros contínuos e conteúdo em movimento",
+      "detail": {
+        "decodedIn1500ms": 33,
+        "dropped": 0,
+        "row7After": [
+          54,
+          207,
+          77,
+          50,
+          50,
+          50,
+          50,
+          50
+        ],
+        "row7Before": [
+          53,
+          50,
+          50,
+          50,
+          50,
+          160,
+          124,
+          50
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 35.95965576171875,
+      "check": "Ana: envia somente com espectador confirmado",
+      "detail": {
+        "bitrateKbps": 2500,
+        "dropped": 0,
+        "sentKbps": 48
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 42.43459701538086,
+      "check": "Bruno: tela cheia com HUD que some e reaparece",
+      "detail": {},
+      "passed": true
+    },
+    {
+      "atSeconds": 46.7000617980957,
+      "check": "Bruno: Picture-in-Picture compacto, sempre no topo e recebendo quadros",
+      "detail": {
+        "decodedIn1200ms": 29,
+        "size": [
+          480.0,
+          300.0
+        ],
+        "topmost": true
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 48.024322509765625,
+      "check": "Bruno: retorno do PiP restaura a janela normal",
+      "detail": {},
+      "passed": true
+    },
+    {
+      "atSeconds": 55.85991668701172,
+      "check": "Ana: sem espectadores, nenhum quadro é enviado",
+      "detail": {
+        "videoSentAfter": 355,
+        "videoSentBefore": 355
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 56.48659133911133,
+      "check": "encerramento confirmado pelos dois lados",
+      "detail": {},
+      "passed": true
+    }
+  ],
+  "durationSeconds": 56.77470397949219,
+  "error": null,
+  "method": "independent voxy-desktop processes with own data dirs/identities/session processes; clicks are physical SendInput mouse input on visible labels, verified by the app's received-click position; text fields and pick-list choices applied as their widget messages; invite read from the clipboard written by the app's copy button; audio source/sink are the synthetic device boundary (VOXY_TEST_SYNTHETIC_AUDIO) feeding the unchanged DSP/Opus/SRTP/jitter/mixer pipeline",
+  "passed": true,
+  "physicalDevices": false,
+  "resourcesAtEnd": [
+    {
+      "cpuSeconds": 1.859375,
+      "participant": "Ana",
+      "pid": 18688,
+      "privateMiB": 17.62890625,
+      "workingSetMiB": 45.296875
+    },
+    {
+      "cpuSeconds": 6.125,
+      "participant": "Ana",
+      "pid": 8364,
+      "privateMiB": 29.3515625,
+      "workingSetMiB": 49.38671875
+    },
+    {
+      "cpuSeconds": 7.578125,
+      "participant": "Bruno",
+      "pid": 23360,
+      "privateMiB": 13.01171875,
+      "workingSetMiB": 33.44140625
+    },
+    {
+      "cpuSeconds": 2.265625,
+      "participant": "Bruno",
+      "pid": 3712,
+      "privateMiB": 7.4765625,
+      "workingSetMiB": 26.390625
+    }
+  ],
+  "sameMachine": true,
+  "scenario": "screen-2",
+  "signal": "wss://voxy.devbarros.com"
+}

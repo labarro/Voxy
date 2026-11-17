@@ -165,3 +165,52 @@ fn software_h264_roundtrip_and_malformed_limits() -> Result<()> {
     );
     Ok(())
 }
+
+/// 360p (height not a multiple of 16): the decoder pads the output surface to
+/// 368 rows. Decoding must keep working and the chroma plane must come from the
+/// padded offset, so the top and bottom halves keep their colors.
+#[test]
+#[ignore = "uses the installed Windows software H.264 MFT encoder/decoder on synthetic pixels only"]
+fn software_h264_decodes_heights_not_aligned_to_16() -> Result<()> {
+    let runtime = MediaRuntime::new()?;
+    let format = VideoFormat {
+        width: 640,
+        height: 360,
+        frames_per_second: 30,
+        bitrate: 700_000,
+    };
+    let mut encoder = H264Encoder::new(&runtime, format, EncoderPreference::Software)?;
+    let mut decoder = H264Decoder::new(&runtime, format)?;
+    let mut decoded = vec![];
+    for index in 0..20 {
+        let mut pixels = vec![0; 640 * 360 * 4];
+        for y in 0..360 {
+            for x in 0..640 {
+                let offset = (y * 640 + x) * 4;
+                // Blue on top, red at the bottom (BGRA).
+                let color = if y < 180 { [200, 40, 30, 255] } else { [30, 40, 200, 255] };
+                pixels[offset..offset + 4].copy_from_slice(&color);
+            }
+        }
+        let nv12 = bgra_to_nv12(&CaptureFrame {
+            width: 640,
+            height: 360,
+            timestamp_us: index * 33_333,
+            pixels: pixels.into(),
+        })?;
+        for frame in encoder.encode(&nv12)? {
+            decoded.extend(decoder.decode(&frame)?);
+        }
+    }
+    for frame in encoder.finish()? {
+        decoded.extend(decoder.decode(&frame)?);
+    }
+    ensure!(decoded.len() >= 10, "360p decoded only {} pictures", decoded.len());
+    let last = decoded.last().unwrap();
+    ensure!(last.width == 640 && last.height == 360, "wrong picture size");
+    // Chroma: V (Cr) is high for red, low for blue.
+    let uv = &last.pixels[640 * 360..];
+    let v_at = |row: usize| uv[row * 640 + 321] as i32;
+    ensure!(v_at(20) < 128 && v_at(160) > 128, "chroma rows {} / {}", v_at(20), v_at(160));
+    Ok(())
+}

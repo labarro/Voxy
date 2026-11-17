@@ -90,7 +90,9 @@ pub fn place(hwnd: HWND, x: i32, y: i32, w: i32, h: i32) {
 /// evaluates a whole event batch with the final (unavailable) cursor. So the
 /// window is raised (topmost, without activation), the real cursor is moved over
 /// the target, a SendInput click is issued, and cursor/z-order are restored.
-pub fn click(hwnd: HWND, x: f32, y: f32) -> Result<()> {
+/// `restore_z = false` leaves the z-order alone after the click, for actions
+/// whose effect is to change it (Picture-in-Picture sets always-on-top).
+pub fn click_ex(hwnd: HWND, x: f32, y: f32, restore_z: bool) -> Result<()> {
     use windows_sys::Win32::{
         Foundation::POINT,
         Graphics::Gdi::ClientToScreen,
@@ -167,7 +169,7 @@ pub fn click(hwnd: HWND, x: f32, y: f32) -> Result<()> {
         ];
         let sent = SendInput(3, inputs.as_ptr(), std::mem::size_of::<INPUT>() as i32) - 1;
         std::thread::sleep(std::time::Duration::from_millis(120));
-        if !was_topmost {
+        if !was_topmost && restore_z {
             SetWindowPos(
                 hwnd,
                 HWND_NOTOPMOST,

@@ -420,6 +420,9 @@ impl Drop for H264Encoder<'_> {
 pub struct H264Decoder<'runtime> {
     transform: IMFTransform,
     format: VideoFormat,
+    /// Rows of the decoder output surface: the picture height padded to the
+    /// 16-row macroblock grid (360p decodes into a 368-row surface).
+    surface_height: u32,
     finished: bool,
     _foundation: Foundation<'runtime>,
 }
@@ -439,6 +442,7 @@ impl<'runtime> H264Decoder<'runtime> {
         Ok(Self {
             transform,
             format,
+            surface_height: format.height,
             finished: false,
             _foundation: foundation,
         })
@@ -460,7 +464,7 @@ impl<'runtime> H264Decoder<'runtime> {
         frames.extend(self.available()?);
         Ok(frames)
     }
-    fn renegotiate(&self) -> Result<()> {
+    fn renegotiate(&mut self) -> Result<()> {
         for index in 0..64 {
             let Ok(media) = (unsafe { self.transform.GetOutputAvailableType(0, index) }) else {
                 break;
@@ -472,11 +476,14 @@ impl<'runtime> H264Decoder<'runtime> {
             let width = (size >> 32) as u32;
             let height = size as u32;
             frame_bytes(width, height)?;
+            // Same picture; the surface may be padded to the macroblock grid.
+            let padded = |picture: u32, surface: u32| surface >= picture && surface <= picture.div_ceil(16) * 16;
             ensure!(
-                width == self.format.width && height == self.format.height,
+                padded(self.format.width, width) && padded(self.format.height, height),
                 "Mudança de resolução H.264 exige renegociação explícita"
             );
             unsafe { self.transform.SetOutputType(0, &media, 0)? };
+            self.surface_height = height;
             return Ok(());
         }
         anyhow::bail!("Decoder não oferece saída NV12 compatível")
@@ -495,10 +502,11 @@ impl<'runtime> H264Decoder<'runtime> {
                         .unwrap_or(self.format.width) as usize;
                     let width = self.format.width as usize;
                     let height = self.format.height as usize;
+                    let surface = (self.surface_height as usize).max(height);
                     ensure!(
                         stride >= width
                             && stride <= 32768
-                            && stride * height * 3 / 2 <= bytes.len(),
+                            && stride * surface * 3 / 2 <= bytes.len(),
                         "Stride NV12 incompatível com a saída do decoder"
                     );
                     let length = self.format.nv12_bytes()?;
@@ -513,7 +521,7 @@ impl<'runtime> H264Decoder<'runtime> {
                             .copy_from_slice(&bytes[row * stride..row * stride + width]);
                     }
                     for row in 0..height / 2 {
-                        let source = stride * height + row * stride;
+                        let source = stride * surface + row * stride;
                         let target = width * height + row * width;
                         pixels[target..target + width]
                             .copy_from_slice(&bytes[source..source + width]);

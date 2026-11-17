@@ -1,0 +1,152 @@
+{
+  "binaries": "target/release",
+  "checks": [
+    {
+      "atSeconds": 15.461894989013672,
+      "check": "instâncias reais independentes",
+      "detail": {
+        "instances": 2
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 19.170669555664062,
+      "check": "host registrado na sinalização pública",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 19.996213912963867,
+      "check": "convite copiado pela interface",
+      "detail": {
+        "length": 531,
+        "scheme": "voxy-native://"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 23.676860809326172,
+      "check": "Bruno entrou por convite",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 25.232946395874023,
+      "check": "Ana em chamada confirmada pelo host",
+      "detail": {
+        "members": 2
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 25.233064651489258,
+      "check": "Bruno em chamada confirmada pelo host",
+      "detail": {
+        "members": 2
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 28.639015197753906,
+      "check": "câmera desligada ao entrar na chamada",
+      "detail": {},
+      "passed": true
+    },
+    {
+      "atSeconds": 30.489620208740234,
+      "check": "prévia privada não publica a câmera",
+      "detail": {},
+      "passed": true
+    },
+    {
+      "atSeconds": 32.32257080078125,
+      "check": "Bruno: câmera capturada e codificada",
+      "detail": {
+        "audio": false,
+        "audio_packets": 0,
+        "bitrate_kbps": 700,
+        "captured": 23,
+        "dropped": 0,
+        "encoded": 11,
+        "encoder": "H.264 software (Media Foundation)",
+        "fps": 30,
+        "height": 360,
+        "keyframes": 1,
+        "label": "Câmera de teste",
+        "preset": "360p30",
+        "sent_kbps": 14,
+        "watchers": 0,
+        "width": 640
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 33.950008392333984,
+      "check": "Ana: imagem da câmera corresponde às listras da fonte",
+      "detail": {
+        "height": 360,
+        "mismatches": [],
+        "width": 640
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 35.4504280090332,
+      "check": "Ana: câmera continua chegando",
+      "detail": {
+        "decodedIn1500ms": 45
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 36.983001708984375,
+      "check": "desligar a câmera encerra a transmissão nos dois lados",
+      "detail": {
+        "streams": []
+      },
+      "passed": true
+    }
+  ],
+  "durationSeconds": 37.312191009521484,
+  "error": null,
+  "method": "independent voxy-desktop processes with own data dirs/identities/session processes; clicks are physical SendInput mouse input on visible labels, verified by the app's received-click position; text fields and pick-list choices applied as their widget messages; invite read from the clipboard written by the app's copy button; audio source/sink are the synthetic device boundary (VOXY_TEST_SYNTHETIC_AUDIO) feeding the unchanged DSP/Opus/SRTP/jitter/mixer pipeline",
+  "passed": true,
+  "physicalDevices": false,
+  "resourcesAtEnd": [
+    {
+      "cpuSeconds": 1.515625,
+      "participant": "Ana",
+      "pid": 3768,
+      "privateMiB": 17.1484375,
+      "workingSetMiB": 35.96875
+    },
+    {
+      "cpuSeconds": 0.75,
+      "participant": "Ana",
+      "pid": 368,
+      "privateMiB": 7.84375,
+      "workingSetMiB": 26.8515625
+    },
+    {
+      "cpuSeconds": 1.28125,
+      "participant": "Bruno",
+      "pid": 22264,
+      "privateMiB": 12.30859375,
+      "workingSetMiB": 30.6171875
+    },
+    {
+      "cpuSeconds": 1.09375,
+      "participant": "Bruno",
+      "pid": 7500,
+      "privateMiB": 10.45703125,
+      "workingSetMiB": 28.67578125
+    }
+  ],
+  "sameMachine": true,
+  "scenario": "camera-2",
+  "signal": "wss://voxy.devbarros.com"
+}

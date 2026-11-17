@@ -26,6 +26,8 @@ struct Participant {
     auto: PathBuf,
     child: Option<Child>,
     seq: u64,
+    /// Next click keeps the window z-order the app sets (see win::click_ex).
+    keep_z: bool,
     bin: PathBuf,
     signal: String,
     slot: i32,
@@ -197,7 +199,7 @@ impl Participant {
         let mut before = ui["clicks"].as_u64().unwrap_or(0);
         let mut delivered = false;
         for _ in 0..3 {
-            win::click(hwnd, x, y)?;
+            win::click_ex(hwnd, x, y, !self.keep_z)?;
             let end = Instant::now() + Duration::from_secs(2);
             while Instant::now() < end {
                 let now = self.ui();
@@ -405,6 +407,7 @@ fn voice_scenario(
                 auto,
                 child: None,
                 seq: 0,
+                keep_z: false,
                 bin: bin.into(),
                 signal: signal.into(),
                 slot: i as i32,
@@ -954,7 +957,10 @@ fn screen_steps(people: &mut [Participant], run: &mut Run) -> Result<()> {
     people[1].wait("saída da tela cheia", 10, |ui| {
         ui["streamFullscreen"] == false
     })?;
-    people[1].click("Picture-in-Picture")?;
+    people[1].keep_z = true;
+    let pip = people[1].click("Picture-in-Picture");
+    people[1].keep_z = false;
+    pip?;
     people[1].wait("Picture-in-Picture ativo", 10, |ui| ui["streamPip"] == true)?;
     std::thread::sleep(Duration::from_millis(800));
     let hwnd = people[1].hwnd()?;

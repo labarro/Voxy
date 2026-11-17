@@ -284,6 +284,14 @@ fn stream_tile<'a>(
     ]
     .spacing(8)
     .align_y(iced::Center);
+    // Camera tiles stand for the person: show microphone/deafen state too.
+    if camera && let Some(owner) = member_of(app, member) {
+        for (glyph, color, _) in app.member_icons(owner) {
+            if matches!(glyph, Icon::MicOff | Icon::HeadphoneOff | Icon::WifiOff) {
+                info = info.push(ui::icon(glyph, 14.0, color));
+            }
+        }
+    }
     if let Some(stats) = stats {
         info = info.push(ui::badge(stats, rgb_text(), alpha(Color::BLACK, 0.55)));
     }
@@ -344,6 +352,7 @@ fn stream_tile<'a>(
     container(stack![picture, column![Space::new().height(Fill), bar]])
         .width(w)
         .height(h)
+        .padding(2)
         .clip(true)
         .style(move |_| container::Style {
             background: Some(Color::BLACK.into()),
@@ -379,7 +388,20 @@ fn items(app: &App, channel: uuid::Uuid) -> Vec<Item<'_>> {
             .filter(|p| p.voice == Some(channel))
             .collect();
         people.sort_by_key(|p| (p.id != app.profile.id, p.name.to_lowercase()));
-        list.extend(people.into_iter().map(Item::Person));
+        // A watched camera already represents its owner; no duplicate avatar tile.
+        let cameras: Vec<uuid::Uuid> = list
+            .iter()
+            .filter_map(|i| match i {
+                Item::Stream((member, true)) => Some(*member),
+                _ => None,
+            })
+            .collect();
+        list.extend(
+            people
+                .into_iter()
+                .filter(|p| !cameras.contains(&p.id))
+                .map(Item::Person),
+        );
     }
     list
 }

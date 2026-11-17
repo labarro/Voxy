@@ -177,7 +177,13 @@ enum Msg {
     ShareStop,
     Watch(uuid::Uuid, bool),
     VideoFrame(Box<video::Frame>),
-    StreamFocus(Option<uuid::Uuid>),
+    StreamFocus(Option<(uuid::Uuid, bool)>),
+    CameraOpen,
+    CameraSelect(usize),
+    CameraPreview(usize, Option<iced::widget::image::Handle>),
+    CameraPreset(String),
+    CameraStart,
+    CameraStop,
     StreamFullscreen,
     StreamHud,
     AutomationTick,
@@ -251,8 +257,13 @@ struct App {
     share_selected: Option<usize>,
     share_preset: String,
     share_preview: Option<iced::widget::image::Handle>,
-    streams: std::collections::HashMap<uuid::Uuid, video::Frame>,
-    stream_focus: Option<uuid::Uuid>,
+    streams: std::collections::HashMap<(uuid::Uuid, bool), video::Frame>,
+    stream_focus: Option<(uuid::Uuid, bool)>,
+    camera_dialog: bool,
+    cameras: Vec<(String, String)>,
+    camera_selected: Option<usize>,
+    camera_preset: String,
+    camera_preview: Option<iced::widget::image::Handle>,
     stream_fullscreen: bool,
     hud_until: std::time::Instant,
     automation: Option<std::path::PathBuf>,
@@ -418,6 +429,11 @@ impl App {
                 share_preview: None,
                 streams: Default::default(),
                 stream_focus: None,
+                camera_dialog: false,
+                cameras: vec![],
+                camera_selected: None,
+                camera_preset: "720p30".into(),
+                camera_preview: None,
                 stream_fullscreen: false,
                 hud_until: std::time::Instant::now(),
                 automation: automation::directory(),
@@ -751,15 +767,15 @@ impl App {
                     .store(state.deafened, Ordering::Relaxed);
                 self.remote = state;
                 // Drop frames from streams the host no longer confirms we watch.
-                let stale: Vec<uuid::Uuid> = self
+                let stale: Vec<(uuid::Uuid, bool)> = self
                     .streams
                     .keys()
                     .copied()
-                    .filter(|member| !self.watching(*member))
+                    .filter(|(member, camera)| !self.watching(*member, *camera))
                     .collect();
-                for member in stale {
-                    self.streams.remove(&member);
-                    if self.stream_focus == Some(member) {
+                for key in stale {
+                    self.streams.remove(&key);
+                    if self.stream_focus == Some(key) {
                         self.stream_focus = None;
                     }
                 }
@@ -1711,6 +1727,11 @@ impl App {
                     self.share_preview = None;
                     return Task::none();
                 }
+                if self.camera_dialog {
+                    self.camera_dialog = false;
+                    self.camera_preview = None;
+                    return Task::none();
+                }
                 if self.image_preview.take().is_some() {
                     return Task::none();
                 }
@@ -2018,8 +2039,8 @@ impl App {
             }
             Msg::Watch(member, watching) => {
                 if !watching {
-                    self.streams.remove(&member);
-                    if self.stream_focus == Some(member) {
+                    self.streams.retain(|(m, _), _| *m != member);
+                    if self.stream_focus.is_some_and(|(m, _)| m == member) {
                         self.stream_focus = None;
                     }
                 }
@@ -2027,9 +2048,53 @@ impl App {
             }
             Msg::VideoFrame(frame) => {
                 // Accept only streams the host still confirms this member watches.
-                if self.watching(frame.member) {
-                    self.streams.insert(frame.member, *frame);
+                if self.watching(frame.member, frame.camera) {
+                    self.streams.insert((frame.member, frame.camera), *frame);
                 }
+            }
+            Msg::CameraOpen => {
+                self.cameras = streams::cameras();
+                self.camera_selected = None;
+                self.camera_preview = None;
+                self.camera_dialog = true;
+            }
+            Msg::CameraSelect(index) => {
+                self.camera_selected = Some(index);
+                self.camera_preview = None;
+                if let Some((device, _)) = self.cameras.get(index).cloned() {
+                    return Task::perform(
+                        async move {
+                            tokio::task::spawn_blocking(move || {
+                                streams::camera_preview(&device).ok()
+                            })
+                            .await
+                            .ok()
+                            .flatten()
+                        },
+                        move |handle| Msg::CameraPreview(index, handle),
+                    );
+                }
+            }
+            Msg::CameraPreview(index, handle) => {
+                if self.camera_selected == Some(index) {
+                    self.camera_preview = handle;
+                }
+            }
+            Msg::CameraPreset(preset) => self.camera_preset = preset,
+            Msg::CameraStart => {
+                if let Some((device, _)) = self.camera_selected.and_then(|i| self.cameras.get(i)) {
+                    let request = voxy_core::ipc::Request::CameraStart {
+                        device: device.clone(),
+                        preset: self.camera_preset.clone(),
+                    };
+                    if self.send_service(request) {
+                        self.camera_dialog = false;
+                        self.camera_preview = None;
+                    }
+                }
+            }
+            Msg::CameraStop => {
+                self.send_service(voxy_core::ipc::Request::CameraStop);
             }
             Msg::StreamFocus(member) => self.stream_focus = member,
             Msg::StreamFullscreen => {
@@ -2075,13 +2140,13 @@ impl App {
         Task::none()
     }
     /// True while the host-confirmed snapshot says we watch a live publisher in our channel.
-    fn watching(&self, member: uuid::Uuid) -> bool {
+    fn watching(&self, member: uuid::Uuid, camera: bool) -> bool {
         let Some(snapshot) = &self.remote.snapshot else {
             return false;
         };
         let me = snapshot.members.iter().find(|m| m.id == self.profile.id);
         let publisher = snapshot.members.iter().find(|m| m.id == member);
-        matches!((me, publisher), (Some(me), Some(p)) if me.voice.is_some() && me.voice == p.voice && p.screen && me.watching.contains(&member))
+        matches!((me, publisher), (Some(me), Some(p)) if me.voice.is_some() && me.voice == p.voice && (if camera { p.camera } else { p.screen }) && me.watching.contains(&member))
     }
     /// Session-confirmed tags for a voice member: speech, controls and media link.
     fn member_tags(&self, member: &voxy_core::room::Member) -> (bool, String) {
@@ -2102,6 +2167,9 @@ impl App {
         }
         if member.screen {
             tags.push("transmitindo tela".into());
+        }
+        if member.camera {
+            tags.push("câmera ligada".into());
         }
         if member.deafened {
             tags.push("ensurdecido".into());
@@ -2240,6 +2308,7 @@ impl App {
                     "output" => Some(Msg::Output(value)),
                     "pttKey" => Some(Msg::PttKey(value)),
                     "sharePreset" => Some(Msg::SharePreset(value)),
+                    "cameraPreset" => Some(Msg::CameraPreset(value)),
                     _ => None,
                 },
                 automation::Command::Screenshot { name } => {
@@ -2271,7 +2340,7 @@ impl App {
             serde_json::json!({
                 "server": s.server.name,
                 "channels": s.channels.iter().map(|c| serde_json::json!({"id":c.id,"name":c.name,"kind":format!("{:?}",c.kind)})).collect::<Vec<_>>(),
-                "members": s.members.iter().map(|m| serde_json::json!({"id":m.id,"name":m.name,"voice":m.voice,"muted":m.muted,"deafened":m.deafened,"screen":m.screen,"screenSize":m.screen_size,"watching":m.watching})).collect::<Vec<_>>(),
+                "members": s.members.iter().map(|m| serde_json::json!({"id":m.id,"name":m.name,"voice":m.voice,"muted":m.muted,"deafened":m.deafened,"screen":m.screen,"camera":m.camera,"screenSize":m.screen_size,"cameraSize":m.camera_size,"watching":m.watching})).collect::<Vec<_>>(),
                 "messages": s.messages.len(),
             })
         });
@@ -2303,11 +2372,13 @@ impl App {
                 "snapshot": snapshot,
                 "labels": labels,
                 "mouseEvents": self.automation_events,
-                "streams": self.streams.values().map(|f| serde_json::json!({"member":f.member,"width":f.width,"height":f.height,"decoded":f.decoded,"dropped":f.dropped,"signature":f.signature})).collect::<Vec<_>>(),
+                "streams": self.streams.values().map(|f| serde_json::json!({"member":f.member,"camera":f.camera,"width":f.width,"height":f.height,"decoded":f.decoded,"dropped":f.dropped,"signature":f.signature})).collect::<Vec<_>>(),
                 "streamFocus": self.stream_focus,
                 "streamFullscreen": self.stream_fullscreen,
                 "shareDialog": self.share_dialog,
                 "screen": self.remote.screen,
+                "camera": self.remote.camera,
+                "cameraDialog": self.camera_dialog,
                 "clicks": self.automation_clicks,
                 "lastClick": self.automation_last_click,
             }),
@@ -2461,6 +2532,8 @@ impl App {
         let content: Element<'_, Msg> = stack![self.atmosphere.view(m), shell].into();
         let content: Element<'_, Msg> = if self.share_dialog {
             stack![content, streams::share_dialog(self)].into()
+        } else if self.camera_dialog {
+            stack![content, streams::camera_dialog(self)].into()
         } else {
             content
         };

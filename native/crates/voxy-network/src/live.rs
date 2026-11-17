@@ -52,6 +52,7 @@ pub enum Event {
     /// Video from a member this participant is watching (host-confirmed).
     Video {
         member: uuid::Uuid,
+        camera: bool,
         keyframe: bool,
         bytes: Vec<u8>,
     },
@@ -74,11 +75,14 @@ pub struct Config {
 pub struct VideoOut {
     pub frame: Arc<[u8]>,
     pub duration: Duration,
+    /// Camera track instead of screen track.
+    pub camera: bool,
 }
 struct Link {
     connection: Arc<dyn PeerConnection>,
     track: OpusTrack,
     video: H264Track,
+    camera: H264Track,
     video_sent: u64,
     video_received: u64,
     channel: Option<Arc<dyn DataChannel>>,
@@ -113,7 +117,8 @@ async fn create_link(
 ) -> Result<Link> {
     let mut peer = Peer::with_video(policy, offerer).await?;
     let track = peer.add_opus_track().await?;
-    let video = peer.add_h264_track().await?;
+    let video = peer.add_h264_track("screen").await?;
+    let camera = peer.add_h264_track("camera").await?;
     let connection = peer.connection.clone();
     let mut frames = peer
         .video
@@ -147,6 +152,7 @@ async fn create_link(
         connection,
         track,
         video,
+        camera,
         video_sent: 0,
         video_received: 0,
         channel: None,
@@ -285,15 +291,16 @@ pub async fn run(
                     }
                 },
                 video=async {match video_queue.as_mut() {Some(queue)=>queue.recv().await,None=>std::future::pending().await}}=>{
-                    let Some(VideoOut{frame,duration})=video else {video_queue=None;continue};
+                    let Some(VideoOut{frame,duration,camera})=video else {video_queue=None;continue};
                     {
                         // Encode once, send only to links whose member subscribed to this
                         // publisher in the same voice channel (host-confirmed snapshot).
-                        let me=snapshot.as_ref().and_then(|s|s.members.iter().find(|m|m.public_key==local)).filter(|m|m.voice.is_some()&&(m.screen||m.camera)).cloned();
+                        let me=snapshot.as_ref().and_then(|s|s.members.iter().find(|m|m.public_key==local)).filter(|m|m.voice.is_some()&&if camera{m.camera}else{m.screen}).cloned();
                         if let Some(me)=me {
                             for (key,link) in links.iter_mut() {
                                 let watching=snapshot.as_ref().and_then(|s|s.members.iter().find(|m|&m.public_key==key)).is_some_and(|m|m.voice==me.voice&&m.watching.contains(&me.id));
-                                if watching && link.video.send(&frame,duration).await.is_ok(){link.video_sent+=1;}
+                                let track=if camera{&link.camera}else{&link.video};
+                                if watching && track.send(&frame,duration).await.is_ok(){link.video_sent+=1;}
                             }
                         }
                     }
@@ -424,9 +431,10 @@ if let Some(room)=room.as_mut(){room.remove(&signal.from);snapshot=Some(publish(
                             let me=members.iter().find(|m|m.public_key==local);
                             let publisher=members.iter().find(|m|m.public_key==key);
                             if let (Some(me),Some(publisher))=(me,publisher)
-                                && me.voice.is_some() && me.voice==publisher.voice && (publisher.screen||publisher.camera) && me.watching.contains(&publisher.id) {
+                                && me.voice.is_some() && me.voice==publisher.voice && me.watching.contains(&publisher.id)
+                                && if frame.stream_id=="camera" {publisher.camera} else {publisher.screen} {
                                 link.video_received+=1;
-                                let _=output.try_send(Event::Video{member:publisher.id,keyframe:frame.keyframe,bytes:frame.bytes});
+                                let _=output.try_send(Event::Video{member:publisher.id,camera:frame.stream_id=="camera",keyframe:frame.keyframe,bytes:frame.bytes});
                             }
                         },
                         _=>{}
@@ -630,6 +638,7 @@ mod tests {
                 camera: false,
                 watching: vec![],
                 screen_size: None,
+                camera_size: None,
             });
         }
         assert!(shared_voice(&Some(snapshot.clone()), "local", "remote"));

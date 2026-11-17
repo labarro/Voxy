@@ -309,7 +309,12 @@ impl Peer {
         self.connection.add_track(track.clone()).await?;
         Ok(OpusTrack { track, ssrc })
     }
-    pub async fn add_h264_track(&self) -> Result<H264Track> {
+    /// `kind` ("screen" or "camera") becomes the track id the receiver sees.
+    pub async fn add_h264_track(&self, kind: &str) -> Result<H264Track> {
+        ensure!(
+            matches!(kind, "screen" | "camera"),
+            "Tipo de vídeo inválido"
+        );
         ensure!(
             self.video.is_some(),
             "Peer de voz não habilitou transporte de vídeo"
@@ -334,8 +339,8 @@ impl Peer {
                 std::time::Instant::now(),
                 MediaStreamTrack::new(
                     "voxy-video".into(),
-                    uuid::Uuid::new_v4().to_string(),
-                    "screen-or-camera".into(),
+                    kind.into(),
+                    kind.into(),
                     RtpCodecKind::Video,
                     vec![RTCRtpEncodingParameters {
                         rtp_coding_parameters: RTCRtpCodingParameters {

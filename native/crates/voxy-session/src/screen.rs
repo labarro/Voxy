@@ -12,7 +12,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::sync::mpsc;
-use voxy_core::ipc::{SCREEN_PRESETS, ScreenSource, ScreenStatus};
+use voxy_core::ipc::{CAMERA_PRESETS, SCREEN_PRESETS, ScreenSource, ScreenStatus};
 use voxy_network::live::VideoOut;
 
 #[derive(Default)]
@@ -64,6 +64,23 @@ impl Drop for Publisher {
     }
 }
 
+/// What a publisher captures. Cameras are opened only on explicit user action.
+#[derive(Clone, Debug)]
+pub enum Source {
+    Screen(ScreenSource),
+    Camera { device: String, label: String },
+}
+pub const SYNTHETIC_CAMERA: &str = "synthetic:camera";
+pub fn synthetic_camera_enabled() -> bool {
+    std::env::var("VOXY_TEST_SYNTHETIC_CAMERA").as_deref() == Ok("1")
+}
+pub fn camera_preset(name: &str) -> Result<(u32, u32, u32, u32)> {
+    CAMERA_PRESETS
+        .iter()
+        .find(|p| p.0 == name)
+        .map(|p| (p.1, p.2, p.3, p.4))
+        .context("Qualidade de câmera inválida")
+}
 pub fn preset(name: &str) -> Result<(u32, u32, u32, u32)> {
     SCREEN_PRESETS
         .iter()
@@ -75,15 +92,30 @@ pub fn preset(name: &str) -> Result<(u32, u32, u32, u32)> {
 /// Starts capture/encode on a dedicated thread. Returns after the first encoded
 /// frame (or an error), so the UI never shows a share that is not producing video.
 pub fn start(
-    source: ScreenSource,
+    source: Source,
     preset_name: &str,
     output: mpsc::Sender<VideoOut>,
 ) -> Result<Publisher> {
-    let (width, height, fps, bitrate) = preset(preset_name)?;
-    ensure!(
-        matches!(source.kind.as_str(), "window" | "monitor"),
-        "Fonte de captura inválida"
-    );
+    let (width, height, fps, bitrate) = match &source {
+        Source::Screen(screen) => {
+            ensure!(
+                matches!(screen.kind.as_str(), "window" | "monitor"),
+                "Fonte de captura inválida"
+            );
+            preset(preset_name)?
+        }
+        Source::Camera { device, .. } => {
+            ensure!(
+                device != SYNTHETIC_CAMERA || synthetic_camera_enabled(),
+                "Câmera de teste desativada"
+            );
+            camera_preset(preset_name)?
+        }
+    };
+    let label = match &source {
+        Source::Screen(screen) => screen.label.clone(),
+        Source::Camera { label, .. } => label.clone(),
+    };
     let stop = Arc::new(AtomicBool::new(false));
     let keyframe = Arc::new(AtomicBool::new(true));
     let counters = Arc::new(Counters::default());
@@ -93,7 +125,7 @@ pub fn start(
         (stop.clone(), keyframe.clone(), counters.clone());
     let thread_source = source.clone();
     let thread = std::thread::Builder::new()
-        .name("voxy-screen".into())
+        .name("voxy-video-publisher".into())
         .spawn(move || {
             let mut ready = Some(ready_tx);
             let result = run(
@@ -118,7 +150,7 @@ pub fn start(
         counters,
         thread: Some(thread),
         status: ScreenStatus {
-            label: source.label.chars().take(80).collect(),
+            label: label.chars().take(80).collect(),
             preset: preset_name.into(),
             width,
             height,
@@ -138,7 +170,7 @@ pub fn start(
 
 #[cfg(windows)]
 fn run(
-    source: &ScreenSource,
+    source: &Source,
     (width, height, fps, target): (u32, u32, u32, u32),
     output: &mpsc::Sender<VideoOut>,
     stop: &AtomicBool,
@@ -152,29 +184,64 @@ fn run(
         enumerate_sources, fit_bgra,
     };
     let runtime = MediaRuntime::new()?;
-    // Re-validate the UI's choice against the live source list: a stale or forged
-    // handle cannot select some other window.
-    let selected = enumerate_sources()?
-        .into_iter()
-        .find(|candidate| match (candidate, source.kind.as_str()) {
-            (
-                CaptureSource::Window {
-                    handle, process_id, ..
+    let camera = matches!(source, Source::Camera { .. });
+    let mut screen_capture = None;
+    let mut camera_capture = None;
+    let mut synthetic = None;
+    match source {
+        Source::Screen(source) => {
+            // Re-validate the UI's choice against the live source list: a stale or
+            // forged handle cannot select some other window.
+            let selected = enumerate_sources()?
+                .into_iter()
+                .find(|candidate| match (candidate, source.kind.as_str()) {
+                    (
+                        CaptureSource::Window {
+                            handle, process_id, ..
+                        },
+                        "window",
+                    ) => *handle as u64 == source.handle && *process_id == source.process_id,
+                    (CaptureSource::Monitor { handle, .. }, "monitor") => {
+                        *handle as u64 == source.handle
+                    }
+                    _ => false,
+                })
+                .context("A janela ou monitor escolhido não está mais disponível")?;
+            screen_capture = Some(ScreenCapture::start(
+                &runtime,
+                &selected,
+                CaptureOptions {
+                    frames_per_second: fps,
+                    include_audio: false,
                 },
-                "window",
-            ) => *handle as u64 == source.handle && *process_id == source.process_id,
-            (CaptureSource::Monitor { handle, .. }, "monitor") => *handle as u64 == source.handle,
-            _ => false,
-        })
-        .context("A janela ou monitor escolhido não está mais disponível")?;
-    let mut capture = ScreenCapture::start(
-        &runtime,
-        &selected,
-        CaptureOptions {
-            frames_per_second: fps,
-            include_audio: false,
-        },
-    )?;
+            )?);
+        }
+        Source::Camera { device, .. } if device == SYNTHETIC_CAMERA => {
+            synthetic = Some((Instant::now(), 0_u64));
+        }
+        Source::Camera { device, .. } => {
+            camera_capture = Some(voxy_media::camera::CameraCapture::start(
+                &runtime, device, width, height, fps,
+            )?);
+        }
+    }
+    let mut next_frame = || -> Result<Option<voxy_media::CaptureFrame>> {
+        if let Some(capture) = screen_capture.as_mut() {
+            return capture.next_frame(Duration::from_millis(250));
+        }
+        if let Some(capture) = camera_capture.as_mut() {
+            return capture.next_frame();
+        }
+        let (started, index) = synthetic.as_mut().context("Fonte ausente")?;
+        let due = *started + Duration::from_micros(*index * 1_000_000 / fps as u64);
+        if let Some(wait) = due.checked_duration_since(Instant::now()) {
+            std::thread::sleep(wait);
+        }
+        *index += 1;
+        Ok(Some(voxy_media::synthetic_camera_frame(
+            width, height, *index,
+        )))
+    };
     let mut bitrate = target;
     let mut encoder = H264Encoder::new(
         &runtime,
@@ -190,7 +257,7 @@ fn run(
     let mut window = (Instant::now(), 0_u64, 0_u64);
     let mut needs_keyframe = false;
     while !stop.load(Ordering::Acquire) {
-        let Some(frame) = capture.next_frame(Duration::from_millis(250))? else {
+        let Some(frame) = next_frame()? else {
             continue;
         };
         counters.captured.fetch_add(1, Ordering::Relaxed);
@@ -212,6 +279,7 @@ fn run(
             match output.try_send(VideoOut {
                 frame: encoded.bytes,
                 duration,
+                camera,
             }) {
                 Ok(()) => {
                     counters.bytes.fetch_add(size, Ordering::Relaxed);
@@ -246,7 +314,7 @@ fn run(
 }
 #[cfg(not(windows))]
 fn run(
-    _: &ScreenSource,
+    _: &Source,
     _: (u32, u32, u32, u32),
     _: &mpsc::Sender<VideoOut>,
     _: &AtomicBool,

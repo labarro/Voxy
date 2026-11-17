@@ -15,6 +15,7 @@ use std::{
 #[derive(Debug, Clone)]
 pub struct Frame {
     pub member: uuid::Uuid,
+    pub camera: bool,
     pub width: u32,
     pub height: u32,
     pub handle: iced::widget::image::Handle,
@@ -30,7 +31,7 @@ struct Stream {
     dropped: Arc<AtomicU64>,
 }
 pub struct Decoders {
-    streams: HashMap<uuid::Uuid, Stream>,
+    streams: HashMap<(uuid::Uuid, bool), Stream>,
     output: iced::futures::channel::mpsc::Sender<crate::Msg>,
 }
 impl Decoders {
@@ -40,17 +41,25 @@ impl Decoders {
             output,
         }
     }
-    pub fn push(&mut self, member: uuid::Uuid, keyframe: bool, size: (u32, u32), bytes: Vec<u8>) {
+    pub fn push(
+        &mut self,
+        member: uuid::Uuid,
+        camera: bool,
+        keyframe: bool,
+        size: (u32, u32),
+        bytes: Vec<u8>,
+    ) {
+        let key = (member, camera);
         self.streams
             .retain(|_, stream| stream.last.elapsed() < Duration::from_secs(4));
-        if !self.streams.contains_key(&member) && self.streams.len() >= 9 {
+        if !self.streams.contains_key(&key) && self.streams.len() >= 18 {
             return;
         }
         let output = self.output.clone();
         let stream = self
             .streams
-            .entry(member)
-            .or_insert_with(|| spawn(member, output));
+            .entry(key)
+            .or_insert_with(|| spawn(member, camera, output));
         stream.last = Instant::now();
         if stream.awaiting_keyframe && !keyframe {
             stream.dropped.fetch_add(1, Ordering::Relaxed);
@@ -63,18 +72,22 @@ impl Decoders {
                 stream.awaiting_keyframe = true;
             }
             Err(TrySendError::Disconnected(_)) => {
-                self.streams.remove(&member);
+                self.streams.remove(&key);
             }
         }
     }
 }
-fn spawn(member: uuid::Uuid, output: iced::futures::channel::mpsc::Sender<crate::Msg>) -> Stream {
+fn spawn(
+    member: uuid::Uuid,
+    camera: bool,
+    output: iced::futures::channel::mpsc::Sender<crate::Msg>,
+) -> Stream {
     let (queue, frames) = sync_channel::<(bool, (u32, u32), Vec<u8>)>(4);
     let dropped = Arc::new(AtomicU64::new(0));
     let thread_dropped = dropped.clone();
     let _ = std::thread::Builder::new()
         .name("voxy-video-decode".into())
-        .spawn(move || decode_loop(member, frames, output, thread_dropped));
+        .spawn(move || decode_loop(member, camera, frames, output, thread_dropped));
     Stream {
         queue,
         last: Instant::now(),
@@ -85,6 +98,7 @@ fn spawn(member: uuid::Uuid, output: iced::futures::channel::mpsc::Sender<crate:
 #[cfg(windows)]
 fn decode_loop(
     member: uuid::Uuid,
+    camera: bool,
     frames: std::sync::mpsc::Receiver<(bool, (u32, u32), Vec<u8>)>,
     mut output: iced::futures::channel::mpsc::Sender<crate::Msg>,
     dropped: Arc<AtomicU64>,
@@ -146,6 +160,7 @@ fn decode_loop(
         );
         let frame = Frame {
             member,
+            camera,
             width: picture.width,
             height: picture.height,
             handle: iced::widget::image::Handle::from_rgba(picture.width, picture.height, rgba),
@@ -164,6 +179,7 @@ fn decode_loop(
 #[cfg(not(windows))]
 fn decode_loop(
     _: uuid::Uuid,
+    _: bool,
     _: std::sync::mpsc::Receiver<(bool, (u32, u32), Vec<u8>)>,
     _: iced::futures::channel::mpsc::Sender<crate::Msg>,
     _: Arc<AtomicU64>,

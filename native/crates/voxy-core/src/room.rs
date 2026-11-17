@@ -26,6 +26,9 @@ pub struct Member {
     /// Encoded resolution of the published screen, one of the documented presets.
     #[serde(default)]
     pub screen_size: Option<(u32, u32)>,
+    /// Encoded resolution of the published camera, one of the camera presets.
+    #[serde(default)]
+    pub camera_size: Option<(u32, u32)>,
     /// Members whose screen this member subscribed to; senders encode only for watchers.
     #[serde(default)]
     pub watching: Vec<Uuid>,
@@ -175,6 +178,8 @@ pub enum Action {
         camera: bool,
         #[serde(default)]
         size: Option<(u32, u32)>,
+        #[serde(default)]
+        camera_size: Option<(u32, u32)>,
     },
     /// Subscribe to (or leave) another member's published screen/camera.
     Watch {
@@ -387,6 +392,7 @@ impl RoomHost {
                 camera: false,
                 watching: vec![],
                 screen_size: None,
+                camera_size: None,
             },
         );
         Ok(())
@@ -1061,6 +1067,7 @@ impl RoomHost {
                         member.camera = false;
                         member.watching.clear();
                         member.screen_size = None;
+                        member.camera_size = None;
                     }
                     member.voice = Some(channel);
                     serde_json::json!({"voice":channel})
@@ -1072,6 +1079,7 @@ impl RoomHost {
                     member.camera = false;
                     member.watching.clear();
                     member.screen_size = None;
+                    member.camera_size = None;
                     serde_json::json!({"voice":null})
                 }
                 Action::VoiceState { muted, deafened } => {
@@ -1084,7 +1092,14 @@ impl RoomHost {
                     screen,
                     camera,
                     size,
+                    camera_size,
                 } => {
+                    ensure!(
+                        camera_size.is_none_or(|(w, h)| crate::ipc::CAMERA_PRESETS
+                            .iter()
+                            .any(|p| p.1 == w && p.2 == h)),
+                        "Resolução de câmera inválida"
+                    );
                     ensure!(
                         size.is_none_or(|(w, h)| crate::ipc::SCREEN_PRESETS
                             .iter()
@@ -1093,6 +1108,7 @@ impl RoomHost {
                     );
                     let member = self.members.get_mut(key).unwrap();
                     member.screen_size = if screen { size } else { None };
+                    member.camera_size = if camera { camera_size } else { None };
                     ensure!(
                         member.voice.is_some() || (!screen && !camera),
                         "Entre em um canal de voz antes de transmitir"
@@ -1397,6 +1413,7 @@ mod tests {
                 screen: on,
                 camera: false,
                 size: Some((1280, 720)),
+                camera_size: None,
             })
         };
         let watch = |member, watching| cmd(Action::Watch { member, watching });

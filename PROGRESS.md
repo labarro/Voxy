@@ -1,5 +1,16 @@
 # Progresso — Voxy 2.0.0 nativo
 
+## Checkpoint 17/11/2026 (tarde) — validação real com instâncias do aplicativo
+
+Commits locais: `f0a989b` (runner de testes, E2E real, estados confirmados, lease da sinalização), `18c0115` (evidência pública de voz com 3 participantes), `62f76a9` (compartilhamento de tela ponta a ponta).
+
+- **Testes**: `scripts/native.ps1 test` analisa cada suíte (mínimos em `scripts/native-test-manifest.json`), `e2e` roda opt-in explícitos (SKIPPED nunca conta como aprovado), `e2e-app` abre instâncias reais. Último: 80 aprovados, 8 opt-in separados; 7 opt-in aprovados com emulador; duplex físico não executado (sem autorização de dispositivos).
+- **E2E real aprovado** (`evidence/native-2.0/e2e/`): voz 3 participantes, release, sinalização pública (28 verificações); compartilhamento de tela release + público (14 verificações: imagem decodificada igual ao padrão da janela de origem, movimento contínuo, tela cheia/HUD, envio cessa sem espectadores).
+- **Infra**: lease de sala de 15 min no Worker (implantado, versão `6c7fb64f`), 8/8 testes do Worker. DNS normal resolve `voxy.devbarros.com`.
+- **Interface**: falando/mudo/ensurdecido/mídia por participante, resumo da chamada e diagnóstico copiável vêm da sessão.
+- **Pendências imediatas**: repetir regressão `voice-3` release após a última mudança (bloqueada por um diálogo "Segurança do Windows" aberto fora do teste, que impede entrada injetada); áudio isolado por processo (WASAPI process loopback), webcam (requer segunda trilha de vídeo por link), PiP, encoder por hardware, sociais restantes, Windows, benchmarks, migração/atualizador, instalador.
+- **Limites**: todos os participantes nesta máquina; sem NAT entre redes; codificação só por software; cliques físicos exigem não usar o mouse durante `e2e-app`.
+
 Estado em 17/11/2026: **2.0.0 em preparação; última distribuição 1.4.1**. Branch migration/2.0-native-audit. Continuidade dos checkpoints 264f0d7 e 74a6847. Subagentes interrompidos a pedido do usuário; implementação e revisão seguintes realizadas pelo agente principal. Sem push, tag, release do aplicativo, alteração da main ou dados estáveis. Design & Release Polish congelado.
 
 ## Implantado e validado publicamente

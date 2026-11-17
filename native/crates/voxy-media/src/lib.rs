@@ -119,11 +119,54 @@ mod windows_capture;
 #[cfg(windows)]
 pub use windows_capture::*;
 #[cfg(windows)]
+pub mod camera;
+#[cfg(windows)]
 pub mod codec;
+
+/// Test-only camera content (selected only with `VOXY_TEST_SYNTHETIC_CAMERA=1`):
+/// 8 vertical stripes (bright on even columns) in rows 0-6 and a moving white
+/// block in row 7. Distinct from the screen-share test checkerboard.
+pub fn synthetic_camera_frame(width: u32, height: u32, index: u64) -> CaptureFrame {
+    let (w, h) = (width as usize, height as usize);
+    let mut pixels = vec![0u8; w * h * 4];
+    let block = (index % 60) as usize * (w - w / 8) / 59;
+    for y in 0..h {
+        for x in 0..w {
+            let value = if y * 8 / h == 7 {
+                if (block..block + w / 8).contains(&x) {
+                    255
+                } else {
+                    40
+                }
+            } else if (x * 8 / w).is_multiple_of(2) {
+                230
+            } else {
+                40
+            };
+            let at = (y * w + x) * 4;
+            pixels[at..at + 4].copy_from_slice(&[value, value, value, 255]);
+        }
+    }
+    CaptureFrame {
+        width,
+        height,
+        timestamp_us: index as i64 * 33_333,
+        pixels: pixels.into(),
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn synthetic_camera_has_stripes_and_moving_block() {
+        let a = synthetic_camera_frame(640, 360, 1);
+        let b = synthetic_camera_frame(640, 360, 20);
+        let at = |f: &CaptureFrame, x: usize, y: usize| f.pixels[(y * 640 + x) * 4];
+        assert_eq!((at(&a, 10, 10), at(&a, 90, 10)), (230, 40));
+        assert_ne!(a.pixels[(340 * 640) * 4..], b.pixels[(340 * 640) * 4..]);
+        assert_eq!(a.pixels.len(), frame_bytes(640, 360).unwrap());
+    }
     #[test]
     fn fit_preserves_aspect_letterboxes_and_never_upscales() {
         let solid = |w: u32, h: u32| CaptureFrame {

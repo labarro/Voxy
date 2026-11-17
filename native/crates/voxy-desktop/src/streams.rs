@@ -191,8 +191,11 @@ pub(super) fn share_dialog(app: &App) -> Element<'_, Msg> {
     .into()
 }
 
-fn tile<'a>(app: &'a App, member: uuid::Uuid, focused: bool) -> Element<'a, Msg> {
+type StreamKey = (uuid::Uuid, bool);
+
+fn tile<'a>(app: &'a App, key: StreamKey, focused: bool) -> Element<'a, Msg> {
     let m = app.palette();
+    let (member, camera) = key;
     let name = app
         .remote
         .snapshot
@@ -200,7 +203,7 @@ fn tile<'a>(app: &'a App, member: uuid::Uuid, focused: bool) -> Element<'a, Msg>
         .and_then(|s| s.members.iter().find(|x| x.id == member))
         .map(|x| x.name.clone())
         .unwrap_or_default();
-    let picture: Element<'a, Msg> = match app.streams.get(&member) {
+    let picture: Element<'a, Msg> = match app.streams.get(&key) {
         Some(frame) => iced::widget::image(frame.handle.clone())
             .width(Fill)
             .height(Fill)
@@ -212,17 +215,21 @@ fn tile<'a>(app: &'a App, member: uuid::Uuid, focused: bool) -> Element<'a, Msg>
     };
     let stats = app
         .streams
-        .get(&member)
+        .get(&key)
         .map(|f| format!("{}×{} · {} quadros", f.width, f.height, f.decoded))
         .unwrap_or_default();
     let bar = row![
-        text(format!("{name} · tela")).size(12),
+        text(format!(
+            "{name} · {}",
+            if camera { "câmera" } else { "tela" }
+        ))
+        .size(12),
         text(stats).size(11).color(m.muted),
         space::horizontal(),
         if focused {
             app.action("Voltar à grade", Msg::StreamFocus(None), false)
         } else {
-            app.action("Ampliar", Msg::StreamFocus(Some(member)), false)
+            app.action("Ampliar", Msg::StreamFocus(Some(key)), false)
         },
         app.action("Parar de assistir", Msg::Watch(member, false), false)
     ]
@@ -243,9 +250,9 @@ fn tile<'a>(app: &'a App, member: uuid::Uuid, focused: bool) -> Element<'a, Msg>
         .into()
 }
 
-/// Watched streams the host confirms, in a stable order.
-pub(super) fn watched(app: &App) -> Vec<uuid::Uuid> {
-    let mut members: Vec<uuid::Uuid> = app
+/// Watched streams (screen and/or camera) the host confirms, in a stable order.
+pub(super) fn watched(app: &App) -> Vec<StreamKey> {
+    let mut keys: Vec<StreamKey> = app
         .remote
         .snapshot
         .as_ref()
@@ -253,27 +260,28 @@ pub(super) fn watched(app: &App) -> Vec<uuid::Uuid> {
         .map(|me| me.watching.clone())
         .unwrap_or_default()
         .into_iter()
-        .filter(|member| app.watching(*member))
+        .flat_map(|member| [(member, false), (member, true)])
+        .filter(|(member, camera)| app.watching(*member, *camera))
         .collect();
-    members.sort();
-    members
+    keys.sort();
+    keys
 }
 
 pub(super) fn stage(app: &App) -> Option<Element<'_, Msg>> {
-    let members = watched(app);
-    if members.is_empty() {
+    let keys = watched(app);
+    if keys.is_empty() {
         return None;
     }
-    let focused = app.stream_focus.filter(|f| members.contains(f));
-    let content: Element<'_, Msg> = if let Some(member) = focused {
-        tile(app, member, true)
+    let focused = app.stream_focus.filter(|f| keys.contains(f));
+    let content: Element<'_, Msg> = if let Some(key) = focused {
+        tile(app, key, true)
     } else {
-        let columns = if members.len() == 1 { 1 } else { 2 };
+        let columns = if keys.len() == 1 { 1 } else { 2 };
         let mut grid = column![].spacing(8).height(Fill);
-        for chunk in members.chunks(columns) {
+        for chunk in keys.chunks(columns) {
             let mut line = row![].spacing(8).height(Fill);
-            for member in chunk {
-                line = line.push(tile(app, *member, false));
+            for key in chunk {
+                line = line.push(tile(app, *key, false));
             }
             grid = grid.push(line);
         }
@@ -325,4 +333,153 @@ pub(super) fn share_button(app: &App) -> Option<iced::widget::Button<'_, Msg>> {
     } else {
         app.action("Compartilhar tela", Msg::ShareOpen, false)
     })
+}
+
+/// Footer button: the camera turns on only from this explicit action.
+pub(super) fn camera_button(app: &App) -> Option<iced::widget::Button<'_, Msg>> {
+    if app.remote.voice.is_none() || !app.remote.microphone_ready {
+        return None;
+    }
+    Some(if app.remote.camera.is_some() {
+        app.action("Desligar câmera", Msg::CameraStop, true)
+    } else {
+        app.action("Câmera", Msg::CameraOpen, false)
+    })
+}
+
+/// Cameras by (device id, name). The synthetic camera appears only in tests.
+pub fn cameras() -> Vec<(String, String)> {
+    let mut cameras = Vec::new();
+    if std::env::var("VOXY_TEST_SYNTHETIC_CAMERA").as_deref() == Ok("1") {
+        cameras.push((
+            "synthetic:camera".to_owned(),
+            "Câmera de teste sintética".to_owned(),
+        ));
+    }
+    #[cfg(windows)]
+    if let Ok(runtime) = voxy_media::MediaRuntime::new() {
+        for camera in voxy_media::enumerate_cameras(&runtime).unwrap_or_default() {
+            cameras.push((camera.symbolic_link, camera.name));
+        }
+    }
+    cameras.truncate(16);
+    cameras
+}
+
+/// Private still preview: the device is opened for one frame and released.
+pub fn camera_preview(device: &str) -> anyhow::Result<iced::widget::image::Handle> {
+    let frame = if device == "synthetic:camera" {
+        voxy_media::synthetic_camera_frame(640, 360, 1)
+    } else {
+        #[cfg(windows)]
+        {
+            let runtime = voxy_media::MediaRuntime::new()?;
+            let mut capture =
+                voxy_media::camera::CameraCapture::start(&runtime, device, 640, 360, 30)?;
+            let mut frame = None;
+            for _ in 0..30 {
+                if let Some(next) = capture.next_frame()? {
+                    frame = Some(next);
+                    break;
+                }
+            }
+            frame.ok_or_else(|| anyhow::anyhow!("Sem imagem da câmera"))?
+        }
+        #[cfg(not(windows))]
+        anyhow::bail!("Indisponível")
+    };
+    let small = voxy_media::fit_bgra(&frame, 384, 216)?;
+    let mut rgba = small.pixels.to_vec();
+    for pixel in rgba.as_chunks_mut::<4>().0 {
+        pixel.swap(0, 2);
+    }
+    Ok(iced::widget::image::Handle::from_rgba(384, 216, rgba))
+}
+
+pub(super) fn camera_dialog(app: &App) -> Element<'_, Msg> {
+    let m = app.palette();
+    let mut list = column![].spacing(4);
+    for (index, (_, name)) in app.cameras.iter().enumerate() {
+        let selected = app.camera_selected == Some(index);
+        list = list.push(
+            app.action(name, Msg::CameraSelect(index), selected)
+                .width(Fill)
+                .style(m.navigation(selected)),
+        );
+    }
+    if app.cameras.is_empty() {
+        list = list.push(text("Nenhuma câmera encontrada.").size(12).color(m.muted));
+    }
+    let preview: Element<'_, Msg> = match &app.camera_preview {
+        Some(handle) => iced::widget::image(handle.clone())
+            .width(384)
+            .height(216)
+            .into(),
+        None => container(
+            text(if app.camera_selected.is_some() {
+                "Carregando prévia…"
+            } else {
+                "Escolha uma câmera"
+            })
+            .size(12)
+            .color(m.muted),
+        )
+        .width(384)
+        .height(216)
+        .center(Fill)
+        .into(),
+    };
+    let presets: Vec<String> = voxy_core::ipc::CAMERA_PRESETS
+        .iter()
+        .map(|p| p.0.to_string())
+        .collect();
+    container(
+        container(
+            column![
+                row![
+                    text("Câmera").font(bold()).size(20),
+                    space::horizontal(),
+                    app.action("×", Msg::Cancel, false)
+                ],
+                row![
+                    scrollable(list).height(240).width(Fill),
+                    column![
+                        preview,
+                        text("Qualidade").size(12).color(m.muted),
+                        pick_list(presets, Some(app.camera_preset.clone()), Msg::CameraPreset)
+                            .padding(8)
+                            .style(m.select())
+                            .menu_style(m.menu()),
+                        text("A prévia é privada. A câmera só é enviada depois de Ativar.")
+                            .size(11)
+                            .color(m.muted),
+                    ]
+                    .spacing(8)
+                    .width(384)
+                ]
+                .spacing(16),
+                row![
+                    space::horizontal(),
+                    app.action("Cancelar", Msg::Cancel, false),
+                    if app.camera_selected.is_some() {
+                        app.action("Ativar câmera", Msg::CameraStart, true)
+                    } else {
+                        app.action("Ativar câmera", Msg::Cancel, true)
+                            .on_press_maybe(None)
+                    }
+                ]
+                .spacing(8)
+            ]
+            .spacing(16),
+        )
+        .padding(24)
+        .width(780)
+        .style(move |_| m.dialog()),
+    )
+    .center(Fill)
+    .style(|_| container::Style {
+        background: Some(alpha(Color::BLACK, 0.65).into()),
+        ..Default::default()
+    })
+    .into()
 }

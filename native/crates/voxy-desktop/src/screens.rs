@@ -610,11 +610,12 @@ pub(super) fn chat(app: &App) -> Element<'_, Msg> {
                             ]
                             .spacing(1),
                             space::horizontal(),
-                            if member.screen
+                            if (member.screen || member.camera)
                                 && member.id != app.profile.id
                                 && app.remote.voice == member.voice
                             {
-                                let watching = app.watching(member.id);
+                                let watching =
+                                    app.watching(member.id, false) || app.watching(member.id, true);
                                 Element::from(app.action(
                                     if watching { "Assistindo" } else { "Assistir" },
                                     Msg::Watch(member.id, !watching),

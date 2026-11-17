@@ -93,8 +93,11 @@ pub(crate) async fn run(
     let mut publisher: Option<screen::Publisher> = None;
     let mut screen_generation = 0_u64;
     let (screen_tx, mut screen_opened) =
-        mpsc::channel::<(u64, Result<screen::Publisher, String>)>(2);
+        mpsc::channel::<(bool, u64, Result<screen::Publisher, String>)>(2);
     let mut screen_watchers = 0_u32;
+    let mut camera_publisher: Option<screen::Publisher> = None;
+    let mut camera_generation = 0_u64;
+    let mut camera_watchers = 0_u32;
     let mut stats = tokio::time::interval(Duration::from_millis(500));
     stats.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     loop {
@@ -185,7 +188,7 @@ pub(crate) async fn run(
                         let configured_shortcuts=configure_shortcuts(&profile)?;
                         shortcuts=configured_shortcuts;
                         audio_generation+=1;control.prepare_audio_generation(audio_generation,profile.ptt_enabled);let generation=audio_generation;
-                        if state.voice!=Some(channel){screen_generation+=1;publisher=None;state.screen=None;}
+                        if state.voice!=Some(channel){screen_generation+=1;publisher=None;state.screen=None;camera_generation+=1;camera_publisher=None;state.camera=None;}
                         audio=None;state.voice=Some(channel);state.microphone_ready=false;
                         state.phase="Abrindo microfone e saída de áudio".into();
                         control.muted.store(state.muted,Ordering::Release);control.deafened.store(state.deafened,Ordering::Release);control.device_failed.store(false,Ordering::Release);control.set_gain(profile.input_volume);
@@ -200,14 +203,28 @@ pub(crate) async fn run(
                         publisher=None;screen_generation+=1;let generation=screen_generation;let opened=screen_tx.clone();
                         state.phase="Iniciando compartilhamento de tela".into();
                         tokio::task::spawn_local(async move{
-                            let result=tokio::task::spawn_blocking(move||screen::start(source,&preset,sender)).await;
+                            let result=tokio::task::spawn_blocking(move||screen::start(screen::Source::Screen(source),&preset,sender)).await;
                             let result=match result{Ok(Ok(p))=>Ok(p),Ok(Err(e))=>Err(e.to_string()),Err(_)=>Err("Captura encerrou inesperadamente".into())};
-                            let _=opened.send((generation,result)).await;
+                            let _=opened.send((false,generation,result)).await;
                         });
                     },
-                    Request::ScreenStop=>{screen_generation+=1;if publisher.take().is_some()||state.screen.is_some(){state.screen=None;send(&network,action(Action::Media{screen:false,camera:false,size:None})).await?;}},
+                    Request::ScreenStop=>{screen_generation+=1;if publisher.take().is_some()||state.screen.is_some(){state.screen=None;send(&network,media_action(&state)).await?;}},
+                    Request::CameraStart{device,preset}=>{
+                        // Only an explicit UI action reaches here; joining or reconnecting never does.
+                        ensure!(state.voice.is_some() && state.microphone_ready,"Entre em um canal de voz antes de ativar a câmera");
+                        let sender=video_out.clone().context("Conecte ao servidor primeiro")?;
+                        screen::camera_preset(&preset)?;
+                        camera_publisher=None;camera_generation+=1;let generation=camera_generation;let opened=screen_tx.clone();
+                        let label=if device==screen::SYNTHETIC_CAMERA{"Câmera de teste".to_owned()}else{"Câmera".to_owned()};
+                        tokio::task::spawn_local(async move{
+                            let result=tokio::task::spawn_blocking(move||screen::start(screen::Source::Camera{device,label},&preset,sender)).await;
+                            let result=match result{Ok(Ok(p))=>Ok(p),Ok(Err(e))=>Err(e.to_string()),Err(_)=>Err("Câmera encerrou inesperadamente".into())};
+                            let _=opened.send((true,generation,result)).await;
+                        });
+                    },
+                    Request::CameraStop=>{camera_generation+=1;if camera_publisher.take().is_some()||state.camera.is_some(){state.camera=None;send(&network,media_action(&state)).await?;}},
                     Request::Watch{member,watching}=>send(&network,action(Action::Watch{member,watching})).await?,
-                    Request::VoiceLeave=>{screen_generation+=1;publisher=None;state.screen=None;audio_recovery=None;audio_configured=None;audio_generation+=1;control.prepare_audio_generation(audio_generation,control.ptt.load(Ordering::Acquire));audio=None;state.voice=None;state.microphone_ready=false;send(&network,action(Action::VoiceLeave)).await?;state.phase="Conectado".into();},
+                    Request::VoiceLeave=>{screen_generation+=1;publisher=None;state.screen=None;camera_generation+=1;camera_publisher=None;state.camera=None;audio_recovery=None;audio_configured=None;audio_generation+=1;control.prepare_audio_generation(audio_generation,control.ptt.load(Ordering::Acquire));audio=None;state.voice=None;state.microphone_ready=false;send(&network,action(Action::VoiceLeave)).await?;state.phase="Conectado".into();},
                     Request::Controls{muted,deafened}=>{
                         state.muted=muted;state.deafened=deafened;
                         control.muted.store(muted,Ordering::Release);control.deafened.store(deafened,Ordering::Release);
@@ -224,7 +241,7 @@ pub(crate) async fn run(
                         }
                     },
                     Request::Disconnect|Request::Shutdown=>{
-                        screen_generation+=1;publisher=None;video_out=None;audio_recovery=None;audio_configured=None;
+                        screen_generation+=1;publisher=None;video_out=None;camera_generation+=1;camera_publisher=None;audio_recovery=None;audio_configured=None;
                         audio_generation+=1;control.prepare_audio_generation(audio_generation,control.ptt.load(Ordering::Acquire));audio=None;
                         if let Some(sender)=network.take(){let _=sender.send(Input::Stop).await;}
                         if let Some(task)=network_task.take(){let _=tokio::time::timeout(Duration::from_secs(4),task).await;}
@@ -235,14 +252,22 @@ pub(crate) async fn run(
                 states.send_replace(state.clone());
                 if shutdown{break}
             },
-            result=screen_opened.recv()=>if let Some((generation,result))=result {
-                if generation!=screen_generation{continue}
+            result=screen_opened.recv()=>if let Some((camera,generation,result))=result {
+                if generation!=if camera{camera_generation}else{screen_generation}{continue}
                 match result {
                     Ok(started)=>{
-                        state.screen=Some(started.status.clone());publisher=Some(started);screen_watchers=0;state.error=None;
-                        if let Err(error)=send(&network,action(Action::Media{screen:true,camera:false,size:state.screen.as_ref().map(|s|(s.width,s.height))})).await{publisher=None;state.screen=None;state.error=Some(error.to_string());}
+                        if camera{state.camera=Some(started.status.clone());camera_publisher=Some(started);camera_watchers=0;}
+                        else{state.screen=Some(started.status.clone());publisher=Some(started);screen_watchers=0;}
+                        state.error=None;
+                        if let Err(error)=send(&network,media_action(&state)).await{
+                            if camera{camera_publisher=None;state.camera=None;}else{publisher=None;state.screen=None;}
+                            state.error=Some(error.to_string());
+                        }
                     },
-                    Err(error)=>{state.screen=None;state.error=Some(format!("Não foi possível compartilhar: {error}"));}
+                    Err(error)=>{
+                        if camera{state.camera=None;state.error=Some(format!("Não foi possível ativar a câmera: {error}"));}
+                        else{state.screen=None;state.error=Some(format!("Não foi possível compartilhar: {error}"));}
+                    }
                 }
                 states.send_replace(state.clone());
             },
@@ -289,7 +314,7 @@ pub(crate) async fn run(
             event=events.recv()=>if let Some((generation,event))=event {
                 if generation!=network_generation{continue}
                 match event {
-                    Event::Ended=>{screen_generation+=1;publisher=None;video_out=None;audio_recovery=None;audio_configured=None;audio_generation+=1;control.prepare_audio_generation(audio_generation,control.ptt.load(Ordering::Acquire));audio=None;state.voice=None;state.microphone_ready=false;state.snapshot=None;state.peers.clear();network=None;network_task=None;state.phase="Sessão encerrada".into();if ui_detached{break}},
+                    Event::Ended=>{screen_generation+=1;publisher=None;video_out=None;camera_generation+=1;camera_publisher=None;state.camera=None;audio_recovery=None;audio_configured=None;audio_generation+=1;control.prepare_audio_generation(audio_generation,control.ptt.load(Ordering::Acquire));audio=None;state.voice=None;state.microphone_ready=false;state.snapshot=None;state.peers.clear();network=None;network_task=None;state.phase="Sessão encerrada".into();if ui_detached{break}},
                     Event::Acknowledged(id)=>{state.acknowledged=Some(id);if !state.acknowledgements.contains(&id){state.acknowledgements.push(id);if state.acknowledgements.len()>64{state.acknowledgements.remove(0);}}},
                     Event::Replied(id,value)=>{
                         state.acknowledged=Some(id);
@@ -330,10 +355,10 @@ pub(crate) async fn run(
                         }else{state.phase="Conectado".into();}
                         state.snapshot=Some(snapshot);
                     },
-                    Event::Video{member,keyframe,bytes}=>{
+                    Event::Video{member,camera,keyframe,bytes}=>{
                         // Decoding happens in the UI; with no UI attached nothing is forwarded.
-                        let size=state.snapshot.as_ref().and_then(|s|s.members.iter().find(|m|m.id==member)).and_then(|m|m.screen_size);
-                        if !ui_detached && let Some(size)=size {let _=video_frames.send(Arc::new(voxy_core::ipc::encode_video_frame(member,keyframe,size,&bytes)));}
+                        let size=state.snapshot.as_ref().and_then(|s|s.members.iter().find(|m|m.id==member)).and_then(|m|if camera{m.camera_size}else{m.screen_size});
+                        if !ui_detached && let Some(size)=size {let _=video_frames.send(Arc::new(voxy_core::ipc::encode_video_frame(member,camera,keyframe,size,&bytes)));}
                         continue
                     },
                     Event::Audio{peer,sequence,payload}=>{if let Some(audio)=&audio&& audio.input.packet(IncomingVoice{peer,sequence,payload}).is_ok(){state.received_frames+=1;}continue},
@@ -347,7 +372,7 @@ pub(crate) async fn run(
                 }
                 states.send_replace(state.clone());
             },
-            _=stats.tick(),if audio.is_some() || audio_recovery.is_some() || publisher.is_some()=>{
+            _=stats.tick(),if audio.is_some() || audio_recovery.is_some() || publisher.is_some() || camera_publisher.is_some()=>{
                 state.decoded_frames=control.decoded_frames.load(Ordering::Relaxed);state.playback_samples=control.rendered_samples.load(Ordering::Relaxed);
                 state.input_level=control.level();
                 if let Some(active)=publisher.as_mut() {
@@ -357,8 +382,17 @@ pub(crate) async fn run(
                     screen_watchers=watchers;
                     if active.is_finished() || active.counters.failed.load(Ordering::Acquire) {
                         publisher=None;state.screen=None;state.error=Some("Compartilhamento interrompido: a janela ou monitor deixou de estar disponível".into());
-                        let _=send(&network,action(Action::Media{screen:false,camera:false,size:None})).await;
+                        let _=send(&network,media_action(&state)).await;
                     } else {state.screen=Some(active.refresh(watchers));}
+                }
+                if let Some(active)=camera_publisher.as_mut() {
+                    let watchers=local_watchers(&state,local_id);
+                    if watchers>camera_watchers {active.keyframe.store(true,Ordering::Release);}
+                    camera_watchers=watchers;
+                    if active.is_finished() || active.counters.failed.load(Ordering::Acquire) {
+                        camera_publisher=None;state.camera=None;state.error=Some("Câmera interrompida ou desconectada; ative novamente quando quiser".into());
+                        let _=send(&network,media_action(&state)).await;
+                    } else {state.camera=Some(active.refresh(watchers));}
                 }
                 let (levels,sent_level)=control.take_levels();
                 for link in &mut state.links {link.level=levels.get(&link.peer).copied().unwrap_or(0.0);link.speaking=link.level>0.02;}
@@ -438,6 +472,28 @@ fn audio_config(profile: &Profile) -> CallConfig {
         threshold: profile.voice_threshold,
         ptt_key: profile.ptt_enabled.then(|| profile.ptt_key.clone()),
     }
+}
+/// Host-facing media announcement always carries both publications together.
+fn media_action(state: &State) -> Input {
+    action(Action::Media {
+        screen: state.screen.is_some(),
+        camera: state.camera.is_some(),
+        size: state.screen.as_ref().map(|s| (s.width, s.height)),
+        camera_size: state.camera.as_ref().map(|s| (s.width, s.height)),
+    })
+}
+fn local_watchers(state: &State, local: uuid::Uuid) -> u32 {
+    let Some(snapshot) = &state.snapshot else {
+        return 0;
+    };
+    let Some(me) = snapshot.members.iter().find(|m| m.id == local) else {
+        return 0;
+    };
+    snapshot
+        .members
+        .iter()
+        .filter(|m| m.voice == me.voice && m.watching.contains(&me.id))
+        .count() as u32
 }
 fn action_voice_state(state: &State) -> Input {
     action(Action::VoiceState {

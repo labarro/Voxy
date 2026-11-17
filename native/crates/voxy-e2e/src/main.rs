@@ -35,6 +35,7 @@ impl Participant {
             .env("VOXY_NATIVE_DATA_DIR", &self.data)
             .env("VOXY_TEST_AUTOMATION", &self.auto)
             .env("VOXY_TEST_SYNTHETIC_AUDIO", "1")
+            .env("VOXY_TEST_SYNTHETIC_CAMERA", "1")
             .env(
                 "VOXY_TEST_SYNTHETIC_AUDIO_REPORT",
                 self.auto.join("audio.json"),
@@ -498,6 +499,9 @@ fn voice_scenario(
         if kind == "screen" {
             return screen_steps(&mut people, &mut run);
         }
+        if kind == "camera" {
+            return camera_steps(&mut people, &mut run);
+        }
         // Every listener hears every other participant and never itself.
         for listener in &people {
             let expect: Vec<(u32, bool)> = people
@@ -759,6 +763,7 @@ fn main() -> Result<()> {
         "voice-2" => voice_scenario(&bin, &signal, &evidence, 2, "voice"),
         "voice-3" => voice_scenario(&bin, &signal, &evidence, 3, "voice"),
         "screen-2" => voice_scenario(&bin, &signal, &evidence, 2, "screen"),
+        "camera-2" => voice_scenario(&bin, &signal, &evidence, 2, "camera"),
         other => bail!("Cenário desconhecido: {other}"),
     }?;
     println!(
@@ -929,5 +934,105 @@ fn screen_steps(people: &mut [Participant], run: &mut Run) -> Result<()> {
         member_flag(ui, &ana, "screen") == false
     })?;
     run.check("encerramento confirmado pelos dois lados", true, json!({}))?;
+    Ok(())
+}
+
+fn stream_kind<'a>(ui: &'a Value, id: &Value, camera: bool) -> Option<&'a Value> {
+    ui["streams"]
+        .as_array()?
+        .iter()
+        .find(|s| &s["member"] == id && s["camera"] == camera)
+}
+
+/// Camera through the real UI: Bruno turns on the synthetic camera, Ana watches;
+/// the decoded image must show the camera stripes, not the screen checkerboard.
+fn camera_steps(people: &mut [Participant], run: &mut Run) -> Result<()> {
+    let bruno = people[1].ui()["profileId"].clone();
+    run.check(
+        "câmera desligada ao entrar na chamada",
+        people[1].ui()["camera"].is_null()
+            && member_flag(&people[0].ui(), &bruno, "camera") == false,
+        json!({}),
+    )?;
+    people[1].click("Câmera")?;
+    people[1].wait("seletor de câmera aberto", 10, |ui| {
+        ui["cameraDialog"] == true
+    })?;
+    people[1].click("Câmera de teste sintética")?;
+    people[1].select("cameraPreset", "360p30")?;
+    people[1].wait("prévia privada da câmera", 10, |ui| {
+        !texts(ui)
+            .iter()
+            .any(|t| t.starts_with("Carregando prévia") || t.starts_with("Escolha uma câmera"))
+    })?;
+    run.check(
+        "prévia privada não publica a câmera",
+        member_flag(&people[0].ui(), &bruno, "camera") == false,
+        json!({}),
+    )?;
+    people[1].screenshot(&run.evidence, "camera-picker")?;
+    people[1].click("Ativar câmera")?;
+    let ui = people[1].wait("câmera publicando", 15, |ui| {
+        ui["camera"]["encoded"].as_u64() > Some(10)
+    })?;
+    run.check(
+        "Bruno: câmera capturada e codificada",
+        ui["camera"]["width"] == 640 && ui["camera"]["height"] == 360,
+        ui["camera"].clone(),
+    )?;
+    people[0].wait("Ana vê a câmera de Bruno", 15, |ui| {
+        member_flag(ui, &bruno, "camera") == true && texts(ui).iter().any(|t| t == "Assistir")
+    })?;
+    people[0].click("Assistir")?;
+    let ui = people[0].wait("quadros da câmera decodificados", 20, |ui| {
+        stream_kind(ui, &bruno, true).is_some_and(|s| s["decoded"].as_u64() > Some(20))
+    })?;
+    let stream = stream_kind(&ui, &bruno, true).cloned().unwrap_or_default();
+    let signature: Vec<u64> = stream["signature"]
+        .as_array()
+        .map(|s| s.iter().filter_map(Value::as_u64).collect())
+        .unwrap_or_default();
+    let mut mismatches = vec![];
+    for gy in 0..7 {
+        for gx in 0..8 {
+            let value = signature.get(gy * 8 + gx).copied().unwrap_or(0);
+            if !(if gx % 2 == 0 {
+                value > 150
+            } else {
+                value < 100
+            }) {
+                mismatches.push(json!({"cell":[gx,gy],"luma":value}));
+            }
+        }
+    }
+    run.check(
+        "Ana: imagem da câmera corresponde às listras da fonte",
+        signature.len() == 64 && mismatches.is_empty() && stream["width"] == 640,
+        json!({"width":stream["width"],"height":stream["height"],"mismatches":mismatches}),
+    )?;
+    let before = stream["decoded"].as_u64().unwrap_or(0);
+    std::thread::sleep(Duration::from_millis(1500));
+    let after = stream_kind(&people[0].ui(), &bruno, true)
+        .and_then(|s| s["decoded"].as_u64())
+        .unwrap_or(0);
+    run.check(
+        "Ana: câmera continua chegando",
+        after >= before + 20,
+        json!({"decodedIn1500ms":after - before}),
+    )?;
+    people[0].screenshot(&run.evidence, "watching-camera")?;
+    people[1].wait("Bruno: um espectador", 10, |ui| {
+        ui["camera"]["watchers"] == 1
+    })?;
+    people[1].click("Desligar câmera")?;
+    people[1].wait("câmera desligada", 10, |ui| ui["camera"].is_null())?;
+    let ui = people[0].wait("Ana vê a câmera desligada", 10, |ui| {
+        member_flag(ui, &bruno, "camera") == false && stream_kind(ui, &bruno, true).is_none()
+    })?;
+    run.check(
+        "desligar a câmera encerra a transmissão nos dois lados",
+        true,
+        json!({"streams":ui["streams"]}),
+    )?;
     Ok(())
 }

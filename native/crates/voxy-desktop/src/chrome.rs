@@ -287,6 +287,10 @@ pub(super) fn footer(app: &App) -> Element<'_, Msg> {
                 Some(share) => Element::from(share),
                 None => Element::from(space::horizontal().width(0)),
             },
+            match crate::streams::camera_button(app) {
+                Some(camera) => Element::from(camera),
+                None => Element::from(space::horizontal().width(0)),
+            },
             app.action(
                 if app.remote.voice.is_some() {
                     "Sair da chamada"

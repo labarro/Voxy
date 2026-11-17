@@ -6,7 +6,7 @@
     { "suite": "voxy-games/lib", "minPassed": 1 },
     { "suite": "voxy-games/tests/chess_differential", "minPassed": 1 },
     { "suite": "voxy-games/tests/truco_differential", "minPassed": 2 },
-    { "suite": "voxy-media/lib", "minPassed": 3 },
+    { "suite": "voxy-media/lib", "minPassed": 4 },
     { "suite": "voxy-media/tests/codec_windows", "minPassed": 1 },
     { "suite": "voxy-cli/tests/media_transport", "minPassed": 1 },
     { "suite": "voxy-network/lib", "minPassed": 12 },

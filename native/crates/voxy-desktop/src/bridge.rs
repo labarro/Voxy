@@ -107,7 +107,7 @@ pub fn stream() -> impl Stream<Item = Msg> {
                 tokio::select! {
                     message=incoming.recv()=>match message {
                         Some(Incoming::State(state))=>{if output.send(Msg::ServiceState(state)).await.is_err(){reader_task.abort();return}},
-                        Some(Incoming::Video(bytes))=>{if let Some((member,keyframe,size,payload))=ipc::decode_video_frame(&bytes){decoders.push(member,keyframe,size,payload.to_vec());}},
+                        Some(Incoming::Video(bytes))=>{if let Some((member,camera,keyframe,size,payload))=ipc::decode_video_frame(&bytes){decoders.push(member,camera,keyframe,size,payload.to_vec());}},
                         None=>break,
                     },
                     request=requests.recv()=>match request{Some(request)=>{if ipc::write_frame(&mut writer,&request).await.is_err(){break}},None=>{reader_task.abort();return}}

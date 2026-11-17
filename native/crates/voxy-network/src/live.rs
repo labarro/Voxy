@@ -170,7 +170,13 @@ pub async fn run(
         .send(Event::Phase("Conectando à sinalização"))
         .await
         .ok();
-    let mut socket = rendezvous::connect(&config.invite, identity).await?;
+    let mut socket = match rendezvous::connect(&config.invite, identity).await {
+        Ok(socket) => socket,
+        Err(error) => {
+            let _ = output.send(Event::Error("Não foi possível abrir a sinalização segura. Confira DNS, conexão, TLS e validade do convite; tentando reconectar sem relay pago")).await;
+            return Err(error);
+        }
+    };
     let signer = socket.signer();
     let (tx, mut rx) = mpsc::channel(256);
     let mut links: HashMap<String, Link> = HashMap::new();
@@ -341,7 +347,7 @@ if let Some(room)=room.as_mut(){room.remove(&signal.from);snapshot=Some(publish(
                         },
                         PeerEvent::Closed|PeerEvent::State(webrtc::peer_connection::RTCPeerConnectionState::Failed)=>{
                             if let Some(link)=links.remove(&key){output.send(Event::PeerRemoved(link.number)).await.ok();link.close().await;}
-                            if let Some(room)=room.as_mut(){room.remove(&key);snapshot=Some(publish(room,&links,output).await?);}else if key==config.invite.host_key{anyhow::bail!("Host desconectado");}
+                            if let Some(room)=room.as_mut(){room.remove(&key);snapshot=Some(publish(room,&links,output).await?);}else if key==config.invite.host_key{anyhow::bail!("A conexão direta com o host foi interrompida. Reconectando; redes restritivas podem exigir relay, que permanece desativado");}
                         },_=>{}
                     }
                 },
@@ -350,7 +356,8 @@ if let Some(room)=room.as_mut(){room.remove(&signal.from);snapshot=Some(publish(
                     if rotation.as_ref().is_some_and(|(_,started)|started.elapsed()>Duration::from_secs(8)) {anyhow::bail!("Renovação de convite sem confirmação; reconecte antes de compartilhar");}
                     let stale:Vec<_>=links.iter().filter(|(_,l)|l.channel.is_none()&&l.created.elapsed()>Duration::from_secs(20)).map(|(key,_)|key.clone()).collect();
                     for key in stale{if let Some(link)=links.remove(&key){link.close().await;}
-if key==config.invite.host_key{anyhow::bail!("Tempo de conexão esgotado");}}
+if key==config.invite.host_key{output.send(Event::Error("A sinalização conectou, mas a rota P2P não abriu em 20 s. NAT/CGNAT ou firewall podem bloquear a conexão direta; TURN está desativado")).await.ok();anyhow::bail!("Tempo de conexão P2P esgotado");}
+output.send(Event::Error("Um participante não conseguiu estabelecer a rota P2P em 20 s; verifique NAT/firewall. TURN permanece desativado")).await.ok();}
                     if !ready && started.elapsed()>Duration::from_secs(20){anyhow::bail!("Host indisponível");}
                 }
             }
@@ -367,6 +374,59 @@ if key==config.invite.host_key{anyhow::bail!("Tempo de conexão esgotado");}}
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[tokio::test]
+    async fn rejected_signaling_emits_redacted_diagnostic_before_returning() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut bytes = [0_u8; 8192];
+            let _ = stream.read(&mut bytes).await;
+            let _ = stream
+                .write_all(
+                    b"HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+                )
+                .await;
+        });
+        let identity = Identity::generate();
+        let room = uuid::Uuid::new_v4();
+        let invite = Invite::create(
+            &identity,
+            room,
+            &format!("ws://127.0.0.1:{port}/v3/{room}"),
+            now_ms() + 60000,
+        )
+        .unwrap();
+        let config = Config {
+            invite,
+            host: None,
+            database: Default::default(),
+            policy: Default::default(),
+            microphone_allowed: None,
+        };
+        let (_sender, mut input) = mpsc::channel(8);
+        let (output, mut events) = mpsc::channel(8);
+        let result = tokio::time::timeout(
+            Duration::from_secs(3),
+            run(&config, &identity, &Profile::default(), &mut input, &output),
+        )
+        .await
+        .unwrap();
+        assert!(result.is_err());
+        let mut diagnostic = None;
+        while let Ok(event) = events.try_recv() {
+            if let Event::Error(message) = event {
+                diagnostic = Some(message);
+            }
+        }
+        let message =
+            diagnostic.expect("A refused signaling connection must be visible to the session/UI");
+        assert!(message.contains("sinalização segura"));
+        assert!(!message.contains(&config.invite.capability));
+        assert!(!message.contains("voxy-native://"));
+        server.await.unwrap();
+    }
     #[test]
     fn audio_requires_authoritative_shared_channel_and_mute_priority() {
         let mut snapshot = Snapshot {

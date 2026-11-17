@@ -2,7 +2,7 @@
   "name": "voxy-desktop",
   "version": "2.0.0",
   "private": true,
-  "description": "Voz e tela entre amigos pela sua rede privada",
+  "description": "Voxy 2.0 nativo experimental — voz e comunicação P2P entre amigos",
   "author": "Voxy",
   "license": "MIT",
   "main": "dist/main/index.cjs",

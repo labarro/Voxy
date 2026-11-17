@@ -94,6 +94,9 @@ enum Msg {
     AdminRename,
     AdminCreate(ChannelKind),
     AdminRemove(uuid::Uuid),
+    AdminChannelEdit(uuid::Uuid),
+    AdminChannelName(String),
+    AdminChannelSave,
     AdminDelete,
     FriendId(String),
     FriendRequest,
@@ -104,7 +107,10 @@ enum Msg {
     DirectEdit(uuid::Uuid),
     DirectDelete(uuid::Uuid),
     DirectReadAll,
+    DirectOlder,
+    DirectLatest,
     Reconnect(uuid::Uuid),
+    ForgetRecent(uuid::Uuid),
     PeerVolume(u64, f32),
     Navigate(Page),
     AudioSettings,
@@ -177,6 +183,8 @@ struct App {
     pending_message: Option<voxy_core::room::Command>,
     friend_id: String,
     direct_peer: Option<uuid::Uuid>,
+    direct_page: Option<Vec<voxy_core::room::DirectMessage>>,
+    direct_request: Option<(uuid::Uuid, uuid::Uuid)>,
     store: Store,
     profile: Profile,
     editing: Profile,
@@ -196,6 +204,8 @@ struct App {
     role_name: String,
     role_color: String,
     editing_role: Option<uuid::Uuid>,
+    editing_channel: Option<uuid::Uuid>,
+    channel_name: String,
     status: String,
     devices: Vec<AudioDevice>,
     control: Arc<VoiceControl>,
@@ -265,7 +275,8 @@ impl App {
                 .retained
                 .get("signalUrl")
                 .and_then(|v| v.as_str())
-                .unwrap_or_default()
+                .filter(|value| !value.trim().is_empty())
+                .unwrap_or(voxy_core::links::DEFAULT_SIGNAL_ENDPOINT)
                 .into()
         });
         let stun_text = std::env::var("VOXY_STUN_URLS").unwrap_or_else(|_| {
@@ -273,7 +284,7 @@ impl App {
                 .retained
                 .get("stunUrls")
                 .and_then(|v| v.as_str())
-                .unwrap_or("stun:stun.cloudflare.com:3478")
+                .unwrap_or(voxy_core::links::DEFAULT_STUN_URL)
                 .into()
         });
         let devices = voxy_voice::devices::enumerate().unwrap_or_default();
@@ -304,6 +315,8 @@ impl App {
                 pending_message: None,
                 friend_id: String::new(),
                 direct_peer: None,
+                direct_page: None,
+                direct_request: None,
                 store,
                 profile: profile.clone(),
                 windows_settings: windows_integration::WindowsSettings::from_profile(&profile),
@@ -334,6 +347,8 @@ impl App {
                 role_name: String::new(),
                 role_color: "#a0a0a0".into(),
                 editing_role: None,
+                editing_channel: None,
+                channel_name: String::new(),
                 status: if fixture.is_some() {
                     "Fixture visual · sem áudio ou rede".into()
                 } else {
@@ -549,6 +564,26 @@ impl App {
             }
             Msg::ServiceState(state) => {
                 let state = *state;
+                if state.snapshot.as_ref().map(|s| s.server.id)
+                    != self.remote.snapshot.as_ref().map(|s| s.server.id)
+                {
+                    self.direct_page = None;
+                    self.direct_request = None;
+                }
+                if let Some((request, peer)) = self.direct_request
+                    && let Some((_, value)) =
+                        state.command_results.iter().find(|(id, _)| *id == request)
+                {
+                    if self.direct_peer == Some(peer) {
+                        match serde_json::from_value::<Vec<voxy_core::room::DirectMessage>>(
+                            value.clone(),
+                        ) {
+                            Ok(messages) => self.direct_page = Some(messages),
+                            Err(error) => self.status = error.to_string(),
+                        }
+                    }
+                    self.direct_request = None;
+                }
                 let notification = state
                     .notification_open
                     .filter(|id| Some(*id) != self.remote.notification_open);
@@ -556,6 +591,8 @@ impl App {
                     != self.remote.snapshot.as_ref().map(|s| s.history_revision)
                 {
                     self.history_messages.clear();
+                    self.direct_page = None;
+                    self.direct_request = None;
                 }
                 let focus = state.focus_requested != self.remote.focus_requested;
                 if let Some(id) = self.history_request
@@ -1167,6 +1204,35 @@ impl App {
                     }
                 }
             }
+            Msg::AdminChannelEdit(id) => {
+                if let Some(channel) = self.channels.iter().find(|channel| channel.id == id) {
+                    self.editing_channel = Some(id);
+                    self.channel_name = channel.name.clone();
+                }
+            }
+            Msg::AdminChannelName(value) => self.channel_name = value,
+            Msg::AdminChannelSave => {
+                if let (Some(server), Some(id)) = (self.server, self.editing_channel) {
+                    if self.is_remote() {
+                        self.send_action(voxy_core::room::Action::ChannelRename {
+                            id,
+                            name: self.channel_name.clone(),
+                        });
+                    } else {
+                        match self.store.rename_channel(
+                            self.profile.id,
+                            server,
+                            id,
+                            &self.channel_name,
+                        ) {
+                            Ok(()) => {
+                                self.channels = self.store.channels(server).unwrap_or_default()
+                            }
+                            Err(error) => self.status = error.to_string(),
+                        }
+                    }
+                }
+            }
             Msg::AdminDelete => {
                 if self.is_remote() {
                     self.status =
@@ -1199,6 +1265,8 @@ impl App {
                 self.send_action(voxy_core::room::Action::FriendRemove { peer })
             }
             Msg::Direct(peer) => {
+                self.direct_page = None;
+                self.direct_request = None;
                 self.direct_peer = Some(peer);
                 self.draft.clear();
                 self.pending_message = None;
@@ -1219,11 +1287,12 @@ impl App {
                             .collect()
                     })
                     .unwrap_or_default();
-                for id in unread {
-                    self.send_action(voxy_core::room::Action::DirectRead { id });
+                if !unread.is_empty() {
+                    self.send_action(voxy_core::room::Action::DirectReadBatch { ids: unread });
                 }
             }
             Msg::DirectSend => {
+                self.direct_page = None;
                 if let Some(to) = self.direct_peer {
                     let command =
                         self.pending_message
@@ -1250,11 +1319,11 @@ impl App {
                 }
             }
             Msg::DirectEdit(id) => {
-                if let Some(message) = self.remote.snapshot.as_ref().and_then(|s| {
-                    s.direct
-                        .iter()
-                        .find(|d| d.id == id && d.from == self.profile.id)
-                }) {
+                if let Some(message) = self
+                    .direct_entries()
+                    .iter()
+                    .find(|d| d.id == id && d.from == self.profile.id)
+                {
                     self.draft = message.text.clone();
                     self.editing_message = Some(id);
                     self.pending_message = None;
@@ -1262,26 +1331,70 @@ impl App {
             }
             Msg::DirectDelete(id) => {
                 self.send_action(voxy_core::room::Action::DirectDelete { id });
+                self.direct_page = None;
+            }
+            Msg::DirectLatest => {
+                self.direct_page = None;
+                self.direct_request = None;
+            }
+            Msg::DirectOlder => {
+                if self.direct_request.is_none()
+                    && let Some(peer) = self.direct_peer
+                {
+                    let before = self
+                        .direct_entries()
+                        .iter()
+                        .filter(|d| d.from == peer || d.to == peer)
+                        .map(|d| (d.time, d.id))
+                        .min();
+                    let id = uuid::Uuid::new_v4();
+                    if self.send_service(voxy_core::ipc::Request::Command {
+                        command: voxy_core::room::Command {
+                            id,
+                            action: voxy_core::room::Action::DirectHistory { peer, before },
+                        },
+                    }) {
+                        self.direct_request = Some((id, peer));
+                    }
+                }
             }
             Msg::DirectReadAll => {
                 let unread: Vec<_> = self
+                    .direct_entries()
+                    .iter()
+                    .filter(|d| {
+                        Some(d.from) == self.direct_peer
+                            && d.to == self.profile.id
+                            && d.read_at.is_none()
+                    })
+                    .map(|d| d.id)
+                    .collect();
+                if !unread.is_empty() {
+                    self.send_action(voxy_core::room::Action::DirectReadBatch { ids: unread });
+                }
+            }
+            Msg::ForgetRecent(id) => {
+                if self
                     .remote
                     .snapshot
                     .as_ref()
-                    .map(|s| {
-                        s.direct
-                            .iter()
-                            .filter(|d| {
-                                Some(d.from) == self.direct_peer
-                                    && d.to == self.profile.id
-                                    && d.read_at.is_none()
-                            })
-                            .map(|d| d.id)
-                            .collect()
-                    })
-                    .unwrap_or_default();
-                for id in unread {
-                    self.send_action(voxy_core::room::Action::DirectRead { id });
+                    .is_some_and(|s| s.server.id == id)
+                {
+                    self.status = "Desconecte o servidor antes de removê-lo dos recentes".into();
+                } else {
+                    match self.store.forget_recent(id) {
+                        Ok(()) => {
+                            self.communities.retain(|server| {
+                                server.id != id || server.owner == self.profile.id
+                            });
+                            if self.server == Some(id) {
+                                self.server = None;
+                                self.channels.clear();
+                                self.messages.clear();
+                            }
+                        }
+                        Err(error) => self.status = error.to_string(),
+                    }
                 }
             }
             Msg::Reconnect(id) => match self.store.recent_invite(id) {
@@ -1810,6 +1923,15 @@ impl App {
             .filter(|s| !s.is_empty())
             .map(str::to_owned)
             .collect()
+    }
+    fn direct_entries(&self) -> &[voxy_core::room::DirectMessage] {
+        self.direct_page.as_deref().unwrap_or_else(|| {
+            self.remote
+                .snapshot
+                .as_ref()
+                .map(|s| s.direct.as_slice())
+                .unwrap_or_default()
+        })
     }
     fn send_service(&mut self, request: voxy_core::ipc::Request) -> bool {
         if self

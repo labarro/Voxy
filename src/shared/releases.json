@@ -20,7 +20,10 @@
       "Revogação autenticada de convites com encerramento dos vínculos antigos após confirmação.",
       "Importador em cópia de servidores com dono, canais, mensagens, respostas e reações preservando IDs, backup verificado e rollback.",
       "Anexos PNG/JPEG de chat e DM com envio em blocos, limites, hash, autorização, persistência e galeria nativa.",
-      "Prévias nativas dos catálogos Lounge/Cinema/Rooftop em processo opcional com confirmação do primeiro frame; mundo social completo ainda pendente."
+      "Prévias nativas dos catálogos Lounge/Cinema/Rooftop em processo opcional com confirmação do primeiro frame; mundo social completo ainda pendente.",
+      "Sinalização experimental implantada em voxy.devbarros.com com Durable Objects SQLite; endpoint e STUN padrão no desktop, sem configurar IP ou VPN.",
+      "Renomeação de canais na administração, paginação privada de DMs e remoção de servidores recentes pela interface.",
+      "Instalador e ZIP experimentais locais Windows x64, com assets, manifesto de integridade, runtime MSVC oficial verificado e guias de homologação; sem publicação ou ensaio em VM."
     ],
     "improvements": [
       "Controles e ícones vetoriais com dimensões fixas, avatares corrigidos, ações contextuais e rolagem sem encobrir conteúdo.",
@@ -31,7 +34,8 @@
       "Verificação Rust offline do catálogo assinado legado e de artefatos; downloader e instalação pendentes.",
       "Regras Rust de Truco Paulista, sinuca Rotação 7 e xadrez comparadas com fixtures TypeScript; apresentação 3D ainda pendente.",
       "Pipeline privado e chamada compartilham processamento selecionado; AEC pode ser desativado mantendo NS/AGC.",
-      "Backend Windows H.264 software e transporte de vídeo RTP/SRTP testados localmente com frames sintéticos; interface de transmissão e webcam completas ainda pendentes."
+      "Backend Windows H.264 software e transporte de vídeo RTP/SRTP testados localmente com frames sintéticos; interface de transmissão e webcam completas ainda pendentes.",
+      "Testes de sessão contra WSS público com chat, imagens, malha Opus sintética, isolamento, revogação e reconexão; participantes na mesma máquina, sem homologação entre redes."
     ],
     "fixes": [
       "Avatares deixam de se expandir e deslocar mensagens, nomes e participantes.",
@@ -44,7 +48,10 @@
       "Autores importados ficam reservados contra apropriação por novas chaves remotas até associação autenticada.",
       "Falha transacional no commit de imagem preserva o upload para repetição segura.",
       "Seletor de imagem preserva o destino original e cancela ao mudar de conversa.",
-      "Controle de respostas IPC limitado evita perder blocos ao receber confirmações simultâneas de voz."
+      "Controle de respostas IPC limitado evita perder blocos ao receber confirmações simultâneas de voz.",
+      "Convites experimentais usam voxy-native:// sem disputar a associação voxy:// da instalação estável.",
+      "Timeout de P2P distingue sinalização disponível de rota direta bloqueada e informa que TURN está desativado.",
+      "Leitura de DMs em lote limitado e transacional evita saturar o IPC; mensagens não autorizadas revertem o lote completo."
     ]
   },
   "1.4.1": {

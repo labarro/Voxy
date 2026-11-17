@@ -299,3 +299,7 @@ O gate da sessão reavalia mute/deafen/PTT/dispositivo antes de cada envio SRTP;
 ## Consolidação da retomada
 
 Uploads de imagem têm contexto/autor, quota, TTL e blocos limitados; leitura revalida ACL. Somente commit muta snapshot. Consultas e blocos não geram broadcast nem recibos duráveis; o commit confirma arquivo/mensagem na mesma transação. A UI mantém uma transferência e um preview, com destino congelado e timeout; respostas IPC têm até 16 entradas/512 KiB para não perder blocos quando controles de voz respondem simultaneamente. O renderer wgpu é filho opcional da UI, encerrado por seu proprietário; nunca é dependência da sessão de voz.
+
+## Integração pública — 17/11/2026
+
+Sinalização Cloudflare implantada; endpoint/STUN padrão, canais/DMs/recentes integrados. [Estado e testes atuais](PROGRESS.md), [operação e limites](INFRASTRUCTURE.md), [homologação](native/PUBLIC-TESTING.md). Renderer/captura/codecs/regras existentes preservados; mundo/mídia completos ainda abertos. Sem publicação do aplicativo ou polimento estético.

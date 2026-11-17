@@ -11,14 +11,14 @@ Dados em %APPDATA%/voxy-native-experimental ou VOXY_NATIVE_DATA_DIR explicitamen
 ## Fluxo utilizável
 
 1. Criar um servidor na Home.
-2. Configurar sinalização WSS em Configurações → Rede e privacidade, ou definir VOXY_SIGNAL_URL antes de iniciar. VOXY_STUN_URLS permite separar URLs STUN por vírgula; padrão stun:stun.cloudflare.com:3478.
+2. A sinalização já usa wss://voxy.devbarros.com por padrão; Configurações → Rede e privacidade e VOXY_SIGNAL_URL são overrides opcionais de desenvolvimento. VOXY_STUN_URLS permite separar URLs STUN por vírgula; padrão stun:stun.cloudflare.com:3478.
 3. Abrir o servidor e escolher Hospedar servidor. Copiar o convite para os participantes.
 4. O convidado usa Entrar por convite. Não precisa digitar endereço IP ou endpoint.
 5. Mensagens, edição/exclusão próprias, canais, solicitações de amizade e DMs são comandos reais do host. Amigos e histórico privado estão vinculados ao servidor/host, não a um diretório global.
 6. Selecionar um canal de voz abre captura/saída, DSP e Opus; a confirmação do servidor libera mídia com participantes do mesmo canal. PTT, mute/deafen e volume individual operam no processo de sessão.
-7. Fechar a janela preserva a sessão e a chamada. Abrir o executável novamente reanexa a UI. Para sair, usar Sair da chamada/Desconectar. A bandeja ainda não foi migrada.
+7. Fechar a janela preserva a sessão e a chamada. Abrir o executável novamente reanexa a UI. Para sair, usar Sair da chamada/Desconectar. A bandeja oferece abrir/mute/deafen/sair.
 
-Sem um serviço WSS implantado pelo administrador, o fluxo completo pode ser exercitado usando o Worker local: iniciar Wrangler local com VOXY_DEPLOYMENT_ENABLED=true no ambiente de emulação, mantendo relay false. A configuração versionada vem desabilitada para implantação. Não usar serviços pagos. [Requisitos externos](../INFRASTRUCTURE.md).
+O serviço WSS público está disponível. Para exercitar o mesmo fluxo no Worker local: iniciar Wrangler local com VOXY_DEPLOYMENT_ENABLED=true no ambiente de emulação, mantendo relay false. A configuração versionada vem desabilitada para implantação. Não usar serviços pagos. [Requisitos externos](../INFRASTRUCTURE.md).
 
 ## Testes
 
@@ -43,13 +43,13 @@ O redesign não foi aprovado pelo usuário. [Design system](../DESIGN-SYSTEM.md)
 
 ## Limitações abertas
 
-Rede pública/CGNAT/NAT simétrico/IPv6/firewall e fallback TURN seguro financeiramente ainda não foram homologados. TURN é bloqueado no código e a implantação permanece desativada. Reconexão tem oito tentativas e recria peers; ICE restart e conexões de sinalização presas ainda exigem testes reais/revisão. Ao esgotar a sessão, o áudio é liberado e a UI mostra o erro. A associação inicial UUID↔chave é TOFU e precisa da revisão/migração de identidade planejada.
+Rede pública/CGNAT/NAT simétrico/IPv6/firewall e fallback TURN seguro financeiramente ainda não foram homologados. TURN é bloqueado no código; a sinalização experimental está implantada. Reconexão tem oito tentativas e recria peers; ICE restart e conexões de sinalização presas ainda exigem testes reais/revisão. Ao esgotar a sessão, o áudio é liberado e a UI mostra o erro. A associação inicial UUID↔chave é TOFU e precisa da revisão/migração de identidade planejada.
 
-AEC3 é uma porta Rust experimental; libwebrtc segue alternativa se não passar na homologação. Teste privado local continua sem AEC, requer fones e não pode rodar junto da chamada. Hotplug, sons/atalhos completos, chamada privada reservada, cargos, imagens, respostas/reações, paginação/busca remotas completas, status/perfis completos, não lidas/notificações/DND, tray/autostart, vídeo/PiP, salas 3D, jogos, instalador/updater e migração integral ainda pendentes.
+AEC3 exige homologação acústica. O teste privado usa NS/AGC/ganho/VAD, sem rede/AEC, requer fones e não pode rodar junto da chamada. Estado completo e lacunas em [PROGRESS](../PROGRESS.md): não confundir backends de captura/codecs e prévias de mundos com transmissão/experiência completa. Chat/imagens/cargos/respostas/reações/histórico/bandeja já têm implementação integrada; perfis completos, DM respostas/reações/inbox offline e chamadas reservadas continuam abertos.
 
-Importador: voxy-core import-legacy <origem-fechada> <destino-vazio>. Executar somente sobre cópias. Faz backup com hashes e converte inicialmente o perfil, preservando campos desconhecidos; não converte ainda todo o SQLite, envelopes Electron e presets LevelDB. A origem e dados estáveis não são alterados.
+Importador: voxy-core import-legacy <origem-fechada> <destino-vazio>. Executar somente sobre cópias. Faz backup com hashes, converte perfil/IDs, servidores com dono/canais/mensagens/respostas/reações com transação e rollback; dados privados, envelopes Electron e presets LevelDB integrais ainda pendentes. A origem e dados estáveis não são alterados.
 
-[Progresso](../PROGRESS.md) · [Paridade](../FEATURE_PARITY.md) · [Arquitetura](../ARCHITECTURE.md) · [Benchmarks](../BENCHMARKS.md). Nenhum deploy/release/assinatura do instalador foi executado.
+[Progresso](../PROGRESS.md) · [Paridade](../FEATURE_PARITY.md) · [Arquitetura](../ARCHITECTURE.md) · [Benchmarks](../BENCHMARKS.md). Deploy experimental autorizado foi executado; nenhuma release ou assinatura do instalador foi publicada.
 
 
 ## Execução contínua — 17/11/2026
@@ -62,3 +62,11 @@ Importação: somente sobre cópia fechada e destino vazio. Converte perfil, ser
 ## Consolidação da retomada
 
 Enviar imagem: no chat conectado ou DM, escolher Enviar imagem, selecionar PNG/JPEG até 3 MiB; o host confirma o arquivo validado. Abrir imagem busca blocos autenticados e mostra a galeria; Esc fecha. Trocar o destino durante o seletor cancela o envio. Transferências têm cancelamento e timeout. As prévias de mundo exigem voxy-world.exe e world-assets; confirmam o primeiro frame, preservam a sessão de voz e são encerradas com a UI. As configurações de áudio incluem NS/AEC/AGC/VAD/sensibilidade e atalhos nativos; o teste privado não usa rede nem AEC e exige fones. Windows oferece início automático/minimizado, fechamento configurável, fullscreen e protocolo experimental separado.
+
+## Estado da execução pública — 17/11/2026
+
+2.0.0 continua em preparação; última distribuição 1.4.1. Worker voxy-native-signaling-experimental implantado em wss://voxy.devbarros.com; SignalRoom e AdmissionBudget SQLite, deployment=true, relay=false, 1.000 admissões/dia e dez salas. Domínio configurado com override de DNS/origem explicitamente false e changeset sem conflitos. Credencial local Wrangler não entra nos artefatos. Não houve push, tag, release, alteração de main ou do protocolo estável.
+
+Testes públicos executam os fluxos reais de sessão (IPC/P2P), imagens, chat/DMs, malha Opus sintética de três peers, canais isolados, revogação e quatro reconexões. Evidência: evidence/native-2.0/public/session-integration.json. Todos os peers estão nesta máquina; não é homologação de redes distintas ou dispositivos. O resolvedor do sistema retorna ENOTFOUND para o novo domínio; DNS sobre HTTPS encontra A e HTTPS/TLS são válidos. Somente o teste debug permite endereço resolvido externamente, mantendo SNI/certificado; release não lê esse override.
+
+Integrado neste conjunto: endpoint público/STUN padrão; convites voxy-native:// com leitura compatível de convites nativos anteriores; renomeação de canal na UI; páginas privadas de DMs com cursor tempo+ID, limites de bytes e sem recibos persistentes; lista/remoção de recentes. Não reimplementados motores de jogos ou catálogos. Compartilhamento/webcam completos, mundo dinâmico, avatares/mesas, migração privada e updater transacional permanecem abertos. Design & Release Polish congelado.

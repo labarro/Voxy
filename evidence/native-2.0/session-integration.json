@@ -1,10 +1,10 @@
 {
-  "checkedAt": "2026-11-17T17:03:01.638Z",
+  "checkedAt": "2026-11-17T18:03:20.415Z",
   "workerEmulator": true,
   "publicInternet": false,
   "physicalDeviceApi": false,
   "playbackMutedForDeviceTest": false,
   "acousticQualityValidated": false,
   "syntheticMeshVoice": true,
-  "output": "\nrunning 3 tests\nsession-processes: authenticated IPC, chat/replies/reactions/search, roles/presence, friendship/DM edit/read/delete/authorization, private notifications, UI detach/re-attach, foreign identity denied; no microphone\ntest independent_session_processes_deliver_chat_survive_ui_detach_and_reject_foreign_identity ... ok\nreconnection: 4 admissions of the same authenticated identity, host kept alive, prior chat restored, four persisted messages; local emulator only\ntest reconnecting_identity_keeps_host_and_persistent_chat_across_generations ... ok\nmesh: 12 native Opus/SRTP frames, 3 authenticated peers, channel isolation; queued Opus denied after gate closed; authoritative pool physics advanced over P2P snapshots during frequent audio input; invite rotation acknowledged and P2P peers revoked; synthetic audio, no physical microphone or 3D renderer\ntest authenticated_mesh_transmits_opus_and_isolates_other_voice_channels ... ok\n\ntest result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 5.41s\n\n"
+  "output": "\nrunning 3 tests\nsession-processes: authenticated IPC, chat/replies/reactions/search, roles/presence, friendship/DM edit/read/delete/authorization, private notifications, UI detach/re-attach, foreign identity denied; no microphone\ntest independent_session_processes_deliver_chat_survive_ui_detach_and_reject_foreign_identity ... ok\nreconnection: 4 admissions of the same authenticated identity, host kept alive, prior chat restored, four persisted messages; signaling endpoint selected by test environment; peers on one computer\ntest reconnecting_identity_keeps_host_and_persistent_chat_across_generations ... ok\nmesh: 12 native Opus/SRTP frames, 3 authenticated peers, channel isolation; queued Opus denied after gate closed; authoritative pool physics advanced over P2P snapshots during frequent audio input; invite rotation acknowledged and P2P peers revoked; synthetic audio, no physical microphone or 3D renderer\ntest authenticated_mesh_transmits_opus_and_isolates_other_voice_channels ... ok\n\ntest result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 5.21s\n\n"
 }

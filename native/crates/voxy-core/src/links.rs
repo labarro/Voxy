@@ -1,5 +1,8 @@
 //! The OS launcher receives only a parsed HTTP(S) URL, never a command or file path.
 use anyhow::{Result, ensure};
+pub const DEFAULT_SIGNAL_ENDPOINT: &str = "wss://voxy.devbarros.com";
+pub const DEFAULT_STUN_URL: &str = "stun:stun.cloudflare.com:3478";
+
 pub fn external_url(raw: &str) -> Result<String> {
     ensure!(
         raw.len() <= 4096 && !raw.chars().any(|c| c.is_control() || c.is_whitespace()),

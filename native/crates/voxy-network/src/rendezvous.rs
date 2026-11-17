@@ -1,6 +1,6 @@
 //! Authenticated outbound WSS rendezvous. No bearer secrets in URLs or logs.
 use crate::invite::Invite;
-use anyhow::{Result, ensure};
+use anyhow::{Context, Result, ensure};
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use rand::RngCore;
 use tokio::net::TcpStream;
@@ -118,11 +118,34 @@ pub async fn connect(invite: &Invite, identity: &Identity) -> Result<SignalSocke
     let config = WebSocketConfig::default()
         .max_message_size(Some(65_536))
         .max_frame_size(Some(65_536));
-    let (socket, response) = tokio::time::timeout(
-        std::time::Duration::from_secs(8),
-        connect_async_with_config(request, Some(config), true),
-    )
-    .await??;
+    let (socket, response) = tokio::time::timeout(std::time::Duration::from_secs(8), async {
+        // Test-only DNS bypass: TLS still authenticates the original hostname.
+        // Release builds cannot read this override or pin public service IPs.
+        #[cfg(debug_assertions)]
+        if let Ok(address) = std::env::var("VOXY_TEST_SIGNAL_ADDRESS") {
+            let url = url::Url::parse(&invite.signal_url)?;
+            ensure!(
+                url.scheme() == "wss" && url.host_str() == Some("voxy.devbarros.com"),
+                "DNS test override is restricted to the experimental endpoint"
+            );
+            let ip: std::net::IpAddr = address.parse()?;
+            let stream = TcpStream::connect((ip, 443)).await?;
+            stream.set_nodelay(true)?;
+            return tokio_tungstenite::client_async_tls_with_config(
+                request,
+                stream,
+                Some(config),
+                None,
+            )
+            .await
+            .map_err(anyhow::Error::from);
+        }
+        connect_async_with_config(request, Some(config), true)
+            .await
+            .map_err(anyhow::Error::from)
+    })
+    .await
+    .context("A sinalização não respondeu em 8 s. Confira a conexão e tente novamente")??;
     ensure!(response.status() == 101, "A sinalização recusou a sessão");
     Ok(SignalSocket {
         inner: socket,

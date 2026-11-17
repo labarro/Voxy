@@ -48,4 +48,18 @@ jobs:
       - name: Compilar os executáveis nativos otimizados
         working-directory: native
         run: cargo build --locked --release --workspace
+      - name: Preparar ZIP experimental em execução manual
+        if: github.event_name == 'workflow_dispatch'
+        run: ./scripts/package-native.ps1 -SkipBuild -SkipInstaller
+      - name: Guardar pacote experimental para revisão
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: voxy-native-experimental-windows-x64
+          path: |
+            release/*/native-experimental/*.zip
+            release/*/native-experimental/artifacts.json
+            release/*/native-experimental/packaged-probes.json
+          if-no-files-found: error
+          retention-days: 7
       # Deliberately no release, deployment, signing secret or stable updater step.

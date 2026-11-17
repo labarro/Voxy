@@ -1,6 +1,8 @@
 use anyhow::{Result, ensure};
 use std::time::{Duration, Instant};
 
+pub use voxy_core::links::{DEFAULT_SIGNAL_ENDPOINT, DEFAULT_STUN_URL};
+
 /// Relay stays disabled until a provider-side billing cutoff has been verified.
 /// A client byte counter is deliberately NOT accepted as a financial safety boundary.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default)]

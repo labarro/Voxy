@@ -1,0 +1,24 @@
+{
+  "checkedAt": "2026-11-17T18:03:39.334Z",
+  "endpoint": "wss://voxy.devbarros.com",
+  "workerEmulator": false,
+  "publicInfrastructure": true,
+  "peersOnSameComputer": true,
+  "distinctNetworks": false,
+  "systemDns": {
+    "ok": false,
+    "code": "ENOTFOUND"
+  },
+  "dnsViaHttps": true,
+  "debugOnlyAddressOverride": true,
+  "tlsCertificateVerified": true,
+  "health": {
+    "protocol": 3,
+    "relay": false,
+    "transport": "signaling-only"
+  },
+  "microphoneOpened": false,
+  "acousticQualityValidated": false,
+  "exitCode": 0,
+  "output": "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.42s\n     Running tests\\session_live.rs (target\\debug\\build\\voxy-cli/a88e8903cee1d5c0\\out\\session_live-a88e8903cee1d5c0.exe)\n\nrunning 3 tests\ntest authenticated_mesh_transmits_opus_and_isolates_other_voice_channels ... mesh: 12 native Opus/SRTP frames, 3 authenticated peers, channel isolation; queued Opus denied after gate closed; authoritative pool physics advanced over P2P snapshots during frequent audio input; invite rotation acknowledged and P2P peers revoked; synthetic audio, no physical microphone or 3D renderer\nok\ntest independent_session_processes_deliver_chat_survive_ui_detach_and_reject_foreign_identity ... session-processes: authenticated IPC, chat/replies/reactions/search, roles/presence, friendship/DM edit/read/delete/authorization, private notifications, UI detach/re-attach, foreign identity denied; no microphone\nok\ntest reconnecting_identity_keeps_host_and_persistent_chat_across_generations ... reconnection: 4 admissions of the same authenticated identity, host kept alive, prior chat restored, four persisted messages; signaling endpoint selected by test environment; peers on one computer\nok\n\ntest result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 17.55s\n\n"
+}

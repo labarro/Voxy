@@ -1,0 +1,24 @@
+// Public infrastructure; all peers remain on this computer. No microphone.
+import {spawn} from 'node:child_process';
+import {request} from 'node:https';
+import {lookup} from 'node:dns/promises';
+import {resolve} from 'node:path';
+import {mkdir,writeFile} from 'node:fs/promises';
+const hostname='voxy.devbarros.com';
+const dns=await fetch(`https://cloudflare-dns.com/dns-query?name=${hostname}&type=A`,{headers:{accept:'application/dns-json'}}).then(r=>r.json());
+const address=dns.Answer?.find(a=>a.type===1)?.data;
+const systemDns=await lookup(hostname).then(()=>({ok:true}),error=>({ok:false,code:error.code}));
+if(dns.Status!==0||!address)throw Error('Public DNS A record missing');
+const httpsCheck=path=>new Promise((res,rej)=>{const req=request({hostname:address,servername:hostname,path,headers:{Host:hostname},timeout:10000},r=>{const certificateAuthorized=r.socket.authorized;let body='';r.on('data',d=>body+=d);r.on('end',()=>res({status:r.statusCode,body,certificateAuthorized}));});req.on('error',rej);req.on('timeout',()=>req.destroy(Error('HTTPS timeout')));req.end();});
+const health=await httpsCheck('/health');
+if(health.status!==200||!health.certificateAuthorized||JSON.parse(health.body).relay!==false)throw Error('TLS/health/relay check failed');
+const invalid=await httpsCheck('/v3/00000000-0000-0000-0000-000000000001');
+if(invalid.status!==404)throw Error('Unexpected unauthenticated HTTP route');
+const cargo=resolve(process.env.USERPROFILE,'.cargo/bin/cargo.exe');
+const child=spawn(cargo,['test','--locked','-p','voxy-cli','--test','session_live','--','--ignored','--nocapture','--test-threads=1','--skip','native_duplex_call_uses_devices'],{cwd:resolve('../../native'),windowsHide:true,env:{...process.env,VOXY_TEST_SIGNAL_URL:`wss://${hostname}`,VOXY_TEST_SIGNAL_ADDRESS:address},stdio:['ignore','pipe','pipe']});
+let output='';child.stdout.on('data',d=>{output+=d;process.stdout.write(d)});child.stderr.on('data',d=>{output+=d;process.stderr.write(d)});
+const timer=setTimeout(()=>child.kill(),180000);
+const code=await new Promise((res,rej)=>{child.once('error',rej);child.once('close',res)});clearTimeout(timer);
+await mkdir('../../evidence/native-2.0/public',{recursive:true});
+await writeFile('../../evidence/native-2.0/public/session-integration.json',JSON.stringify({checkedAt:new Date().toISOString(),endpoint:`wss://${hostname}`,workerEmulator:false,publicInfrastructure:true,peersOnSameComputer:true,distinctNetworks:false,systemDns,dnsViaHttps:true,debugOnlyAddressOverride:true,tlsCertificateVerified:health.certificateAuthorized,health:JSON.parse(health.body),microphoneOpened:false,acousticQualityValidated:false,exitCode:code,output},null,2)+'\n');
+if(code!==0)throw Error('Public native integration failed: '+code);

@@ -1,0 +1,32 @@
+{
+  "checkedAt": "2026-11-17T18:00:49.807Z",
+  "worker": "voxy-native-signaling-experimental",
+  "accountId": "c94a2b1ed3c401c62b4a8b112479ca18",
+  "hostname": "voxy.devbarros.com",
+  "endpoint": "wss://voxy.devbarros.com",
+  "versionId": "c36174b1-0409-4e13-92f3-af73146f23d5",
+  "sqliteClasses": [
+    "SignalRoom",
+    "AdmissionBudget"
+  ],
+  "migration": "v1",
+  "deploymentEnabled": true,
+  "relayEnabled": false,
+  "dailyAdmissions": 1000,
+  "maxRooms": 10,
+  "workersDev": false,
+  "previewUrls": false,
+  "observability": false,
+  "otherResourcesCreated": [],
+  "freePlanConfirmedByOperator": true,
+  "billingApiReadable": false,
+  "subscriptionOrUpgradeRequested": false,
+  "customDomain": {
+    "conflicts": 0,
+    "overrideExistingOrigin": false,
+    "overrideExistingDnsRecord": false
+  },
+  "sourceSha256": "2634cfe39f29d735ab22fa0948312b524db45c29652ae19198655c99267f43d8",
+  "credentialsStoredInRepository": false,
+  "applicationPublished": false
+}

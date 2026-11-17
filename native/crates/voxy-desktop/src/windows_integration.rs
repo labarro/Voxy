@@ -194,7 +194,7 @@ pub fn protocol_invite_from_args(args: &[String]) -> Result<Option<String>> {
                 .all(|byte| byte.is_ascii_alphanumeric() || b"_-".contains(&byte)),
         "Convite experimental inválido"
     );
-    Ok(Some(format!("voxy://join/{payload}")))
+    Ok(Some(format!("voxy-native://join/{payload}")))
 }
 #[cfg(windows)]
 mod win32 {
@@ -431,7 +431,7 @@ mod tests {
                 "voxy-native://join/abc_123-DEF".into()
             ])
             .unwrap(),
-            Some("voxy://join/abc_123-DEF".into())
+            Some("voxy-native://join/abc_123-DEF".into())
         );
         for args in [
             vec!["--protocol", "voxy://join/abc"],

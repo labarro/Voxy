@@ -76,14 +76,15 @@ impl Invite {
     }
     pub fn encode(&self) -> Result<String> {
         Ok(format!(
-            "voxy://join/{}",
+            "voxy-native://join/{}",
             URL_SAFE_NO_PAD.encode(serde_json::to_vec(self)?)
         ))
     }
     pub fn parse(value: &str, now: i64) -> Result<Self> {
         ensure!(value.len() <= 8192, "Convite excede o limite");
         let encoded = value
-            .strip_prefix("voxy://join/")
+            .strip_prefix("voxy-native://join/")
+            .or_else(|| value.strip_prefix("voxy://join/"))
             .context("Convite nativo inválido")?;
         let invite: Self = serde_json::from_slice(&URL_SAFE_NO_PAD.decode(encoded)?)?;
         invite.validate_fields()?;

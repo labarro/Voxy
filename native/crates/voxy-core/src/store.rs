@@ -153,6 +153,11 @@ impl Store {
             .map(|r| Ok(serde_json::from_str(&r?)?))
             .collect()
     }
+    pub fn forget_recent(&self, id: Uuid) -> Result<()> {
+        self.db
+            .execute("DELETE FROM native_recent WHERE id=?1", [id.to_string()])?;
+        Ok(())
+    }
     pub fn recent_invite(&self, id: Uuid) -> Result<String> {
         let sealed: Vec<u8> = self.db.query_row(
             "SELECT invite FROM native_recent WHERE id=?1",

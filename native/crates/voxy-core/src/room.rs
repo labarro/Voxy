@@ -105,6 +105,13 @@ pub enum Action {
         channel: Uuid,
         before: Option<(i64, Uuid)>,
     },
+    DirectHistory {
+        peer: Uuid,
+        before: Option<(i64, Uuid)>,
+    },
+    DirectReadBatch {
+        ids: Vec<Uuid>,
+    },
     Search {
         channel: Uuid,
         text: String,
@@ -160,6 +167,7 @@ impl Action {
                 | Self::ImageCancel { .. }
                 | Self::ImageRead { .. }
                 | Self::History { .. }
+                | Self::DirectHistory { .. }
                 | Self::Search { .. }
         )
     }
@@ -272,6 +280,7 @@ impl RoomHost {
         store.db.execute_batch("CREATE TABLE IF NOT EXISTS native_member_keys(key TEXT PRIMARY KEY,profile_id TEXT UNIQUE NOT NULL);CREATE TABLE IF NOT EXISTS native_receipts(peer TEXT NOT NULL,id TEXT NOT NULL,response TEXT NOT NULL,time INTEGER NOT NULL,PRIMARY KEY(peer,id));")?;
         store.db.execute_batch("CREATE TABLE IF NOT EXISTS native_names(profile_id TEXT PRIMARY KEY,name TEXT NOT NULL);CREATE TABLE IF NOT EXISTS native_friends(server TEXT NOT NULL REFERENCES communities(id) ON DELETE CASCADE,requester TEXT NOT NULL,recipient TEXT NOT NULL,accepted INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(server,requester,recipient));CREATE TABLE IF NOT EXISTS native_direct(id TEXT PRIMARY KEY,server TEXT NOT NULL REFERENCES communities(id) ON DELETE CASCADE,sender TEXT NOT NULL,recipient TEXT NOT NULL,text TEXT NOT NULL,time INTEGER NOT NULL);")?;
         store.db.execute_batch("CREATE TABLE IF NOT EXISTS native_direct_status(message TEXT PRIMARY KEY REFERENCES native_direct(id) ON DELETE CASCADE,edited_at INTEGER,read_at INTEGER);
+            CREATE INDEX IF NOT EXISTS native_direct_conversation ON native_direct(server,sender,recipient,time,id);
             CREATE TABLE IF NOT EXISTS native_notifications(id TEXT PRIMARY KEY,server TEXT NOT NULL REFERENCES communities(id) ON DELETE CASCADE,recipient TEXT NOT NULL,kind TEXT NOT NULL,sender TEXT NOT NULL,message TEXT,channel TEXT,time INTEGER NOT NULL,read INTEGER NOT NULL DEFAULT 0);
             CREATE INDEX IF NOT EXISTS native_notification_recipient ON native_notifications(server,recipient,time);")?;
         store.db.execute_batch("CREATE TABLE IF NOT EXISTS native_roles(id TEXT PRIMARY KEY,server TEXT NOT NULL REFERENCES communities(id) ON DELETE CASCADE,name TEXT NOT NULL,color TEXT NOT NULL,position INTEGER NOT NULL);
@@ -538,6 +547,50 @@ impl RoomHost {
                     *id,
                     *offset,
                 );
+            }
+            Action::DirectHistory { peer, before } => {
+                let (time, cursor) = before
+                    .map(|(time, id)| (time, id.to_string()))
+                    .unwrap_or((i64::MAX, String::new()));
+                let mut query = self.store.db.prepare("SELECT d.id,sender,recipient,text,time,s.edited_at,s.read_at FROM native_direct d LEFT JOIN native_direct_status s ON s.message=d.id WHERE server=?1 AND ((sender=?2 AND recipient=?3) OR (sender=?3 AND recipient=?2)) AND (time<?4 OR (time=?4 AND d.id<?5)) ORDER BY time DESC,d.id DESC LIMIT 100")?;
+                let rows = query.query_map(
+                    rusqlite::params![
+                        self.server.id.to_string(),
+                        member.id.to_string(),
+                        peer.to_string(),
+                        time,
+                        cursor
+                    ],
+                    |r| {
+                        Ok((
+                            r.get::<_, String>(0)?,
+                            r.get::<_, String>(1)?,
+                            r.get::<_, String>(2)?,
+                            r.get::<_, String>(3)?,
+                            r.get::<_, i64>(4)?,
+                            r.get::<_, Option<i64>>(5)?,
+                            r.get::<_, Option<i64>>(6)?,
+                        ))
+                    },
+                )?;
+                let mut messages = Vec::new();
+                for row in rows {
+                    let (id, from, to, text, time, edited_at, read_at) = row?;
+                    let id = Uuid::parse_str(&id)?;
+                    messages.push(DirectMessage {
+                        id,
+                        from: Uuid::parse_str(&from)?,
+                        to: Uuid::parse_str(&to)?,
+                        text,
+                        time,
+                        edited_at,
+                        read_at,
+                        attachments: crate::images::attachments(&self.store, id, true)?,
+                    });
+                }
+                messages.reverse();
+                crate::store::bound_history(&mut messages, 256 * 1024)?;
+                return Ok(serde_json::to_value(messages)?);
             }
             Action::History { channel, before } => {
                 self.require_channel(*channel)?;
@@ -817,6 +870,9 @@ impl RoomHost {
                     self.store.db.execute("DELETE FROM native_friends WHERE server=?1 AND ((requester=?2 AND recipient=?3) OR (requester=?3 AND recipient=?2))",rusqlite::params![self.server.id.to_string(),member.id.to_string(),peer.to_string()])?;
                     serde_json::json!({"removed":peer})
                 }
+                Action::DirectHistory { .. } => {
+                    unreachable!("Read-only history handled before receipts")
+                }
                 Action::Direct { to, text } => {
                     validate_text(&text, 4000)?;
                     let friends:bool=self.store.db.query_row("SELECT EXISTS(SELECT 1 FROM native_friends WHERE server=?1 AND accepted=1 AND ((requester=?2 AND recipient=?3) OR (requester=?3 AND recipient=?2)))",rusqlite::params![self.server.id.to_string(),member.id.to_string(),to.to_string()],|r|r.get(0))?;
@@ -840,6 +896,7 @@ impl RoomHost {
                     validate_text(&text, 4000)?;
                     ensure!(self.store.db.execute("UPDATE native_direct SET text=?1 WHERE id=?2 AND server=?3 AND sender=?4", rusqlite::params![text.trim(),id.to_string(),self.server.id.to_string(),member.id.to_string()])? == 1, "Mensagem privada inexistente ou autoria inválida");
                     self.store.db.execute("INSERT INTO native_direct_status(message,edited_at) VALUES(?1,?2) ON CONFLICT(message) DO UPDATE SET edited_at=excluded.edited_at",rusqlite::params![id.to_string(),now_ms()])?;
+                    self.invalidate_history()?;
                     serde_json::json!({"edited":id})
                 }
                 Action::DirectDelete { id } => {
@@ -858,7 +915,25 @@ impl RoomHost {
                         "DELETE FROM native_notifications WHERE server=?1 AND message=?2",
                         rusqlite::params![self.server.id.to_string(), id.to_string()],
                     )?;
+                    self.invalidate_history()?;
                     serde_json::json!({"deleted":id})
+                }
+                Action::DirectReadBatch { ids } => {
+                    ensure!(
+                        !ids.is_empty() && ids.len() <= 100,
+                        "Lote de leitura inválido"
+                    );
+                    let now = now_ms();
+                    for id in &ids {
+                        let allowed: bool = self.store.db.query_row("SELECT EXISTS(SELECT 1 FROM native_direct WHERE id=?1 AND server=?2 AND recipient=?3)",rusqlite::params![id.to_string(),self.server.id.to_string(),member.id.to_string()],|r|r.get(0))?;
+                        ensure!(
+                            allowed,
+                            "Mensagem privada não recebida por este participante"
+                        );
+                        self.store.db.execute("INSERT INTO native_direct_status(message,read_at) VALUES(?1,?2) ON CONFLICT(message) DO UPDATE SET read_at=COALESCE(native_direct_status.read_at,excluded.read_at)",rusqlite::params![id.to_string(),now])?;
+                        self.store.db.execute("UPDATE native_notifications SET read=1 WHERE server=?1 AND recipient=?2 AND message=?3",rusqlite::params![self.server.id.to_string(),member.id.to_string(),id.to_string()])?;
+                    }
+                    serde_json::json!({"read":ids})
                 }
                 Action::DirectRead { id } => {
                     let allowed: bool = self.store.db.query_row("SELECT EXISTS(SELECT 1 FROM native_direct WHERE id=?1 AND server=?2 AND recipient=?3)",rusqlite::params![id.to_string(),self.server.id.to_string(),member.id.to_string()],|r|r.get(0))?;
@@ -1681,6 +1756,75 @@ mod tests {
         assert!(room.snapshot_for(&h).unwrap().notifications.is_empty());
     }
     #[test]
+    fn direct_history_pages_equal_timestamps_without_leaks_or_durable_receipts() {
+        let root = tempfile::tempdir().unwrap();
+        let mut store = Store::open(&root.path().join("history.db")).unwrap();
+        let owner = store.profile().unwrap().id;
+        let server = store.create_community(owner, "Histórico privado").unwrap();
+        let h = "h".repeat(43);
+        let g = "g".repeat(43);
+        let outsider = "o".repeat(43);
+        let guest = Uuid::new_v4();
+        let mut room = RoomHost::new(store, server.clone(), h.clone()).unwrap();
+        for (key, id) in [(&h, owner), (&g, guest), (&outsider, Uuid::new_v4())] {
+            room.admit(key.clone(), id, "Pessoa".into()).unwrap();
+        }
+        for _ in 0..205 {
+            room.store
+                .db
+                .execute(
+                    "INSERT INTO native_direct VALUES(?1,?2,?3,?4,?5,?6)",
+                    rusqlite::params![
+                        Uuid::new_v4().to_string(),
+                        server.id.to_string(),
+                        owner.to_string(),
+                        guest.to_string(),
+                        "privada",
+                        1000
+                    ],
+                )
+                .unwrap();
+        }
+        let mut cursor = None;
+        let mut ids = std::collections::BTreeSet::new();
+        for expected in [100, 100, 5, 0] {
+            let value = room
+                .handle(
+                    &g,
+                    cmd(Action::DirectHistory {
+                        peer: owner,
+                        before: cursor,
+                    }),
+                )
+                .unwrap();
+            let messages: Vec<DirectMessage> = serde_json::from_value(value).unwrap();
+            assert_eq!(messages.len(), expected);
+            for message in &messages {
+                assert!(ids.insert(message.id));
+            }
+            if let Some(first) = messages.first() {
+                cursor = Some((first.time, first.id));
+            }
+        }
+        assert_eq!(ids.len(), 205);
+        let leaked = room
+            .handle(
+                &outsider,
+                cmd(Action::DirectHistory {
+                    peer: owner,
+                    before: None,
+                }),
+            )
+            .unwrap();
+        assert!(leaked.as_array().unwrap().is_empty());
+        let receipts: i64 = room
+            .store
+            .db
+            .query_row("SELECT COUNT(*) FROM native_receipts", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(receipts, 0);
+    }
+    #[test]
     fn direct_edits_reads_and_deletes_require_the_correct_participant() {
         let root = tempfile::tempdir().unwrap();
         let mut store = Store::open(&root.path().join("private.db")).unwrap();
@@ -1723,7 +1867,22 @@ mod tests {
             .is_err()
         );
         assert!(room.handle(&g, cmd(Action::DirectDelete { id })).is_err());
-        room.handle(&g, cmd(Action::DirectRead { id })).unwrap();
+        assert!(
+            room.handle(&h, cmd(Action::DirectReadBatch { ids: vec![id] }))
+                .is_err()
+        );
+        assert!(
+            room.handle(
+                &g,
+                cmd(Action::DirectReadBatch {
+                    ids: vec![id, Uuid::new_v4()]
+                })
+            )
+            .is_err()
+        );
+        assert!(room.snapshot_for(&h).unwrap().direct[0].read_at.is_none());
+        room.handle(&g, cmd(Action::DirectReadBatch { ids: vec![id] }))
+            .unwrap();
         let read_at = room.snapshot_for(&h).unwrap().direct[0].read_at;
         room.handle(&g, cmd(Action::DirectRead { id })).unwrap();
         assert_eq!(read_at, room.snapshot_for(&h).unwrap().direct[0].read_at);

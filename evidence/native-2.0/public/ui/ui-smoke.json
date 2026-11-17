@@ -1,0 +1,32 @@
+{
+  "actions": "internal application messages, seeded production domain commands, no Windows input automation",
+  "fixtureMembers": 10,
+  "geometryFailures": 0,
+  "geometryNodesChecked": 230,
+  "messages": 31,
+  "microphoneOpened": false,
+  "nativeRenderer": "Iced/tiny-skia",
+  "publicNetwork": false,
+  "releaseAcknowledged": true,
+  "screenshots": [
+    "home",
+    "create-space",
+    "chat",
+    "profile",
+    "audio",
+    "appearance",
+    "kuromi",
+    "news",
+    "home-900",
+    "chat-menu",
+    "server-settings",
+    "direct",
+    "ocean",
+    "forest",
+    "join-invite"
+  ],
+  "spaces": 4,
+  "syntheticFixtures": true,
+  "version": "2.0.0",
+  "windowsBackdropAccepted": true
+}

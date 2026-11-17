@@ -93,3 +93,7 @@ Procedimento ainda não implementado: fechar 1.x para snapshot consistente; copi
 | Desktop/rede/mídia | Semântica e testes | Electron/IPC/DOM/WebAudio/Three/Socket.IO/PowerShell/electron-updater não entram no produto final; reimplementar em bibliotecas nativas. |
 
 Pendências de auditoria profunda: fuzzing de parsers, revisão criptográfica do novo protocolo, CVEs/avisos transitivos, recuperação DPAPI/LevelDB, perfis reais anonimizados e paridade visual/física. Nenhuma substituição do produto foi iniciada antes dessas decisões.
+
+## Integração pública — 17/11/2026
+
+Sinalização Cloudflare implantada; endpoint/STUN padrão, canais/DMs/recentes integrados. [Estado e testes atuais](PROGRESS.md), [operação e limites](INFRASTRUCTURE.md), [homologação](native/PUBLIC-TESTING.md). Renderer/captura/codecs/regras existentes preservados; mundo/mídia completos ainda abertos. Sem publicação do aplicativo ou polimento estético.

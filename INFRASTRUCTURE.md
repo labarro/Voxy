@@ -1,27 +1,26 @@
-# Infraestrutura proposta — Voxy 2.0
+# Infraestrutura experimental — Voxy 2.0
 
-## Conectar a implementação atual
+## Estado implantado em 17/11/2026
 
-O desktop configura VOXY_SIGNAL_URL (WSS público, sem /v3) e VOXY_STUN_URLS, ou usa Configurações → Rede e privacidade. O convidado só cola o convite; endpoint/chave do host/capacidade/expiração já estão assinados nele. STUN padrão: stun:stun.cloudflare.com:3478, confirmado na [documentação oficial](https://developers.cloudflare.com/realtime/turn/). Nenhum segredo Cloudflare é enviado ao desktop.
+Endpoint **wss://voxy.devbarros.com**, health [HTTPS](https://voxy.devbarros.com/health). Worker voxy-native-signaling-experimental, classes SignalRoom e AdmissionBudget com SQLite migration v1 e WebSocket Hibernation. VOXY_DEPLOYMENT_ENABLED=true, VOXY_RELAY_ENABLED=false, 1.000 admissões/dia, dez salas e dez participantes/sala. Não há D1, R2, SFU ou TURN, nem transporte de chat/imagem/voz/jogo pelo Worker.
 
-Para a futura implantação são necessários **o account ID real da conta Free**, **o domínio/subdomínio escolhido** e autenticação Wrangler local via login ou CLOUDFLARE_API_TOKEN escopado para publicar Workers/Durable Objects e configurar a rota/domínio correspondente. Esses valores não foram fornecidos nem inventados. Não colocar token em Git, binário, convite ou variáveis públicas do Worker. O administrador configura a rota do subdomínio, confere a conta/plano e somente então altera VOXY_DEPLOYMENT_ENABLED no ambiente remoto. Não executamos deploy.
+Wrangler whoami confirmou a conta c94a2b1ed3c401c62b4a8b112479ca18 e permissões Workers/routes/zone/SSL. Zona ativa. Changeset do Custom Domain não encontrou origens ou DNS conflitantes; PUT foi feito com override_existing_dns_record=false e override_existing_origin=false. Nenhum outro serviço/registro do domínio foi alterado. API devolveu o domínio e certificado criados. Versão remota habilitada: c36174b1-0409-4e13-92f3-af73146f23d5. A configuração local fica em .local/signaling/wrangler.json (ignorada pelo Git); o template versionado permanece desativado para não publicar acidentalmente.
 
-Para desenvolver/testar sem a conta: npm ci --prefix infra/signaling --ignore-scripts; npm run test:session --prefix infra/signaling. O emulador usa somente 127.0.0.1:8787. Microfone não abre nos testes padrão; o teste de APIs locais exige VOXY_TEST_PHYSICAL_AUDIO=1 explicitamente e mantém a reprodução remota em volume zero.
+**Plano Free confirmado pelo operador.** A API de subscriptions e listagem de DNS retornou 403 para a credencial local; não se afirma auditoria independente de faturamento ou de consumo compartilhado. API workers/account-settings retorna modelo standard, que por si só não atesta plano Free. Nenhuma assinatura, checkout, upgrade ou API faturável de relay foi acionada. Os limites abaixo foram reconferidos na documentação oficial em 17/11/2026; limites internos do Voxy não são teto financeiro de uma conta Paid.
 
-TURN permanece bloqueado. A [página oficial de preços](https://developers.cloudflare.com/realtime/sfu/platform/pricing/) informa franquia compartilhada de 1.000 GB/mês e US$ 0,05/GB de saída excedente; isso não comprova um teto financeiro. A documentação consultada não forneceu um hard cap de cobrança que permitisse habilitar relay com a garantia pedida. Rate limiting, quotas de admissão e backoff evitam abuso comum, mas não substituem o corte do provedor e ainda exigem revisão anti-Sybil antes de uso público.
+DNS A foi resolvido via HTTPS; HTTPS/TLS e WSS autenticado foram verificados preservando hostname/certificado. O resolvedor Windows desta máquina retorna ENOTFOUND para o novo domínio. Teste público usa override exclusivo de debug após DNS sobre HTTPS; o aplicativo release não contém IP fixo, não ignora TLS e usa DNS normal. [Evidência](evidence/native-2.0/public/session-integration.json).
 
+Três testes públicos passaram: chat/imagens/DMs/histórico/autorizações/IPC entre processos, malha SRTP Opus sintética com três peers e isolamento/gate/revogação, quatro reconexões com histórico. Participantes na mesma máquina; redes distintas, CGNAT/NAT simétrico, IPv6, firewall restritivo e acústica permanecem pendentes. [Roteiro externo](native/PUBLIC-TESTING.md).
 
-## Implementação local e barreiras de custo — 16/11/2026
+O desktop usa endpoint público e stun:stun.cloudflare.com:3478 por padrão; overrides opcionais VOXY_SIGNAL_URL/VOXY_STUN_URLS continuam para desenvolvimento. Convites assinados contêm origem/sala/chave/capacidade/expiração. Nenhum token Cloudflare, SDP, convite ou IP privado aparece no recibo versionado. Host precisa estar online. Sem fallback pago ou exposição do HTTP legado.
 
-Código em [infra/signaling](infra/signaling): Worker e Durable Objects SQLite **SignalRoom** (WebSocket hibernável) e **AdmissionBudget** (admissões globais/salas/nonce replay). Desenvolvimento com Wrangler 4.163.0/Miniflare 4.20260730.0; testes locais não acessam conta Cloudflare. Valores padrão: 1.000 admissões/dia, dez salas registradas por orçamento diário e dez participantes/sala. Esses limites internos são conservadores, não representam todas as cotas faturáveis da plataforma.
+## Segurança e operação
 
-Configuração distribuída vem com **VOXY_DEPLOYMENT_ENABLED=false**, **VOXY_RELAY_ENABLED=false**, preview e workers.dev desativados. Sem account ID, domínio fictício ou segredo permanente no desktop. Não foi feito deploy, configurado cartão ou ativado plano. Relay é negado também no cliente, mesmo se a configuração tentar habilitá-lo. Não existem integrações de emissão de credenciais TURN/SFU faturáveis.
+Assinaturas Ed25519 e prova de posse por admissão, nonce e timestamp, replay global, expiração/alarmes, hash de capacidade, rotação autenticada do host e corte de vínculos anteriores. Limites de 64 KiB de sinal, ICE 4 KiB, token bucket por conexão cobrado por bytes e orçamento global antes de criar salas. Roteamento isolado por sala/destino/geração. Receptores nativos verificam assinatura de SDP/ICE. Storage contém metadados/cotas e sockets hibernáveis, sem histórico de usuário. Observability, previews e workers.dev desativados.
 
-Os testes verificaram emulador, assinaturas, prova de posse, replay, quotas, roteamento e comunicação real entre dois processos Rust na mesma máquina. Não comprovam franquia da conta, comportamento de cobrança, conexões entre provedores ou entrega atrás de NAT simétrico. Conta Free, limites atuais e necessidade de cartão precisam ser conferidos antes de qualquer implantação; cotas pesquisadas abaixo não substituem essa conferência. Admissões limitadas não constituem um teto financeiro para um plano Paid.
+Comandos: npm test --prefix infra/signaling; npm run check --prefix infra/signaling; npm run test:session --prefix infra/signaling; **npm run test:public --prefix infra/signaling**. Testes físicos continuam opt-in separados. A limitação por conta Free é compartilhada; falhas de cota devem recusar admissão, sem contratar capacidade. Proteção contra tráfego pré-autenticação e revisão anti-Sybil continuam gates de exposição ampla; grupo experimental restrito por convites.
 
-Nenhum D1/R2/SFU foi introduzido. O objetivo continua P2P para dados e mídia, WSS somente para controle. Domínio e endpoints são configuráveis pelo convite/variáveis. Sem solução TURN com bloqueio financeiro verificável, a fase pública permanece bloqueada; nunca fazer fallback silencioso para serviço pago.
-
-Pesquisa em documentação oficial em **2026-11-16**. Nenhum serviço foi criado, contratado ou ativado; não houve acesso à conta Cloudflare nem alteração de DNS. As cotas são compartilhadas com outras aplicações da mesma conta e precisam ser reconfirmadas antes de qualquer implantação. USD, sem estimar impostos ou conversão cambial. O domínio já existente também pode ter renovação própria; não está incluída em “sem mensalidade do Voxy”.
+## Referência de custos e arquitetura
 
 ## Conjunto mínimo proposto
 
@@ -113,12 +112,12 @@ Sequência de implantação ainda pendente:
 5. Validar dois ISPs/CGNAT/IPv4/IPv6/TURN TCP/TLS, medir tráfego real e ensaiar cota esgotada/serviço indisponível. TURN TCP/TLS é transporte cliente-relay; não confundir com suporte a relay TCP RFC6062, que a FAQ não oferece. A FAQ também informa relay addresses somente IPv4, apesar de acesso ao serviço por IPv6.
 6. Publicar recibo de custos/controles e configuração sem segredos; somente liberar rede de produção após os gates do PLAN.
 
-Nenhum procedimento acima foi executado na conta do usuário. Diagnóstico exportável deverá informar modo direto/retransmitido, motivo da limitação e estado de cota sem expor IP, SDP, nome de dispositivo ou credenciais.
+A sequência acima é a referência histórica; implantação e verificações efetivamente realizadas estão no início deste documento. Diagnóstico exportável deverá informar modo direto/retransmitido, motivo da limitação e estado de cota sem expor IP, SDP, nome de dispositivo ou credenciais.
 
 
 ## Execução contínua — 17/11/2026
 
-Worker verifica sala, esquema, deadline, sequência por destino/nonce, tamanhos e orçamento de bytes. Renovação exige host autenticado; após ack, o host encerra os vínculos antigos. Eventos peer-left são vinculados à geração. Testes locais não homologam internet pública. Sem deploy ou plano pago; TURN bloqueado. Configuração externa agrupada: conta Free/account ID, subdomínio, login Wrangler escopado, revisão de cotas e duas redes reais. Nunca incluir token no binário ou convite. Preparação local e bundle sem deploy em infra/signaling/README.md.
+Worker verifica sala, esquema, deadline, sequência por destino/nonce, tamanhos e orçamento de bytes. Renovação exige host autenticado; após ack, o host encerra os vínculos antigos. Eventos peer-left são vinculados à geração. Testes locais não homologam internet pública. Deploy experimental realizado; sem contratação de plano pago; TURN bloqueado. Configuração externa agrupada: conta Free/account ID, subdomínio, login Wrangler escopado, revisão de cotas e duas redes reais. Nunca incluir token no binário ou convite. Preparação local e bundle sem deploy em infra/signaling/README.md.
 
 
 ## Consolidação da retomada

@@ -1,72 +1,39 @@
 # Progresso — Voxy 2.0.0 nativo
 
-Estado em 17/11/2026: **2.0.0 em preparação**, última publicação **1.4.1**, branch migration/2.0-native-audit. Sem push, deploy, plano pago, tag ou release. Main e dados estáveis preservados. O redesign permanece **não aprovado**.
+Estado em 17/11/2026: **2.0.0 em preparação; última distribuição 1.4.1**. Branch migration/2.0-native-audit. Continuidade dos checkpoints 264f0d7 e 74a6847. Subagentes interrompidos a pedido do usuário; implementação e revisão seguintes realizadas pelo agente principal. Sem push, tag, release do aplicativo, alteração da main ou dados estáveis. Design & Release Polish congelado.
 
-## Incremento anterior — referência preservada
+## Implantado e validado publicamente
 
-- [x] Processo de sessão Rust independente do desktop; UI conecta por TCP somente loopback com desafio Ed25519 mútuo, tamanho/tempo/fila limitados e nenhuma credencial no arquivo de descoberta.
-- [x] UI hospeda e entra com convite, recebe snapshots reais, envia chat, edita/exclui mensagens e espera confirmação antes de descartar o rascunho. Criar, renomear e excluir servidor local; canais criados/excluídos na UI e renomeados pela API autoritativa.
-- [x] Malha Opus/SRTP nativa entre participantes autenticados, separada dos dados autoritativos do host. A associação ao canal e mute/deafen controlam o envio/recebimento. Uma trilha de áudio por peer, payload e taxa limitados.
-- [x] Captura/DSP/codec/mixer integrados à sessão, dispositivos, PTT global incluindo Mouse 4/5, mute/deafen, volume 0–200% persistido por identidade e remoção de buffers ao desconectar.
-- [x] Entrada exibe etapas; prontidão exige frame codificado, abertura tem timeout externo de 12 s e geração para descartar resultado tardio. Falha de dispositivo/DSP aparece na UI. Reconexão com backoff e limite de oito tentativas; credencial expirada exige novo convite.
-- [x] Fechar a UI mantém rede e chamada. Reabrir anexa ao processo existente. Sem sessão ativa, o serviço encerra após desconectar a última UI autenticada. Bandeja ainda pendente.
-- [x] Amigos por ID conhecido pelo host: solicitar/aceitar/recusar/remover, persistência por servidor, estado online derivado da conexão. DMs de texto persistidas e snapshots filtrados por participante, com teste de consentimento/privacidade. Não há diretório global.
-- [x] Até 40 recentes; convite salvo protegido por DPAPI e reconexão pela Home.
-- [x] Home social; sidebar de 64 px com ícones centralizados/tooltips; caption de 36 px, botões vetoriais 46×36; chat com avatares fixos, três colunas e ações no hover/menu contextual; configurações e admin com rolagem e estilos próprios.
-- [x] Revisão de telas preenchidas em 1240×820 e 900×640; fixture isolada com dez participantes, mensagens, amizades e DMs. Consulta real de bounds dos widgets durante QA. Sem inferir cliques humanos, DPI real ou aprovação visual.
-- [x] Legado, updater e assets 3D preservados; publicação/empacotamento Electron da 2.0 continuam bloqueados.
+- Worker voxy-native-signaling-experimental em **wss://voxy.devbarros.com**. SignalRoom e AdmissionBudget com migrations SQLite v1, WebSocket Hibernation, deployment=true e relay=false. Sem D1/R2/SFU/TURN.
+- Wrangler autenticado na conta informada. Changeset do domínio sem conflitos, configuração com override de DNS/origem false. HTTPS/TLS e sessões WSS autenticadas validados. Conta Free confirmada pelo operador; API de billing e listagem DNS recusaram a credencial OAuth. Nenhuma assinatura/upgrade foi acionada.
+- Testes públicos de IPC/sessões/P2P, chat/imagens, respostas/reações/busca, renomeação de canal, cargos/presença, amizade/DMs/histórico/leitura, reabertura da UI e identidade estrangeira negada. Malha com três peers, 12 frames Opus sintéticos, isolamento, gate mute e física autoritativa de sinuca por snapshots. Revogação e quatro reconexões.
+- Todos os peers públicos estavam nesta máquina. **Sem homologação de duas redes, CGNAT/NAT simétrico, IPv6/firewall ou acústica.** DNS Windows retorna ENOTFOUND para o hostname novo; DNS sobre HTTPS encontra A e TLS verifica o hostname. Override de endereço existe apenas em debug/teste e apenas para esse endpoint; release usa o resolvedor normal, sem IP fixo.
+- [Evidência pública](evidence/native-2.0/public/session-integration.json), [infraestrutura](INFRASTRUCTURE.md).
 
-## Validação do incremento anterior
+## Funcionalidades integradas
 
-- Rust: **21 testes** unitários/integração local passaram. Os três testes que requerem emulador/dispositivos são explicitamente ignorados na execução comum e executados separadamente.
-- Emulador: sessão entre processos, IPC com identidade estrangeira negada, chat persistente e reanexação da UI; malha com três peers e isolamento de canais; teste duplex de APIs de áudio, codificação/transmissão/decodificação/saída, volume de reprodução zero e chamada continuando após descarregar ambos os clientes UI.
-- Qualidade acústica, redes de provedores diferentes, PTT com jogo em foco, hotplug e soak **não homologados**.
-- [Sessões](evidence/native-2.0/session-integration.json), [duplex de dispositivos](evidence/native-2.0/session-integration-device-api.json), [QA visual](evidence/native-2.0/liquid-glass-reviewed/ui-smoke.json), [benchmarks](BENCHMARKS.md).
-- A declaração manual “Os testes físicos da versão atual foram satisfatórios” continua registrada exclusivamente para **1.4.1** em evidence/native-2.0-manual-validation.json.
+Sessão Rust autônoma/IPC Ed25519, SQLite/DPAPI, voz Opus/SRTP, DSP/mixer, dispositivos, teste privado sem rede, PTT/atalhos combinados/Mouse4/5, mute/deafen/watchdogs/gerações, volumes 0–200%. Interface pode encerrar e reanexar sem perder chamada. Bandeja abrir/mute/deafen/sair, alertas Shell com UI encerrada, DND/tipos/som e preferências de inicialização/protocolo experimental; registro testado em memória, homologação Windows física ainda pendente.
 
-## Gates e funcionalidades pendentes
+Chat, imagens PNG/JPEG até 3 MiB, respostas/menções/reações, busca/paginação, cargos/presença, notificações privadas e DMs editar/excluir/ler. Endpoint/STUN público padrão dispensam configuração do usuário. Convites gerados usam voxy-native:// e aceitam convites nativos anteriores para compatibilidade. Canal pode ser renomeado pela UI. DMs carregam páginas privadas por conversa de até 100 mensagens/256 KiB; consulta não grava recibos. Leitura em lote até 100 evita encher a fila IPC e reverte integralmente se houver ID não autorizado. Indicador de não lidas recentes na Home. Teste de 205 mensagens com horário igual cobre cursor/privacidade. Home lista todos os recentes e remove entradas sem apagar servidor remoto.
 
-Fases 1–4 avançaram no código integrado, mas a **Fase 2 pública ainda não está aprovada**. Faltam conta/domínio/deploy seguro, CGNAT/NAT simétrico/IPv6/firewalls entre redes reais e TURN financeiramente limitado. Limites locais não substituem teto de cobrança do provedor; relay segue desabilitado.
+## Implementado parcialmente, sem paridade completa
 
-Áudio ainda requer homologação acústica do AEC3 experimental, recuperação/hotplug, sons, atalhos combinados e mudo/ensurdecer globais completos. A UI tem funcionalidades utilizáveis, mas não paridade: imagens, respostas, reações, busca/paginação remotas completas, perfis com foto/capa, cargos, chamadas privadas reservadas, não lidas, DND e notificações ainda pendentes.
+- Captura WGC/D3D11 de janela própria e H.264 software/RTP-SRTP testados em incrementos anteriores. **Ainda sem iniciar transmissão na UI e assistir remotamente**. Webcam só enumeração; áudio isolado por processo, subscriptions/grade/PiP e aceleração completos pendentes.
+- Catálogos originais Lounge/Cinema/Rooftop e renderer wgpu independente com primeiro frame/previews. Mundo interativo, avatar dinâmico/personalização/animações/assentos/multiplayer/TV e voz espacial integrada pendentes.
+- Motores Rust de sinuca/Truco/xadrez e autoridade por canal testados; cartas filtradas por jogador/espectador. Mesas físicas/controles/animações/IK/câmeras ainda não integrados.
+- Importador em cópia preserva perfil/IDs, servidores com dono, canais/mensagens/respostas/reações, backup/integridade/contagens/rollback e reserva de autores contra apropriação. DPAPI Electron, dados privados/anexos e Local Storage integral pendentes; originais intocados.
+- Verificador offline Ed25519/tamanho/hashes/origem/antirollback implementado. Download, aplicação coordenada, recuperação e rollback de instalação pendentes.
+- Instalador/ZIP experimental gerados localmente; probes dos executáveis e catálogos passam. Instalação/desinstalação em VM e assinatura Windows pendentes. Workflow manual guarda ZIP como artefato; não publica release nem tag e não foi executado remotamente.
+- Perfis foto/capa/emoji completos, DM respostas/reações/inbox offline, chamadas privadas reservadas, busca de configurações, sons de chamada e homologação de hotplug ainda abertos.
 
-Fases 5–9 continuam pendentes: vídeo/WGC/áudio por processo/webcam/PiP, salas procedurais completas, avatares/animações, três jogos com testes diferenciais, importação integral e distribuição assinada/rollback. Não foram substituídos por telas estáticas ou experiências simplificadas. Critérios originais de aceite permanecem em PLAN.md.
+## Verificações deste conjunto
 
-## Revisão visual solicitada durante a execução
+72 testes Rust comuns passaram (oito opt-in separados); Clippy com warnings negados passou. Sete testes Worker e tsc passaram. Integrações de sessão local 3/3 e pública 3/3 passaram; sem microfone físico. npm test 83/83 e npm run build passaram, com aviso de chunk Vite preexistente. Oráculos diferenciais existentes preservados. Novas coletas de recursos somente para core ocioso/Home; consultar BENCHMARKS antes de comparar.
 
-Os primeiros prints tinham erros reais: avatars com Fill no lugar de dimensão fixa, sidebar sem centralização, botões de caption genéricos, ações cobertas pela scrollbar e listas sem área rolável. Foram corrigidos; o relatório de revisão registra o que foi conferido. Novos prints são evidência de renderização e correção geométrica, **não aprovação artística ou teste humano**.
+Correções descobertas na validação: espera fixa do teste de admissão substituída por snapshot confirmado; teste de histórico não espera um snapshot adicional após consulta sem mutação; processo de probe empacotado passou a usar código de saída confiável; sintaxe /oname do NSIS corrigida. Falhas não foram contadas como aprovação.
 
-[Revisão visual antes/depois](evidence/native-2.0/visual-review.md): 15 capturas atuais, 227 bounds verificados e nenhuma falha nas invariantes consultadas. [Conferência consolidada](evidence/native-2.0/verification.json): 21 testes Rust comuns e três integrações explícitas passaram; fmt e Clippy com warnings negados passaram. npm test: 83 testes; npm run build passou com aviso já existente de chunk Vite. Versão 2.0.0 em preparação, catálogo e pasta de saída coerentes, sem publicação.
+Versões npm/lock/Cargo, catálogo completo e saída release/2.0.0 permanecem coerentes. Novidades persistidas por versão; teste legado verifica exibição única e teste Rust preserva reconhecimento após reabrir banco. Nenhuma homologação de atualizador instalado foi presumida.
 
+## Próxima tarefa
 
-## Execução contínua — 17/11/2026
-
-Implementado/integrado: comandos sociais (respostas, menções, reações, busca/paginação, DMs editar/excluir/ler, notificações privadas), cargos/presença, convites revogáveis e reconexão por geração. Voz tem watchdogs, lease PTT, gate de envio, descarte de frames antigos e cancelamento por geração. Importação em cópia converte dados públicos preservando IDs e reserva autores contra apropriação. Verificador de atualização é offline; instalador/downloader ainda pendentes. Jogos Rust possuem oráculos diferenciais e autoridade por canal; cenários, mesas, avatares e animações 3D continuam pendentes.
-
-Verificações executadas: npm test 83/83 e npm run build passaram. Integrações Worker test:native/test:host/test:session passaram; sessão ampliada verificou respostas/reactions/search via IPC, cargos/presença, amizade e DMs editar/ler/excluir/negação de autoria, notificações, reanexação e identidade estrangeira negada. Malha: 12 frames Opus, três peers, isolamento, 24 frames enfileirados bloqueados após fechar gate e revogação. Reconexão: quatro admissões da mesma identidade com histórico restaurado. Sem rede pública ou microfone nesses testes.
-
-QA interno: 15 capturas, 229 bounds, zero falhas nas invariantes. Inspeção encontrou header recortado em 900 px; correção funcional em andamento. Evidências em evidence/native-2.0/functional. Capturas não significam teste humano nem aprovação estética. Verificação final será consolidada após integração das frentes.
-
-Gates reais: mídia Windows completa integrada, mundo/avatares/mesas 3D, imagens/perfis completos, chamadas privadas reservadas, DND/notificações Windows, importação integral autenticada, instalador/rollback, auditoria/soak, redes públicas e qualidade acústica. Conta Cloudflare ausente não paralisa essas frentes. Design & Release Polish adiado até integração completa. Não há percentual de prontidão ou candidato aprovado.
-
-### Checkpoint funcional integrado
-
-Suíte Rust comum: **56 testes passaram**, seis integrações opt-in ficam ignoradas (quatro de sessão, uma WGC e uma bandeja). Clippy com warnings negados passou. Oráculos TS têm hashes conferidos. npm test **83/83** e npm run build passaram. Jogos agora passam pelo host/canal com cartas filtradas por espectador, replay limitado e física autoritativa enviada por P2P; sem motor/mesas 3D ainda.
-
-WGC/D3D11 real: 14 frames de uma janela própria de teste, dois ciclos MTA, seis capturas/liberações e dois redimensionamentos. Uma câmera teve apenas metadados enumerados; não foi ativada. Corrigidas falhas de ciclo COM detectadas durante esse teste. Backend ainda sem streaming/encode/decode/UI/áudio. Bandeja nativa tem abrir/mute/deafen/sair e ciclo de criação/destruição verificado por API; notificações usam balão Shell somente com UI encerrada, respeitando tipos/DND/Busy/som e sem reemitir histórico. Clique humano e toast/Action Center não homologados.
-
-Inicialização automática e protocolo **voxy-native://** são preferências explícitas experimentais, com rollback de registro testado em memória. **voxy://** estável não é substituído. Nenhum registro real foi alterado nos testes. Código, package/lock, saída e catálogo permanecem **2.0.0 em preparação**; última publicação **1.4.1**. Sem push, deploy, tag ou release.
-
-
-## Consolidação da retomada
-
-Retomada após interrupção por limite de uso. Os agentes auxiliares foram encerrados após a solicitação de reduzir consumo; nenhuma frente nova será aberta neste checkpoint. Código consolidado: imagens PNG/JPEG até 3 MiB em blocos de 32 KiB, quotas/TTL/ACL/hash/decodificação limitada, commit transacional repetível e anexos sem bytes nos snapshots; UI com seletor nativo, cancelamento, timeout e galeria. O destino de envio fica vinculado à seleção original para impedir envio a outra conversa após navegar.
-
-Mundo: catálogos com geometria/material/texturas/colisores/assentos originais, renderer wgpu separado, quatro capturas GPU e handshake do primeiro frame; ainda sem avatar dinâmico, multiplayer, interações completas ou apresentação dos jogos. Voz: pipeline privado/chamada compartilha NS/AGC/ganho/VAD; AEC pode ser desativado sem desligar os outros estágios; teste privado usa controle independente e não tem rede. Backend de vídeo: Media Foundation H.264 software e roundtrip RTP/SRTP local sintético; hardware obrigatório é recusado explicitamente.
-
-Verificações da retomada: core 27 testes e Clippy passaram; suíte workspace comum passou antes da última proteção de contexto do seletor; Clippy workspace passou. Backend de mídia teve 10 testes de rede, dois de codec e um de vídeo opt-in aprovados, sem capturar conteúdo pessoal ou ativar webcam. As verificações finais e resultados entre processos ficam na evidência de sessão. Não foram medidos novos benchmarks de memória/CPU/GPU/VRAM, acústica ou soak. Fontes de instalador/portable preparadas; pacote com os binários mais recentes e ensaio de instalação/desinstalação em VM ainda precisam de validação.
-
-Próxima retomada: validar os artefatos nativos atuais, ampliar integração visual e de mídia, webcam/áudio seguro por processo, multiplayer/avatar/animações/mesas 3D, dados legados privados e updater com recuperação. Rede pública, custo de TURN e homologação física continuam bloqueadores externos. Redesign permanece congelado.
-
-
-Checkpoint validation: 70 Rust tests passed, 8 opt-in ignored; Clippy passed; npm test 83/83 and npm run build passed. Local session integration 3/3 includes image upload/commit/read over IPC/P2P. Version/catalog/output 2.0.0 synchronized. Evidence: evidence/native-2.0/functional/resume-verification.json. Current native production build and VM installer validation remain pending. No publication.
+Integrar captura/publicação/recepção H.264 ao processo de sessão e à UI com seleção explícita, filas limitadas, preview e liberação. Em seguida áudio WASAPI isolado, webcam e grade. Preservar motores de regras e catálogos; não substituir mundo/jogos por popups. Continuar pelos gates de FEATURE_PARITY.md. Para amigos/dispositivos/redes externas e VM, usar [roteiro de homologação](native/PUBLIC-TESTING.md). Sem conectividade universal, qualidade acústica ou paridade completa declaradas.

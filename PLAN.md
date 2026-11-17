@@ -2,16 +2,16 @@
 
 ## Continuidade executada
 
-O incremento atual integrou sessão persistente, malha de voz e UI, em vez de repetir a prova de conceito. A stack permanece Rust/Iced/CPAL/Opus/webrtc-rs/SQLite; voxy-session isola o ciclo de vida da chamada. Amizades/DMs mantêm o escopo do host, e a Home passou a ser social e predominantemente monocromática. O redesign não foi aprovado pelo usuário. Os critérios das fases permanecem válidos; a Fase 2 pública e a homologação acústica continuam abertas. Estado verificável em PROGRESS.md.
+O incremento atual integrou sessão persistente, malha de voz e UI, em vez de repetir a prova de conceito. A stack permanece Rust/Iced/CPAL/Opus/webrtc-rs/SQLite; voxy-session isola o ciclo de vida da chamada. Amizades/DMs mantêm o escopo do host, e a Home passou a ser social e predominantemente monocromática. Design & Release Polish está congelado. Os critérios das fases permanecem válidos; a Fase 2 pública e a homologação acústica continuam abertas. Estado verificável em PROGRESS.md.
 
 
 ## Stack implementada neste incremento
 
 Rust **1.100.0**, Iced **0.14.0/tiny-skia**, Tokio, Serde, SQLite/rusqlite **0.37**, Ed25519/DPAPI, CPAL **0.18.2**, Opus **0.4.0**, webrtc-rs/rtc **0.21.1** e AEC3 **0.4.0**. Versões transitivas fixadas em Cargo.lock. A escolha Rust para transporte evita embutir navegador e evolui diretamente o código existente; o processamento de voz permanece substituível atrás do adaptador, pois a porta AEC3 é experimental e exige homologação acústica. libwebrtc continua alternativa se os gates de áudio/mídia falharem; não há alegação de qualidade equivalente já aprovada.
 
-UI implementada com materiais próprios e Windows Acrylic opcional, sem loop de animação ociosa. [DESIGN.md](native/DESIGN.md) documenta a nova identidade. Mundo/3D e captura de vídeo ainda não têm implementação nativa escolhida/homologada. Não introduzir Bevy no processo de voz.
+UI implementada com materiais próprios e Windows Acrylic opcional, sem loop de animação ociosa. [DESIGN.md](native/DESIGN.md) documenta a nova identidade. Mundo usa renderer wgpu separado com catálogos originais; captura WGC/D3D11 e H.264 Media Foundation têm backends testados, ainda sem fluxo completo de transmissão na UI. Não introduzir Bevy no processo de voz.
 
-Infra mínima implementada: Worker + dois tipos de Durable Object, sem D1/R2/SFU, relay bloqueado e implantação desativada. [PROGRESS.md](PROGRESS.md) é o estado atual das fases e gates; nenhuma fase de rede pública foi considerada concluída pelos testes locais.
+Infra mínima implementada: Worker + dois tipos de Durable Object, sem D1/R2/SFU, relay bloqueado e implantação experimental pública autorizada e realizada em voxy.devbarros.com. [PROGRESS.md](PROGRESS.md) é o estado atual das fases e gates; nenhuma fase de rede pública foi considerada concluída pelos testes locais.
 
 Estado em 2026-11-16: implementação incremental em andamento; código 2.0.0 experimental, última distribuição 1.4.1. Branch `migration/2.0-native-audit`, main e dados legados preservados. O quadro abaixo registra a escolha implementada; a pesquisa e os critérios originais seguintes permanecem referência histórica. Não autoriza publicação ou contratação.
 
@@ -100,3 +100,7 @@ Dependências abertas: rede pública e áudio homologados; mídia Windows com is
 ## Consolidação da retomada
 
 Consolidar a integração existente antes de ampliar novas frentes. Permanecem os gates de mídia completa, mundo interativo/multiplayer, migração privada, instalador/updater e homologação física. Design & Release Polish continua obrigatório somente após a implementação funcional completa.
+
+## Integração pública — 17/11/2026
+
+Sinalização Cloudflare implantada; endpoint/STUN padrão, canais/DMs/recentes integrados. [Estado e testes atuais](PROGRESS.md), [operação e limites](INFRASTRUCTURE.md), [homologação](native/PUBLIC-TESTING.md). Renderer/captura/codecs/regras existentes preservados; mundo/mídia completos ainda abertos. Sem publicação do aplicativo ou polimento estético.

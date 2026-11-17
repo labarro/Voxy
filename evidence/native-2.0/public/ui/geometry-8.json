@@ -1,0 +1,135 @@
+[
+  {
+    "label": "Id(Custom(\"caption-Minimizar\"))",
+    "x": 762.0,
+    "y": 0.0,
+    "width": 46.0,
+    "height": 36.0
+  },
+  {
+    "label": "Id(Custom(\"caption-Maximizar ou restaurar\"))",
+    "x": 808.0,
+    "y": 0.0,
+    "width": 46.0,
+    "height": 36.0
+  },
+  {
+    "label": "Id(Custom(\"caption-Fechar janela · a chamada continua\"))",
+    "x": 854.0,
+    "y": 0.0,
+    "width": 46.0,
+    "height": 36.0
+  },
+  {
+    "label": "Id(Custom(\"nav-item-Início\"))",
+    "x": 10.0,
+    "y": 94.0,
+    "width": 44.0,
+    "height": 44.0
+  },
+  {
+    "label": "Id(Custom(\"nav-item-Conversas\"))",
+    "x": 10.0,
+    "y": 144.0,
+    "width": 44.0,
+    "height": 44.0
+  },
+  {
+    "label": "Id(Custom(\"nav-item-Novidades\"))",
+    "x": 10.0,
+    "y": 194.0,
+    "width": 44.0,
+    "height": 44.0
+  },
+  {
+    "label": "Id(Custom(\"nav-item-Configurações\"))",
+    "x": 10.0,
+    "y": 244.0,
+    "width": 44.0,
+    "height": 44.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-36\"))",
+    "x": 100.0,
+    "y": 194.84999,
+    "width": 36.0,
+    "height": 36.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-36\"))",
+    "x": 100.0,
+    "y": 263.94998,
+    "width": 36.0,
+    "height": 36.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-36\"))",
+    "x": 100.0,
+    "y": 333.05,
+    "width": 36.0,
+    "height": 36.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-36\"))",
+    "x": 100.0,
+    "y": 402.15,
+    "width": 36.0,
+    "height": 36.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-25\"))",
+    "x": 250.6211,
+    "y": 515.0,
+    "width": 25.0,
+    "height": 25.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-25\"))",
+    "x": 280.6211,
+    "y": 515.0,
+    "width": 25.0,
+    "height": 25.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-28\"))",
+    "x": 90.0,
+    "y": 700.1001,
+    "width": 28.0,
+    "height": 28.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-28\"))",
+    "x": 90.0,
+    "y": 764.50006,
+    "width": 28.0,
+    "height": 28.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-28\"))",
+    "x": 90.0,
+    "y": 812.00006,
+    "width": 28.0,
+    "height": 28.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 610.0,
+    "y": 266.9,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 610.0,
+    "y": 326.1,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 610.0,
+    "y": 385.3,
+    "width": 32.0,
+    "height": 32.0
+  }
+]

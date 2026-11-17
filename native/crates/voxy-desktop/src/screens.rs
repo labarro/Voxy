@@ -127,7 +127,7 @@ pub(super) fn home(app: &App) -> Element<'_, Msg> {
         .align_y(iced::Center)
     ]
     .spacing(10);
-    for server in app.communities.iter().take(3) {
+    for server in &app.communities {
         let connected = app
             .remote
             .snapshot
@@ -142,8 +142,12 @@ pub(super) fn home(app: &App) -> Element<'_, Msg> {
             "Salvo neste dispositivo".into()
         };
         let reconnect: Element<'_, Msg> = if !connected && server.owner != app.profile.id {
-            app.action("Reconectar", Msg::Reconnect(server.id), false)
-                .into()
+            column![
+                app.action("Reconectar", Msg::Reconnect(server.id), false),
+                app.action("Remover salvo", Msg::ForgetRecent(server.id), false)
+            ]
+            .spacing(4)
+            .into()
         } else {
             space::horizontal().width(0).into()
         };
@@ -418,11 +422,26 @@ fn friends(app: &App) -> Element<'_, Msg> {
             } else {
                 "Solicitação recebida"
             };
+            let unread = snapshot
+                .direct
+                .iter()
+                .filter(|message| {
+                    message.from == peer
+                        && message.to == app.profile.id
+                        && message.read_at.is_none()
+                })
+                .count();
             let mut line = row![
                 avatar(name, m, 32),
                 column![
                     text(name).size(13).font(bold()),
-                    text(status).size(11).color(m.muted)
+                    text(if unread > 0 {
+                        format!("{status} · {unread} não lidas")
+                    } else {
+                        status.into()
+                    })
+                    .size(11)
+                    .color(m.muted)
                 ]
                 .spacing(3)
                 .width(Fill)
@@ -971,9 +990,9 @@ pub(super) fn direct(app: &App) -> Element<'_, Msg> {
         })
         .unwrap_or("Mensagem privada");
     let mut history = column![].spacing(16);
-    if let Some(snapshot) = &app.remote.snapshot {
-        for message in snapshot
-            .direct
+    if app.remote.snapshot.is_some() {
+        for message in app
+            .direct_entries()
             .iter()
             .filter(|d| Some(d.from) == peer || Some(d.to) == peer)
         {
@@ -1041,6 +1060,19 @@ pub(super) fn direct(app: &App) -> Element<'_, Msg> {
         .spacing(12)
         .align_y(iced::Center),
         rule::horizontal(1),
+        row![
+            app.action(
+                if app.direct_request.is_some() {
+                    "Carregando…"
+                } else {
+                    "Mensagens anteriores"
+                },
+                Msg::DirectOlder,
+                false
+            ),
+            app.action("Mensagens recentes", Msg::DirectLatest, false)
+        ]
+        .spacing(8),
         scrollable(history)
             .height(Fill)
             .direction(design::vertical_scrollbar())
@@ -1239,11 +1271,25 @@ pub(super) fn admin(app: &App) -> Element<'_, Msg> {
                 .color(m.muted),
                 text(&channel.name).size(13),
                 space::horizontal(),
+                app.action("Renomear", Msg::AdminChannelEdit(channel.id), false),
                 app.action("Excluir canal", Msg::AdminRemove(channel.id), false)
             ]
             .spacing(10)
             .align_y(iced::Center),
         );
+        if app.editing_channel == Some(channel.id) {
+            channels = channels.push(
+                row![
+                    text_input("Nome do canal", &app.channel_name)
+                        .on_input(Msg::AdminChannelName)
+                        .on_submit(Msg::AdminChannelSave)
+                        .padding(9)
+                        .style(m.input()),
+                    app.action("Salvar nome", Msg::AdminChannelSave, true)
+                ]
+                .spacing(8),
+            );
+        }
     }
     scrollable(
         column![

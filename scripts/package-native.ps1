@@ -1,4 +1,4 @@
-param([switch]$SkipBuild,[switch]$SkipInstaller,[string]$NsisPath)
+param([switch]$SkipBuild,[switch]$SkipInstaller,[string]$NsisPath,[string]$MsvcRuntimeDirectory)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $nativePackageRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
@@ -59,6 +59,21 @@ foreach ($binary in 'voxy-desktop.exe','voxy-core.exe','voxy-world.exe') {
     Assert-Amd64Pe $source
     Copy-Item -LiteralPath $source -Destination (Join-Path $payload $binary)
 }
+# These release executables import VCRUNTIME140.dll. Ship the official app-local
+# redistributable instead of relying on development tools installed on this PC.
+if (!$MsvcRuntimeDirectory) {
+    $vswhere=Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+    if (!(Test-Path -LiteralPath $vswhere)) { throw 'Localize o redistribuivel MSVC x64 oficial com -MsvcRuntimeDirectory.' }
+    $runtimeCandidates=@(& $vswhere -latest -products '*' -find 'VC/Redist/MSVC/**/x64/Microsoft.VC143.CRT/vcruntime140.dll')
+    $runtimeFile=$runtimeCandidates | Where-Object { $_ -notmatch '\\onecore\\' } | Sort-Object -Descending | Select-Object -First 1
+    if (!$runtimeFile) { throw 'Redistribuivel MSVC x64 ausente; adicione o componente oficial do Visual Studio.' }
+    $MsvcRuntimeDirectory=Split-Path -Parent $runtimeFile
+}
+$runtimeFile=Join-Path $MsvcRuntimeDirectory 'vcruntime140.dll'
+Assert-Amd64Pe $runtimeFile
+$runtimeSignature=Get-AuthenticodeSignature -LiteralPath $runtimeFile
+if ($runtimeSignature.Status -ne 'Valid' -or $runtimeSignature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation(?:,|$)') { throw 'Runtime MSVC sem assinatura Microsoft valida; pacote recusado.' }
+Copy-Item -LiteralPath $runtimeFile -Destination (Join-Path $payload 'vcruntime140.dll')
 $worldSource=Join-Path $nativePackageRoot 'native/world-assets'
 $worldPayload=Join-Path $payload 'world-assets'
 New-Item -ItemType Directory -Path $worldPayload | Out-Null
@@ -66,9 +81,11 @@ foreach ($asset in Get-ChildItem -LiteralPath $worldSource -File) {
     if ($asset.Extension -notin '.json','.bin','.png','.txt') { throw "Tipo inesperado nos assets: $($asset.Name)" }
     Copy-Item -LiteralPath $asset.FullName -Destination (Join-Path $worldPayload $asset.Name)
 }
-Copy-Item -LiteralPath (Join-Path $nativePackageRoot 'native/README.md') -Destination (Join-Path $payload 'README-native-experimental.md')
+Copy-Item -LiteralPath (Join-Path $nativePackageRoot 'native/EXPERIMENTAL-PACKAGE.md') -Destination (Join-Path $payload 'README-native-experimental.md')
+Copy-Item -LiteralPath (Join-Path $nativePackageRoot 'native/PUBLIC-TESTING.md') -Destination (Join-Path $payload 'PUBLIC-TESTING.md')
 $licenseRoot=Join-Path $payload 'licenses'
 New-Item -ItemType Directory -Path $licenseRoot | Out-Null
+Write-NativeUtf8 (Join-Path $licenseRoot 'Microsoft-VC-Runtime.txt') "Microsoft Visual C++ Runtime app-local redistribution.`r`nSource: Visual Studio VC/Redist/MSVC x64 Microsoft.VC143.CRT/vcruntime140.dll; original Microsoft Authenticode signature verified.`r`nVersion: $((Get-Item -LiteralPath $runtimeFile).VersionInfo.FileVersion)`r`nDistributable code and terms: https://learn.microsoft.com/visualstudio/releases/2022/redistribution`r`nDeployment: https://learn.microsoft.com/cpp/windows/redistributing-visual-cpp-files`r`nThis component retains its Microsoft license and signature; it is not covered by the Voxy MIT license.`r`nUCRT and Windows multimedia/graphics APIs are operating-system prerequisites; Windows N may require its official Media Feature Pack.`r`n"
 $cargo=Join-Path $env:USERPROFILE '.cargo/bin/cargo.exe'
 $metadataText=& $cargo metadata --locked --format-version 1 --manifest-path (Join-Path $nativePackageRoot 'native/Cargo.toml')
 if ($LASTEXITCODE -ne 0) { throw 'Nao foi possivel inventariar as licencas Rust travadas.' }
@@ -95,10 +112,23 @@ $previousNativeDirectory=[Environment]::GetEnvironmentVariable('VOXY_NATIVE_DATA
 $probeSucceeded=$false
 function Invoke-NativePackageProbe([string]$Binary,[string[]]$ProbeArgs,[string]$Name) {
     $stdout=Join-Path $probeRoot ($Name+'.stdout.json');$stderr=Join-Path $probeRoot ($Name+'.stderr.txt')
-    $process=Start-Process -FilePath (Join-Path $payload $Binary) -ArgumentList $ProbeArgs -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
-    if (!$process.WaitForExit(15000)) { $process.Kill();$process.WaitForExit();throw "Processo de verificação excedeu 15s: $Name" }
-    $process.WaitForExit()
-    if ($process.ExitCode -ne 0) { throw "Processo empacotado falhou: $Name. Consulte o stderr privado em $probeRoot" }
+    $process=New-Object Diagnostics.Process
+    $process.StartInfo.FileName=Join-Path $payload $Binary
+    # Probe arguments are fixed internal switches, never user-controlled paths.
+    $process.StartInfo.Arguments=$ProbeArgs -join ' '
+    $process.StartInfo.UseShellExecute=$false
+    $process.StartInfo.CreateNoWindow=$true
+    $process.StartInfo.RedirectStandardOutput=$true
+    $process.StartInfo.RedirectStandardError=$true
+    try {
+        if (!$process.Start()) { throw "Falha ao iniciar probe: $Name" }
+        $readOutput=$process.StandardOutput.ReadToEndAsync()
+        $readError=$process.StandardError.ReadToEndAsync()
+        if (!$process.WaitForExit(15000)) { $process.Kill();$process.WaitForExit();throw "Processo de verificação excedeu 15s: $Name" }
+        Write-NativeUtf8 $stdout ($readOutput.GetAwaiter().GetResult())
+        Write-NativeUtf8 $stderr ($readError.GetAwaiter().GetResult())
+        if ($process.ExitCode -ne 0) { throw "Processo empacotado falhou: $Name. Consulte o stderr privado em $probeRoot" }
+    } finally { $process.Dispose() }
     Get-Content -Raw -Encoding utf8 $stdout | ConvertFrom-Json
 }
 try {
@@ -107,7 +137,7 @@ try {
     if ($status.version -ne $version -or $status.appId -ne $nativePackageId -or $status.guiLoaded -or $status.worldLoaded -or $status.microphoneOpen) { throw 'O core empacotado não confirmou a identidade/isolamento esperados.' }
     $sceneResults=@()
     foreach ($preset in 'lounge','cinema','rooftop','avatar-default-rest') { $sceneResults+=Invoke-NativePackageProbe 'voxy-world.exe' @('--preset',$preset,'--validate') ('world-'+$preset) }
-    $probeReport=[ordered]@{version=$version;appId=$nativePackageId;coreStatus=$status;scenes=$sceneResults;installerInstalled=$false;devicesPhysicallyHomologated=$false}
+    $probeReport=[ordered]@{version=$version;appId=$nativePackageId;coreStatus=$status;scenes=$sceneResults;runtimeMicrosoftSignatureVerified=$true;runtimeSha256=(Get-FileHash -LiteralPath (Join-Path $payload 'vcruntime140.dll')).Hash.ToLowerInvariant();installerInstalled=$false;devicesPhysicallyHomologated=$false}
     Write-NativeUtf8 (Join-Path $output 'packaged-probes.json') ($probeReport | ConvertTo-Json -Depth 12)
     $probeSucceeded=$true
 } finally {
@@ -132,7 +162,7 @@ foreach ($file in Get-ChildItem -LiteralPath $payload -Recurse -File | Sort-Obje
     $relativeDirectory=[IO.Path]::GetDirectoryName($relative)
     $destination=if ($relativeDirectory) { '$INSTDIR\'+(Escape-Nsis $relativeDirectory) } else { '$INSTDIR' }
     $installLines.Add('SetOutPath "'+$destination+'"')
-    $installLines.Add('File /oname="'+(Escape-Nsis $file.Name)+'" "'+(Escape-Nsis $file.FullName)+'"')
+    $installLines.Add('File "/oname='+(Escape-Nsis $file.Name)+'" "'+(Escape-Nsis $file.FullName)+'"')
     $uninstallLines.Add('Delete "$INSTDIR\'+(Escape-Nsis $relative)+'"')
     $validateLines.Add('!insertmacro AssertPlainPath "$INSTDIR\'+(Escape-Nsis $relative)+'"')
 }

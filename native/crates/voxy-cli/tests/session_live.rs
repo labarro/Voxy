@@ -238,6 +238,23 @@ async fn independent_session_processes_deliver_chat_survive_ui_detach_and_reject
         .unwrap()
         .id;
     let message_command_id = uuid::Uuid::new_v4();
+    issue(
+        &mut aw,
+        &mut ar,
+        Action::ChannelRename {
+            id: channel,
+            name: "chat-renomeado".into(),
+        },
+    )
+    .await?;
+    until(&mut br, |s| {
+        s.snapshot.as_ref().is_some_and(|s| {
+            s.channels
+                .iter()
+                .any(|c| c.id == channel && c.name == "chat-renomeado")
+        })
+    })
+    .await?;
     ipc::write_frame(
         &mut bw,
         &Request::Command {
@@ -482,13 +499,26 @@ async fn independent_session_processes_deliver_chat_survive_ui_detach_and_reject
     )
     .await?;
     let direct = uuid::Uuid::parse_str(direct["id"].as_str().context("DM reply missing")?)?;
-    until(&mut br, |s| {
-        s.snapshot
-            .as_ref()
-            .is_some_and(|s| s.direct.iter().any(|d| d.id == direct))
-    })
+    let page = issue(
+        &mut bw,
+        &mut br,
+        Action::DirectHistory {
+            peer: profile.id,
+            before: None,
+        },
+    )
     .await?;
-    issue(&mut bw, &mut br, Action::DirectRead { id: direct }).await?;
+    let page: Vec<voxy_core::room::DirectMessage> = serde_json::from_value(page)?;
+    ensure!(
+        page.iter().any(|message| message.id == direct),
+        "Private history page did not cross IPC/P2P"
+    );
+    issue(
+        &mut bw,
+        &mut br,
+        Action::DirectReadBatch { ids: vec![direct] },
+    )
+    .await?;
     until(&mut ar, |s| {
         s.snapshot.as_ref().is_some_and(|s| {
             s.direct
@@ -739,7 +769,7 @@ async fn authenticated_mesh_transmits_opus_and_isolates_other_voice_channels() -
             let (tx,mut rx)=mpsc::channel(64);senders.push(tx);
             let (event_tx,mut event_rx)=mpsc::channel(256);let output=output.clone();
             tasks.push(tokio::task::spawn_local(async move {let forward=tokio::task::spawn_local(async move{while let Some(event)=event_rx.recv().await{if output.send((index,event)).await.is_err(){break}}});let result=live::run(&config,&identity,&profile,&mut rx,&event_tx).await;forward.abort();result}));
-            if index==0{tokio::time::sleep(Duration::from_millis(300)).await;}
+            if index==0{tokio::time::timeout(Duration::from_secs(12),async{loop{match events.recv().await{Some((0,Event::Snapshot(_)))=>break Ok::<_,anyhow::Error>(()),Some((_,Event::Error(error)))=>anyhow::bail!("Host admission: {error}"),None=>anyhow::bail!("Host events closed"),_=>{}}}}).await.context("Host admission deadline")??;}
         }
         tokio::time::timeout(Duration::from_secs(15),async{loop{if let Some((0,Event::Snapshot(snapshot)))=events.recv().await && snapshot.members.len()==3{break}}}).await?;
         for (index,sender) in senders.iter().enumerate(){sender.send(Input::Command(Command{id:uuid::Uuid::new_v4(),action:Action::VoiceJoin{channel:if index==2{other}else{voice}}})).await?;}
@@ -818,7 +848,7 @@ async fn reconnecting_identity_keeps_host_and_persistent_chat_across_generations
         host_sender.send(Input::Stop).await?;host.await??;
         let store=Store::open(&database)?;
         ensure!(store.messages(channel,None)?.len()==4,"Chat not persisted across reconnects");
-        println!("reconnection: 4 admissions of the same authenticated identity, host kept alive, prior chat restored, four persisted messages; local emulator only");
+        println!("reconnection: 4 admissions of the same authenticated identity, host kept alive, prior chat restored, four persisted messages; signaling endpoint selected by test environment; peers on one computer");
         Ok(())
     }).await
 }

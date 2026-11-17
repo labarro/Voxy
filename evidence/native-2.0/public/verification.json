@@ -1,0 +1,137 @@
+{
+  "checkedAt": "2026-11-17T18:10:07.255Z",
+  "version": "2.0.0",
+  "publishedVersion": "1.4.1",
+  "branch": "migration/2.0-native-audit",
+  "rust": {
+    "passed": 72,
+    "optInIgnored": 8,
+    "clippyWarningsDenied": true,
+    "releaseBuild": true
+  },
+  "legacy": {
+    "testsPassed": 83,
+    "build": true,
+    "knownViteChunkWarning": true
+  },
+  "worker": {
+    "testsPassed": 7,
+    "typeCheck": true,
+    "publicSessionTestsPassed": 3,
+    "localSessionTestsPassed": 3
+  },
+  "publicPeersOnSameComputer": true,
+  "physicalAudioTested": false,
+  "distinctNetworksTested": false,
+  "installerInstalled": false,
+  "automaticUpdaterComplete": false,
+  "artifacts": {
+    "version": "2.0.0",
+    "appId": "dev.voxy.native.experimental",
+    "experimental": true,
+    "signed": false,
+    "published": false,
+    "artifacts": [
+      {
+        "file": "Voxy-Native-Experimental-2.0.0-win-x64.zip",
+        "bytes": 17199935,
+        "sha256": "0e8c61a0ca6e33b1dbe902a972a03088836e906ad8e1cc6239b26225816895df"
+      },
+      {
+        "file": "Voxy-Native-Experimental-Setup-2.0.0-win-x64.exe",
+        "bytes": 10984315,
+        "sha256": "eead9759a866954103df6167cb705b1936993300d57ada755c28c00a9ff081e1"
+      }
+    ]
+  },
+  "binaries": {
+    "voxy-core.exe": {
+      "bytes": 18518016,
+      "sha256": "2aaea951697069de1802676a58a9d866f3dedf430d35005dc78a7e569ab0f9e4"
+    },
+    "voxy-desktop.exe": {
+      "bytes": 13135360,
+      "sha256": "03e7372a36e75206080ccf1bfeff406cec0af737567920594665d97f08b9dfae"
+    },
+    "voxy-world.exe": {
+      "bytes": 5535232,
+      "sha256": "8427f1316539c0fa60730e742d36e7dc4ec7cfea0c8c836084bb675a704dc1e7"
+    }
+  },
+  "packagedProbes": {
+    "version": "2.0.0",
+    "appId": "dev.voxy.native.experimental",
+    "coreStatus": {
+      "appId": "dev.voxy.native.experimental",
+      "communities": 0,
+      "guiLoaded": false,
+      "microphoneOpen": false,
+      "profileId": "733febe7-8185-40d3-8a8a-dae4a2111c3e",
+      "publicKeyBytes": 32,
+      "relayEnabled": false,
+      "version": "2.0.0",
+      "worldLoaded": false
+    },
+    "scenes": [
+      {
+        "colliders": 32,
+        "draws": 334,
+        "materials": 113,
+        "preset": "lounge",
+        "seats": 15,
+        "textures": 18,
+        "validation": "hashes, bounds and hierarchy checked; no physical gameplay claim",
+        "vertices": 50934
+      },
+      {
+        "colliders": 22,
+        "draws": 218,
+        "materials": 63,
+        "preset": "cinema",
+        "seats": 12,
+        "textures": 4,
+        "validation": "hashes, bounds and hierarchy checked; no physical gameplay claim",
+        "vertices": 50250
+      },
+      {
+        "colliders": 38,
+        "draws": 242,
+        "materials": 85,
+        "preset": "rooftop",
+        "seats": 19,
+        "textures": 15,
+        "validation": "hashes, bounds and hierarchy checked; no physical gameplay claim",
+        "vertices": 92316
+      },
+      {
+        "colliders": 0,
+        "draws": 28,
+        "materials": 24,
+        "preset": "avatar-default-rest",
+        "seats": 0,
+        "textures": 2,
+        "validation": "hashes, bounds and hierarchy checked; no physical gameplay claim",
+        "vertices": 22026
+      }
+    ],
+    "runtimeMicrosoftSignatureVerified": true,
+    "runtimeSha256": "d5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066",
+    "installerInstalled": false,
+    "devicesPhysicallyHomologated": false
+  },
+  "gameOracleHashesVerified": true,
+  "ui": {
+    "screenshots": 15,
+    "geometryNodes": 230,
+    "geometryFailures": 0,
+    "syntheticFixture": true,
+    "humanApproval": false,
+    "packagedExecutable": true
+  },
+  "applicationPublished": false,
+  "mainModified": false,
+  "stableDataModified": false,
+  "debugAddressOverrideAbsentFromRelease": true,
+  "defaultPublicEndpointInDesktop": true,
+  "resourcesMeasuredAt": "2026-11-17T18:09:44.1765375Z"
+}

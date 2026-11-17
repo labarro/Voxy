@@ -24,8 +24,9 @@ async function verify(key: string, bytes: Uint8Array<ArrayBuffer>, signature: st
 }
 async function parseInvite(request: Request, room: string): Promise<Invite> {
   const raw = request.headers.get("X-Voxy-Invite") ?? "";
-  if (raw.length > 8192 || !raw.startsWith("voxy://join/")) throw Error("invite");
-  const invite: Invite = JSON.parse(new TextDecoder().decode(decode(raw.slice(12))));
+  const prefix = raw.startsWith("voxy-native://join/") ? "voxy-native://join/" : "voxy://join/";
+  if (raw.length > 8192 || !raw.startsWith(prefix)) throw Error("invite");
+  const invite: Invite = JSON.parse(new TextDecoder().decode(decode(raw.slice(prefix.length))));
   const fields = ["protocol", "room", "host_key", "signal_url", "capability", "expires_at", "signature"];
   if (Object.keys(invite).some(k => !fields.includes(k)) || fields.some(k => !(k in invite))) throw Error("schema");
   if (invite.protocol !== 3 || invite.room !== room || room === "00000000-0000-0000-0000-000000000000" || !Number.isSafeInteger(invite.expires_at) || invite.expires_at <= Date.now() || invite.expires_at > Date.now() + 7 * 86400000) throw Error("expired");

@@ -1,6 +1,6 @@
 # Sinalização experimental nativa
 
-Este serviço oferece apenas rendezvous autenticado. Mensagens, anexos e mídia continuam P2P/host; o HTTP legado não é exposto. A implantação e o relay vêm desativados. Nenhum script deste diretório contrata serviços ou publica automaticamente.
+Este serviço oferece apenas rendezvous autenticado. Mensagens, anexos e mídia continuam P2P/host; o HTTP legado não é exposto. O template de implantação vem desativado; a instância experimental autorizada está ativa em **wss://voxy.devbarros.com**, com relay desativado. Nenhum script deste diretório contrata serviços ou publica automaticamente.
 
 ## Desenvolvimento local
 
@@ -42,3 +42,9 @@ Depois de autorização explícita de implantação, o operador pode revisar a c
 - Limites padrão: 1.000 admissões/dia e dez salas ativas, com rejeição ao esgotar. Limites do aplicativo não impedem requisições de chegarem à plataforma, não substituem proteção de borda e não garantem teto financeiro em plano Paid.
 
 Antes de habilitar publicamente: revisar abuso antes da autenticação/anti-Sybil, validar dois provedores, CGNAT, UDP bloqueado, expiração/revogação, reconexão e cota esgotada. **TURN permanece bloqueado** até existir política financeira efetiva homologada. Não prometer conectividade universal nem custo zero em uma conta Paid.
+
+## Validação pública executada
+
+`npm run test:public --prefix infra/signaling` verifica DNS sobre HTTPS, certificado TLS, health e sessões Rust reais no endpoint público. Três testes passaram com peers na mesma máquina; não homologa duas redes, CGNAT/IPv6/firewall ou acústica. O resolvedor Windows desta máquina não encontrou o hostname novo; o teste usa um override exclusivo de debug, com o hostname original para TLS. Executáveis release não aceitam esse override. [Estado/limites e recibo](../../INFRASTRUCTURE.md), [procedimento com amigos](../../native/PUBLIC-TESTING.md).
+
+O Custom Domain foi criado com flags de sobrescrita de origem/DNS false e changeset sem conflitos. Evite `wrangler deploy` com rotas não revisadas em execução não interativa: esta versão do Wrangler pode autorizar sobrescrita automaticamente. A configuração local usada para upload tem routes=[]; o vínculo foi aplicado separadamente pela API com aquelas flags false. O Worker não precisou de secrets permanentes. Nunca imprima o resultado de `wrangler auth token` nem grave a credencial em arquivos/commits.

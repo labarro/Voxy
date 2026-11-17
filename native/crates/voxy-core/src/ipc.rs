@@ -43,6 +43,9 @@ pub enum Request {
     ScreenStart {
         source: ScreenSource,
         preset: String,
+        /// Share the application's audio (window) or system audio except Voxy (monitor).
+        #[serde(default)]
+        audio: bool,
     },
     ScreenStop,
     /// Start publishing a camera the user picked explicitly (never automatic).
@@ -115,6 +118,10 @@ pub struct ScreenSource {
 /// Local screen publication status, from the publisher thread counters.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct ScreenStatus {
+    #[serde(default)]
+    pub audio: bool,
+    #[serde(default)]
+    pub audio_packets: u64,
     pub label: String,
     pub preset: String,
     pub width: u32,

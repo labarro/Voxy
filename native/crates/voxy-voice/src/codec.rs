@@ -16,6 +16,15 @@ impl VoiceEncoder {
     pub fn encode(&mut self, pcm: &[f32; FRAME_SAMPLES], packet: &mut [u8; 1275]) -> Result<usize> {
         Ok(self.0.encode_float(pcm, packet)?)
     }
+    /// Shared application audio: full-band music mode, no DTX gaps.
+    pub fn music() -> Result<Self> {
+        let mut encoder =
+            opus::Encoder::new(SAMPLE_RATE, opus::Channels::Mono, opus::Application::Audio)?;
+        encoder.set_bitrate(opus::Bitrate::Bits(64_000))?;
+        encoder.set_inband_fec(true)?;
+        encoder.set_packet_loss_perc(5)?;
+        Ok(Self(encoder))
+    }
     /// Clear codec lookahead/prediction when speech is blocked, so a later
     /// unmute cannot emit samples retained before the mute transition.
     pub fn reset(&mut self) -> Result<()> {

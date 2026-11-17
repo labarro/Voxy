@@ -148,7 +148,7 @@ pub(crate) async fn run(
                         state.invite=Some(invite.encode()?);
                         let policy=NetworkPolicy{stun_urls:stun,relay_enabled:false,loopback_only:false};policy.validate()?;
                         let gate=control.clone();
-                        let (video_sender,video_queue)=mpsc::channel(4);video_out=Some(video_sender);
+                        let (video_sender,video_queue)=mpsc::channel(16);video_out=Some(video_sender);
                         let config=Config{invite,host:Some(community),database:path.join("voxy.sqlite"),policy,microphone_allowed:Some(Arc::new(move||gate.may_transmit())),video:Some(Arc::new(tokio::sync::Mutex::new(video_queue)))};
                         network_generation+=1;
                         recent_server=None;
@@ -162,7 +162,7 @@ pub(crate) async fn run(
                         let profile=Store::open(&path.join("voxy.sqlite"))?.profile()?;
                         let policy=NetworkPolicy{stun_urls:stun,relay_enabled:false,loopback_only:false};policy.validate()?;
                         let gate=control.clone();
-                        let (video_sender,video_queue)=mpsc::channel(4);video_out=Some(video_sender);
+                        let (video_sender,video_queue)=mpsc::channel(16);video_out=Some(video_sender);
                         let config=Config{invite,host:None,database:path.join("voxy.sqlite"),policy,microphone_allowed:Some(Arc::new(move||gate.may_transmit())),video:Some(Arc::new(tokio::sync::Mutex::new(video_queue)))};
                         network_generation+=1;
                         recent_server=None;
@@ -196,14 +196,14 @@ pub(crate) async fn run(
                         let config=audio_config(&profile);audio_configured=Some(config.clone());
                         open_audio(config,control.clone(),generation,opened_tx.clone());
                     },
-                    Request::ScreenStart{source,preset}=>{
+                    Request::ScreenStart{source,preset,audio}=>{
                         ensure!(state.voice.is_some() && state.microphone_ready,"Entre em um canal de voz antes de compartilhar");
                         let sender=video_out.clone().context("Conecte ao servidor primeiro")?;
                         screen::preset(&preset)?;
                         publisher=None;screen_generation+=1;let generation=screen_generation;let opened=screen_tx.clone();
                         state.phase="Iniciando compartilhamento de tela".into();
                         tokio::task::spawn_local(async move{
-                            let result=tokio::task::spawn_blocking(move||screen::start(screen::Source::Screen(source),&preset,sender)).await;
+                            let result=tokio::task::spawn_blocking(move||screen::start(screen::Source::Screen(source),&preset,sender,audio)).await;
                             let result=match result{Ok(Ok(p))=>Ok(p),Ok(Err(e))=>Err(e.to_string()),Err(_)=>Err("Captura encerrou inesperadamente".into())};
                             let _=opened.send((false,generation,result)).await;
                         });
@@ -217,7 +217,7 @@ pub(crate) async fn run(
                         camera_publisher=None;camera_generation+=1;let generation=camera_generation;let opened=screen_tx.clone();
                         let label=if device==screen::SYNTHETIC_CAMERA{"Câmera de teste".to_owned()}else{"Câmera".to_owned()};
                         tokio::task::spawn_local(async move{
-                            let result=tokio::task::spawn_blocking(move||screen::start(screen::Source::Camera{device,label},&preset,sender)).await;
+                            let result=tokio::task::spawn_blocking(move||screen::start(screen::Source::Camera{device,label},&preset,sender,false)).await;
                             let result=match result{Ok(Ok(p))=>Ok(p),Ok(Err(e))=>Err(e.to_string()),Err(_)=>Err("Câmera encerrou inesperadamente".into())};
                             let _=opened.send((true,generation,result)).await;
                         });
@@ -355,6 +355,11 @@ pub(crate) async fn run(
                         }else{state.phase="Conectado".into();}
                         state.snapshot=Some(snapshot);
                     },
+                    Event::ShareAudio{peer,sequence,payload}=>{
+                        // Shared audio mixes as its own source (peer id with the share bit).
+                        if let Some(audio)=&audio{let _=audio.input.packet(IncomingVoice{peer:peer|SHARE_AUDIO_PEER,sequence,payload});}
+                        continue
+                    },
                     Event::Video{member,camera,keyframe,bytes}=>{
                         // Decoding happens in the UI; with no UI attached nothing is forwarded.
                         let size=state.snapshot.as_ref().and_then(|s|s.members.iter().find(|m|m.id==member)).and_then(|m|if camera{m.camera_size}else{m.screen_size});
@@ -474,6 +479,8 @@ fn audio_config(profile: &Profile) -> CallConfig {
     }
 }
 /// Host-facing media announcement always carries both publications together.
+/// Mixer key bit separating a participant's shared audio from their voice.
+const SHARE_AUDIO_PEER: u64 = 1 << 40;
 fn media_action(state: &State) -> Input {
     action(Action::Media {
         screen: state.screen.is_some(),

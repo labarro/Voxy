@@ -172,6 +172,7 @@ enum Msg {
     ShareOpen,
     ShareSelect(usize),
     SharePreset(String),
+    ShareAudio(bool),
     SharePreview(usize, Option<iced::widget::image::Handle>),
     ShareStart,
     ShareStop,
@@ -257,6 +258,7 @@ struct App {
     share_selected: Option<usize>,
     share_preset: String,
     share_preview: Option<iced::widget::image::Handle>,
+    share_audio: bool,
     streams: std::collections::HashMap<(uuid::Uuid, bool), video::Frame>,
     stream_focus: Option<(uuid::Uuid, bool)>,
     camera_dialog: bool,
@@ -427,6 +429,7 @@ impl App {
                 share_selected: None,
                 share_preset: "1080p30".into(),
                 share_preview: None,
+                share_audio: false,
                 streams: Default::default(),
                 stream_focus: None,
                 camera_dialog: false,
@@ -2022,11 +2025,13 @@ impl App {
                 }
             }
             Msg::SharePreset(preset) => self.share_preset = preset,
+            Msg::ShareAudio(audio) => self.share_audio = audio,
             Msg::ShareStart => {
                 if let Some(source) = self.share_selected.and_then(|i| self.share_sources.get(i)) {
                     let request = voxy_core::ipc::Request::ScreenStart {
                         source: source.clone(),
                         preset: self.share_preset.clone(),
+                        audio: self.share_audio,
                     };
                     if self.send_service(request) {
                         self.share_dialog = false;

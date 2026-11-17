@@ -157,9 +157,17 @@ pub(super) fn share_dialog(app: &App) -> Element<'_, Msg> {
                             .padding(8)
                             .style(m.select())
                             .menu_style(m.menu()),
-                        text("Somente vídeo. Áudio do aplicativo ainda não é transmitido.")
-                            .size(11)
-                            .color(m.muted),
+                        iced::widget::checkbox(app.share_audio)
+                            .label(
+                                match app.share_selected.and_then(|i| app.share_sources.get(i)) {
+                                    Some(source) if source.kind == "monitor" => {
+                                        "Incluir áudio do sistema (sem a chamada do Voxy)"
+                                    }
+                                    _ => "Incluir áudio deste aplicativo",
+                                }
+                            )
+                            .on_toggle(Msg::ShareAudio)
+                            .size(16),
                     ]
                     .spacing(8)
                     .width(384)

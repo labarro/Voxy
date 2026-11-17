@@ -50,6 +50,12 @@ pub enum Event {
     Sent(u64),
     PeerRemoved(u64),
     /// Video from a member this participant is watching (host-confirmed).
+    /// Shared-application audio from a screen this participant watches.
+    ShareAudio {
+        peer: u64,
+        sequence: u16,
+        payload: Vec<u8>,
+    },
     Video {
         member: uuid::Uuid,
         camera: bool,
@@ -77,10 +83,13 @@ pub struct VideoOut {
     pub duration: Duration,
     /// Camera track instead of screen track.
     pub camera: bool,
+    /// Opus packet of the shared application's audio (sent with the screen).
+    pub share_audio: bool,
 }
 struct Link {
     connection: Arc<dyn PeerConnection>,
     track: OpusTrack,
+    share_audio: OpusTrack,
     video: H264Track,
     camera: H264Track,
     video_sent: u64,
@@ -116,7 +125,8 @@ async fn create_link(
     tx: mpsc::Sender<(String, u64, PeerEvent)>,
 ) -> Result<Link> {
     let mut peer = Peer::with_video(policy, offerer).await?;
-    let track = peer.add_opus_track().await?;
+    let track = peer.add_opus_track("voice").await?;
+    let share_audio = peer.add_opus_track("share-audio").await?;
     let video = peer.add_h264_track("screen").await?;
     let camera = peer.add_h264_track("camera").await?;
     let connection = peer.connection.clone();
@@ -151,6 +161,7 @@ async fn create_link(
     Ok(Link {
         connection,
         track,
+        share_audio,
         video,
         camera,
         video_sent: 0,
@@ -291,11 +302,20 @@ pub async fn run(
                     }
                 },
                 video=async {match video_queue.as_mut() {Some(queue)=>queue.recv().await,None=>std::future::pending().await}}=>{
-                    let Some(VideoOut{frame,duration,camera})=video else {video_queue=None;continue};
+                    let Some(VideoOut{frame,duration,camera,share_audio})=video else {video_queue=None;continue};
                     {
                         // Encode once, send only to links whose member subscribed to this
                         // publisher in the same voice channel (host-confirmed snapshot).
                         let me=snapshot.as_ref().and_then(|s|s.members.iter().find(|m|m.public_key==local)).filter(|m|m.voice.is_some()&&if camera{m.camera}else{m.screen}).cloned();
+                        if share_audio {
+                            if let Some(me)=&me {
+                                for (key,link) in links.iter_mut() {
+                                    let watching=snapshot.as_ref().and_then(|s|s.members.iter().find(|m|&m.public_key==key)).is_some_and(|m|m.voice==me.voice&&m.watching.contains(&me.id));
+                                    if watching {let _=link.share_audio.send(&frame).await;}
+                                }
+                            }
+                            continue;
+                        }
                         if let Some(me)=me {
                             for (key,link) in links.iter_mut() {
                                 let watching=snapshot.as_ref().and_then(|s|s.members.iter().find(|m|&m.public_key==key)).is_some_and(|m|m.voice==me.voice&&m.watching.contains(&me.id));
@@ -426,6 +446,15 @@ if let Some(room)=room.as_mut(){room.remove(&signal.from);snapshot=Some(publish(
                             if let Some(room)=room.as_mut(){room.remove(&key);snapshot=Some(publish(room,&links,output).await?);}else if key==config.invite.host_key{anyhow::bail!("A conexão direta com o host foi interrompida. Reconectando; redes restritivas podem exigir relay, que permanece desativado");}
                         },
                         PeerEvent::State(state)=>link.state=format!("{state:?}").to_lowercase(),
+                        PeerEvent::ShareAudio{sequence,payload}=>{
+                            let members=snapshot.as_ref().map(|s|s.members.as_slice()).unwrap_or_default();
+                            let me=members.iter().find(|m|m.public_key==local);
+                            let publisher=members.iter().find(|m|m.public_key==key);
+                            if let (Some(me),Some(publisher))=(me,publisher)
+                                && me.voice.is_some() && me.voice==publisher.voice && publisher.screen && me.watching.contains(&publisher.id) && !me.deafened {
+                                let _=output.try_send(Event::ShareAudio{peer:link.number,sequence,payload});
+                            }
+                        },
                         PeerEvent::Video(frame)=>{
                             let members=snapshot.as_ref().map(|s|s.members.as_slice()).unwrap_or_default();
                             let me=members.iter().find(|m|m.public_key==local);

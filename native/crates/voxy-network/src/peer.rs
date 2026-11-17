@@ -18,6 +18,11 @@ pub enum PeerEvent {
         sequence: u16,
         payload: Vec<u8>,
     },
+    /// Audio of an application or monitor the peer is sharing.
+    ShareAudio {
+        sequence: u16,
+        payload: Vec<u8>,
+    },
     Closed,
     VideoError(&'static str),
     /// Assembled H.264 access unit, forwarded from the peer's bounded video queue.
@@ -26,6 +31,7 @@ pub enum PeerEvent {
 struct Handler {
     events: mpsc::Sender<PeerEvent>,
     audio_claimed: std::sync::atomic::AtomicBool,
+    share_claimed: std::sync::atomic::AtomicBool,
     video: Option<mpsc::Sender<crate::video::VideoFrame>>,
     video_claimed: Arc<std::sync::atomic::AtomicUsize>,
 }
@@ -121,10 +127,15 @@ impl PeerConnectionEventHandler for Handler {
             });
             return;
         }
+        // One microphone track and one shared-application track per peer.
+        let share = track.track_id().await == "share-audio";
+        let claimed = if share {
+            &self.share_claimed
+        } else {
+            &self.audio_claimed
+        };
         if track.kind().await != rtc::rtp_transceiver::rtp_sender::RtpCodecKind::Audio
-            || self
-                .audio_claimed
-                .swap(true, std::sync::atomic::Ordering::AcqRel)
+            || claimed.swap(true, std::sync::atomic::Ordering::AcqRel)
         {
             track.stop().await;
             return;
@@ -149,9 +160,12 @@ impl PeerConnectionEventHandler for Handler {
                         // never permanently silence an otherwise healthy track.
                         continue;
                     }
-                    let _ = events.try_send(PeerEvent::Audio {
-                        sequence: packet.header.sequence_number,
-                        payload: packet.payload.to_vec(),
+                    let sequence = packet.header.sequence_number;
+                    let payload = packet.payload.to_vec();
+                    let _ = events.try_send(if share {
+                        PeerEvent::ShareAudio { sequence, payload }
+                    } else {
+                        PeerEvent::Audio { sequence, payload }
                     });
                 }
             }
@@ -232,6 +246,7 @@ impl Peer {
                 .with_handler(Arc::new(Handler {
                     events: events.clone(),
                     audio_claimed: std::sync::atomic::AtomicBool::new(false),
+                    share_claimed: std::sync::atomic::AtomicBool::new(false),
                     video: video_sender,
                     video_claimed: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
                 }))
@@ -274,7 +289,12 @@ impl Peer {
         self.connection.close().await?;
         Ok(())
     }
-    pub async fn add_opus_track(&self) -> Result<OpusTrack> {
+    /// `kind` is "voice" (microphone) or "share-audio" (shared application).
+    pub async fn add_opus_track(&self, kind: &str) -> Result<OpusTrack> {
+        ensure!(
+            matches!(kind, "voice" | "share-audio"),
+            "Tipo de áudio inválido"
+        );
         use rtc::{
             media_stream::MediaStreamTrack,
             rtp_transceiver::rtp_sender::{
@@ -294,8 +314,8 @@ impl Peer {
                 std::time::Instant::now(),
                 MediaStreamTrack::new(
                     "voxy-voice".into(),
-                    uuid::Uuid::new_v4().to_string(),
-                    "microphone".into(),
+                    kind.into(),
+                    kind.into(),
                     RtpCodecKind::Audio,
                     vec![RTCRtpEncodingParameters {
                         rtp_coding_parameters: RTCRtpCodingParameters {
@@ -482,7 +502,7 @@ pub async fn local_media_check(packets: &[Vec<u8>]) -> Result<serde_json::Value>
     )
     .await?;
     let result = async {
-        let track = left.add_opus_track().await?;
+        let track = left.add_opus_track("voice").await?;
         let offer = left.offer().await?;
         let answer = right.answer(offer).await?;
         left.connection.set_remote_description(answer).await?;

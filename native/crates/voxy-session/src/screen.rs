@@ -24,12 +24,15 @@ pub struct Counters {
     pub bytes: AtomicU64,
     pub bitrate: AtomicU32,
     pub failed: AtomicBool,
+    pub audio_packets: AtomicU64,
+    pub audio_failed: AtomicBool,
 }
 pub struct Publisher {
     stop: Arc<AtomicBool>,
     pub keyframe: Arc<AtomicBool>,
     pub counters: Arc<Counters>,
     thread: Option<JoinHandle<()>>,
+    audio_thread: Option<JoinHandle<()>>,
     pub status: ScreenStatus,
     last_bytes: u64,
     last_sample: Instant,
@@ -52,6 +55,8 @@ impl Publisher {
         self.status.keyframes = c.keyframes.load(Ordering::Relaxed);
         self.status.bitrate_kbps = c.bitrate.load(Ordering::Relaxed) / 1000;
         self.status.watchers = watchers;
+        self.status.audio_packets = c.audio_packets.load(Ordering::Relaxed);
+        self.status.audio = self.audio_thread.is_some() && !c.audio_failed.load(Ordering::Relaxed);
         self.status.clone()
     }
 }
@@ -59,6 +64,9 @@ impl Drop for Publisher {
     fn drop(&mut self) {
         self.stop.store(true, Ordering::Release);
         if let Some(thread) = self.thread.take() {
+            let _ = thread.join();
+        }
+        if let Some(thread) = self.audio_thread.take() {
             let _ = thread.join();
         }
     }
@@ -95,7 +103,19 @@ pub fn start(
     source: Source,
     preset_name: &str,
     output: mpsc::Sender<VideoOut>,
+    audio: bool,
 ) -> Result<Publisher> {
+    let audio_mode = match (&source, audio) {
+        (Source::Screen(screen), true) if screen.kind == "window" => Some(
+            voxy_media::app_audio::LoopbackMode::IncludeTree(screen.process_id),
+        ),
+        // Monitor: everything except this session process tree, which renders the call.
+        (Source::Screen(_), true) => Some(voxy_media::app_audio::LoopbackMode::ExcludeTree(
+            std::process::id(),
+        )),
+        _ => None,
+    };
+    let audio_output = output.clone();
     let (width, height, fps, bitrate) = match &source {
         Source::Screen(screen) => {
             ensure!(
@@ -158,11 +178,27 @@ pub fn start(
             encoder: "H.264 software (Media Foundation)".into(),
             ..Default::default()
         },
+        audio_thread: None,
         last_bytes: 0,
         last_sample: Instant::now(),
     };
     match ready_rx.recv_timeout(Duration::from_secs(8)) {
-        Ok(Ok(())) => Ok(publisher),
+        Ok(Ok(())) => {
+            let mut publisher = publisher;
+            if let Some(mode) = audio_mode {
+                let (stop, counters) = (publisher.stop.clone(), publisher.counters.clone());
+                publisher.audio_thread = Some(
+                    std::thread::Builder::new()
+                        .name("voxy-share-audio".into())
+                        .spawn(move || {
+                            if share_audio(mode, &audio_output, &stop, &counters).is_err() {
+                                counters.audio_failed.store(true, Ordering::Release);
+                            }
+                        })?,
+                );
+            }
+            Ok(publisher)
+        }
         Ok(Err(error)) => anyhow::bail!("{error}"),
         Err(_) => anyhow::bail!("A captura não produziu vídeo em 8 s"),
     }
@@ -280,6 +316,7 @@ fn run(
                 frame: encoded.bytes,
                 duration,
                 camera,
+                share_audio: false,
             }) {
                 Ok(()) => {
                     counters.bytes.fetch_add(size, Ordering::Relaxed);
@@ -323,6 +360,60 @@ fn run(
     _: &mut Option<std::sync::mpsc::SyncSender<Result<(), String>>>,
 ) -> Result<()> {
     anyhow::bail!("Compartilhamento de tela disponível apenas no Windows")
+}
+
+/// Shared application/system audio: process loopback → mono 48 kHz → Opus
+/// (music mode) → the same bounded media queue, marked as share audio.
+#[cfg(windows)]
+fn share_audio(
+    mode: voxy_media::app_audio::LoopbackMode,
+    output: &mpsc::Sender<VideoOut>,
+    stop: &AtomicBool,
+    counters: &Counters,
+) -> Result<()> {
+    use voxy_voice::codec::{FRAME_SAMPLES, VoiceEncoder};
+    let runtime = voxy_media::MediaRuntime::new()?;
+    let mut capture = voxy_media::app_audio::ProcessAudioCapture::start(&runtime, mode)?;
+    let mut encoder = VoiceEncoder::music()?;
+    let mut stereo = Vec::with_capacity(48_000);
+    let mut mono: Vec<f32> = Vec::with_capacity(FRAME_SAMPLES * 4);
+    let mut frame = [0.0f32; FRAME_SAMPLES];
+    let mut packet = [0u8; 1275];
+    while !stop.load(Ordering::Acquire) {
+        stereo.clear();
+        capture.read(&mut stereo, 50)?;
+        mono.extend(stereo.as_chunks::<2>().0.iter().map(|[l, r]| (l + r) * 0.5));
+        while mono.len() >= FRAME_SAMPLES {
+            frame.copy_from_slice(&mono[..FRAME_SAMPLES]);
+            mono.drain(..FRAME_SAMPLES);
+            let size = encoder.encode(&frame, &mut packet)?;
+            if output
+                .try_send(VideoOut {
+                    frame: packet[..size].into(),
+                    duration: Duration::from_millis(20),
+                    camera: false,
+                    share_audio: true,
+                })
+                .is_ok()
+            {
+                counters.audio_packets.fetch_add(1, Ordering::Relaxed);
+            }
+        }
+        // Bound latency: never keep more than 100 ms of pending audio.
+        if mono.len() > FRAME_SAMPLES * 5 {
+            mono.clear();
+        }
+    }
+    Ok(())
+}
+#[cfg(not(windows))]
+fn share_audio(
+    _: voxy_media::app_audio::LoopbackMode,
+    _: &mpsc::Sender<VideoOut>,
+    _: &AtomicBool,
+    _: &Counters,
+) -> Result<()> {
+    anyhow::bail!("Indisponível")
 }
 
 #[cfg(test)]

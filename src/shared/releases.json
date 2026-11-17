@@ -25,7 +25,9 @@
       "Renomeação de canais na administração, paginação privada de DMs e remoção de servidores recentes pela interface.",
       "Instalador e ZIP experimentais locais Windows x64, com assets, manifesto de integridade, runtime MSVC oficial verificado e guias de homologação; sem publicação ou ensaio em VM.",
       "Indicadores confirmados pela sessão: quem está falando, mudo ou ensurdecido, mídia por participante (rota direta e RTT), transmissão e recepção; diagnóstico copiável sem convites, chaves ou SDP.",
-      "Compartilhamento de tela pela interface: escolha de janela ou monitor com prévia privada, qualidade 720p30/720p60/1080p30/1080p60, captura WGC, H.264 e envio direto somente para quem assiste; grade de transmissões, ampliar, tela cheia com controles que se ocultam e Escape para sair."
+      "Compartilhamento de tela pela interface: escolha de janela ou monitor com prévia privada, qualidade 720p30/720p60/1080p30/1080p60, captura WGC, H.264 e envio direto somente para quem assiste; grade de transmissões, ampliar, tela cheia com controles que se ocultam e Escape para sair.",
+      "Câmera pela interface: escolha do dispositivo com prévia privada, 360p30 ou 720p30, ligada somente por ação explícita e desligada ao sair, trocar de canal ou desconectar; assistida em grade junto das telas.",
+      "Áudio no compartilhamento (opcional): janela compartilha somente o áudio daquele aplicativo e seus subprocessos; monitor compartilha o áudio do sistema excluindo o processo do Voxy que toca a chamada."
     ],
     "improvements": [
       "Controles e ícones vetoriais com dimensões fixas, avatares corrigidos, ações contextuais e rolagem sem encobrir conteúdo.",
@@ -62,7 +64,8 @@
       "Botões de microfone e áudio mostram o estado confirmado pela sessão, não o clique local.",
       "Falhas de sinalização exibem a causa (limite gratuito, convite recusado, host offline) em vez de mensagem genérica.",
       "Leitura da conexão com o núcleo isolada em tarefa própria, evitando corromper o fluxo quando um comando é enviado durante o recebimento de estado.",
-      "Seletor de compartilhamento não lista janelas de ferramenta nem janelas ocultas do sistema."
+      "Seletor de compartilhamento não lista janelas de ferramenta nem janelas ocultas do sistema.",
+      "Testes automáticos não abrem mais prompts do Firewall do Windows: pares locais de teste usam somente loopback."
     ]
   },
   "1.4.1": {

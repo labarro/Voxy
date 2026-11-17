@@ -141,6 +141,30 @@ async fn until(
     })
     .await?
 }
+async fn issue(
+    writer: &mut tokio::net::tcp::OwnedWriteHalf,
+    reader: &mut tokio::net::tcp::OwnedReadHalf,
+    action: Action,
+) -> Result<serde_json::Value> {
+    let id = uuid::Uuid::new_v4();
+    ipc::write_frame(
+        writer,
+        &Request::Command {
+            command: Command { id, action },
+        },
+    )
+    .await?;
+    let state = until(reader, |s| {
+        s.command_results.iter().any(|(key, _)| *key == id)
+    })
+    .await?;
+    Ok(state
+        .command_results
+        .into_iter()
+        .find(|(key, _)| *key == id)
+        .unwrap()
+        .1)
+}
 #[tokio::test]
 #[ignore = "requires VOXY_TEST_SIGNAL_URL and local Worker emulator"]
 async fn independent_session_processes_deliver_chat_survive_ui_detach_and_reject_foreign_identity()
@@ -239,12 +263,213 @@ async fn independent_session_processes_deliver_chat_survive_ui_detach_and_reject
         s.acknowledgements.contains(&message_command_id)
     })
     .await?;
-    until(&mut ar, |s| {
+    let initial_message = until(&mut ar, |s| {
         s.snapshot.as_ref().is_some_and(|s| {
             s.messages
                 .iter()
                 .any(|m| m.text == "Mensagem entre sessões nativas")
         })
+    })
+    .await?;
+    let original = initial_message
+        .snapshot
+        .as_ref()
+        .unwrap()
+        .messages
+        .iter()
+        .find(|m| m.text == "Mensagem entre sessões nativas")
+        .unwrap()
+        .id;
+    let guest = joined
+        .snapshot
+        .as_ref()
+        .unwrap()
+        .members
+        .iter()
+        .find(|m| m.id != profile.id)
+        .unwrap()
+        .id;
+    issue(
+        &mut aw,
+        &mut ar,
+        Action::Reply {
+            channel,
+            target: original,
+            text: format!("Resposta @{{{guest}}}"),
+        },
+    )
+    .await?;
+    until(&mut br, |s| {
+        s.snapshot.as_ref().is_some_and(|s| {
+            s.messages.iter().any(|m| m.reply_to == Some(original))
+                && s.notifications.iter().any(|n| n.kind == "reply")
+        })
+    })
+    .await?;
+    issue(
+        &mut bw,
+        &mut br,
+        Action::React {
+            id: original,
+            emoji: "👍".into(),
+        },
+    )
+    .await?;
+    until(&mut ar, |s| {
+        s.snapshot.as_ref().is_some_and(|s| {
+            s.messages.iter().any(|m| {
+                m.id == original
+                    && m.reactions
+                        .get("👍")
+                        .is_some_and(|actors| actors.contains(&guest))
+            })
+        })
+    })
+    .await?;
+    let history = issue(
+        &mut bw,
+        &mut br,
+        Action::Search {
+            channel,
+            text: "Resposta".into(),
+            before: None,
+        },
+    )
+    .await?;
+    ensure!(
+        history.as_array().is_some_and(|rows| rows.len() == 1),
+        "Remote search reply was not transported over IPC"
+    );
+    let role = issue(
+        &mut aw,
+        &mut ar,
+        Action::RoleSave {
+            id: None,
+            name: "Amigos".into(),
+            color: "#123456".into(),
+        },
+    )
+    .await?;
+    let role = uuid::Uuid::parse_str(role["role"].as_str().context("Role reply missing")?)?;
+    issue(
+        &mut aw,
+        &mut ar,
+        Action::RoleAssign {
+            role,
+            member: guest,
+            assigned: true,
+        },
+    )
+    .await?;
+    until(&mut br, |s| {
+        s.snapshot.as_ref().is_some_and(|s| {
+            s.member_roles
+                .iter()
+                .any(|r| r.role == role && r.member == guest)
+        })
+    })
+    .await?;
+    issue(
+        &mut bw,
+        &mut br,
+        Action::ProfileUpdate {
+            name: "Pessoa ausente".into(),
+            presence: voxy_core::room::Presence::Away,
+            nickname_color: "#112233".into(),
+        },
+    )
+    .await?;
+    until(&mut ar, |s| {
+        s.snapshot.as_ref().is_some_and(|s| {
+            s.profiles
+                .iter()
+                .any(|p| p.id == guest && p.presence == voxy_core::room::Presence::Away)
+        })
+    })
+    .await?;
+    issue(&mut aw, &mut ar, Action::FriendRequest { to: guest }).await?;
+    until(&mut br, |s| {
+        s.snapshot
+            .as_ref()
+            .is_some_and(|s| s.friends.iter().any(|f| f.requester == profile.id))
+    })
+    .await?;
+    issue(
+        &mut bw,
+        &mut br,
+        Action::FriendRespond {
+            requester: profile.id,
+            accept: true,
+        },
+    )
+    .await?;
+    until(&mut ar, |s| {
+        s.snapshot
+            .as_ref()
+            .is_some_and(|s| s.friends.iter().any(|f| f.accepted))
+    })
+    .await?;
+    let direct = issue(
+        &mut aw,
+        &mut ar,
+        Action::Direct {
+            to: guest,
+            text: "DM privada original".into(),
+        },
+    )
+    .await?;
+    let direct = uuid::Uuid::parse_str(direct["id"].as_str().context("DM reply missing")?)?;
+    until(&mut br, |s| {
+        s.snapshot
+            .as_ref()
+            .is_some_and(|s| s.direct.iter().any(|d| d.id == direct))
+    })
+    .await?;
+    issue(&mut bw, &mut br, Action::DirectRead { id: direct }).await?;
+    until(&mut ar, |s| {
+        s.snapshot.as_ref().is_some_and(|s| {
+            s.direct
+                .iter()
+                .any(|d| d.id == direct && d.read_at.is_some())
+        })
+    })
+    .await?;
+    issue(
+        &mut aw,
+        &mut ar,
+        Action::DirectEdit {
+            id: direct,
+            text: "DM privada editada".into(),
+        },
+    )
+    .await?;
+    until(&mut br, |s| {
+        s.snapshot.as_ref().is_some_and(|s| {
+            s.direct
+                .iter()
+                .any(|d| d.id == direct && d.text == "DM privada editada" && d.edited_at.is_some())
+        })
+    })
+    .await?;
+    ipc::write_frame(
+        &mut bw,
+        &Request::Command {
+            command: Command {
+                id: uuid::Uuid::new_v4(),
+                action: Action::DirectEdit {
+                    id: direct,
+                    text: "Tentativa sem autoria".into(),
+                },
+            },
+        },
+    )
+    .await?;
+    until(&mut br, |s| s.error.is_some()).await?;
+    issue(&mut aw, &mut ar, Action::DirectDelete { id: direct }).await?;
+    until(&mut br, |s| {
+        s.snapshot
+            .as_ref()
+            .is_some_and(|s| s.direct.iter().all(|d| d.id != direct))
     })
     .await?;
     drop(ar);
@@ -261,7 +486,7 @@ async fn independent_session_processes_deliver_chat_survive_ui_detach_and_reject
     ipc::write_frame(&mut aw, &Request::Shutdown).await?;
     graceful(&mut children).await?;
     println!(
-        "session-processes: authenticated IPC, authoritative chat, UI detach/re-attach, foreign identity denied; no microphone"
+        "session-processes: authenticated IPC, chat/replies/reactions/search, roles/presence, friendship/DM edit/read/delete/authorization, private notifications, UI detach/re-attach, foreign identity denied; no microphone"
     );
     Ok(())
 }
@@ -443,11 +668,11 @@ async fn authenticated_mesh_transmits_opus_and_isolates_other_voice_channels() -
         let other=store.add_channel(host.id,server.id,"Outro canal",ChannelKind::Voice)?.id;
         drop(store);
         let identity=Arc::new(Identity::generate());let invite=Invite::create(&identity,server.id,&format!("{endpoint}/v3/{}",server.id),now_ms()+60000)?;
-        let mut senders=vec![];let (output,mut events)=mpsc::channel(512);let mut tasks=vec![];
+        let mut senders=vec![];let (output,mut events)=mpsc::channel(512);let mut tasks=vec![];let microphone_gate=Arc::new(std::sync::atomic::AtomicBool::new(true));
         for index in 0..3 {
             let profile=if index==0{host.clone()}else{Default::default()};
             let identity=if index==0{identity.clone()}else{Arc::new(Identity::generate())};
-            let config=Config{invite:invite.clone(),host:(index==0).then(||server.clone()),database:root.path().join("host.sqlite"),policy:Default::default()};
+            let gate=microphone_gate.clone();let config=Config{invite:invite.clone(),host:(index==0).then(||server.clone()),database:root.path().join("host.sqlite"),policy:Default::default(),microphone_allowed:Some(Arc::new(move||gate.load(std::sync::atomic::Ordering::Acquire)))};
             let (tx,mut rx)=mpsc::channel(64);senders.push(tx);
             let (event_tx,mut event_rx)=mpsc::channel(256);let output=output.clone();
             tasks.push(tokio::task::spawn_local(async move {let forward=tokio::task::spawn_local(async move{while let Some(event)=event_rx.recv().await{if output.send((index,event)).await.is_err(){break}}});let result=live::run(&config,&identity,&profile,&mut rx,&event_tx).await;forward.abort();result}));
@@ -464,9 +689,73 @@ async fn authenticated_mesh_transmits_opus_and_isolates_other_voice_channels() -
         let deadline=tokio::time::sleep(Duration::from_secs(2));tokio::pin!(deadline);let mut received=0;
         loop {tokio::select!{_= &mut deadline=>break,event=events.recv()=>if let Some((index,Event::Audio{payload,..}))=event{ensure!(index==1,"Audio leaked to another voice channel");ensure!(payload==expected,"Opus payload changed");received+=1;}}}
         sending.await?;ensure!(received>=8,"Insufficient received Opus frames: {received}");
+        // The transport must consult the live gate even when Opus is already queued.
+        microphone_gate.store(false,std::sync::atomic::Ordering::Release);
+        for _ in 0..24 {senders[0].send(Input::Audio(expected.clone())).await?;}
+        let silence=tokio::time::sleep(Duration::from_millis(500));tokio::pin!(silence);
+        loop {tokio::select!{_= &mut silence=>break,event=events.recv()=>ensure!(!matches!(event,Some((_,Event::Audio{..}))),"Queued Opus bypassed the microphone gate")}}
+        use voxy_core::game_service::{GameCommand,GameKind};
+        for sender in senders.iter().take(2){sender.send(Input::Command(Command{id:uuid::Uuid::new_v4(),action:Action::Game{channel:voice,command:GameCommand::Join{game:GameKind::Pool,seat:None}}})).await?;}
+        let revision=tokio::time::timeout(Duration::from_secs(5),async{loop{if let Some((0,Event::Snapshot(snapshot)))=events.recv().await && let Some(game)=snapshot.games.iter().find(|game|game.channel==voice) && game.pool.players.len()==2 {break game.pool.revision;}}}).await?;
+        senders[0].send(Input::Command(Command{id:uuid::Uuid::new_v4(),action:Action::Game{channel:voice,command:GameCommand::PoolShoot{angle:0.0,power:0.5,revision}}})).await?;
+        // Frequent audio inputs must not starve the authoritative game's fixed deadline.
+        let busy_sender=senders[0].clone();let busy_packet=expected.clone();
+        let busy=tokio::task::spawn_local(async move{for _ in 0..60{let _=busy_sender.send(Input::Audio(busy_packet.clone())).await;tokio::time::sleep(Duration::from_millis(20)).await;}});
+        tokio::time::timeout(Duration::from_secs(5),async{loop{match events.recv().await{
+            Some((2,Event::Snapshot(snapshot)))=>ensure!(snapshot.games.is_empty(),"Game leaked across voice channels"),
+            Some((1,Event::Snapshot(snapshot)))=>{if let Some(game)=snapshot.games.iter().find(|game|game.channel==voice) && game.pool.clock>0.65 && game.pool.balls.iter().any(|ball|ball.vx.abs()+ball.vz.abs()>0.001){break Ok::<_,anyhow::Error>(());}},
+            _=>{}
+        }}}).await??;busy.await?;
+        let replacement=Invite::create(&identity,server.id,&invite.signal_url,now_ms()+60000)?;
+        senders[0].send(Input::RotateInvite(replacement.clone())).await?;
+        tokio::time::timeout(Duration::from_secs(10),async{loop{if let Some((0,Event::InviteRotated(value)))=events.recv().await {ensure!(value.capability==replacement.capability,"Rotation acknowledgement mismatch");break Ok::<_,anyhow::Error>(())}}}).await??;
         for sender in senders{let _=sender.send(Input::Stop).await;}
-        for task in tasks{task.await??;}
-        println!("mesh: {received} native Opus/SRTP frames, 3 authenticated peers, channel isolation; synthetic audio, no physical microphone");
+        for (index,task) in tasks.into_iter().enumerate(){let result=task.await?;if index==0{result?;}}
+        println!("mesh: {received} native Opus/SRTP frames, 3 authenticated peers, channel isolation; queued Opus denied after gate closed; authoritative pool physics advanced over P2P snapshots during frequent audio input; invite rotation acknowledged and P2P peers revoked; synthetic audio, no physical microphone or 3D renderer");
+        Ok(())
+    }).await
+}
+
+#[tokio::test]
+#[ignore = "requires VOXY_TEST_SIGNAL_URL and local Worker emulator"]
+async fn reconnecting_identity_keeps_host_and_persistent_chat_across_generations() -> Result<()> {
+    tokio::task::LocalSet::new().run_until(async {
+        let endpoint=std::env::var("VOXY_TEST_SIGNAL_URL")?;
+        let root=tempfile::tempdir()?;
+        let database=root.path().join("host.sqlite");
+        let mut store=Store::open(&database)?;
+        let host_profile=store.profile()?;
+        let server=store.create_community(host_profile.id,"Reconexão por identidade")?;
+        let channel=store.channels(server.id)?.into_iter().find(|c|c.kind==ChannelKind::Text).unwrap().id;
+        drop(store);
+        let host_identity=Arc::new(Identity::generate());
+        let guest_identity=Arc::new(Identity::generate());
+        let guest_profile=voxy_core::model::Profile::default();
+        let invite=Invite::create(&host_identity,server.id,&format!("{endpoint}/v3/{}",server.id),now_ms()+60000)?;
+        let host_config=Config{invite:invite.clone(),host:Some(server),database:database.clone(),policy:Default::default(),microphone_allowed:None};
+        let (host_sender,mut host_input)=mpsc::channel(64);
+        let (host_output,mut host_events)=mpsc::channel(256);
+        let host=tokio::task::spawn_local(async move{live::run(&host_config,&host_identity,&host_profile,&mut host_input,&host_output).await});
+        tokio::time::timeout(Duration::from_secs(5),async{loop{if matches!(host_events.recv().await,Some(Event::Snapshot(_))){break}}}).await?;
+        let mut messages=vec![];
+        for generation in 0..4 {
+            let config=Config{invite:invite.clone(),host:None,database:root.path().join("guest.sqlite"),policy:Default::default(),microphone_allowed:None};
+            let (sender,mut input)=mpsc::channel(64);let (output,mut events)=mpsc::channel(256);
+            let identity=guest_identity.clone();let profile=guest_profile.clone();
+            let guest=tokio::task::spawn_local(async move{live::run(&config,&identity,&profile,&mut input,&output).await});
+            tokio::time::timeout(Duration::from_secs(10),async{loop{if let Some(Event::Snapshot(snapshot))=events.recv().await && snapshot.members.len()==2 {for id in &messages{ensure!(snapshot.messages.iter().any(|message|&message.id==id),"History lost after reconnect");}break Ok::<_,anyhow::Error>(());}}}).await??;
+            let id=uuid::Uuid::new_v4();
+            sender.send(Input::Command(Command{id,action:Action::Message{channel,text:format!("generation-{generation}")}})).await?;
+            let message_id=tokio::time::timeout(Duration::from_secs(5),async{loop{if let Some(Event::Replied(reply,value))=events.recv().await && reply==id {break serde_json::from_value::<uuid::Uuid>(value["id"].clone());}}}).await??;
+            messages.push(message_id);
+            sender.send(Input::Stop).await?;guest.await??;
+            ensure!(!host.is_finished(),"Guest reconnection unexpectedly ended host");
+            // Do not wait for a host peer-left snapshot: immediately replace the generation.
+        }
+        host_sender.send(Input::Stop).await?;host.await??;
+        let store=Store::open(&database)?;
+        ensure!(store.messages(channel,None)?.len()==4,"Chat not persisted across reconnects");
+        println!("reconnection: 4 admissions of the same authenticated identity, host kept alive, prior chat restored, four persisted messages; local emulator only");
         Ok(())
     }).await
 }

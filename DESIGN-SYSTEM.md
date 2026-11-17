@@ -64,3 +64,8 @@ Em janelas mais estreitas, o launcher passa de duas colunas para uma composiçã
 `style.css` conserva os estilos específicos das funcionalidades existentes; `design-system.css`, carregado depois, define os papéis e a composição compartilhada. `HubNavigation`, `ProfileForm` e `ServerManager` concentram a nova navegação. A camada de IPC, o motor de mídia e a sincronização de salas continuam os mesmos.
 
 Capturas, testes executados e limitações ficam em [TESTING.md](TESTING.md). Não foram introduzidas dependências externas ou alterações nos modelos 3D nesta atualização.
+
+
+## Execução contínua — 17/11/2026
+
+**Design & Release Polish** obrigatório e adiado até conclusão funcional. Liquid Glass, paletas, reflexos e animações decorativas estão congelados. Implementar apenas interfaces necessárias aos fluxos e corrigir impedimentos de uso. Capturas verificam renderização/geometria, sem aprovação estética automática.

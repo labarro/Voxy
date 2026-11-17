@@ -7,6 +7,7 @@ mod fixtures;
 mod platform;
 mod qa;
 mod screens;
+mod windows_integration;
 use design::{Materials, alpha};
 use iced::{
     Border, Color, Element, Font,
@@ -43,6 +44,7 @@ enum Section {
     Audio,
     Appearance,
     Privacy,
+    Windows,
 }
 #[derive(Debug, Clone)]
 enum Msg {
@@ -58,7 +60,24 @@ enum Msg {
     Disconnect,
     LeaveVoice,
     CopyInvite,
+    RotateInvite,
+    RoleName(String),
+    RoleColor(String),
+    RoleEdit(uuid::Uuid),
+    RoleSave,
+    RoleDelete(uuid::Uuid),
+    RoleAssign(uuid::Uuid, uuid::Uuid, bool),
+    Presence(String),
+    NicknameColor(String),
+    WindowsSetting(&'static str, bool),
     Search(String),
+    OpenLink(String),
+    Mention(uuid::Uuid),
+    SearchRemote,
+    OlderMessages,
+    ReplyMessage(uuid::Uuid),
+    ReactMessage(uuid::Uuid, String),
+    NotificationOpen(uuid::Uuid),
     MessageMenu(uuid::Uuid),
     MessageHover(Option<uuid::Uuid>),
     EditMessage(uuid::Uuid),
@@ -74,6 +93,9 @@ enum Msg {
     FriendRemove(uuid::Uuid),
     Direct(uuid::Uuid),
     DirectSend,
+    DirectEdit(uuid::Uuid),
+    DirectDelete(uuid::Uuid),
+    DirectReadAll,
     Reconnect(uuid::Uuid),
     PeerVolume(u64, f32),
     Navigate(Page),
@@ -128,12 +150,16 @@ struct App {
     message_menu: Option<uuid::Uuid>,
     message_hover: Option<uuid::Uuid>,
     editing_message: Option<uuid::Uuid>,
+    replying_message: Option<uuid::Uuid>,
+    history_request: Option<uuid::Uuid>,
+    history_messages: Vec<ChatMessage>,
     pending_message: Option<voxy_core::room::Command>,
     friend_id: String,
     direct_peer: Option<uuid::Uuid>,
     store: Store,
     profile: Profile,
     editing: Profile,
+    windows_settings: windows_integration::WindowsSettings,
     page: Page,
     section: Section,
     communities: Vec<Community>,
@@ -144,6 +170,9 @@ struct App {
     draft: String,
     modal: bool,
     server_name: String,
+    role_name: String,
+    role_color: String,
+    editing_role: Option<uuid::Uuid>,
     status: String,
     devices: Vec<AudioDevice>,
     control: Arc<VoiceControl>,
@@ -160,6 +189,8 @@ struct App {
 impl App {
     fn new() -> (Self, Task<Msg>) {
         let args: Vec<String> = std::env::args().collect();
+        let protocol_invite =
+            windows_integration::protocol_invite_from_args(&args[1..]).unwrap_or(None);
         let smoke_dir = args
             .windows(2)
             .find(|w| w[0] == "--smoke-dir")
@@ -227,19 +258,23 @@ impl App {
                     snapshot: fixture.clone(),
                     ..Default::default()
                 },
-                join_dialog: false,
-                invite_text: String::new(),
+                join_dialog: protocol_invite.is_some(),
+                invite_text: protocol_invite.unwrap_or_default(),
                 endpoint,
                 stun_text,
                 search: String::new(),
                 message_menu: None,
                 message_hover: None,
                 editing_message: None,
+                replying_message: None,
+                history_request: None,
+                history_messages: vec![],
                 pending_message: None,
                 friend_id: String::new(),
                 direct_peer: None,
                 store,
                 profile: profile.clone(),
+                windows_settings: windows_integration::WindowsSettings::from_profile(&profile),
                 editing: profile,
                 page: Page::Home,
                 section: Section::Profile,
@@ -262,6 +297,9 @@ impl App {
                 draft: String::new(),
                 modal: false,
                 server_name: String::new(),
+                role_name: String::new(),
+                role_color: "#a0a0a0".into(),
+                editing_role: None,
                 status: if fixture.is_some() {
                     "Fixture visual · sem áudio ou rede".into()
                 } else {
@@ -467,6 +505,38 @@ impl App {
             }
             Msg::ServiceState(state) => {
                 let state = *state;
+                let notification = state
+                    .notification_open
+                    .filter(|id| Some(*id) != self.remote.notification_open);
+                if state.snapshot.as_ref().map(|s| s.history_revision)
+                    != self.remote.snapshot.as_ref().map(|s| s.history_revision)
+                {
+                    self.history_messages.clear();
+                }
+                let focus = state.focus_requested != self.remote.focus_requested;
+                if let Some(id) = self.history_request
+                    && let Some((_, value)) =
+                        state.command_results.iter().find(|(key, _)| *key == id)
+                {
+                    match serde_json::from_value::<Vec<ChatMessage>>(value.clone()) {
+                        Ok(messages) => {
+                            for message in messages {
+                                if Some(message.channel_id) == self.channel
+                                    && !self.history_messages.iter().any(|m| m.id == message.id)
+                                {
+                                    self.history_messages.push(message);
+                                }
+                            }
+                            self.history_messages.sort_by_key(|m| (m.time, m.id));
+                            if self.history_messages.len() > 500 {
+                                self.history_messages
+                                    .drain(..self.history_messages.len() - 500);
+                            }
+                        }
+                        Err(error) => self.status = error.to_string(),
+                    }
+                    self.history_request = None;
+                }
                 if let Some(snapshot) = &state.snapshot {
                     if let Some(server) = self
                         .communities
@@ -496,6 +566,23 @@ impl App {
                             .filter(|m| Some(m.channel_id) == self.channel)
                             .cloned()
                             .collect();
+                        self.history_messages
+                            .retain(|m| !snapshot.deleted_messages.contains(&m.id));
+                        for message in &mut self.history_messages {
+                            if let Some(updated) =
+                                snapshot.messages.iter().find(|m| m.id == message.id)
+                            {
+                                *message = updated.clone();
+                            }
+                        }
+                        for message in &self.history_messages {
+                            if Some(message.channel_id) == self.channel
+                                && !self.messages.iter().any(|m| m.id == message.id)
+                            {
+                                self.messages.push(message.clone());
+                            }
+                        }
+                        self.messages.sort_by_key(|m| (m.time, m.id));
                     }
                 }
                 if let Some(pending) = &self.pending_message
@@ -505,6 +592,7 @@ impl App {
                     self.draft.clear();
                     self.pending_message = None;
                     self.editing_message = None;
+                    self.replying_message = None;
                 }
                 self.control.muted.store(state.muted, Ordering::Release);
                 self.control
@@ -512,6 +600,12 @@ impl App {
                     .store(state.deafened, Ordering::Release);
                 self.status = state.error.clone().unwrap_or_else(|| state.phase.clone());
                 self.remote = state;
+                if let Some(id) = notification {
+                    let _ = self.update(Msg::NotificationOpen(id));
+                }
+                if focus {
+                    return iced::window::latest().and_then(iced::window::gain_focus);
+                }
             }
             Msg::ServiceError(error) => {
                 self.service = None;
@@ -561,7 +655,170 @@ impl App {
                     return iced::clipboard::write(invite.clone());
                 }
             }
+            Msg::RotateInvite => {
+                self.send_service(voxy_core::ipc::Request::RotateInvite {
+                    valid_for_seconds: 86400,
+                });
+            }
+            Msg::RoleName(value) => self.role_name = value,
+            Msg::RoleColor(value) => self.role_color = value,
+            Msg::RoleEdit(id) => {
+                if let Some(role) = self
+                    .remote
+                    .snapshot
+                    .as_ref()
+                    .and_then(|s| s.roles.iter().find(|r| r.id == id))
+                {
+                    self.role_name = role.name.clone();
+                    self.role_color = role.color.clone();
+                    self.editing_role = Some(id);
+                }
+            }
+            Msg::RoleSave => {
+                self.send_action(voxy_core::room::Action::RoleSave {
+                    id: self.editing_role,
+                    name: self.role_name.clone(),
+                    color: self.role_color.clone(),
+                });
+            }
+            Msg::RoleDelete(id) => {
+                self.send_action(voxy_core::room::Action::RoleDelete { id });
+                if self.editing_role == Some(id) {
+                    self.editing_role = None;
+                    self.role_name.clear();
+                }
+            }
+            Msg::RoleAssign(role, member, assigned) => {
+                self.send_action(voxy_core::room::Action::RoleAssign {
+                    role,
+                    member,
+                    assigned,
+                });
+            }
+            Msg::Presence(value) => {
+                self.editing
+                    .retained
+                    .insert("presence".into(), serde_json::json!(value));
+            }
+            Msg::NicknameColor(value) => {
+                self.editing
+                    .retained
+                    .insert("nicknameColor".into(), serde_json::json!(value));
+            }
             Msg::Search(value) => self.search = value,
+            Msg::WindowsSetting(field, value) => match field {
+                "launch" => self.windows_settings.launch_at_login = value,
+                "minimized" => self.windows_settings.start_minimized = value,
+                "protocol" => self.windows_settings.register_experimental_protocol = value,
+                _ => {}
+            },
+            Msg::OpenLink(url) => {
+                if let Err(error) = platform::open_link(&url) {
+                    self.status = error.to_string();
+                }
+            }
+            Msg::Mention(id) => {
+                self.draft.push_str(&format!(" @{{{id}}} "));
+            }
+            Msg::SearchRemote | Msg::OlderMessages => {
+                if let Some(channel) = self.channel {
+                    let action = if matches!(msg, Msg::SearchRemote) {
+                        self.history_messages.clear();
+                        voxy_core::room::Action::Search {
+                            channel,
+                            text: self.search.clone(),
+                            before: None,
+                        }
+                    } else {
+                        voxy_core::room::Action::History {
+                            channel,
+                            before: self.messages.first().map(|m| (m.time, m.id)),
+                        }
+                    };
+                    let command = voxy_core::room::Command {
+                        id: uuid::Uuid::new_v4(),
+                        action,
+                    };
+                    if self.is_remote() {
+                        if self.send_service(voxy_core::ipc::Request::Command {
+                            command: command.clone(),
+                        }) {
+                            self.history_request = Some(command.id);
+                        }
+                    } else {
+                        let result = match command.action {
+                            voxy_core::room::Action::Search { text, .. } => {
+                                self.store.search_messages(channel, &text, None)
+                            }
+                            voxy_core::room::Action::History { before, .. } => {
+                                self.store.messages(channel, before)
+                            }
+                            _ => unreachable!(),
+                        };
+                        match result {
+                            Ok(messages) => {
+                                for item in messages {
+                                    if !self.messages.iter().any(|m| m.id == item.id) {
+                                        self.messages.push(item);
+                                    }
+                                }
+                                self.messages.sort_by_key(|m| (m.time, m.id));
+                            }
+                            Err(error) => self.status = error.to_string(),
+                        }
+                    }
+                }
+            }
+            Msg::ReplyMessage(id) => {
+                self.replying_message = Some(id);
+                self.editing_message = None;
+                self.message_menu = None;
+            }
+            Msg::ReactMessage(id, emoji) => {
+                if self.is_remote() {
+                    self.send_action(voxy_core::room::Action::React { id, emoji });
+                } else if let Err(error) = self.store.react(id, self.profile.id, &emoji) {
+                    self.status = error.to_string();
+                } else if let Some(channel) = self.channel {
+                    self.messages = self.store.messages(channel, None).unwrap_or_default();
+                }
+                self.message_menu = None;
+            }
+            Msg::NotificationOpen(id) => {
+                if let Some(note) = self
+                    .remote
+                    .snapshot
+                    .as_ref()
+                    .and_then(|s| s.notifications.iter().find(|n| n.id == id))
+                    .cloned()
+                {
+                    if let Some(channel) = note.channel {
+                        self.channel = Some(channel);
+                        self.page = Page::Chat;
+                    } else if note.kind == "direct" {
+                        self.direct_peer = Some(note.sender);
+                        self.page = Page::Direct;
+                    } else {
+                        self.page = Page::Home;
+                    }
+                    self.send_action(voxy_core::room::Action::NotificationRead { id });
+                    if let Some(channel) = note.channel {
+                        self.history_messages.clear();
+                        let command = voxy_core::room::Command {
+                            id: uuid::Uuid::new_v4(),
+                            action: voxy_core::room::Action::History {
+                                channel,
+                                before: Some((note.time.saturating_add(1), uuid::Uuid::max())),
+                            },
+                        };
+                        if self.send_service(voxy_core::ipc::Request::Command {
+                            command: command.clone(),
+                        }) {
+                            self.history_request = Some(command.id);
+                        }
+                    }
+                }
+            }
             Msg::MessageMenu(id) => {
                 self.message_menu = if self.message_menu == Some(id) {
                     None
@@ -578,12 +835,14 @@ impl App {
                 {
                     self.draft = message.text.clone();
                     self.editing_message = Some(id);
+                    self.replying_message = None;
                     self.pending_message = None;
                 }
                 self.message_menu = None;
             }
             Msg::CancelEdit => {
                 self.editing_message = None;
+                self.replying_message = None;
                 self.pending_message = None;
                 self.draft.clear();
             }
@@ -688,7 +947,26 @@ impl App {
                 self.direct_peer = Some(peer);
                 self.draft.clear();
                 self.pending_message = None;
+                self.editing_message = None;
+                self.replying_message = None;
                 self.page = Page::Direct;
+                let unread: Vec<_> = self
+                    .remote
+                    .snapshot
+                    .as_ref()
+                    .map(|s| {
+                        s.direct
+                            .iter()
+                            .filter(|d| {
+                                d.from == peer && d.to == self.profile.id && d.read_at.is_none()
+                            })
+                            .map(|d| d.id)
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                for id in unread {
+                    self.send_action(voxy_core::room::Action::DirectRead { id });
+                }
             }
             Msg::DirectSend => {
                 if let Some(to) = self.direct_peer {
@@ -697,9 +975,16 @@ impl App {
                             .clone()
                             .unwrap_or_else(|| voxy_core::room::Command {
                                 id: uuid::Uuid::new_v4(),
-                                action: voxy_core::room::Action::Direct {
-                                    to,
-                                    text: self.draft.clone(),
+                                action: if let Some(id) = self.editing_message {
+                                    voxy_core::room::Action::DirectEdit {
+                                        id,
+                                        text: self.draft.clone(),
+                                    }
+                                } else {
+                                    voxy_core::room::Action::Direct {
+                                        to,
+                                        text: self.draft.clone(),
+                                    }
                                 },
                             });
                     if self.send_service(voxy_core::ipc::Request::Command {
@@ -707,6 +992,41 @@ impl App {
                     }) {
                         self.pending_message = Some(command);
                     }
+                }
+            }
+            Msg::DirectEdit(id) => {
+                if let Some(message) = self.remote.snapshot.as_ref().and_then(|s| {
+                    s.direct
+                        .iter()
+                        .find(|d| d.id == id && d.from == self.profile.id)
+                }) {
+                    self.draft = message.text.clone();
+                    self.editing_message = Some(id);
+                    self.pending_message = None;
+                }
+            }
+            Msg::DirectDelete(id) => {
+                self.send_action(voxy_core::room::Action::DirectDelete { id });
+            }
+            Msg::DirectReadAll => {
+                let unread: Vec<_> = self
+                    .remote
+                    .snapshot
+                    .as_ref()
+                    .map(|s| {
+                        s.direct
+                            .iter()
+                            .filter(|d| {
+                                Some(d.from) == self.direct_peer
+                                    && d.to == self.profile.id
+                                    && d.read_at.is_none()
+                            })
+                            .map(|d| d.id)
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                for id in unread {
+                    self.send_action(voxy_core::room::Action::DirectRead { id });
                 }
             }
             Msg::Reconnect(id) => match self.store.recent_invite(id) {
@@ -726,6 +1046,8 @@ impl App {
                 self.mic_test = None;
                 if page == Page::Settings {
                     self.editing = self.profile.clone();
+                    self.windows_settings =
+                        windows_integration::WindowsSettings::from_profile(&self.profile);
                 }
                 self.page = page;
                 self.atmosphere.cache.clear();
@@ -756,6 +1078,17 @@ impl App {
             }
             Msg::Name(name) => self.editing.name = name,
             Msg::Save => {
+                let previous_windows =
+                    windows_integration::WindowsSettings::from_profile(&self.profile);
+                let apply_windows =
+                    self.windows_settings != previous_windows || self.section == Section::Windows;
+                if apply_windows
+                    && let Err(error) = windows_integration::apply_settings(self.windows_settings)
+                {
+                    self.status = error.to_string();
+                    return Task::none();
+                }
+                self.windows_settings.store_in_profile(&mut self.editing);
                 if let Ok(latest) = self.store.profile()
                     && let Some(volumes) = latest.retained.get("volumes")
                 {
@@ -773,8 +1106,37 @@ impl App {
                     Ok(()) => {
                         self.profile = self.editing.clone();
                         self.status = "Preferências salvas neste computador.".into();
+                        if self.is_remote() {
+                            self.send_action(voxy_core::room::Action::ProfileUpdate {
+                                name: self.profile.name.clone(),
+                                presence: serde_json::from_value(
+                                    self.profile
+                                        .retained
+                                        .get("presence")
+                                        .cloned()
+                                        .unwrap_or(serde_json::json!("online")),
+                                )
+                                .unwrap_or_default(),
+                                nickname_color: self
+                                    .profile
+                                    .retained
+                                    .get("nicknameColor")
+                                    .and_then(|v| v.as_str())
+                                    .unwrap_or_default()
+                                    .into(),
+                            });
+                        }
                     }
-                    Err(error) => self.status = error.to_string(),
+                    Err(error) => {
+                        self.status = error.to_string();
+                        if apply_windows
+                            && let Err(rollback) =
+                                windows_integration::apply_settings(previous_windows)
+                        {
+                            self.status
+                                .push_str(&format!("; rollback Windows: {rollback}"));
+                        }
+                    }
                 }
             }
             Msg::Theme(theme) => {
@@ -865,6 +1227,9 @@ impl App {
             },
             Msg::Server(id) => self.open_server(id),
             Msg::Channel(id) => {
+                self.history_messages.clear();
+                self.history_request = None;
+                self.replying_message = None;
                 if self
                     .channels
                     .iter()
@@ -909,6 +1274,12 @@ impl App {
                                         id,
                                         text: self.draft.clone(),
                                     }
+                                } else if let Some(target) = self.replying_message {
+                                    voxy_core::room::Action::Reply {
+                                        channel,
+                                        text: self.draft.clone(),
+                                        target,
+                                    }
                                 } else {
                                     voxy_core::room::Action::Message {
                                         channel,
@@ -936,12 +1307,22 @@ impl App {
                         };
                         return Task::none();
                     }
-                    match self
-                        .store
-                        .post(channel, self.profile.id, &self.profile.name, &self.draft)
-                    {
+                    let result = if let Some(target) = self.replying_message {
+                        self.store.reply(
+                            channel,
+                            self.profile.id,
+                            &self.profile.name,
+                            &self.draft,
+                            target,
+                        )
+                    } else {
+                        self.store
+                            .post(channel, self.profile.id, &self.profile.name, &self.draft)
+                    };
+                    match result {
                         Ok(_) => {
                             self.draft.clear();
+                            self.replying_message = None;
                             self.messages = self.store.messages(channel, None).unwrap_or_default();
                         }
                         Err(error) => self.status = error.to_string(),
@@ -1001,6 +1382,11 @@ impl App {
                 if self.ready_file.is_some() {
                     return iced::window::latest()
                         .and_then(|id| iced::window::screenshot(id).map(Msg::BenchmarkReady));
+                }
+                if self.smoke_dir.is_none()
+                    && std::env::args().any(|arg| arg == "--start-minimized")
+                {
+                    return iced::window::latest().and_then(|id| iced::window::minimize(id, true));
                 }
             }
             Msg::BenchmarkReady(shot) => {
@@ -1141,6 +1527,8 @@ impl App {
             stack![content,container(container(column![row![text("Entrar em servidor").font(bold()).size(20),space::horizontal(),self.action("×",Msg::Cancel,false)],text("Cole o convite enviado pelo dono do servidor.").size(13).color(m.muted),text_input("voxy://join/…",&self.invite_text).on_input(Msg::InviteText).on_submit(Msg::JoinRemote).padding(12).style(m.input()),text("Conexões diretas compartilham seu IP com os participantes. O host armazena as mensagens. TURN está desativado.").size(12).color(m.muted),row![space::horizontal(),self.action("Cancelar",Msg::Cancel,false),self.action("Entrar",Msg::JoinRemote,true)].spacing(8)].spacing(16)).padding(24).width(470).style(move |_|m.dialog())).center(Fill).style(|_|container::Style{background:Some(alpha(Color::BLACK,0.65).into()),..Default::default()})].into()
         } else if self.modal {
             stack![content,container(container(column![row![text("Criar servidor").font(bold()).size(20),space::horizontal(),self.action("×",Msg::Cancel,false)],text("Um lugar para o seu grupo, com canais de texto e voz.").size(14).color(m.muted),text_input("Nome do servidor",&self.server_name).on_input(Msg::ServerName).on_submit(Msg::CreateServer).padding(15).style(m.input()),text("Depois de criar, hospede o servidor e copie o convite para seu grupo.").color(m.muted).size(12),row![space::horizontal(),self.action("Cancelar",Msg::Cancel,false),self.action("Criar servidor",Msg::CreateServer,true)].spacing(10)].spacing(22)).padding(32).width(530).style(move|_|m.dialog())).center(Fill).width(Fill).height(Fill).style(|_|container::Style{background:Some(alpha(Color::BLACK,0.65).into()),..Default::default()})].into()
+        } else if self.notes_pending && self.page != Page::News && self.smoke_dir.is_none() {
+            stack![content,container(container(column![text("Novidades do Voxy 2.0.0 em preparação").size(21).font(bold()),text("Esta versão experimental continua separada da 1.4.1 publicada. Consulte as funcionalidades e limitações antes de testar.").size(14),text("Comunicação nativa, comandos sociais, convites revogáveis e importação em cópia. Rede pública, mídia, 3D e homologação ainda pendentes.").size(13).color(m.muted),row![self.action("Ver novidades",Msg::Navigate(Page::News),false),self.action("Entendi",Msg::MarkNotes,true)].spacing(10)].spacing(18)).padding(26).width(540).style(move |_|m.dialog())).center(Fill).style(|_|container::Style{background:Some(alpha(Color::BLACK,0.65).into()),..Default::default()})].into()
         } else {
             content
         }
@@ -1153,6 +1541,12 @@ fn bold() -> Font {
     }
 }
 fn main() -> iced::Result {
+    if windows_integration::protocol_invite_from_args(&std::env::args().skip(1).collect::<Vec<_>>())
+        .is_err()
+    {
+        eprintln!("Argumentos de protocolo recusados");
+        return Ok(());
+    }
     iced::application(App::new, App::update, App::view)
         .title("Voxy 2.0 - Nativo")
         .transparent(true)

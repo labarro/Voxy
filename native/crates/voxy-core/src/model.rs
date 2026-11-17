@@ -96,6 +96,10 @@ pub struct Message {
     pub text: String,
     pub time: i64,
     pub edited_at: Option<i64>,
+    #[serde(default)]
+    pub reply_to: Option<Uuid>,
+    #[serde(default)]
+    pub reactions: std::collections::BTreeMap<String, Vec<Uuid>>,
 }
 
 pub fn validate_text(value: &str, max: usize) -> anyhow::Result<()> {

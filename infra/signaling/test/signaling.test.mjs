@@ -29,7 +29,7 @@ test('native admission, hibernating WebSockets, private routing, nonce replay an
     const response=await mf.dispatchFetch(url,{headers:hh});assert.equal(response.status,101);const hs=response.webSocket;sockets.push(hs);const welcome=nextMessage(hs);hs.accept();assert.equal((await welcome).type,'welcome');
     assert.equal((await mf.dispatchFetch(url,{headers:hh})).status,429);
     const joined=nextMessage(hs);const guestResponse=await mf.dispatchFetch(url,{headers:headers(body,guest)});assert.equal(guestResponse.status,101);const gs=guestResponse.webSocket;sockets.push(gs);const gw=nextMessage(gs);gs.accept();assert.equal((await gw).peers[0].key,host.key);assert.equal((await joined).key,guest.key);
-    const received=nextMessage(gs);hs.send(JSON.stringify({room:body.room,from:host.key,to:guest.key,session_nonce:hh['X-Voxy-Nonce'],sequence:1,expires_at:Date.now()+10000,payload:{description:'encrypted-transport-fingerprint'},signature:'verified-by-endpoints'}));assert.equal((await received).from,host.key);
+    const received=nextMessage(gs);hs.send(JSON.stringify({room:body.room,from:host.key,to:guest.key,session_nonce:hh['X-Voxy-Nonce'],sequence:1,expires_at:Date.now()+10000,payload:{description:'encrypted-transport-fingerprint'},signature:randomBytes(64).toString('base64url')}));assert.equal((await received).from,host.key);
     const other=makeKey();assert.equal((await mf.dispatchFetch(url,{headers:headers(body,other)})).status,101);assert.equal((await mf.dispatchFetch(url,{headers:headers(body,makeKey())})).status,429);
   }finally{for(const socket of sockets){try{socket.close()}catch{}}await mf.dispose();}
 });
@@ -46,5 +46,75 @@ test('a signal from an old admission nonce closes only the offending peer',async
     assert.equal(await closed,1008);
     // A new valid participant can still join the same authoritative host.
     const {s:replacement}=await open(body,makeKey());assert.ok(replacement);
+  } finally {for(const socket of sockets){try{socket.close()}catch{}}await mf.dispose();}
+});
+
+
+const nextClose = socket => new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('Close timeout')),3000);socket.addEventListener('close',e=>{clearTimeout(timer);resolve(e.code)},{once:true});});
+async function open(mf, body, peer, sockets) {
+  const h=headers(body,peer), response=await mf.dispatchFetch(body.signal_url.replace('ws:','http:'),{headers:h});
+  assert.equal(response.status,101);const socket=response.webSocket;sockets.push(socket);const welcome=nextMessage(socket);socket.accept();await welcome;return {socket,h};
+}
+function signal(body, from, to, h, overrides={}) {
+  return {room:body.room,from:from.key,to:to.key,session_nonce:h['X-Voxy-Nonce'],sequence:1,expires_at:Date.now()+10000,payload:{description:{type:'offer',sdp:'fixture'}},signature:randomBytes(64).toString('base64url'),...overrides};
+}
+
+test('room, replay, deadline, schema and ICE limits are enforced before routing',async()=>{
+  const invalid = [
+    {room:randomUUID()},
+    {expires_at:Date.now()+120000},
+    {sequence:0},
+    {sequence:Number.MAX_SAFE_INTEGER+1},
+    {expires_at:'future'},
+    {payload:{candidate:{candidate:'x'.repeat(4096)}}},
+    {payload:{description:{},candidate:{}}},
+    {payload:{command:'chat must use the P2P data channel'}},
+    {extra:'unknown'},
+  ];
+  for (const overrides of invalid) {
+    const mf=setup(),sockets=[];
+    try {
+      const host=makeKey(),guest=makeKey(),body=invite(host);
+      const {socket:hs}=await open(mf,body,host,sockets);const joined=nextMessage(hs);
+      const {socket:gs,h}=await open(mf,body,guest,sockets);await joined;
+      const closed=nextClose(gs);gs.send(JSON.stringify(signal(body,guest,host,h,overrides)));assert.equal(await closed,1008);
+    } finally {for(const socket of sockets){try{socket.close()}catch{}}await mf.dispose();}
+  }
+  const mf=setup(),sockets=[];
+  try {
+    const host=makeKey(),guest=makeKey(),body=invite(host);
+    const {socket:hs}=await open(mf,body,host,sockets);const joined=nextMessage(hs);
+    const {socket:gs,h}=await open(mf,body,guest,sockets);await joined;
+    const first=nextMessage(hs),packet=JSON.stringify(signal(body,guest,host,h));gs.send(packet);assert.equal((await first).sequence,1);
+    const closed=nextClose(gs);gs.send(packet);assert.equal(await closed,1008);
+  } finally {for(const socket of sockets){try{socket.close()}catch{}}await mf.dispose();}
+});
+
+test('host rotates and revokes invite while remaining connected; old capability is denied',async()=>{
+  const mf=setup(),sockets=[];
+  try {
+    const host=makeKey(),guest=makeKey(),body=invite(host);
+    const {socket:hs,h}=await open(mf,body,host,sockets);const joined=nextMessage(hs);
+    const {socket:gs}=await open(mf,body,guest,sockets);await joined;
+    const replacement=invite(host,body.room),revoked=nextMessage(gs),ack=nextMessage(hs);
+    hs.send(JSON.stringify({type:'rotate-invite',session_nonce:h['X-Voxy-Nonce'],invite:`voxy://join/${Buffer.from(JSON.stringify(replacement)).toString('base64url')}`}));
+    assert.equal((await ack).type,'invite-rotated');assert.equal((await revoked).type,'invite-revoked');gs.close();
+    assert.equal((await mf.dispatchFetch(body.signal_url.replace('ws:','http:'),{headers:headers(body,makeKey())})).status,403);
+    const {socket:newGuest}=await open(mf,replacement,guest,sockets);assert.ok(newGuest);
+  } finally {for(const socket of sockets){try{socket.close()}catch{}}await mf.dispose();}
+});
+
+test('guest cannot rotate host invitation and recipient reconnect resets only its replay generation',async()=>{
+  const mf=setup(),sockets=[];
+  try {
+    const host=makeKey(),guest=makeKey(),body=invite(host);
+    const {socket:hs,h:hh}=await open(mf,body,host,sockets);const joined=nextMessage(hs);
+    const {socket:gs,h:gh}=await open(mf,body,guest,sockets);await joined;
+    const initial=nextMessage(gs);hs.send(JSON.stringify(signal(body,host,guest,hh,{sequence:42})));await initial;
+    const denied=nextClose(gs),left=nextMessage(hs);
+    gs.send(JSON.stringify({type:'rotate-invite',session_nonce:gh['X-Voxy-Nonce'],invite:`voxy://join/${Buffer.from(JSON.stringify(invite(host,body.room))).toString('base64url')}`}));
+    assert.equal(await denied,1008);const leftEvent=await left;assert.equal(leftEvent.type,'peer-left');assert.equal(leftEvent.session_nonce,gh['X-Voxy-Nonce']);
+    const rejoined=nextMessage(hs),{socket:again}=await open(mf,body,guest,sockets);await rejoined;
+    const accepted=nextMessage(again);hs.send(JSON.stringify(signal(body,host,guest,hh)));assert.equal((await accepted).sequence,1);
   } finally {for(const socket of sockets){try{socket.close()}catch{}}await mf.dispose();}
 });

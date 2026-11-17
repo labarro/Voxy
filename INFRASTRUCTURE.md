@@ -114,3 +114,8 @@ Sequência de implantação ainda pendente:
 6. Publicar recibo de custos/controles e configuração sem segredos; somente liberar rede de produção após os gates do PLAN.
 
 Nenhum procedimento acima foi executado na conta do usuário. Diagnóstico exportável deverá informar modo direto/retransmitido, motivo da limitação e estado de cota sem expor IP, SDP, nome de dispositivo ou credenciais.
+
+
+## Execução contínua — 17/11/2026
+
+Worker verifica sala, esquema, deadline, sequência por destino/nonce, tamanhos e orçamento de bytes. Renovação exige host autenticado; após ack, o host encerra os vínculos antigos. Eventos peer-left são vinculados à geração. Testes locais não homologam internet pública. Sem deploy ou plano pago; TURN bloqueado. Configuração externa agrupada: conta Free/account ID, subdomínio, login Wrangler escopado, revisão de cotas e duas redes reais. Nunca incluir token no binário ou convite. Preparação local e bundle sem deploy em infra/signaling/README.md.

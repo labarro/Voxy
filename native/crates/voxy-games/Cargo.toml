@@ -1,0 +1,19 @@
+[package]
+name = "voxy-games"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+serde.workspace = true
+rand.workspace = true
+cozy-chess = "=0.3.4"
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true

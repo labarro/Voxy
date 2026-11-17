@@ -16,6 +16,11 @@ impl VoiceEncoder {
     pub fn encode(&mut self, pcm: &[f32; FRAME_SAMPLES], packet: &mut [u8; 1275]) -> Result<usize> {
         Ok(self.0.encode_float(pcm, packet)?)
     }
+    /// Clear codec lookahead/prediction when speech is blocked, so a later
+    /// unmute cannot emit samples retained before the mute transition.
+    pub fn reset(&mut self) -> Result<()> {
+        Ok(self.0.reset_state()?)
+    }
 }
 impl VoiceDecoder {
     pub fn new() -> Result<Self> {
@@ -28,6 +33,20 @@ impl VoiceDecoder {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn reset_discards_opus_lookahead_before_unmuting() {
+        let mut encoder = VoiceEncoder::new().unwrap();
+        let mut packet = [0; 1275];
+        let speech = [0.25; FRAME_SAMPLES];
+        encoder.encode(&speech, &mut packet).unwrap();
+        encoder.reset().unwrap();
+        let silence = [0.0; FRAME_SAMPLES];
+        let length = encoder.encode(&silence, &mut packet).unwrap();
+        let mut fresh = VoiceEncoder::new().unwrap();
+        let mut baseline = [0; 1275];
+        let baseline_length = fresh.encode(&silence, &mut baseline).unwrap();
+        assert_eq!(&packet[..length], &baseline[..baseline_length]);
+    }
     #[test]
     fn opus_roundtrip_and_packet_loss_concealment_are_finite() {
         let mut encoder = VoiceEncoder::new().unwrap();

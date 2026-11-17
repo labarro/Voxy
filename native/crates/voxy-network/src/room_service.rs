@@ -34,7 +34,7 @@ pub enum ClientPacket {
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum ServerPacket {
     State {
-        snapshot: Snapshot,
+        snapshot: Box<Snapshot>,
     },
     Reply {
         id: uuid::Uuid,
@@ -96,16 +96,28 @@ pub async fn send_packet(channel: &Arc<dyn DataChannel>, packet: &impl Serialize
     .context("O participante não recebeu os dados a tempo")??;
     Ok(())
 }
+pub(crate) async fn wait_deadline(deadline: Option<tokio::time::Instant>) {
+    if let Some(deadline) = deadline {
+        tokio::time::sleep_until(deadline).await;
+    } else {
+        std::future::pending::<()>().await;
+    }
+}
 fn add_link(
     mut peer: Peer,
     key: String,
-    events: mpsc::Sender<(String, PeerEvent)>,
+    events: mpsc::Sender<(String, String, PeerEvent)>,
     remote_nonce: String,
 ) -> Link {
     let connection = peer.connection.clone();
+    let generation = remote_nonce.clone();
     let forward = tokio::spawn(async move {
         while let Some(event) = peer.events.recv().await {
-            if events.send((key.clone(), event)).await.is_err() {
+            if events
+                .send((key.clone(), generation.clone(), event))
+                .await
+                .is_err()
+            {
                 break;
             }
         }
@@ -131,7 +143,7 @@ async fn broadcast(room: &RoomHost, links: &mut HashMap<String, Link>) -> Result
             let _ = send_packet(
                 channel,
                 &ServerPacket::State {
-                    snapshot: room.snapshot_for(key)?,
+                    snapshot: Box::new(room.snapshot_for(key)?),
                 },
             )
             .await;
@@ -153,21 +165,35 @@ pub async fn host(
     let mut links: HashMap<String, Link> = HashMap::new();
     let deadline = tokio::time::sleep(duration);
     tokio::pin!(deadline);
+    let mut game_deadline: Option<tokio::time::Instant> = None;
     let result = async {
         loop {
+            if room.has_games() {
+                let target = tokio::time::Instant::now()
+                    + Duration::from_millis(if room.games_need_fast_tick() {
+                        100
+                    } else {
+                        1000
+                    });
+                game_deadline = Some(game_deadline.map_or(target, |existing| existing.min(target)));
+            } else {
+                game_deadline = None;
+            }
             tokio::select! {
                 _=&mut deadline=>break,
+                _=wait_deadline(game_deadline)=>{game_deadline=None;if room.advance_games(now_ms())?{broadcast(room,&mut links).await?;}},
                 message=socket.next()=>{let message=message.context("Sinalização desconectada")??;if !message.is_text(){continue}let value:serde_json::Value=serde_json::from_str(message.to_text()?)?;
                     if value.get("type")==Some(&serde_json::json!("peer-joined")){
-                        let key=value["key"].as_str().context("Identidade ausente")?.to_owned();ensure!(URL_SAFE_NO_PAD.decode(&key)?.len()==32,"Chave inválida");if key==local_key||links.contains_key(&key){continue}ensure!(links.len()<9,"Sala cheia");
+                        let key=value["key"].as_str().context("Identidade ausente")?.to_owned();ensure!(URL_SAFE_NO_PAD.decode(&key)?.len()==32,"Chave inválida");let nonce=value["session_nonce"].as_str().context("Sessão ausente")?;ensure!(URL_SAFE_NO_PAD.decode(nonce)?.len()==16,"Sessão inválida");if key==local_key||links.get(&key).is_some_and(|link|link.remote_nonce==nonce){continue;}
+                        if let Some(old)=links.remove(&key){old.close().await;room.remove(&key);}ensure!(links.len()<9,"Sala cheia");
                         let peer=Peer::new(policy,true).await?;let offer=peer.offer().await?;let mut link=add_link(peer,key.clone(),events.clone(),value["session_nonce"].as_str().context("Sessão ausente")?.to_string());send_signal(&mut socket,identity,invite,&key,&mut link,serde_json::json!({"description":offer})).await?;links.insert(key,link);
                     }else if value.get("type")==Some(&serde_json::json!("peer-left")){
-                        if let Some(key)=value["key"].as_str()&& let Some(link)=links.remove(key){link.close().await;room.remove(key);broadcast(room,&mut links).await?;}
+                        if let Some(key)=value["key"].as_str()&& links.get(key).is_some_and(|link|Some(link.remote_nonce.as_str())==value["session_nonce"].as_str()) && let Some(link)=links.remove(key){link.close().await;room.remove(key);broadcast(room,&mut links).await?;}
                     }else if value.get("type").is_none(){let signal:SignedSignal=serde_json::from_value(value)?;let Some(link)=links.get_mut(&signal.from)else{continue};if signal.session_nonce!=link.remote_nonce || signal.verify(invite.room,&signal.from,&local_key,link.received,now_ms()).is_err(){if let Some(link)=links.remove(&signal.from){link.close().await;}room.remove(&signal.from);continue}link.received=signal.sequence;
                         let apply=async{if let Some(description)=signal.payload.get("description"){link.connection.set_remote_description(serde_json::from_value(description.clone())?).await?;for candidate in link.pending.drain(..){link.connection.add_ice_candidate(candidate).await?;}}else if let Some(candidate)=signal.payload.get("candidate"){let candidate=serde_json::from_value(candidate.clone())?;if link.connection.remote_description().await.is_some(){link.connection.add_ice_candidate(candidate).await?;}else{ensure!(link.pending.len()<128,"Muitos candidatos");link.pending.push(candidate);}}Ok::<_,anyhow::Error>(())}.await;if apply.is_err(){if let Some(link)=links.remove(&signal.from){link.close().await;}room.remove(&signal.from);}
                     }
                 },
-                event=receiver.recv()=>{let Some((key,event))=event else{break};let Some(link)=links.get_mut(&key)else{continue};match event{
+                event=receiver.recv()=>{let Some((key,generation,event))=event else{break};let Some(link)=links.get_mut(&key)else{continue};if link.remote_nonce!=generation{continue}match event{
                     PeerEvent::Ice(candidate)=>send_signal(&mut socket,identity,invite,&key,link,serde_json::json!({"candidate":candidate})).await?,
                     PeerEvent::DataOpen(channel)=>{if link.channel.is_some(){let _=channel.close().await;}else{link.channel=Some(channel);}},
                     PeerEvent::Data(bytes)=>{

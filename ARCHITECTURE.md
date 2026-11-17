@@ -287,3 +287,10 @@ SQLite e perfil ficam no disco do host/cliente respectivamente, não criptografa
 `RemoteUpdates` coordena o `NsisUpdater` do electron-updater 6.8.9. Consulta o envelope assinado no domínio devbarros.com (Vercel), valida Ed25519 com chaves públicas empacotadas e fixa versão/nomes/tamanhos/SHA-512 do manifesto e pacote. Os binários vêm da tag imutável no GitHub; o domínio tem fallback de consulta no GitHub. Downloads diferenciais usam blockmaps e cache do NSIS, com fallback completo. O hook oficial verifica o pacote, que é conferido novamente depois do download e antes da instalação. Authenticode é adicional quando configurado; o pacote atual não tem certificado Windows.
 
 O main consulta após dez segundos e a cada seis horas em produção, mostra estado por IPC e não permite URLs arbitrárias do renderer. Download é automático; instalação e reinício são explícitos, após backup e encerramento da chamada. Falhas de download preservam o programa atual; não existe rollback automático de instalação NSIS interrompida. O workflow de tag gera todos os assets em draft e só depois publica latest. Detalhes de confiança, recuperação e implantação em [ATUALIZACOES-REMOTAS.md](ATUALIZACOES-REMOTAS.md).
+
+
+## Execução contínua — 17/11/2026
+
+Host persiste respostas, reações, cargos de identificação, presença e notificações. Consultas retornam pelo DataChannel/IPC com ID; não geram recibos duráveis. Snapshots filtram DMs/amigos/notificações. Tombstones e revisão persistida invalidam exclusões no cache. Páginas/snapshots limitam histórico público a 384 KiB e privado a 256 KiB serializados.
+
+O gate da sessão reavalia mute/deafen/PTT/dispositivo antes de cada envio SRTP; descarta frames antigos e gerações de áudio canceladas. Renovação de convite só muda estado após ack do DO e encerra links antigos; retry usa a capacidade confirmada. update.rs verifica offline o protocolo de confiança v1 sem substituir o updater instalado. Jogos têm autoridade por canal e snapshots por espectador; regras não substituem apresentação 3D.

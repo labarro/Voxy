@@ -43,6 +43,29 @@ impl std::ops::DerefMut for SignalSocket {
     }
 }
 impl SignalSocket {
+    /// Revoke the previous capability without disconnecting the host signaling socket.
+    /// The Worker validates the replacement host signature and acknowledges rotation.
+    /// Existing guests are disconnected and must receive the replacement invitation.
+    pub async fn rotate_invite(&mut self, replacement: &Invite, identity: &Identity) -> Result<()> {
+        use futures_util::SinkExt;
+        Invite::parse(&replacement.encode()?, now_ms())?;
+        ensure!(
+            replacement.host_key == URL_SAFE_NO_PAD.encode(identity.public_key()),
+            "Somente o host pode renovar convites"
+        );
+        self.inner
+            .send(tokio_tungstenite::tungstenite::Message::Text(
+                serde_json::json!({
+                    "type": "rotate-invite",
+                    "session_nonce": self.session_nonce,
+                    "invite": replacement.encode()?,
+                })
+                .to_string()
+                .into(),
+            ))
+            .await?;
+        Ok(())
+    }
     pub fn signer(&self) -> SignalSigner {
         SignalSigner {
             nonce: self.session_nonce.clone(),

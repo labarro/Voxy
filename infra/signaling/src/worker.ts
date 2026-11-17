@@ -8,12 +8,15 @@ interface Env {
   VOXY_MAX_ROOMS: string;
 }
 type Invite = { protocol: number; room: string; host_key: string; signal_url: string; capability: string; expires_at: number; signature: string };
-type Peer = { key: string; host: boolean; tokens: number; updatedAt: number; expiresAt: number; nonce: string };
+type Peer = { key: string; host: boolean; room: string; endpoint: string; tokens: number; updatedAt: number; expiresAt: number; nonce: string; sequences: Record<string, { nonce: string; sequence: number }> };
 const encoder = new TextEncoder();
+const roomPath = /^\/v3\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/;
 const error = (message: string, status = 400) => Response.json({ error: message }, { status, headers: { "Cache-Control": "no-store" } });
 function decode(raw: string): Uint8Array<ArrayBuffer> {
-  if (!/^[A-Za-z0-9_-]+$/.test(raw)) throw Error("encoding");
-  return Uint8Array.from(atob(raw.replaceAll("-", "+").replaceAll("_", "/")), c => c.charCodeAt(0));
+  if (typeof raw !== "string" || raw.length > 8192 || !/^[A-Za-z0-9_-]+$/.test(raw)) throw Error("encoding");
+  const bytes = Uint8Array.from(atob(raw.replaceAll("-", "+").replaceAll("_", "/")), c => c.charCodeAt(0));
+  if (btoa(String.fromCharCode(...bytes)).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "") !== raw) throw Error("noncanonical encoding");
+  return bytes;
 }
 async function verify(key: string, bytes: Uint8Array<ArrayBuffer>, signature: string) {
   const publicKey = await crypto.subtle.importKey("raw", decode(key), { name: "Ed25519" }, false, ["verify"]);
@@ -25,7 +28,7 @@ async function parseInvite(request: Request, room: string): Promise<Invite> {
   const invite: Invite = JSON.parse(new TextDecoder().decode(decode(raw.slice(12))));
   const fields = ["protocol", "room", "host_key", "signal_url", "capability", "expires_at", "signature"];
   if (Object.keys(invite).some(k => !fields.includes(k)) || fields.some(k => !(k in invite))) throw Error("schema");
-  if (invite.protocol !== 3 || invite.room !== room || !Number.isSafeInteger(invite.expires_at) || invite.expires_at <= Date.now() || invite.expires_at > Date.now() + 7 * 86400000) throw Error("expired");
+  if (invite.protocol !== 3 || invite.room !== room || room === "00000000-0000-0000-0000-000000000000" || !Number.isSafeInteger(invite.expires_at) || invite.expires_at <= Date.now() || invite.expires_at > Date.now() + 7 * 86400000) throw Error("expired");
   if (decode(invite.host_key).length !== 32 || decode(invite.capability).length !== 32) throw Error("capability");
   const endpoint = new URL(invite.signal_url);
   const current = new URL(request.url);
@@ -41,7 +44,7 @@ export default {
     if (env.VOXY_RELAY_ENABLED !== "false") return error("Relay não homologado", 503);
     const path = new URL(request.url).pathname;
     if (request.method === "GET" && path === "/health") return Response.json({ protocol: 3, relay: false, transport: "signaling-only" });
-    const match = /^\/v3\/([a-f0-9-]{36})$/.exec(path);
+    const match = roomPath.exec(path);
     if (!match || request.method !== "GET" || request.headers.get("Upgrade")?.toLowerCase() !== "websocket") return error("Rota inválida", 404);
     if (request.headers.has("Origin")) return error("Cliente não autorizado", 403);
     let invite: Invite;
@@ -68,7 +71,8 @@ export class AdmissionBudget {
     return this.state.storage.transaction(async tx => {
       const today = new Date().toISOString().slice(0,10);
       const old = await tx.get<{ day: string; count: number; rooms: Record<string, number>; nonces: Record<string, number> }>("budget");
-      const budget = old?.day === today ? old : { day: today, count: 0, rooms: {}, nonces: {} };
+      // Daily usage resets; live room registration and replay windows survive UTC midnight.
+      const budget = old ? { ...old, day: today, count: old.day === today ? old.count : 0 } : { day: today, count: 0, rooms: {}, nonces: {} };
       const now = Date.now();
       budget.rooms = Object.fromEntries(Object.entries(budget.rooms).filter(([,expires]) => expires > now));
       budget.nonces = Object.fromEntries(Object.entries(budget.nonces).filter(([,expires]) => expires > now));
@@ -77,6 +81,7 @@ export class AdmissionBudget {
         if (!data.host || Object.keys(budget.rooms).length >= Math.min(10, Number(this.env.VOXY_MAX_ROOMS) || 10)) return error("Room quota", 429);
         budget.rooms[data.room] = data.expiry;
       }
+      if (data.host) budget.rooms[data.room] = Math.max(budget.rooms[data.room], data.expiry);
       budget.nonces[data.nonce] = now + 60000;
       budget.count++;
       await tx.put("budget", budget);
@@ -86,10 +91,10 @@ export class AdmissionBudget {
 }
 
 export class SignalRoom {
-  constructor(private state: DurableObjectState) {}
+  constructor(private state: DurableObjectState, private env: Env) {}
   async fetch(request: Request): Promise<Response> {
     return this.state.blockConcurrencyWhile(async () => {
-    const match = /^\/v3\/([a-f0-9-]{36})$/.exec(new URL(request.url).pathname);
+    const match = roomPath.exec(new URL(request.url).pathname);
     if (!match) return error("Room",404);
     let invite: Invite;
     try { invite = await parseInvite(request, match[1]); } catch { return error("Convite",403); }
@@ -113,7 +118,7 @@ export class SignalRoom {
     const pair = new WebSocketPair();
     const client = pair[0], server = pair[1];
     this.state.acceptWebSocket(server);
-    server.serializeAttachment({ key, host, tokens: 512, updatedAt: Date.now(), expiresAt: invite.expires_at, nonce: request.headers.get("X-Voxy-Nonce")! } satisfies Peer);
+    server.serializeAttachment({ key, host, room: invite.room, endpoint: invite.signal_url, tokens: 512, updatedAt: Date.now(), expiresAt: invite.expires_at, nonce: request.headers.get("X-Voxy-Nonce")!, sequences: {} } satisfies Peer);
     const alarm = await this.state.storage.getAlarm();
     if (!alarm || alarm > invite.expires_at) await this.state.storage.setAlarm(invite.expires_at);
     server.send(JSON.stringify({ type: "welcome", peers: sockets.map(s => { const p = s.deserializeAttachment() as Peer; return { key: p.key, host: p.host, session_nonce: p.nonce }; }) }));
@@ -126,20 +131,68 @@ export class SignalRoom {
     const peer = socket.deserializeAttachment() as Peer;
     if (peer.expiresAt <= Date.now()) { socket.close(1008,"Sessão expirada"); return; }
     const now = Date.now(); peer.tokens = Math.min(512, peer.tokens + (now - peer.updatedAt) * .128); peer.updatedAt = now;
-    if (--peer.tokens < 0) { socket.close(1008,"Rate limit"); return; }
+    // Charge large SDP proportionately; the budget is bounded in bytes as well as messages.
+    peer.tokens -= Math.max(1, encoder.encode(message).length / 4096);
+    if (peer.tokens < 0) { socket.close(1008,"Rate limit"); return; }
     socket.serializeAttachment(peer);
     try {
       const signal = JSON.parse(message);
-      if (signal.from !== peer.key || signal.session_nonce !== peer.nonce || typeof signal.to !== "string" || signal.to === peer.key || !Number.isSafeInteger(signal.sequence) || signal.expires_at <= now) throw Error("signal");
+      if (signal.type === "rotate-invite") {
+        if (!peer.host || signal.session_nonce !== peer.nonce || Object.keys(signal).some(k => !["type", "session_nonce", "invite"].includes(k))) throw Error("host control");
+        // Revalidate the host signature and bind rotation to this room's original origin.
+        // Constructing a Request does not fetch a supplied URL.
+        const url = new URL(peer.endpoint);
+        const replacement = await parseInvite(new Request(`${url.protocol === "wss:" ? "https:" : "http:"}//${url.host}/v3/${peer.room}`, { headers: { "X-Voxy-Invite": signal.invite } }), peer.room);
+        if (replacement.host_key !== peer.key) throw Error("host key");
+        await this.rotateInvite(socket, peer, replacement);
+        return;
+      }
+      const fields = ["room", "from", "to", "sequence", "expires_at", "session_nonce", "payload", "signature"];
+      if (Object.keys(signal).some(k => !fields.includes(k)) || fields.some(k => !(k in signal)) || signal.room !== peer.room || signal.from !== peer.key || signal.session_nonce !== peer.nonce || typeof signal.to !== "string" || signal.to === peer.key || !Number.isSafeInteger(signal.sequence) || signal.sequence <= 0 || !Number.isSafeInteger(signal.expires_at) || signal.expires_at <= now || signal.expires_at > now + 60000 || typeof signal.signature !== "string" || decode(signal.signature).length !== 64 || typeof signal.payload !== "object" || !signal.payload || Array.isArray(signal.payload)) throw Error("signal");
+      const payloadKeys = Object.keys(signal.payload);
+      if (payloadKeys.length !== 1 || !["candidate", "description"].includes(payloadKeys[0]) || (payloadKeys[0] === "candidate" && encoder.encode(JSON.stringify(signal.payload)).length > 4096)) throw Error("payload");
       const target = this.state.getWebSockets().find(s => (s.deserializeAttachment() as Peer).key === signal.to);
       if (!target) throw Error("target");
+      const recipient = target.deserializeAttachment() as Peer;
+      const previous = peer.sequences[signal.to];
+      if (recipient.expiresAt <= now || (previous?.nonce === recipient.nonce && signal.sequence <= previous.sequence)) throw Error("replay");
+      const active = new Set(this.state.getWebSockets().map(s => (s.deserializeAttachment() as Peer).key));
+      peer.sequences = Object.fromEntries(Object.entries(peer.sequences).filter(([key]) => active.has(key)));
+      peer.sequences[signal.to] = { nonce: recipient.nonce, sequence: signal.sequence };
+      socket.serializeAttachment(peer);
       // Clients verify end-to-end signatures before applying SDP/ICE. DO is not an identity authority.
       target.send(message);
     } catch { socket.close(1008,"Sinal inválido"); }
   }
+  private async rotateInvite(socket: WebSocket, peer: Peer, invite: Invite) {
+    const hash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", encoder.encode(invite.capability)))).map(b => b.toString(16).padStart(2,"0")).join("");
+    const registered = await this.state.storage.get<{key: string; hash: string}>("host");
+    if (registered?.hash === hash) throw Error("capability unchanged");
+    // Renew the global registration too; rotation may extend the room beyond the
+    // original invite's expiry. A rotation consumes one admission, never bypassing quotas.
+    const admitted = await this.env.ADMISSION.get(this.env.ADMISSION.idFromName("global-v3")).fetch(new Request("https://budget.internal/admit", {
+      method: "POST", body: JSON.stringify({room: peer.room, expiry: invite.expires_at, nonce: `renew:${hash}`, host: true}),
+    }));
+    if (!admitted.ok) throw Error("rotation quota");
+    await this.state.storage.put("host", { key: peer.key, hash });
+    peer.expiresAt = invite.expires_at;
+    peer.sequences = {};
+    socket.serializeAttachment(peer);
+    for (const guest of this.state.getWebSockets()) {
+      const attachment = guest.deserializeAttachment() as Peer;
+      if (attachment.key !== peer.key) {
+        attachment.expiresAt = 0;
+        guest.serializeAttachment(attachment);
+        guest.send(JSON.stringify({ type: "invite-revoked" }));
+        guest.close(1008,"Convite revogado pelo host");
+      }
+    }
+    await this.state.storage.setAlarm(invite.expires_at);
+    socket.send(JSON.stringify({ type: "invite-rotated", expires_at: invite.expires_at }));
+  }
   async webSocketClose(socket: WebSocket) {
     const peer = socket.deserializeAttachment() as Peer;
-    for (const other of this.state.getWebSockets()) if (other !== socket) other.send(JSON.stringify({ type: "peer-left", key: peer.key }));
+    for (const other of this.state.getWebSockets()) if (other !== socket) other.send(JSON.stringify({ type: "peer-left", key: peer.key, session_nonce: peer.nonce }));
     try { socket.close(1000,"Encerrado"); } catch { /* already closed */ }
   }
   async webSocketError(socket: WebSocket) { await this.webSocketClose(socket); }

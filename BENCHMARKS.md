@@ -119,3 +119,8 @@ O registro de publicação da 1.4.1 informa instalador de **127.276.075 bytes** 
 Para boca-ouvido, usar sinal de referência e loopback/dispositivo de captura com relógio comum; RTT do transporte não é latência audiovisual. Registrar eco, recortes, ganho, falhas e dropout além da média. No comparativo, mesma máquina/build de SO/dispositivos/rede/quantidade de usuários/qualidade, versões travadas e plano de energia; medir host e cliente separadamente, somando processos de cada instalação. Não extrapolar uma captura sintética para qualidade de headset.
 
 Fase 0 ainda não está integralmente homologada por causa dessas lacunas. Nenhuma redução de consumo do Rust foi comprovada.
+
+
+## Execução contínua — 17/11/2026
+
+Limites de filas/frames, watchdogs e páginas são controles de recursos, não benchmarks de ganho. Não foi comprovada redução adicional de RAM/CPU, latência acústica ou GPU/VRAM neste conjunto. A referência Electron de 572,3 MiB continua restrita ao cenário original; regras sem renderização não são comparáveis ao mundo 3D completo.

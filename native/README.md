@@ -50,3 +50,10 @@ AEC3 é uma porta Rust experimental; libwebrtc segue alternativa se não passar 
 Importador: voxy-core import-legacy <origem-fechada> <destino-vazio>. Executar somente sobre cópias. Faz backup com hashes e converte inicialmente o perfil, preservando campos desconhecidos; não converte ainda todo o SQLite, envelopes Electron e presets LevelDB. A origem e dados estáveis não são alterados.
 
 [Progresso](../PROGRESS.md) · [Paridade](../FEATURE_PARITY.md) · [Arquitetura](../ARCHITECTURE.md) · [Benchmarks](../BENCHMARKS.md). Nenhum deploy/release/assinatura do instalador foi executado.
+
+
+## Execução contínua — 17/11/2026
+
+Chat conectado: Responder e reagir no menu; Buscar consulta o host, Anteriores pede outra página. Menções usam @{UUID} ou Mencionar no participante. Home mostra notificações do servidor. DMs permitem edição/exclusão próprias e leitura explícita. Administração oferece cargos de identificação e atribuição a membros conectados, sem poderes administrativos novos. Revogar e gerar novo remove convidados atuais após confirmação.
+
+Importação: somente sobre cópia fechada e destino vazio. Converte perfil, servidores com dono, canais, mensagens, respostas e reações; verifica integridade/FKs e contagens. Não reivindica servidores sem dono. Autores legados ficam reservados até migração autenticada. Anexos, DMs, amigos, DPAPI Electron e presets LevelDB continuam no backup, sem alegar conversão. Em erro, reverte a transação e mantém backup; repetir em outro destino vazio.

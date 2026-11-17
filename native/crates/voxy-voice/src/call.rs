@@ -7,7 +7,7 @@ use crate::{
     dsp::VoiceGate,
     processing::{AudioProcessing, BLOCK},
 };
-use anyhow::{Result, ensure};
+use anyhow::{Context, Result, ensure};
 use std::{
     collections::BTreeMap,
     sync::{
@@ -26,6 +26,39 @@ pub struct IncomingVoice {
 }
 pub struct EncodedVoice {
     pub payload: Vec<u8>,
+    pub produced_at: Instant,
+}
+
+/// Detect callback loss even when the backend fails to deliver an error event.
+struct DeviceWatchdog {
+    captured: u64,
+    rendered: u64,
+    capture_progress: Instant,
+    render_progress: Instant,
+}
+impl DeviceWatchdog {
+    fn new(now: Instant, control: &VoiceControl) -> Self {
+        Self {
+            captured: control.captured_samples.load(Ordering::Relaxed),
+            rendered: control.rendered_samples.load(Ordering::Relaxed),
+            capture_progress: now,
+            render_progress: now,
+        }
+    }
+    fn healthy(&mut self, now: Instant, control: &VoiceControl) -> bool {
+        let captured = control.captured_samples.load(Ordering::Relaxed);
+        let rendered = control.rendered_samples.load(Ordering::Relaxed);
+        if captured != self.captured {
+            self.capture_progress = now;
+            self.captured = captured;
+        }
+        if rendered != self.rendered {
+            self.render_progress = now;
+            self.rendered = rendered;
+        }
+        now.saturating_duration_since(self.capture_progress) < Duration::from_secs(2)
+            && now.saturating_duration_since(self.render_progress) < Duration::from_secs(2)
+    }
 }
 enum Input {
     Clear,
@@ -87,24 +120,78 @@ impl Default for CallConfig {
 }
 struct Remote {
     decoder: VoiceDecoder,
-    packets: BTreeMap<u16, Vec<u8>>,
-    next: Option<u16>,
+    jitter: JitterBuffer,
     volume: f32,
     muted: bool,
-    prebuffer: u8,
     last: Instant,
 }
 impl Remote {
     fn new() -> Result<Self> {
         Ok(Self {
             decoder: VoiceDecoder::new()?,
-            packets: Default::default(),
-            next: None,
+            jitter: JitterBuffer::default(),
             volume: 1.0,
             muted: false,
-            prebuffer: 3,
             last: Instant::now(),
         })
+    }
+}
+
+/// Bounded reorder window. After three missing frames, wait for a fresh RTP
+/// sequence instead of advancing forever while the sender is muted/PTT closed.
+struct JitterBuffer {
+    packets: BTreeMap<u16, Vec<u8>>,
+    next: Option<u16>,
+    prebuffer: u8,
+    missing: u8,
+}
+impl Default for JitterBuffer {
+    fn default() -> Self {
+        Self {
+            packets: BTreeMap::new(),
+            next: None,
+            prebuffer: 3,
+            missing: 0,
+        }
+    }
+}
+impl JitterBuffer {
+    fn push(&mut self, sequence: u16, payload: Vec<u8>) -> bool {
+        if let Some(next) = self.next {
+            let ahead = sequence.wrapping_sub(next);
+            if ahead >= 32768 {
+                return false;
+            }
+            if ahead > 32 {
+                *self = Self::default();
+            }
+        }
+        if self.packets.len() >= 32 {
+            *self = Self::default();
+        }
+        if self.next.is_none() {
+            self.next = Some(sequence);
+        }
+        self.packets.entry(sequence).or_insert(payload);
+        true
+    }
+    fn pop(&mut self) -> Option<Option<Vec<u8>>> {
+        if self.prebuffer > 0 {
+            self.prebuffer -= 1;
+            return None;
+        }
+        let next = self.next?;
+        let data = self.packets.remove(&next);
+        self.next = Some(next.wrapping_add(1));
+        if data.is_some() {
+            self.missing = 0;
+        } else {
+            self.missing += 1;
+            if self.missing >= 3 {
+                *self = Self::default();
+            }
+        }
+        Some(data)
     }
 }
 pub struct CallAudio {
@@ -113,6 +200,7 @@ pub struct CallAudio {
     pub encoded: Receiver<EncodedVoice>,
     stop: Arc<AtomicBool>,
     worker: Option<JoinHandle<Result<()>>>,
+    generation: u64,
 }
 impl CallAudio {
     pub fn is_finished(&self) -> bool {
@@ -124,18 +212,44 @@ impl CallAudio {
         std::mem::replace(&mut self.encoded, mpsc::channel().1)
     }
     pub fn start(config: CallConfig, control: Arc<VoiceControl>) -> Result<Self> {
+        let generation = control
+            .audio_generation()
+            .checked_add(1)
+            .context("Geração de áudio excedida")?;
+        control.prepare_audio_generation(generation, config.ptt_key.is_some());
+        Self::start_for_generation(config, control, generation)
+    }
+    pub fn start_for_generation(
+        config: CallConfig,
+        control: Arc<VoiceControl>,
+        generation: u64,
+    ) -> Result<Self> {
         ensure!(
             config.threshold.is_finite() && (-100.0..=0.0).contains(&config.threshold),
             "Sensibilidade inválida"
         );
+        ensure!(
+            control.owns_audio_generation(generation),
+            "Abertura de áudio cancelada"
+        );
         let capture = Capture::start(&config.input, control.clone())?;
+        ensure!(
+            control.owns_audio_generation(generation),
+            "Abertura de áudio cancelada"
+        );
         let playback = Playback::start(&config.output, control.clone())?;
+        ensure!(
+            control.owns_audio_generation(generation),
+            "Abertura de áudio cancelada"
+        );
         let mut encoder = VoiceEncoder::new()?;
         let ptt = if let Some(key) = &config.ptt_key {
-            control.ptt.store(true, Ordering::Release);
-            Some(GlobalPtt::start(control.clone(), key)?)
+            Some(GlobalPtt::start_for_generation(
+                control.clone(),
+                key,
+                generation,
+            )?)
         } else {
-            control.ptt.store(false, Ordering::Release);
             None
         };
         let (ready_tx, ready_rx) = mpsc::sync_channel(1);
@@ -173,9 +287,16 @@ impl CallAudio {
                 let mut gate = VoiceGate::default();
                 let mut packet = [0; 1275];
                 let mut next_playout = Instant::now();
+                let mut device_watchdog = DeviceWatchdog::new(Instant::now(), &worker_control);
+                let mut transmitting = false;
                 while !stopping.load(Ordering::Acquire)
                     && !worker_control.device_failed.load(Ordering::Acquire)
+                    && worker_control.owns_audio_generation(generation)
                 {
+                    if !device_watchdog.healthy(Instant::now(), &worker_control) {
+                        worker_control.device_failed.store(true, Ordering::Release);
+                        anyhow::bail!("Captura ou reprodução parou de responder. Selecione o dispositivo novamente.");
+                    }
                     for _ in 0..64 {
                         match in_rx.try_recv() {
                             Ok(Input::Clear) => {
@@ -184,6 +305,7 @@ impl CallAudio {
                             }
                             Ok(Input::Remove(peer)) => {
                                 remotes.remove(&peer);
+                                mixes.remove(&peer);
                             }
                             Ok(Input::Packet(frame)) => {
                                 if !remotes.contains_key(&frame.peer) && remotes.len() >= 9 {
@@ -200,24 +322,9 @@ impl CallAudio {
                                         e.insert(remote)
                                     }
                                 };
-                                remote.last = Instant::now();
-                                if remote.packets.len() >= 32 {
-                                    remote.packets.clear();
-                                    remote.next = None;
-                                    remote.prebuffer = 3;
+                                if remote.jitter.push(frame.sequence, frame.payload) {
+                                    remote.last = Instant::now();
                                 }
-                                if let Some(next) = remote.next
-                                    && frame.sequence.wrapping_sub(next) >= 32768
-                                {
-                                    continue;
-                                }
-                                if remote.next.is_none() {
-                                    remote.next = Some(frame.sequence);
-                                }
-                                remote
-                                    .packets
-                                    .entry(frame.sequence)
-                                    .or_insert(frame.payload);
                             }
                             Ok(Input::Mix {
                                 peer,
@@ -240,13 +347,7 @@ impl CallAudio {
                         let mut decoded = [0.0; FRAME_SAMPLES];
                         remotes.retain(|_, remote| remote.last.elapsed() < Duration::from_secs(10));
                         for remote in remotes.values_mut() {
-                            if remote.prebuffer > 0 {
-                                remote.prebuffer -= 1;
-                                continue;
-                            }
-                            let Some(next) = remote.next else { continue };
-                            let data = remote.packets.remove(&next);
-                            remote.next = Some(next.wrapping_add(1));
+                            let Some(data) = remote.jitter.pop() else { continue };
                             let count = remote
                                 .decoder
                                 .decode(data.as_deref().unwrap_or_default(), &mut decoded)
@@ -310,6 +411,16 @@ impl CallAudio {
                                 .copy_from_slice(&processed);
                             outgoing_count += BLOCK;
                             if outgoing_count == FRAME_SAMPLES {
+                                // Recheck the complete 20ms frame: mute may have
+                                // arrived between its two processing blocks.
+                                let allowed = worker_control.may_transmit();
+                                if !allowed {
+                                    outgoing.fill(0.0);
+                                    if transmitting {
+                                        encoder.reset()?;
+                                    }
+                                }
+                                transmitting = allowed;
                                 let size = encoder.encode(&outgoing, &mut packet)?;
                                 // Successful device opening alone does not prove a live
                                 // capture path. Report readiness only after an encoded frame.
@@ -318,6 +429,7 @@ impl CallAudio {
                                 }
                                 let _ = out_tx.try_send(EncodedVoice {
                                     payload: packet[..size].to_vec(),
+                                    produced_at: Instant::now(),
                                 });
                                 outgoing_count = 0;
                             }
@@ -340,17 +452,23 @@ impl CallAudio {
                 anyhow::bail!("Processamento de voz não iniciou no prazo")
             }
         }
+        if !control.activate_audio_generation(generation) {
+            stop.store(true, Ordering::Release);
+            let _ = worker.join();
+            anyhow::bail!("Abertura de áudio cancelada");
+        }
         Ok(Self {
             control,
             input: VoiceInput(in_tx),
             encoded: out_rx,
             stop,
             worker: Some(worker),
+            generation,
         })
     }
     pub fn stop(&mut self) -> Result<()> {
         self.stop.store(true, Ordering::Release);
-        self.control.pressed.store(false, Ordering::Release);
+        self.control.cancel_audio_generation(self.generation);
         if let Some(worker) = self.worker.take() {
             worker
                 .join()
@@ -362,5 +480,63 @@ impl CallAudio {
 impl Drop for CallAudio {
     fn drop(&mut self) {
         let _ = self.stop();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn jitter_recovers_after_muted_sender_without_rtp_sequence_advancement() {
+        let mut jitter = JitterBuffer::default();
+        assert!(jitter.push(100, vec![1]));
+        for _ in 0..3 {
+            assert!(jitter.pop().is_none());
+        }
+        assert_eq!(jitter.pop(), Some(Some(vec![1])));
+        for _ in 0..3 {
+            assert_eq!(jitter.pop(), Some(None));
+        }
+        // The sender did not emit packets while muted; its next sequence is 101.
+        assert!(jitter.push(101, vec![2]));
+        for _ in 0..3 {
+            assert!(jitter.pop().is_none());
+        }
+        assert_eq!(jitter.pop(), Some(Some(vec![2])));
+    }
+    #[test]
+    fn jitter_bounds_loss_bursts_and_handles_wrap_reordering_and_duplicates() {
+        let mut jitter = JitterBuffer::default();
+        assert!(jitter.push(u16::MAX, vec![1]));
+        assert!(jitter.push(1, vec![3]));
+        assert!(jitter.push(0, vec![2]));
+        assert!(jitter.push(0, vec![9]));
+        for _ in 0..3 {
+            jitter.pop();
+        }
+        assert_eq!(jitter.pop(), Some(Some(vec![1])));
+        assert_eq!(jitter.pop(), Some(Some(vec![2])));
+        assert_eq!(jitter.pop(), Some(Some(vec![3])));
+        assert!(!jitter.push(0, vec![9]));
+        assert!(jitter.push(400, vec![4]));
+        for _ in 0..3 {
+            jitter.pop();
+        }
+        assert_eq!(jitter.pop(), Some(Some(vec![4])));
+        assert!(jitter.packets.len() <= 32);
+    }
+    #[test]
+    fn callback_watchdog_requires_capture_and_render_progress() {
+        let control = VoiceControl::default();
+        let now = Instant::now();
+        let mut watchdog = DeviceWatchdog::new(now, &control);
+        assert!(watchdog.healthy(now + Duration::from_secs(1), &control));
+        control.captured_samples.fetch_add(960, Ordering::Relaxed);
+        assert!(watchdog.healthy(now + Duration::from_millis(1900), &control));
+        // Capture alone cannot mask a stuck output callback.
+        assert!(!watchdog.healthy(now + Duration::from_secs(2), &control));
+        control.rendered_samples.fetch_add(960, Ordering::Relaxed);
+        assert!(watchdog.healthy(now + Duration::from_millis(2100), &control));
+        assert!(!watchdog.healthy(now + Duration::from_secs(4), &control));
     }
 }

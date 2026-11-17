@@ -34,6 +34,19 @@ fn avatar<'a>(name: &str, m: Materials, size: u16) -> Element<'a, Msg> {
 fn section<'a>(title: &'a str, m: Materials) -> Element<'a, Msg> {
     text(title).size(13).color(m.muted).font(bold()).into()
 }
+fn message_text(message: &str, m: Materials) -> Element<'_, Msg> {
+    let spans = voxy_core::links::message_parts(message)
+        .into_iter()
+        .map(|(label, link)| {
+            let color = if link.is_some() { m.accent } else { m.ink };
+            widget::span(label).color(color).link_maybe(link)
+        })
+        .collect::<Vec<_>>();
+    widget::rich_text(spans)
+        .size(14)
+        .on_link_click(Msg::OpenLink)
+        .into()
+}
 fn row_label<'a>(title: &'a str, description: &'a str, m: Materials) -> Element<'a, Msg> {
     column![
         text(title).size(14),
@@ -269,13 +282,51 @@ pub(super) fn home(app: &App) -> Element<'_, Msg> {
                 .color(m.muted),
         );
     }
-    let main = column![servers, calls, rule::horizontal(1), activity]
-        .spacing(20)
-        .padding(iced::Padding {
-            right: 14.,
-            ..Default::default()
-        })
-        .width(Fill);
+    let mut notifications = column![section("Notificações neste servidor", m)].spacing(8);
+    if let Some(snapshot) = &app.remote.snapshot {
+        for note in snapshot.notifications.iter().take(20) {
+            let name = snapshot
+                .members
+                .iter()
+                .find(|member| member.id == note.sender)
+                .map(|member| member.name.clone())
+                .unwrap_or_else(|| note.sender.to_string());
+            let kind = match note.kind.as_str() {
+                "reply" => "Respondeu à sua mensagem",
+                "mention" => "Mencionou você",
+                "direct" => "Mensagem privada",
+                "friend-request" => "Solicitação de amizade",
+                "friend-accepted" => "Amizade aceita",
+                _ => "Atividade",
+            };
+            notifications = notifications.push(
+                app.action(
+                    &format!("{} {} · {}", if note.read { "✓" } else { "●" }, kind, name),
+                    Msg::NotificationOpen(note.id),
+                    !note.read,
+                )
+                .width(Fill),
+            );
+        }
+        if snapshot.notifications.is_empty() {
+            notifications =
+                notifications.push(text("Nenhuma notificação.").size(12).color(m.muted));
+        }
+    }
+    let main = column![
+        servers,
+        calls,
+        rule::horizontal(1),
+        activity,
+        rule::horizontal(1),
+        notifications
+    ]
+    .spacing(20)
+    .padding(iced::Padding {
+        right: 14.,
+        ..Default::default()
+    })
+    .width(Fill);
     let friends = friends(app);
     column![
         header,
@@ -565,25 +616,35 @@ pub(super) fn chat(app: &App) -> Element<'_, Msg> {
         .find(|c| Some(c.id) == app.channel)
         .map(|c| c.name.as_str())
         .unwrap_or("conversa");
-    let header = row![
-        text(format!("# {channel_name}")).size(16).font(bold()),
-        text(if app.is_remote() {
-            "Conectado"
-        } else {
-            "Local"
-        })
-        .size(11)
-        .color(m.muted),
-        space::horizontal(),
-        text_input("Buscar neste histórico", &app.search)
-            .on_input(Msg::Search)
-            .padding(8)
-            .size(12)
-            .width(190)
-            .style(m.input())
+    let header = column![
+        row![
+            text(format!("# {channel_name}")).size(16).font(bold()),
+            text(if app.is_remote() {
+                "Conectado"
+            } else {
+                "Local"
+            })
+            .size(11)
+            .color(m.muted),
+            space::horizontal()
+        ]
+        .spacing(12)
+        .align_y(iced::Center),
+        row![
+            text_input("Buscar neste histórico", &app.search)
+                .on_input(Msg::Search)
+                .on_submit(Msg::SearchRemote)
+                .padding(8)
+                .size(12)
+                .width(Fill)
+                .style(m.input()),
+            app.action("Buscar", Msg::SearchRemote, false),
+            app.action("Anteriores", Msg::OlderMessages, false)
+        ]
+        .spacing(6)
+        .align_y(iced::Center)
     ]
-    .spacing(12)
-    .align_y(iced::Center);
+    .spacing(8);
     let mut history = column![].spacing(16);
     for message in app.messages.iter().filter(|message| {
         app.search.is_empty()
@@ -629,12 +690,43 @@ pub(super) fn chat(app: &App) -> Element<'_, Msg> {
             ]
             .spacing(8)
             .align_y(iced::Center),
-            text(&message.text).size(14)
+            message_text(&message.text, m)
         ]
         .spacing(4)
         .width(Fill);
+        if let Some(target) = message.reply_to {
+            let preview = app
+                .messages
+                .iter()
+                .find(|m| m.id == target)
+                .map(|m| {
+                    format!(
+                        "↳ {}: {}",
+                        m.name,
+                        m.text.chars().take(100).collect::<String>()
+                    )
+                })
+                .unwrap_or_else(|| "↳ Resposta a mensagem anterior".into());
+            content = content.push(text(preview).size(11).color(m.muted));
+        }
+        if !message.reactions.is_empty() {
+            let mut reactions = row![].spacing(4);
+            for (emoji, actors) in &message.reactions {
+                reactions = reactions.push(app.action(
+                    &format!("{} {}", emoji, actors.len()),
+                    Msg::ReactMessage(message.id, emoji.clone()),
+                    actors.contains(&app.profile.id),
+                ));
+            }
+            content = content.push(reactions);
+        }
         if app.message_menu == Some(message.id) {
-            let mut menu = row![].spacing(6);
+            let mut menu = row![
+                app.action("Responder", Msg::ReplyMessage(message.id), false),
+                app.action("👍", Msg::ReactMessage(message.id, "👍".into()), false),
+                app.action("❤️", Msg::ReactMessage(message.id, "❤️".into()), false)
+            ]
+            .spacing(6);
             if message.author == app.profile.id {
                 menu = menu
                     .push(app.action("Editar", Msg::EditMessage(message.id), false))
@@ -663,9 +755,15 @@ pub(super) fn chat(app: &App) -> Element<'_, Msg> {
         );
     }
     let mut composer = column![].spacing(6);
-    if app.editing_message.is_some() {
+    if app.editing_message.is_some() || app.replying_message.is_some() {
         composer = composer.push(row![
-            text("Editando mensagem").size(12).color(m.secondary),
+            text(if app.editing_message.is_some() {
+                "Editando mensagem"
+            } else {
+                "Respondendo mensagem"
+            })
+            .size(12)
+            .color(m.secondary),
             space::horizontal(),
             app.action("Cancelar", Msg::CancelEdit, false)
         ]);
@@ -748,6 +846,27 @@ pub(super) fn chat(app: &App) -> Element<'_, Msg> {
                 .spacing(9)
                 .align_y(iced::Center),
             );
+            if let Some(profile) = snapshot.profiles.iter().find(|p| p.id == person.id) {
+                people = people.push(
+                    text(match profile.presence {
+                        voxy_core::room::Presence::Online => "Online",
+                        voxy_core::room::Presence::Away => "Ausente",
+                        voxy_core::room::Presence::Busy => "Ocupado",
+                    })
+                    .size(10)
+                    .color(m.muted),
+                );
+            }
+            for assignment in snapshot
+                .member_roles
+                .iter()
+                .filter(|r| r.member == person.id)
+            {
+                if let Some(role) = snapshot.roles.iter().find(|r| r.id == assignment.role) {
+                    people = people.push(text(&role.name).size(10).color(m.secondary));
+                }
+            }
+            people = people.push(app.action("Mencionar", Msg::Mention(person.id), false));
             if person.id != app.profile.id
                 && let Some(peer) = app.remote.peers.iter().find(|p| p.key == person.public_key)
             {
@@ -834,17 +953,36 @@ pub(super) fn direct(app: &App) -> Element<'_, Msg> {
             } else {
                 name
             };
-            history = history.push(
-                row![
-                    avatar(author, m, 30),
-                    column![
-                        text(author).font(bold()).size(12),
-                        text(&message.text).size(14)
-                    ]
-                    .spacing(5)
-                ]
-                .spacing(10),
-            );
+            let mut body = column![
+                text(author).font(bold()).size(12),
+                message_text(&message.text, m)
+            ]
+            .spacing(5);
+            let mut actions = row![
+                text(platform::time_label(message.time))
+                    .size(10)
+                    .color(m.muted)
+            ]
+            .spacing(6);
+            if message.from == app.profile.id {
+                actions = actions
+                    .push(
+                        text(if message.read_at.is_some() {
+                            "Lida"
+                        } else {
+                            "Enviada"
+                        })
+                        .size(10)
+                        .color(m.muted),
+                    )
+                    .push(app.action("Editar", Msg::DirectEdit(message.id), false))
+                    .push(app.action("Excluir", Msg::DirectDelete(message.id), false));
+            }
+            if message.edited_at.is_some() {
+                actions = actions.push(text("editada").size(10).color(m.muted));
+            }
+            body = body.push(actions);
+            history = history.push(row![avatar(author, m, 30), body].spacing(10));
         }
     }
     column![
@@ -858,6 +996,7 @@ pub(super) fn direct(app: &App) -> Element<'_, Msg> {
             ]
             .spacing(4),
             space::horizontal(),
+            app.action("Marcar lidas", Msg::DirectReadAll, false),
             app.action("Voltar", Msg::Navigate(Page::Home), false)
         ]
         .spacing(12)
@@ -868,12 +1007,30 @@ pub(super) fn direct(app: &App) -> Element<'_, Msg> {
             .direction(design::vertical_scrollbar())
             .style(m.scroll()),
         row![
-            text_input("Mensagem privada", &app.draft)
-                .on_input(Msg::Draft)
-                .on_submit(Msg::DirectSend)
-                .padding(12)
-                .style(m.input()),
-            app.action("Enviar", Msg::DirectSend, true)
+            text_input(
+                if app.editing_message.is_some() {
+                    "Editar mensagem privada"
+                } else {
+                    "Mensagem privada"
+                },
+                &app.draft
+            )
+            .on_input(Msg::Draft)
+            .on_submit(Msg::DirectSend)
+            .padding(12)
+            .style(m.input()),
+            app.action(
+                if app.editing_message.is_some() {
+                    "Salvar edição"
+                } else if app.pending_message.is_some() {
+                    "Reenviar"
+                } else {
+                    "Enviar"
+                },
+                Msg::DirectSend,
+                true
+            ),
+            app.action("Cancelar", Msg::CancelEdit, false)
         ]
         .spacing(8)
     ]
@@ -890,6 +1047,7 @@ pub(super) fn settings(app: &App) -> Element<'_, Msg> {
     .spacing(7);
     for (label, section) in [
         ("Perfil", Section::Profile),
+        ("Windows", Section::Windows),
         ("Áudio e voz", Section::Audio),
         ("Aparência", Section::Appearance),
         ("Rede e privacidade", Section::Privacy),
@@ -900,7 +1058,7 @@ pub(super) fn settings(app: &App) -> Element<'_, Msg> {
         );
     }
     let content:Element<'_,Msg>=match app.section {
-        Section::Profile=>column![text("Perfil").size(22).font(bold()),row![avatar(&app.editing.name,m,60),column![text("Nome de exibição").size(12).color(m.muted),text_input("Seu nome",&app.editing.name).on_input(Msg::Name).padding(10).style(m.input()).width(300)].spacing(6)].spacing(18).align_y(iced::Center),rule::horizontal(1),text("ID do perfil").size(12).color(m.muted),text(app.profile.id.to_string()).size(13),text("Use este ID para adicionar amigos no servidor conectado.").size(12).color(m.muted)].spacing(16).into(),
+        Section::Profile=>column![text("Perfil").size(22).font(bold()),row![avatar(&app.editing.name,m,60),column![text("Nome de exibição").size(12).color(m.muted),text_input("Seu nome",&app.editing.name).on_input(Msg::Name).padding(10).style(m.input()).width(300)].spacing(6)].spacing(18).align_y(iced::Center),rule::horizontal(1),text("Presença").size(12).color(m.muted),pick_list(vec!["online".to_string(),"away".to_string(),"busy".to_string()],Some(app.editing.retained.get("presence").and_then(|v|v.as_str()).unwrap_or("online").to_string()),Msg::Presence).padding(8).style(m.select()).menu_style(m.menu()),text_input("Cor do nickname (#RRGGBB ou vazio)",app.editing.retained.get("nicknameColor").and_then(|v|v.as_str()).unwrap_or_default()).on_input(Msg::NicknameColor).padding(8).style(m.input()),text("ID do perfil").size(12).color(m.muted),text(app.profile.id.to_string()).size(13),text("Use este ID para adicionar amigos no servidor conectado.").size(12).color(m.muted)].spacing(16).into(),
         Section::Appearance=>{
             let mut themes=row![].spacing(8);
             for (name,theme) in [("Voxy",ProfileTheme::Voxy),("Oceano",ProfileTheme::Ocean),("Bosque",ProfileTheme::Forest),("Kuromi",ProfileTheme::Kuromi)]{let palette=Materials::new(theme);themes=themes.push(button(container(column![text("V").size(24).font(bold()).color(palette.accent),text(name).size(12).color(palette.ink)].spacing(14)).padding(15).width(Fill).style(move |_|palette.glass(true))).width(Fill).style(m.navigation(app.editing.theme==theme)).on_press(Msg::Theme(theme)));}
@@ -912,6 +1070,7 @@ pub(super) fn settings(app: &App) -> Element<'_, Msg> {
             let input=app.devices.iter().find(|d|d.id==app.editing.input).map(|d|d.name.clone()).unwrap_or_else(||"Padrão do Windows".into());let output=app.devices.iter().find(|d|d.id==app.editing.output).map(|d|d.name.clone()).unwrap_or_else(||"Padrão do Windows".into());let ins=app.devices.clone();let outs=app.devices.clone();
             column![row![text("Áudio e voz").size(22).font(bold()),space::horizontal(),app.action("Atualizar",Msg::Refresh,false)],row![column![section("Microfone",m),pick_list(inputs,Some(input),move|name|Msg::Input(ins.iter().find(|d|d.input&&d.name==name).map(|d|d.id.clone()).unwrap_or_default())).padding(10).width(Fill).style(m.select()).menu_style(m.menu())].spacing(7).width(Fill),column![section("Saída",m),pick_list(outputs,Some(output),move|name|Msg::Output(outs.iter().find(|d|!d.input&&d.name==name).map(|d|d.id.clone()).unwrap_or_default())).padding(10).width(Fill).style(m.select()).menu_style(m.menu())].spacing(7).width(Fill)].spacing(16),rule::horizontal(1),row![text("Volume do microfone").size(14),space::horizontal(),text(format!("{}%",(app.editing.input_volume*100.)as i32)).size(12).color(m.muted)],slider(0.0..=2.0,app.editing.input_volume,Msg::Gain).step(0.01_f32).style(m.slider()),row![app.action(if app.mic_test.is_some(){"Encerrar teste"}else{"Teste privado"},Msg::Test,false),widget::progress_bar(0.0..=0.4,app.control.level()).length(Fill).style(move |_|widget::progress_bar::Style{background:alpha(m.ink,0.06).into(),bar:m.accent.into(),border:Border{radius:3.0.into(),..Default::default()}})].spacing(16).align_y(iced::Center),text("Use fones no teste privado. O monitor local não usa cancelamento de eco.").size(12).color(m.muted),rule::horizontal(1),row![row_label("Push-to-Talk","Funciona no núcleo mesmo com a janela fechada.",m),space::horizontal(),toggler(app.editing.ptt_enabled).on_toggle(Msg::Ptt).style(m.toggle())].align_y(iced::Center),pick_list(vec!["Mouse4".into(),"Mouse5".into(),"Space".into(),"F8".into(),"F9".into()],Some(app.editing.ptt_key.clone()),Msg::PttKey).padding(9).width(190).style(m.select()).menu_style(m.menu()),text("As alterações de dispositivo e PTT entram em vigor na próxima entrada na chamada.").size(12).color(m.muted)].spacing(17).into()
         },
+        Section::Windows=>column![text("Windows").size(22).font(bold()),text("Somente a identidade experimental; protocolo estavel preservado.").size(12).color(m.muted),row![text("Iniciar ao entrar no Windows"),space::horizontal(),toggler(app.windows_settings.launch_at_login).on_toggle(|v|Msg::WindowsSetting("launch",v)).style(m.toggle())],row![text("Iniciar minimizado no login"),space::horizontal(),toggler(app.windows_settings.start_minimized).on_toggle(|v|Msg::WindowsSetting("minimized",v)).style(m.toggle())],row![text("Registrar voxy-native://"),space::horizontal(),toggler(app.windows_settings.register_experimental_protocol).on_toggle(|v|Msg::WindowsSetting("protocol",v)).style(m.toggle())],text("Aplicado somente ao Salvar. Iniciar o aplicativo nunca abre o microfone automaticamente.").size(12).color(m.muted)].spacing(18).into(),
         Section::Privacy=>column![text("Rede e privacidade").size(22).font(bold()),section("Sinalização do host",m),text_input("wss://seu-subdomínio",&app.endpoint).on_input(Msg::EndpointText).padding(10).style(m.input()),section("STUN (separar por vírgula)",m),text_input("stun:servidor:3478",&app.stun_text).on_input(Msg::StunText).padding(10).style(m.input()),text("O convite informa a sinalização aos convidados. Nenhum IP manual é necessário para entrar.").size(12).color(m.muted),rule::horizontal(1),text("P2P compartilha endereços de rede com os participantes. O host armazena as mensagens e consegue ler seu conteúdo.").size(13),text("TURN bloqueado: não há limite financeiro rígido homologado. Redes que exigem retransmissão ainda podem falhar.").size(13).color(m.muted),text("Dados da 1.4.1 permanecem separados. Nenhum plano pago é ativado pelo aplicativo.").size(12).color(m.muted)].spacing(15).into(),
     };
     row![
@@ -944,6 +1103,68 @@ pub(super) fn settings(app: &App) -> Element<'_, Msg> {
 }
 pub(super) fn admin(app: &App) -> Element<'_, Msg> {
     let m = app.palette();
+    let mut roles = column![section("Cargos neste servidor", m)].spacing(8);
+    if app.is_remote() {
+        roles = roles.push(
+            row![
+                text_input("Nome do cargo", &app.role_name)
+                    .on_input(Msg::RoleName)
+                    .padding(8)
+                    .style(m.input()),
+                text_input("#RRGGBB", &app.role_color)
+                    .on_input(Msg::RoleColor)
+                    .padding(8)
+                    .width(120)
+                    .style(m.input()),
+                app.action("Salvar cargo", Msg::RoleSave, false)
+            ]
+            .spacing(6),
+        );
+        if let Some(snapshot) = &app.remote.snapshot {
+            for role in &snapshot.roles {
+                roles = roles.push(
+                    row![
+                        text(&role.name).size(13),
+                        text(&role.color).size(11),
+                        space::horizontal(),
+                        app.action("Editar", Msg::RoleEdit(role.id), false),
+                        app.action("Excluir", Msg::RoleDelete(role.id), false)
+                    ]
+                    .spacing(6),
+                );
+                if app.editing_role == Some(role.id) {
+                    for member in &snapshot.members {
+                        let assigned = snapshot
+                            .member_roles
+                            .iter()
+                            .any(|r| r.role == role.id && r.member == member.id);
+                        roles = roles.push(
+                            row![
+                                text(&member.name).size(12),
+                                space::horizontal(),
+                                app.action(
+                                    if assigned {
+                                        "Remover cargo"
+                                    } else {
+                                        "Atribuir cargo"
+                                    },
+                                    Msg::RoleAssign(role.id, member.id, !assigned),
+                                    assigned
+                                )
+                            ]
+                            .spacing(6),
+                        );
+                    }
+                }
+            }
+        }
+    } else {
+        roles = roles.push(
+            text("Hospede o servidor para gerenciar cargos e membros autenticados.")
+                .size(12)
+                .color(m.muted),
+        );
+    }
     let mut channels = column![text("Canais").font(bold()).size(16)].spacing(9);
     for channel in &app.channels {
         channels = channels.push(
@@ -982,6 +1203,7 @@ pub(super) fn admin(app: &App) -> Element<'_, Msg> {
             ]
             .spacing(10),
             channels,
+            roles,
             row![
                 app.action(
                     "Adicionar texto",
@@ -1007,7 +1229,8 @@ pub(super) fn admin(app: &App) -> Element<'_, Msg> {
                     },
                     false
                 ),
-                app.action("Rede e privacidade", Msg::Section(Section::Privacy), false)
+                app.action("Rede e privacidade", Msg::Section(Section::Privacy), false),
+                app.action("Revogar e gerar novo", Msg::RotateInvite, false)
             ]
             .spacing(8),
             text("Excluir remove canais e mensagens deste servidor local. Desconecte antes.")

@@ -30,6 +30,7 @@ use webrtc::{
 
 pub enum Input {
     Command(Command),
+    RotateInvite(Invite),
     Audio(Vec<u8>),
     Stop,
 }
@@ -39,6 +40,8 @@ pub enum Event {
     Phase(&'static str),
     Snapshot(Snapshot),
     Acknowledged(uuid::Uuid),
+    Replied(uuid::Uuid, serde_json::Value),
+    InviteRotated(Invite),
     Audio {
         peer: u64,
         sequence: u16,
@@ -53,6 +56,9 @@ pub struct Config {
     pub host: Option<Community>,
     pub database: std::path::PathBuf,
     pub policy: NetworkPolicy,
+    /// Evaluated immediately before every outbound audio send. None fails closed.
+    /// The session supplies the live mute/deafen/PTT control, independent of snapshots.
+    pub microphone_allowed: Option<Arc<dyn Fn() -> bool + Send + Sync>>,
 }
 struct Link {
     connection: Arc<dyn PeerConnection>,
@@ -82,14 +88,14 @@ async fn create_link(
     nonce: String,
     number: u64,
     offerer: bool,
-    tx: mpsc::Sender<(String, PeerEvent)>,
+    tx: mpsc::Sender<(String, u64, PeerEvent)>,
 ) -> Result<Link> {
     let mut peer = Peer::new(policy, offerer).await?;
     let track = peer.add_opus_track().await?;
     let connection = peer.connection.clone();
     let task = tokio::spawn(async move {
         while let Some(event) = peer.events.recv().await {
-            if tx.send((key.clone(), event)).await.is_err() {
+            if tx.send((key.clone(), number, event)).await.is_err() {
                 break;
             }
         }
@@ -129,7 +135,7 @@ async fn publish(
             let _ = send_packet(
                 channel,
                 &ServerPacket::State {
-                    snapshot: room.snapshot_for(key)?,
+                    snapshot: Box::new(room.snapshot_for(key)?),
                 },
             )
             .await;
@@ -174,18 +180,35 @@ pub async fn run(
     maintenance.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     let mut ready = is_host;
     let started = Instant::now();
+    let mut rotation: Option<(Invite, Instant)> = None;
+    let mut game_deadline: Option<tokio::time::Instant> = None;
     if let Some(state) = &snapshot {
         output.send(Event::Snapshot(state.clone())).await.ok();
     }
     let result=async {
         loop {
+            if room.as_ref().is_some_and(|room|room.games_need_fast_tick()) {
+                game_deadline.get_or_insert_with(||tokio::time::Instant::now()+Duration::from_millis(100));
+            } else {game_deadline=None;}
             tokio::select! {
+                _=crate::room_service::wait_deadline(game_deadline)=>{
+                    game_deadline=None;
+                    if let Some(room)=room.as_mut() && room.advance_games(now_ms())? {snapshot=Some(publish(room,&links,output).await?);}
+                },
                 command=input.recv()=>match command {
                     None|Some(Input::Stop)=>break,
+                    Some(Input::RotateInvite(replacement))=>{
+                        if !is_host || rotation.is_some() || replacement.room!=config.invite.room || replacement.host_key!=local || replacement.signal_url!=config.invite.signal_url {
+                            output.send(Event::Error("Renovação de convite recusada: operação inválida ou já pendente")).await.ok();
+                        } else {
+                            socket.rotate_invite(&replacement,identity).await?;
+                            rotation=Some((replacement,Instant::now()));
+                        }
+                    },
                     Some(Input::Command(command))=>{
                         if let Some(room)=room.as_mut(){
                             let id=command.id;
-                            if room.handle(&local,command).is_err(){output.send(Event::Error("Comando recusado pelo servidor")).await.ok();}else{output.send(Event::Acknowledged(id)).await.ok();}
+                            match room.handle(&local,command){Err(_)=>{output.send(Event::Error("Comando recusado pelo servidor")).await.ok();},Ok(value)=>{output.send(Event::Replied(id,value)).await.ok();output.send(Event::Acknowledged(id)).await.ok();}}
                             snapshot=Some(publish(room,&links,output).await?);
                         }else if let Some(channel)=links.get(&config.invite.host_key).and_then(|l|l.channel.as_ref()) {
                             send_packet(channel,&ClientPacket::Command{command}).await?;
@@ -195,7 +218,7 @@ pub async fn run(
                         let mut sent=0;
                         for (key,link) in &links {
                             // Sending is gated by the host's authoritative membership.
-                            if shared_voice(&snapshot,key,&local) && link.track.send(&payload).await.is_ok(){sent+=1;}
+                            if config.microphone_allowed.as_ref().is_some_and(|allowed|allowed()) && shared_voice(&snapshot,key,&local) && link.track.send(&payload).await.is_ok(){sent+=1;}
                         }
                         if sent>0 {let _=output.try_send(Event::Sent(sent));}
                     }
@@ -205,6 +228,20 @@ pub async fn run(
                     if !message.is_text(){continue}
                     let value:serde_json::Value=serde_json::from_str(message.to_text()?)?;
                     let kind=value["type"].as_str();
+                    if kind==Some("invite-revoked"){anyhow::bail!("Convite revogado pelo host; solicite um novo convite");}
+                    if kind==Some("invite-rotated") {
+                        let (replacement,_)=rotation.take().context("Confirmação de convite sem solicitação pendente")?;
+                        ensure!(value["expires_at"].as_i64()==Some(replacement.expires_at),"Confirmação de convite divergente");
+                        // Cut the authoritative P2P links too; a revoked guest must not
+                        // retain commands or media by ignoring the WebSocket close frame.
+                        for (key,link) in links.drain(){
+                            output.send(Event::PeerRemoved(link.number)).await.ok();
+                            link.close().await;
+                            if let Some(room)=room.as_mut(){room.remove(&key);}
+                        }
+                        if let Some(room)=room.as_ref(){snapshot=Some(publish(room,&links,output).await?);}
+                        output.send(Event::InviteRotated(replacement)).await.ok();
+                    }
                     let mut discovered=vec![];
                     if kind==Some("welcome") {
                         if let Some(peers)=value["peers"].as_array(){for p in peers {discovered.push(p.clone());}}
@@ -213,7 +250,11 @@ pub async fn run(
                         let key=peer["key"].as_str().context("Identidade ausente")?.to_owned();
                         let nonce=peer["session_nonce"].as_str().context("Sessão ausente")?.to_owned();
                         ensure!(URL_SAFE_NO_PAD.decode(&key)?.len()==32 && URL_SAFE_NO_PAD.decode(&nonce)?.len()==16,"Identidade inválida");
-                        if key==local||links.contains_key(&key){continue}
+                        if key==local||links.get(&key).is_some_and(|link|link.nonce==nonce){continue}
+                        if let Some(old)=links.remove(&key){
+                            output.send(Event::PeerRemoved(old.number)).await.ok();old.close().await;
+                            if let Some(room)=room.as_mut(){room.remove(&key);}
+                        }
                         ensure!(links.len()<9,"Sala cheia");number+=1;
                         // The host initiates its links; other peers elect by public key.
                         let offerer=is_host || (key!=config.invite.host_key && local<key);
@@ -230,7 +271,7 @@ pub async fn run(
                         output.send(Event::Phase("Negociando conexão direta")).await.ok();
                     }
                     if kind==Some("peer-left") {
-                        if let Some(key)=value["key"].as_str() && let Some(link)=links.remove(key){output.send(Event::PeerRemoved(link.number)).await.ok();link.close().await;if let Some(room)=room.as_mut(){room.remove(key);snapshot=Some(publish(room,&links,output).await?);}else if key==config.invite.host_key{anyhow::bail!("Host offline");}}
+                        if let Some(key)=value["key"].as_str() && links.get(key).is_some_and(|link|Some(link.nonce.as_str())==value["session_nonce"].as_str()) && let Some(link)=links.remove(key){output.send(Event::PeerRemoved(link.number)).await.ok();link.close().await;if let Some(room)=room.as_mut(){room.remove(key);snapshot=Some(publish(room,&links,output).await?);}else if key==config.invite.host_key{anyhow::bail!("Host offline");}}
                     }else if kind.is_none(){
                         let signal:SignedSignal=serde_json::from_value(value)?;
                         let Some(link)=links.get_mut(&signal.from)else{continue};
@@ -260,8 +301,9 @@ if let Some(room)=room.as_mut(){room.remove(&signal.from);snapshot=Some(publish(
                     }
                 },
                 event=rx.recv()=>{
-                    let Some((key,event))=event else{break};
+                    let Some((key,generation,event))=event else{break};
                     let Some(link)=links.get_mut(&key)else{continue};
+                    if link.number!=generation{continue}
                     match event {
                         PeerEvent::Ice(candidate)=>{
                             link.sent+=1;let signal=signer.sign(identity,config.invite.room,key,link.sent,now_ms()+30000,serde_json::json!({"candidate":candidate}))?;
@@ -287,9 +329,9 @@ if let Some(room)=room.as_mut(){room.remove(&signal.from);snapshot=Some(publish(
                                 snapshot=Some(publish(room,&links,output).await?);
                             }else{
                                 match serde_json::from_slice::<ServerPacket>(&payload)? {
-                                    ServerPacket::State{snapshot:state}=>{ensure!(state.server.id==config.invite.room && state.members.len()<=10,"Snapshot fora da sessão");ready=true;snapshot=Some(state.clone());output.send(Event::Snapshot(state)).await.ok();},
+                                    ServerPacket::State{snapshot:state}=>{ensure!(state.server.id==config.invite.room && state.members.len()<=10,"Snapshot fora da sessão");ready=true;snapshot=Some(*state.clone());output.send(Event::Snapshot(*state)).await.ok();},
                                     ServerPacket::Error{..}=>{output.send(Event::Error("Comando recusado pelo host")).await.ok();},
-                                    ServerPacket::Reply{id,..}=>{output.send(Event::Acknowledged(id)).await.ok();}
+                                    ServerPacket::Reply{id,value}=>{output.send(Event::Replied(id,value)).await.ok();output.send(Event::Acknowledged(id)).await.ok();}
                                 }
                             }
                         },
@@ -303,6 +345,8 @@ if let Some(room)=room.as_mut(){room.remove(&signal.from);snapshot=Some(publish(
                     }
                 },
                 _=maintenance.tick()=>{
+                    if let Some(room)=room.as_mut() && room.has_games() && !room.games_need_fast_tick() && room.advance_games(now_ms())?{snapshot=Some(publish(room,&links,output).await?);}
+                    if rotation.as_ref().is_some_and(|(_,started)|started.elapsed()>Duration::from_secs(8)) {anyhow::bail!("Renovação de convite sem confirmação; reconecte antes de compartilhar");}
                     let stale:Vec<_>=links.iter().filter(|(_,l)|l.channel.is_none()&&l.created.elapsed()>Duration::from_secs(20)).map(|(key,_)|key.clone()).collect();
                     for key in stale{if let Some(link)=links.remove(&key){link.close().await;}
 if key==config.invite.host_key{anyhow::bail!("Tempo de conexão esgotado");}}
@@ -335,6 +379,13 @@ mod tests {
             messages: vec![],
             friends: vec![],
             direct: vec![],
+            notifications: vec![],
+            roles: vec![],
+            member_roles: vec![],
+            profiles: vec![],
+            deleted_messages: vec![],
+            games: vec![],
+            history_revision: 0,
         };
         let channel = uuid::Uuid::new_v4();
         for key in ["local", "remote"] {

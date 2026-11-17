@@ -27,6 +27,9 @@ pub enum Request {
         profile: Profile,
     },
     VoiceLeave,
+    RotateInvite {
+        valid_for_seconds: u64,
+    },
     Controls {
         muted: bool,
         deafened: bool,
@@ -59,6 +62,12 @@ pub struct State {
     pub acknowledged: Option<Uuid>,
     #[serde(default)]
     pub acknowledgements: Vec<Uuid>,
+    #[serde(default)]
+    pub command_results: Vec<(Uuid, serde_json::Value)>,
+    #[serde(default)]
+    pub focus_requested: u64,
+    #[serde(default)]
+    pub notification_open: Option<Uuid>,
     #[serde(default)]
     pub encoded_frames: u64,
     #[serde(default)]

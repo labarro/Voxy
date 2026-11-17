@@ -1,0 +1,17 @@
+﻿{
+    "checkedAt":  "2026-11-17T11:56:55.8171751Z",
+    "exitCode":  0,
+    "backend":  "Windows Graphics Capture / D3D11",
+    "source":  "owned test window with generated colors",
+    "frames":  14,
+    "runtimeCycles":  2,
+    "captureReleaseCycles":  6,
+    "sourceResizes":  2,
+    "cameraMetadataOnly":  true,
+    "cameraActivated":  false,
+    "desktopCaptured":  false,
+    "audioCaptured":  false,
+    "uiIntegrated":  false,
+    "streamingImplemented":  false,
+    "output":  "cargo.exe :     Blocking waiting for file lock on build directory\r\nNo linha:2 caractere:1\r\n+ \u0026 \"$env:USERPROFILE/.cargo/bin/cargo.exe\" test --locked -p voxy-media ...\r\n+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (    Blocking wa...build directory:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.00s\r\n     Running tests\\capture_windows.rs \r\n(target\\debug\\build\\voxy-media/b38ddb95a73968c0\\out\\capture_windows-b38ddb95a73968c0.exe)\r\n\r\nrunning 1 test\r\nwgc: 7 real BGRA frames from owned fixture, size=466x353, 3 capture/release cycles, camera metadata count=1, camera never activated, no system audio, no desktop pixels saved\r\nwgc: 7 real BGRA frames from owned fixture, size=466x353, 3 capture/release cycles, camera metadata count=1, camera never activated, no system audio, no desktop pixels saved\r\ntest wgc_captures_owned_window_and_releases_session ... ok\r\n\r\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.51s\r\n\r\n"
+}

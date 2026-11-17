@@ -1,11 +1,12 @@
 {
   "2.0.0": {
-    "date": "2026-11-16",
-    "title": "Voxy nativo em desenvolvimento — sessões persistentes e central social",
+    "date": "2026-11-17",
+    "title": "Migração nativa em preparação: comunicação, segurança e dados",
     "items": [
       "Sessão Rust separada da interface, com voz Opus/SRTP e chat integrados aos canais.",
       "Home social compacta, navegação e barra de título reconstruídas em grafite e prata.",
-      "Amizades e mensagens privadas persistidas pelo host, com snapshots privados por participante."
+      "Amizades e mensagens privadas persistidas pelo host, com snapshots privados por participante.",
+      "Desenvolvimento funcional com redesign suspenso; versão experimental não publicada."
     ],
     "features": [
       "Hospedar e entrar por convite pela interface, com sinalização assinada, ICE/STUN configuráveis e malha de voz nativa.",
@@ -13,19 +14,30 @@
       "Chamada preservada ao encerrar a janela; abrir o aplicativo novamente reconecta a interface à sessão local autenticada.",
       "Chat em tempo real, edição/exclusão com autoria, confirmação de comandos e preservação do rascunho até confirmação.",
       "Solicitar, aceitar, recusar e remover amizades; DMs privadas com persistência no servidor hospedado pelo usuário.",
-      "Administração inicial de servidores/canais, recentes com convites protegidos por DPAPI e reconexão limitada."
+      "Administração inicial de servidores/canais, recentes com convites protegidos por DPAPI e reconexão limitada.",
+      "Respostas, menções por ID, reações, busca e paginação no host; notificações privadas e DMs com edição, exclusão e leitura.",
+      "Cargos de identificação atribuídos pelo proprietário, presença Online/Ausente/Ocupado e links HTTP/S pelo Windows.",
+      "Revogação autenticada de convites com encerramento dos vínculos antigos após confirmação.",
+      "Importador em cópia de servidores com dono, canais, mensagens, respostas e reações preservando IDs, backup verificado e rollback."
     ],
     "improvements": [
       "Controles e ícones vetoriais com dimensões fixas, avatares corrigidos, ações contextuais e rolagem sem encobrir conteúdo.",
       "Estilos próprios para campos, seleção, sliders, toggles e scrollbars; Acrylic opcional com fallback opaco e modo reduzido.",
       "Testes entre processos de sessão, malha com três participantes, isolamento de canais e fluxo duplex pelas APIs locais de áudio.",
-      "Validação visual com fixtures isoladas, dez participantes e consulta dos limites reais dos widgets no renderer."
+      "Validação visual com fixtures isoladas, dez participantes e consulta dos limites reais dos widgets no renderer.",
+      "Históricos limitados por bytes UTF-8 e quantidade; consultas não inflam recibos persistentes.",
+      "Verificação Rust offline do catálogo assinado legado e de artefatos; downloader e instalação pendentes.",
+      "Regras Rust de Truco Paulista, sinuca Rotação 7 e xadrez comparadas com fixtures TypeScript; apresentação 3D ainda pendente."
     ],
     "fixes": [
       "Avatares deixam de se expandir e deslocar mensagens, nomes e participantes.",
       "Barra lateral e controles de minimizar/maximizar/fechar usam alinhamento e dimensões próprios.",
       "Captura só confirma prontidão após codificar um frame; underrun recuperável não encerra a voz.",
-      "Mídia depende de associação autoritativa ao canal; snapshots de amizade e DM são filtrados por destinatário."
+      "Mídia depende de associação autoritativa ao canal; snapshots de amizade e DM são filtrados por destinatário.",
+      "Dispositivo selecionado ausente não troca silenciosamente para outro microfone.",
+      "Lease PTT, watchdog de captura/saída e gate antes de cada envio fecham a transmissão em falhas.",
+      "Jitter recupera após pausas de RTP por mute/PTT, limitando perdas e reordenação.",
+      "Autores importados ficam reservados contra apropriação por novas chaves remotas até associação autenticada."
     ]
   },
   "1.4.1": {

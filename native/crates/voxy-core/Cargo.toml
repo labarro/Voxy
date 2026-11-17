@@ -16,6 +16,9 @@ ed25519-dalek.workspace = true
 rand.workspace = true
 tokio.workspace = true
 sha2.workspace = true
+base64.workspace = true
+voxy-games = { path = "../voxy-games" }
+url = "2.5"
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Security_Cryptography", "Win32_System_Memory", "Win32_Foundation"] }

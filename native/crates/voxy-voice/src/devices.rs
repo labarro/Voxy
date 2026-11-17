@@ -53,10 +53,20 @@ pub fn enumerate() -> Result<Vec<AudioDevice>> {
 }
 fn choose(id: &str, input: bool) -> Result<cpal::Device> {
     let host = cpal::default_host();
-    if !id.is_empty()
-        && let Ok(id) = id.parse()
-        && let Some(device) = host.device_by_id(&id)
-    {
+    if !id.is_empty() {
+        // Never silently open another microphone after an explicitly selected
+        // device disappears. Only the empty selection means system default.
+        let selected = id
+            .parse()
+            .context("Identificador de dispositivo inválido")?;
+        let device = host
+            .device_by_id(&selected)
+            .context("Dispositivo selecionado indisponível. Selecione outro dispositivo.")?;
+        if input {
+            device.default_input_config()?;
+        } else {
+            device.default_output_config()?;
+        }
         return Ok(device);
     }
     if input {
@@ -79,7 +89,7 @@ impl Capture {
         let config = device.default_input_config()?;
         let sample_rate = config.sample_rate();
         let channels = config.channels();
-        let (producer, consumer) = rtrb::RingBuffer::new(48_000 / 2);
+        let (producer, consumer) = rtrb::RingBuffer::new(4_800);
         let stream = match config.sample_format() {
             cpal::SampleFormat::F32 => capture::<f32>(&device, &config.into(), producer, control)?,
             cpal::SampleFormat::I16 => capture::<i16>(&device, &config.into(), producer, control)?,
@@ -112,6 +122,9 @@ where
     Ok(device.build_input_stream(
         *config,
         move |data: &[T], _| {
+            // Sanitize at capture too: muted/PTT-closed samples must not wait
+            // in the PCM queue and become audible after a later unmute.
+            let allowed = control.may_transmit();
             let mut energy = 0.0;
             let mut count = 0;
             for frame in data.chunks_exact(channels) {
@@ -122,7 +135,9 @@ where
                 count += 1;
                 // No allocation, blocking channel or mutex on this callback.
                 resample.push(mono, |value| {
-                    let _ = producer.push(value);
+                    if producer.push(if allowed { value } else { 0.0 }).is_err() {
+                        control.capture_overruns.fetch_add(1, Ordering::Relaxed);
+                    }
                 });
             }
             let level = (energy / count.max(1) as f32).sqrt();
@@ -146,8 +161,8 @@ impl Playback {
     pub fn start(id: &str, control: Arc<VoiceControl>) -> Result<Self> {
         let device = choose(id, false)?;
         let config = device.default_output_config()?;
-        let (producer, consumer) = rtrb::RingBuffer::new(48_000 / 2);
-        let (reference, rendered) = rtrb::RingBuffer::new(24000);
+        let (producer, consumer) = rtrb::RingBuffer::new(4_800);
+        let (reference, rendered) = rtrb::RingBuffer::new(4_800);
         let stream = match config.sample_format() {
             cpal::SampleFormat::F32 => {
                 playback::<f32>(&device, &config.into(), consumer, reference, control)?
@@ -194,7 +209,10 @@ where
                 phase += 48_000;
                 while phase >= rate as u64 {
                     phase -= rate as u64;
-                    current = consumer.pop().unwrap_or(0.0);
+                    current = consumer.pop().unwrap_or_else(|_| {
+                        control.playback_underruns.fetch_add(1, Ordering::Relaxed);
+                        0.0
+                    });
                 }
                 let sample = if control.deafened.load(Ordering::Relaxed) {
                     0.0
@@ -233,7 +251,9 @@ impl MicrophoneTest {
                 // Retain the device owners, including their streams, for the full test.
                 let mut capture = capture;
                 let mut playback = playback;
-                while !stopping.load(Ordering::Acquire) {
+                while !stopping.load(Ordering::Acquire)
+                    && !control.device_failed.load(Ordering::Acquire)
+                {
                     let mut count = 0;
                     while let Ok(sample) = capture.samples.pop() {
                         let _ = playback

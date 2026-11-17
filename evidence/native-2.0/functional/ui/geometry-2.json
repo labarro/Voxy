@@ -1,0 +1,359 @@
+[
+  {
+    "label": "Id(Custom(\"caption-Minimizar\"))",
+    "x": 1102.0,
+    "y": 0.0,
+    "width": 46.0,
+    "height": 36.0
+  },
+  {
+    "label": "Id(Custom(\"caption-Maximizar ou restaurar\"))",
+    "x": 1148.0,
+    "y": 0.0,
+    "width": 46.0,
+    "height": 36.0
+  },
+  {
+    "label": "Id(Custom(\"caption-Fechar janela · a chamada continua\"))",
+    "x": 1194.0,
+    "y": 0.0,
+    "width": 46.0,
+    "height": 36.0
+  },
+  {
+    "label": "Id(Custom(\"nav-item-Início\"))",
+    "x": 10.0,
+    "y": 94.0,
+    "width": 44.0,
+    "height": 44.0
+  },
+  {
+    "label": "Id(Custom(\"nav-item-Conversas\"))",
+    "x": 10.0,
+    "y": 144.0,
+    "width": 44.0,
+    "height": 44.0
+  },
+  {
+    "label": "Id(Custom(\"nav-item-Novidades\"))",
+    "x": 10.0,
+    "y": 194.0,
+    "width": 44.0,
+    "height": 44.0
+  },
+  {
+    "label": "Id(Custom(\"nav-item-Configurações\"))",
+    "x": 10.0,
+    "y": 244.0,
+    "width": 44.0,
+    "height": 44.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 78.0,
+    "y": 50.0,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-21\"))",
+    "x": 103.0,
+    "y": 285.5,
+    "width": 21.0,
+    "height": 21.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-21\"))",
+    "x": 103.0,
+    "y": 316.5,
+    "width": 21.0,
+    "height": 21.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 123.9,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 186.1,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 248.29999,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 310.5,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 372.69998,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 434.9,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 497.1,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 559.30005,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 621.50006,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 683.7001,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 745.9001,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 808.1001,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 870.3001,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 932.5001,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 994.70013,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 1056.9001,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 1119.1001,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 1181.3002,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 1243.5001,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 1305.7001,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 1367.9,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 1430.1,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 1492.2999,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 1554.4999,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 1616.6998,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 1678.8998,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 1741.0997,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 1803.2997,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 1865.4996,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 1927.6996,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-32\"))",
+    "x": 296.0,
+    "y": 2026.7996,
+    "width": 32.0,
+    "height": 32.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-28\"))",
+    "x": 1080.0,
+    "y": 91.7,
+    "width": 28.0,
+    "height": 28.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-28\"))",
+    "x": 1080.0,
+    "y": 242.2,
+    "width": 28.0,
+    "height": 28.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-28\"))",
+    "x": 1080.0,
+    "y": 364.69998,
+    "width": 28.0,
+    "height": 28.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-28\"))",
+    "x": 1080.0,
+    "y": 487.19998,
+    "width": 28.0,
+    "height": 28.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-28\"))",
+    "x": 1080.0,
+    "y": 609.7,
+    "width": 28.0,
+    "height": 28.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-28\"))",
+    "x": 1080.0,
+    "y": 732.2,
+    "width": 28.0,
+    "height": 28.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-28\"))",
+    "x": 1080.0,
+    "y": 854.7,
+    "width": 28.0,
+    "height": 28.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-28\"))",
+    "x": 1080.0,
+    "y": 977.2,
+    "width": 28.0,
+    "height": 28.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-28\"))",
+    "x": 1080.0,
+    "y": 1099.7001,
+    "width": 28.0,
+    "height": 28.0
+  },
+  {
+    "label": "Id(Custom(\"avatar-28\"))",
+    "x": 1080.0,
+    "y": 1222.2001,
+    "width": 28.0,
+    "height": 28.0
+  }
+]

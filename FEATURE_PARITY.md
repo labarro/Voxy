@@ -19,19 +19,19 @@ Cada linha passará a registrar commit, teste, artefato de evidência, ambiente 
 | UI05 | Temas Voxy/Oceano/Bosque/Kuromi, acento — `Personalization.tsx`, CSS | `ui-themes.test.ts`, `ui-1.3.0/` | E/A/R | Parcial — Quatro paletas nativas implementadas; ilustrações/atribuições/contraste completos pendentes |
 | UI06 | Layout, tipografia, hover, foco e movimento reduzido — CSS | `ux.e2e.ts`, DESIGN-SYSTEM | E/R | Parcial — Sidebar/caption/avatars/chat corrigidos; bounds e capturas preenchidas; aprovação visual, DPI e acessibilidade pendentes |
 | UI07 | Perfil foto/emoji, nickname/capa e mini perfil — `ProfileForm`, `Avatar`, `photos.ts` | `personalization.test.ts`, `social.e2e.ts` | E/A/R | Parcial — Nome e ID locais; foto/capa/cor/status/mini perfil ainda pendentes |
-| UI08 | Canal Novidades offline e popup uma vez — `ReleaseChannel`, `ReleaseNotesStore` | `updates.test.ts`, `remoteUpdates.test.ts` | E/A/R | Parcial — Tela nativa de novidades e flag SQLite implementadas; atualização real/popup nativo pendentes |
+| UI08 | Canal Novidades offline e popup uma vez — `ReleaseChannel`, `ReleaseNotesStore` | `updates.test.ts`, `remoteUpdates.test.ts` | E/A/R | Implementada/integrada/testada automaticamente — catálogo offline, diálogo nativo até reconhecimento persistido por versão; updater/instalação real pendentes |
 | SV01 | Criar/renomear/excluir servidor/canal — `host.ts`, `store.ts`, `ServerManager` | `signaling.test.ts`, `rooms.test.ts` | E/R | Parcial — Criar/renomear/excluir servidor local, criar/excluir canais na UI, renomear canal pela API; gestão completa pendente |
 | SV02 | Imagem e dono do servidor, legado sem dono — `store.ts` | `rooms.test.ts` | E/A/R | Pendente; dono não sobrescrito |
-| SV03 | Convites/rotação de segredo/limite dez — `main/index.ts`, `host.ts` | `signaling.test.ts`, INSTALACAO-E-CONEXAO | E/R | Parcial — Convites assinados/expiração/admissão/limite dez implementados e testados no emulador; público/rotação completa pendentes |
+| SV03 | Convites/rotação de segredo/limite dez — `main/index.ts`, `host.ts` | `signaling.test.ts`, INSTALACAO-E-CONEXAO | E/R | Implementada/integrada/testada localmente — convite assinado, expiração e renovação autenticada com corte de links anteriores; internet/CGNAT/relay não homologados |
 | SV04 | Canais de voz, presença e estado de mídia — `host.ts`, `Presence`, `ParticipantStatus` | `signaling.test.ts`, `voiceControls.e2e.ts` | E/R | Parcial — Canais de voz com captura e transmissão/reprodução entre processos integradas; mídia de vídeo pendente |
-| SV05 | Cargos nome/cor/ordem/atribuição por servidor — `store.ts`, `Roles.tsx` | `personalization.test.ts` | E/A/R | Pendente; preservar escopo; permissões arbitrárias não implementadas na 1.x |
+| SV05 | Cargos nome/cor/ordem/atribuição por servidor — `store.ts`, `Roles.tsx` | `personalization.test.ts` | E/A/R | Implementada/integrada/testada automaticamente — até 50 cargos nome/cor/ordem, atribuição pelo dono sem poderes administrativos; homologação física pendente |
 | CH01 | Mensagens persistentes, imagens/preview/ampliação — `Chat`, `store.ts`, `image.ts` | `signaling.test.ts`, `social.e2e.ts` | E/A/R | Parcial — Texto persistente em tempo real na UI e host; imagens/preview/ampliação pendentes |
 | CH02 | Editar/excluir só próprias mensagens — `host.ts`, `store.ts` | `signaling.test.ts` | E/R | Parcial — Edição/exclusão por autoria integradas a comandos confirmados; validação ampla multiplayer ainda pendente |
-| CH03 | Respostas, menções, reações — `Chat`, `MessageText`, `store.ts` | `social.test.ts`, `social.e2e.ts` | E/R | Pendente; exclusão/revisão/escopo corretos |
-| CH04 | Histórico paginado/busca — `useChatHistory`, `store.ts`, `direct.ts` | `personalization.test.ts`, `social.test.ts` | E/A/R | Parcial — Store pagina 100; UI filtra histórico recebido; paginação/busca remotas completas pendentes |
-| CH05 | Links clicáveis seguros — `links.ts`, `openExternal` | `links.test.ts` | E/R | Pendente; somente HTTP/S válido e sem credenciais |
-| SO01 | Presença online/away/busy e offline derivado — `types.ts`, `host.ts` | `direct.test.ts` | E/A/R | Pendente; busy mantém contadores |
-| SO02 | DMs privadas por sala, imagens, edição/reação/histórico — `DirectMessages`, `DirectStore` | `direct.test.ts`, `social.test.ts` | E/A/R | Parcial — DMs de texto persistidas no host e snapshots privados; imagens/edição/reação/paginação completas pendentes |
+| CH03 | Respostas, menções, reações — `Chat`, `MessageText`, `store.ts` | `social.test.ts`, `social.e2e.ts` | E/R | Implementada/integrada/testada automaticamente — respostas no mesmo canal, menções por ID e reações, exclusão/escopo/persistência verificados; homologação física pendente |
+| CH04 | Histórico paginado/busca — `useChatHistory`, `store.ts`, `direct.ts` | `personalization.test.ts`, `social.test.ts` | E/A/R | Implementada/integrada/testada automaticamente — History/Search remotos, cursor tempo+ID, até 100 e orçamento UTF-8 384 KiB; cache limitado e invalidação por revisão; busca sem normalização Unicode completa |
+| CH05 | Links clicáveis seguros — `links.ts`, `openExternal` | `links.test.ts` | E/R | Implementada/integrada/testada automaticamente — HTTP/S sem credenciais, texto/pontuação preservados, ShellExecuteW; confirmação do navegador físico pendente |
+| SO01 | Presença online/away/busy e offline derivado — `types.ts`, `host.ts` | `direct.test.ts` | E/A/R | Implementada/integrada/testada automaticamente — Online/Ausente/Ocupado persistidos por host, offline derivado; DND completo pendente |
+| SO02 | DMs privadas por sala, imagens, edição/reação/histórico — `DirectMessages`, `DirectStore` | `direct.test.ts`, `social.test.ts` | E/A/R | Parcial — texto persistido, autoria, edição/exclusão e leitura; snapshots privados e ACL testados; imagens/reação/resposta/paginação de DMs pendentes |
 | SO03 | Inbox offline/não lidas/leitura focada — `DirectInbox`, `useInbox` | `direct.test.ts`, `directThreads.ts` | E/A/R | Pendente; não ressuscitar mensagem apagada |
 | SO04 | Amizade aceitar/recusar/remover — `SocialStore`, `Friends` | `social.test.ts` | E/A/R | Parcial — Solicitar/aceitar/recusar/remover por servidor implementado, com teste de consentimento e privacidade |
 | SO05 | Chamada privada e canal reservado — `host.ts`, `Friends` | `social.test.ts`, `social.e2e.ts` | E/R | Pendente; acesso só aos convidados e cleanup |
@@ -68,28 +68,28 @@ Cada linha passará a registrar commit, teste, artefato de evidência, ambiente 
 | WD11 | TV com stream, seleção e foco/fullscreen — `RoomView`, `scene` | `room3d.app.e2e.ts` | E/R | Pendente; textura nativa, áudio único, compartilhar decoder quando possível |
 | WD12 | Qualidade/fallback/modo tradicional — `RoomBoundary`, `RoomSettings` | `room3d.app.e2e.ts`, `room3d.performance.ts` | E/R | Pendente; 3D opcional sem interromper voz |
 | WD13 | Lazy load, pausa oculto, dispose/carga tardia — `assets`, `resources`, `scene` | `resources.performance.ts`, `room3d.performance.ts` | E/R | Pendente; memória/GPU/processos efetivamente liberados |
-| GA01 | Sinuca Rotação 7: colisões/caçapas/faltas/bola na mão — `pool.ts` | `pool.test.ts`, `pool.match.ts`, `pool.bot.ts` | E/R | Pendente; trajetórias e placares diferenciais |
+| GA01 | Sinuca Rotação 7: colisões/caçapas/faltas/bola na mão — `pool.ts` | `pool.test.ts`, `pool.match.ts`, `pool.bot.ts` | E/R | Regras/física Rust testadas diferencialmente — 176 operações/10.278 passos fixos, quatro cenários, tolerância geométrica 1e-7; apresentação 3D/homologação pendentes |
 | GA02 | Mira fixa/força/teclas/câmera/tacada no cenário — `PoolTable`, `PlayingCue`, `poolMotion` | `pool.app.match.ts`, `pool.visual.ts` | E/R | Pendente; regressão da mira 1.4.1 preservada |
 | GA03 | Sinuca multiplayer/espectador/autoridade — `host.ts` | `pool.app.match.ts`, `signaling.test.ts` | E/R | Pendente; impulsos só no host e ação obsoleta rejeitada |
-| GA04 | Truco quatro jogadores/duplas/baralho/vira/manilhas — `truco.ts` | `truco.test.ts`, `truco.app.ts` | E/R | Pendente; distribuição/ordem/empates equivalentes |
-| GA05 | Truco/seis/nove/doze/onze/ferro/cobertas — `truco.ts` | `truco.test.ts` | E/R | Pendente; parceiro/aceite concorrente serializado |
-| GA06 | Truco privacidade de cartas/espectadores — `GameRoom`, `host` | `socialGames.test.ts` | E/R | Pendente; ferro não envia nem mão do dono |
-| GA07 | Xadrez regras especiais/xeque/fim/empates — `chess.ts`, chess.js | `chess.test.ts`, `chess.app.ts` | E/R | Pendente; mesma política de reivindicação/automação |
+| GA04 | Truco quatro jogadores/duplas/baralho/vira/manilhas — `truco.ts` | `truco.test.ts`, `truco.app.ts` | E/R | Regras Rust testadas diferencialmente — 742 passos/3.710 snapshots públicos e privados; mesa 3D pendente |
+| GA05 | Truco/seis/nove/doze/onze/ferro/cobertas — `truco.ts` | `truco.test.ts` | E/R | Regras Rust testadas diferencialmente, aumentos/onze/ferro/cobertas; apresentação/animações pendentes |
+| GA06 | Truco privacidade de cartas/espectadores — `GameRoom`, `host` | `socialGames.test.ts` | E/R | Snapshots por jogador/espectador testados contra TS; apresentação 3D e homologação pendentes |
+| GA07 | Xadrez regras especiais/xeque/fim/empates — `chess.ts`, chess.js | `chess.test.ts`, `chess.app.ts` | E/R | Wrapper cozy-chess exato testado — 17 cenários/198 operações/594 snapshots contra TS; apresentação 3D/homologação pendentes |
 | GA08 | Xadrez peças físicas/seleção/animação/promoção — `ChessTable`, `ChessPieces`, `chessMotion` | `chess.app.ts`, `games.visual.ts` | E/R | Pendente; experiência no cenário, sem popup substituto |
 | GA09 | Reserva reconexão 60 s/pausa/abandono/revanche — `gameSession.ts` | `chess.test.ts`, `truco.test.ts` | E/R | Pendente; sinuca conserva semântica distinta |
-| NT01 | Central avisos/histórico/leitura/deduplicação — `notifications.ts`, `NotificationCenter` | `notifications.test.ts` | E/A/R | Pendente; navegar para mensagem/canal/DM |
-| NT02 | Menção/resposta/amizade/DM, sons/tipos/DND/mute sala — notifications/profile | `notifications.test.ts`, `systemFeatures.e2e.ts` | E/A/R | Pendente; contadores sem alertar em busy/DND |
+| NT01 | Central avisos/histórico/leitura/deduplicação — `notifications.ts`, `NotificationCenter` | `notifications.test.ts` | E/A/R | Parcial — central Home, persistência privada, deduplicação por comando, leitura e contexto de canal/DM; navegação exata e notificação Windows pendentes |
+| NT02 | Menção/resposta/amizade/DM, sons/tipos/DND/mute sala — notifications/profile | `notifications.test.ts`, `systemFeatures.e2e.ts` | E/A/R | Parcial — menção/resposta/amizade/DM persistidos; sons, DND e notificação Windows pendentes |
 | WI01 | Notificação Windows — main | `systemFeatures.e2e.ts` | E/R | Pendente; clicar reabre destino |
 | WI02 | Bandeja/abrir/mute/deafen/sair/fechar no X — main | `systemFeatures.e2e.ts` | E/R | Parcial — Sessão continua sem UI e reanexa ao reabrir; bandeja/menu completos pendentes |
 | WI03 | Login automático/início minimizado/manual visível — `desktopIdentity`, main | `desktopIdentity.test.ts`, `systemFeatures.e2e.ts` | E/A/R | Pendente; não capturar mic por abrir UI |
 | WI04 | Barra integrada/tema/minimizar/maximizar/fullscreen — main | `desktop.e2e.ts`, `redesign.e2e.ts` | E/R | Parcial — Caption vetorial integrado com comandos reais, estado maximizado e double click; DPI/fullscreen completo pendente |
 | WI05 | Nome/appId/ícone/atalhos e desenvolvimento isolado — `desktopIdentity.ts`, installer | `desktopIdentity.test.ts`, `packaged.e2e.ts` | E/A/R | Pendente; final sem duplicar instalação estável |
 | UP01 | Updates automáticos download/reinício explícito — `remoteUpdates.ts` | `remoteUpdates.test.ts`, `updater.runtime.ts` | E/R | Pendente; executor Rust e recuperação |
-| UP02 | Ed25519/hashes/tamanho/allowlist/anti-downgrade — `updateTrust`, transport | `remoteUpdates.test.ts`, `updates.test.ts` | E/A/R | Pendente; tamper e pacote trocado rejeitados |
+| UP02 | Ed25519/hashes/tamanho/allowlist/anti-downgrade — `updateTrust`, transport | `remoteUpdates.test.ts`, `updates.test.ts` | E/A/R | Implementada/testada automaticamente offline — Ed25519 v1/SPKI, hashes/manifesto, URLs/redirects e antirollback com oráculo Node; downloader/installer pendentes |
 | UP03 | Instalador local/staging/backup — `updates.ts` | `updates.test.ts`, `packaged.e2e.ts` | E/R | Pendente; interrupção e espaço em disco |
 | UP04 | Actions/NSIS/tag/releases/manifesto/catalogação — release.yml/scripts | `validate-release`, `verify-publication` | E/R | Pendente; canal experimental não chega à 1.x |
-| DA01 | Perfil/UUID/identidade/segredo host — main/deviceIdentity | `direct.test.ts`, `preferences.test.ts` | A/R | Pendente; DPAPI real em cópia, sem regenerar silenciosamente |
-| DA02 | Histórico/servidores/cargos/amigos/DMs/imagens SQLite — database | `direct.test.ts`, `social.test.ts`, `atomicFile.test.ts` | A/R | Pendente; FKs/contagens/hashes e importação idempotente |
+| DA01 | Perfil/UUID/identidade/segredo host — main/deviceIdentity | `direct.test.ts`, `preferences.test.ts` | A/R | Parcial — perfil UUID/campos preservados em cópia; identidade Electron DPAPI e associação autenticada pendentes |
+| DA02 | Histórico/servidores/cargos/amigos/DMs/imagens SQLite — database | `direct.test.ts`, `social.test.ts`, `atomicFile.test.ts` | A/R | Parcial — servidores com dono/canais/mensagens/respostas/reações em transação, contagens/integridade/rollback; autores reservados; outras tabelas preservadas no backup sem alegar conversão |
 | DA03 | Recentes/inbox/avisos/notas/cache/visuais salvos — main/editor | `rooms.test.ts`, `notifications.test.ts` | A/R | Pendente; cópia reversível, LevelDB e escopos preservados |
 | PF01 | Modo baixo consumo/medidores/ticks inativos — core/renderer | `resources.performance.ts`, STABILITY-1.4.1 | E/R | Pendente; todos os processos e helpers contados |
 
@@ -109,3 +109,8 @@ Cada linha passará a registrar commit, teste, artefato de evidência, ambiente 
 | NEW10 | Meta experimental 30–80 MB na chamada minimizada | Pendente; benchmark real equivalente, sem omitir workers e sem sacrificar áudio |
 
 Envio arbitrário de arquivos além de imagens não foi identificado na base atual: será extensão do transporte de anexos, não funcionalidade “já preservada”. Autenticação global, RBAC completo, SFU e host migration também não devem ser marcados como existentes.
+
+
+## Execução contínua — 17/11/2026
+
+Estados distinguem implementação, integração e teste automático da homologação física. As portas de jogos não substituem mesas 3D por interfaces alternativas. Nenhuma paridade global é declarada. Evidências em evidence/native-2.0/functional.

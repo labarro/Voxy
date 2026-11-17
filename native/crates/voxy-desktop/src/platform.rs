@@ -41,6 +41,34 @@ pub fn set_backdrop(window: &dyn iced::window::Window, reduced: bool) -> bool {
         false
     }
 }
+pub fn open_link(raw: &str) -> anyhow::Result<()> {
+    let url = voxy_core::links::external_url(raw)?;
+    #[cfg(windows)]
+    {
+        let url: Vec<u16> = url.encode_utf16().chain(Some(0)).collect();
+        let verb: Vec<u16> = "open".encode_utf16().chain(Some(0)).collect();
+        let result = unsafe {
+            windows_sys::Win32::UI::Shell::ShellExecuteW(
+                std::ptr::null_mut(),
+                verb.as_ptr(),
+                url.as_ptr(),
+                std::ptr::null(),
+                std::ptr::null(),
+                1,
+            )
+        };
+        anyhow::ensure!(
+            (result as isize) > 32,
+            "Não foi possível abrir o navegador padrão"
+        );
+        Ok(())
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = url;
+        anyhow::bail!("Abertura externa disponível apenas no Windows")
+    }
+}
 pub fn time_label(milliseconds: i64) -> String {
     #[cfg(windows)]
     {

@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev --local --port 8787",
+    "build": "wrangler deploy --dry-run --outdir ../../.local/signaling-worker",
+    "prepare:deploy": "node scripts/prepare-deploy.mjs",
     "test": "node --test test/*.test.mjs",
     "test:native": "node test/native-e2e.mjs",
     "test:host": "node test/host-e2e.mjs",

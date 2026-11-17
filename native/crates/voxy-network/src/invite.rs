@@ -6,6 +6,9 @@ use uuid::Uuid;
 use voxy_core::identity::Identity;
 
 pub const PROTOCOL: u16 = 3;
+pub const MAX_INVITE_LIFETIME_MS: i64 = 7 * 24 * 60 * 60 * 1000;
+// Senders issue 30s signals; accept at most 60s to accommodate the 30s admission clock skew.
+pub const MAX_SIGNAL_LIFETIME_MS: i64 = 60_000;
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Invite {
@@ -58,7 +61,11 @@ impl Invite {
             "Sinalização pública exige WSS"
         );
         ensure!(
-            url.username().is_empty() && url.password().is_none() && url.fragment().is_none(),
+            url.username().is_empty()
+                && url.password().is_none()
+                && url.fragment().is_none()
+                && url.query().is_none()
+                && url.path() == format!("/v3/{}", self.room),
             "Endpoint inválido"
         );
         ensure!(
@@ -81,6 +88,10 @@ impl Invite {
         let invite: Self = serde_json::from_slice(&URL_SAFE_NO_PAD.decode(encoded)?)?;
         invite.validate_fields()?;
         ensure!(invite.expires_at > now, "Convite expirado");
+        ensure!(
+            invite.expires_at <= now.saturating_add(MAX_INVITE_LIFETIME_MS),
+            "Validade de convite excede sete dias"
+        );
         let key: [u8; 32] = URL_SAFE_NO_PAD
             .decode(&invite.host_key)?
             .try_into()
@@ -166,10 +177,15 @@ impl SignedSignal {
                 && self.from == expected_sender
                 && self.to == recipient
                 && self.sequence > previous
-                && self.expires_at > now,
+                && self.expires_at > now
+                && self.expires_at <= now.saturating_add(MAX_SIGNAL_LIFETIME_MS),
             "Sinal fora da sessão, expirado ou repetido"
         );
         ensure!(self.transcript()?.len() <= 65_536, "Sinal excede o limite");
+        ensure!(
+            URL_SAFE_NO_PAD.decode(&self.session_nonce)?.len() == 16,
+            "Sessão de sinalização inválida"
+        );
         let key: [u8; 32] = URL_SAFE_NO_PAD
             .decode(&self.from)?
             .try_into()
@@ -187,8 +203,14 @@ mod tests {
     #[test]
     fn invite_is_expiring_authenticated_and_does_not_contain_ip() {
         let key = Identity::generate();
-        let invite =
-            Invite::create(&key, Uuid::new_v4(), "wss://signal.example.test/v3", 500).unwrap();
+        let room = Uuid::new_v4();
+        let invite = Invite::create(
+            &key,
+            room,
+            &format!("wss://signal.example.test/v3/{room}"),
+            500,
+        )
+        .unwrap();
         let encoded = invite.encode().unwrap();
         assert!(Invite::parse(&encoded, 499).is_ok());
         assert!(Invite::parse(&encoded, 500).is_err());
@@ -225,6 +247,45 @@ mod tests {
         assert!(
             modified
                 .verify(room, &signal.from, "recipient", 0, 100)
+                .is_err()
+        );
+    }
+    #[test]
+    fn endpoints_and_lifetimes_are_bounded_before_connecting() {
+        let id = Identity::generate();
+        let room = Uuid::new_v4();
+        let endpoint = format!("wss://signal.example.test/v3/{room}");
+        for url in [
+            format!("{endpoint}?token=secret"),
+            format!("{endpoint}#fragment"),
+            "wss://signal.example.test/v3/another-room".into(),
+            format!("wss://user:password@signal.example.test/v3/{room}"),
+        ] {
+            assert!(Invite::create(&id, room, &url, 1000).is_err());
+        }
+        let invite = Invite::create(&id, room, &endpoint, MAX_INVITE_LIFETIME_MS + 2).unwrap();
+        assert!(Invite::parse(&invite.encode().unwrap(), 1).is_err());
+        assert!(Invite::parse(&invite.encode().unwrap(), 2).is_ok());
+        let mut signal = SignedSignal::create(
+            &id,
+            room,
+            "recipient".into(),
+            1,
+            MAX_SIGNAL_LIFETIME_MS + 2,
+            serde_json::json!({"candidate":{}}),
+        )
+        .unwrap();
+        assert!(
+            signal
+                .verify(room, &signal.from, "recipient", 0, 1)
+                .is_err()
+        );
+        signal.expires_at = 200;
+        signal.session_nonce = "AA".into();
+        signal.signature = URL_SAFE_NO_PAD.encode(id.sign(&signal.transcript().unwrap()));
+        assert!(
+            signal
+                .verify(room, &signal.from, "recipient", 0, 1)
                 .is_err()
         );
     }

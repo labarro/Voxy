@@ -91,6 +91,47 @@ pub fn seed(path: &std::path::Path) -> anyhow::Result<Snapshot> {
             }),
         )?;
     }
+    let target = room.snapshot()?.messages.last().unwrap().id;
+    room.handle(
+        &people[1].0,
+        command(Action::Reply {
+            channel: text,
+            text: format!("Veja https://example.com/a_(b). @{{{}}}", profile.id),
+            target,
+        }),
+    )?;
+    room.handle(
+        &host,
+        command(Action::React {
+            id: target,
+            emoji: "👍".into(),
+        }),
+    )?;
+    room.handle(
+        &host,
+        command(Action::RoleSave {
+            id: None,
+            name: "Amigos".into(),
+            color: "#88aa99".into(),
+        }),
+    )?;
+    let role = room.snapshot()?.roles[0].id;
+    room.handle(
+        &host,
+        command(Action::RoleAssign {
+            role,
+            member: people[1].1,
+            assigned: true,
+        }),
+    )?;
+    room.handle(
+        &people[1].0,
+        command(Action::ProfileUpdate {
+            name: people[1].2.clone(),
+            presence: voxy_core::room::Presence::Away,
+            nickname_color: "#88aa99".into(),
+        }),
+    )?;
     let mut snapshot = room.snapshot()?;
     let count = snapshot.messages.len();
     for (i, message) in snapshot.messages.iter_mut().enumerate() {

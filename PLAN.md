@@ -88,3 +88,10 @@ Os links foram consultados em 2026-11-16. A avaliação de desempenho acima é h
 | Atualização substitui app antes de homologar | Canal experimental separado e rollout estável fechado; preservar appId/caminho final só no ensaio aprovado. |
 
 Dependências externas: toolchain Rust/MSVC/Windows SDK, dispositivos físicos, segundo PC e redes distintas, confirmação das capacidades/condições da conta Cloudflare. Nenhuma delas foi presumida disponível ou concluída.
+
+
+## Execução contínua — 17/11/2026
+
+Redesign exclusivamente estético suspenso. **Design & Release Polish** é etapa obrigatória posterior à implementação funcional completa e integrada: revisar telas, ambientes, personagens e efeitos, medir impacto e colher aprovação estética do usuário. Não autoriza publicação.
+
+Dependências abertas: rede pública e áudio homologados; mídia Windows com isolamento; mundo sob demanda e apresentação fiel dos jogos; migração autenticada de dados privados; instalador/rollback. Regras puras não encerram paridade das mesas 3D.

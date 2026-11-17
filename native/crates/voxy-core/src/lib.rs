@@ -1,10 +1,13 @@
+pub mod game_service;
 pub mod identity;
 pub mod ipc;
+pub mod links;
 pub mod migration;
 pub mod model;
 pub mod room;
 pub mod session;
 pub mod store;
+pub mod update;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const APP_ID: &str = "dev.voxy.native.experimental";

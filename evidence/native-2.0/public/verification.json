@@ -25,25 +25,18 @@
   "distinctNetworksTested": false,
   "installerInstalled": false,
   "automaticUpdaterComplete": false,
-  "artifacts": {
-    "version": "2.0.0",
-    "appId": "dev.voxy.native.experimental",
-    "experimental": true,
-    "signed": false,
-    "published": false,
-    "artifacts": [
-      {
-        "file": "Voxy-Native-Experimental-2.0.0-win-x64.zip",
-        "bytes": 17203328,
-        "sha256": "a4f9173c378b5a9e95f16c6fe3d83371d676ef5f764eac753b8a13ea557e089d"
-      },
-      {
-        "file": "Voxy-Native-Experimental-Setup-2.0.0-win-x64.exe",
-        "bytes": 10986358,
-        "sha256": "557f2bbfd03e8cfcb8bd644739f46d6cfcad5e8336a4416958e09f465623d029"
-      }
-    ]
-  },
+  "artifacts": [
+    {
+      "file": "Voxy-Native-Experimental-2.0.0-win-x64.zip",
+      "bytes": 17586774,
+      "sha256": "142ad46c6474d3af074140f2017a2de14a12a9e002e39b56fb8b92640d41f474"
+    },
+    {
+      "file": "Voxy-Native-Experimental-Setup-2.0.0-win-x64.exe",
+      "bytes": 11266709,
+      "sha256": "a8d67c9f589c1bc195f39607e3a745820bb6bd86d313640a308a3103a946d304"
+    }
+  ],
   "binaries": {
     "voxy-core.exe": {
       "bytes": 18525184,
@@ -141,5 +134,7 @@
     "maxAutomaticAttempts": 3,
     "automaticUnmute": false,
     "physicalHotplugValidated": false
-  }
+  },
+  "packagedAt": "2026-11-17T17:43",
+  "includes": "voz, compartilhamento de tela, câmera, áudio de aplicativo opcional, PiP; sem assinatura Authenticode; não publicado"
 }

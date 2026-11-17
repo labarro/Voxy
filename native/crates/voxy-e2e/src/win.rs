@@ -305,3 +305,78 @@ pub fn is_topmost(hwnd: HWND) -> bool {
     use windows_sys::Win32::UI::WindowsAndMessaging::{GWL_EXSTYLE, GetWindowLongW, WS_EX_TOPMOST};
     unsafe { (GetWindowLongW(hwnd, GWL_EXSTYLE) as u32) & WS_EX_TOPMOST != 0 }
 }
+/// Pixels the window actually presented (DWM redirection surface, client area),
+/// as RGBA. Unlike Iced's own screenshot, which re-renders the whole scene from
+/// scratch, this observes partial-redraw artifacts left in the presented buffer.
+pub fn capture(hwnd: HWND) -> Result<(u32, u32, Vec<u8>)> {
+    use windows_sys::Win32::{
+        Graphics::Gdi::{
+            BI_RGB, BITMAPINFO, BITMAPINFOHEADER, CreateCompatibleBitmap, CreateCompatibleDC,
+            DIB_RGB_COLORS, DeleteDC, DeleteObject, GetDC, GetDIBits, ReleaseDC, SelectObject,
+        },
+        Storage::Xps::{PRINT_WINDOW_FLAGS, PrintWindow},
+    };
+    let mut rect: RECT = unsafe { std::mem::zeroed() };
+    unsafe { GetClientRect(hwnd, &mut rect) };
+    let (w, h) = (rect.right - rect.left, rect.bottom - rect.top);
+    if w <= 0 || h <= 0 {
+        bail!("janela sem área cliente");
+    }
+    unsafe {
+        let screen = GetDC(hwnd);
+        let dc = CreateCompatibleDC(screen);
+        let bitmap = CreateCompatibleBitmap(screen, w, h);
+        let old = SelectObject(dc, bitmap);
+        // PW_CLIENTONLY | PW_RENDERFULLCONTENT
+        let ok = PrintWindow(hwnd, dc, 1 | 2 as PRINT_WINDOW_FLAGS);
+        let mut info: BITMAPINFO = std::mem::zeroed();
+        info.bmiHeader = BITMAPINFOHEADER {
+            biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
+            biWidth: w,
+            biHeight: -h,
+            biPlanes: 1,
+            biBitCount: 32,
+            biCompression: BI_RGB,
+            ..std::mem::zeroed()
+        };
+        let mut pixels = vec![0u8; (w * h * 4) as usize];
+        let lines = GetDIBits(
+            dc,
+            bitmap,
+            0,
+            h as u32,
+            pixels.as_mut_ptr().cast(),
+            &mut info,
+            DIB_RGB_COLORS,
+        );
+        SelectObject(dc, old);
+        DeleteObject(bitmap);
+        DeleteDC(dc);
+        ReleaseDC(hwnd, screen);
+        if ok == 0 || lines == 0 {
+            bail!("PrintWindow falhou");
+        }
+        for px in pixels.as_chunks_mut::<4>().0 {
+            px.swap(0, 2);
+            px[3] = 255;
+        }
+        Ok((w as u32, h as u32, pixels))
+    }
+}
+/// Raise or restore the always-on-top flag without activating the window.
+pub fn set_topmost(hwnd: HWND, on: bool) {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        HWND_NOTOPMOST, HWND_TOPMOST, SWP_NOMOVE, SWP_NOSIZE,
+    };
+    unsafe {
+        SetWindowPos(
+            hwnd,
+            if on { HWND_TOPMOST } else { HWND_NOTOPMOST },
+            0,
+            0,
+            0,
+            0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE,
+        );
+    }
+}

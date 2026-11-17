@@ -332,30 +332,6 @@ pub(super) fn stage(app: &App) -> Option<Element<'_, Msg>> {
     )
 }
 
-/// Footer button: start or stop sharing, only while in a confirmed call.
-pub(super) fn share_button(app: &App) -> Option<iced::widget::Button<'_, Msg>> {
-    if app.remote.voice.is_none() || !app.remote.microphone_ready {
-        return None;
-    }
-    Some(if app.remote.screen.is_some() {
-        app.action("Parar compartilhamento", Msg::ShareStop, true)
-    } else {
-        app.action("Compartilhar tela", Msg::ShareOpen, false)
-    })
-}
-
-/// Footer button: the camera turns on only from this explicit action.
-pub(super) fn camera_button(app: &App) -> Option<iced::widget::Button<'_, Msg>> {
-    if app.remote.voice.is_none() || !app.remote.microphone_ready {
-        return None;
-    }
-    Some(if app.remote.camera.is_some() {
-        app.action("Desligar câmera", Msg::CameraStop, true)
-    } else {
-        app.action("Câmera", Msg::CameraOpen, false)
-    })
-}
-
 /// Cameras by (device id, name). The synthetic camera appears only in tests.
 pub fn cameras() -> Vec<(String, String)> {
     let mut cameras = Vec::new();
@@ -531,4 +507,9 @@ pub(super) fn pip(app: &App) -> Element<'_, Msg> {
             ..Default::default()
         })
         .into()
+}
+
+/// What the video encoder actually uses on this build (shown in settings).
+pub fn encoder_summary() -> String {
+    "Em uso: H.264 por software (Media Foundation). Decodificação também por software.".into()
 }

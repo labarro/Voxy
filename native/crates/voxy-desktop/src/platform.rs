@@ -1,13 +1,13 @@
-/// Apply per-window Windows 11 Acrylic. Failure keeps the opaque fallback;
-/// never changes system transparency or privacy settings.
+/// Windows 11 frame integration for the opaque, undecorated window: dark mode
+/// and rounded corners only. The frame is intentionally NOT extended into the
+/// client area and no system backdrop is requested: with a translucent client
+/// that made DWM draw the native caption buttons behind the custom ones
+/// (duplicated controls) and let partially redrawn pixels accumulate alpha.
 pub fn set_backdrop(window: &dyn iced::window::Window, reduced: bool) -> bool {
     #[cfg(windows)]
     {
         use iced::window::raw_window_handle::RawWindowHandle;
-        use windows_sys::Win32::{
-            Graphics::Dwm::{DwmExtendFrameIntoClientArea, DwmSetWindowAttribute},
-            UI::Controls::MARGINS,
-        };
+        use windows_sys::Win32::Graphics::Dwm::DwmSetWindowAttribute;
         let Ok(handle) = window.window_handle() else {
             return false;
         };
@@ -15,24 +15,16 @@ pub fn set_backdrop(window: &dyn iced::window::Window, reduced: bool) -> bool {
             return false;
         };
         let hwnd = handle.hwnd.get() as *mut std::ffi::c_void;
-        let backdrop = if reduced { 1_i32 } else { 3_i32 };
         let dark = 1_i32;
-        let rounded = 2_i32;
-        // Attributes are optional on unsupported Windows versions. No fallback to undocumented APIs.
+        // DWMWCP_ROUND, or DONOTROUND in reduced mode.
+        let rounded = if reduced { 1_i32 } else { 2_i32 };
+        // DWMSBT_NONE: no Mica/Acrylic behind an opaque client.
+        let backdrop = 1_i32;
         unsafe {
-            let _ = DwmSetWindowAttribute(hwnd, 20, &dark as *const _ as *const _, 4);
+            let a = DwmSetWindowAttribute(hwnd, 20, &dark as *const _ as *const _, 4);
             let _ = DwmSetWindowAttribute(hwnd, 33, &rounded as *const _ as *const _, 4);
-            let result = DwmSetWindowAttribute(hwnd, 38, &backdrop as *const _ as *const _, 4);
-            let margins = MARGINS {
-                cxLeftWidth: -1,
-                cxRightWidth: -1,
-                cyTopHeight: -1,
-                cyBottomHeight: -1,
-            };
-            if !reduced {
-                let _ = DwmExtendFrameIntoClientArea(hwnd, &margins);
-            }
-            result >= 0
+            let _ = DwmSetWindowAttribute(hwnd, 38, &backdrop as *const _ as *const _, 4);
+            a >= 0
         }
     }
     #[cfg(not(windows))]
@@ -92,4 +84,12 @@ pub fn time_label(milliseconds: i64) -> String {
         }
     }
     "--:--".into()
+}
+/// Local hour of day (0–23), for greetings. Falls back to 12.
+pub fn local_hour() -> u32 {
+    time_label(voxy_core::store::now_ms())
+        .split(':')
+        .next()
+        .and_then(|h| h.parse().ok())
+        .unwrap_or(12)
 }

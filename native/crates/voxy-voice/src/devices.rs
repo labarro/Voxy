@@ -240,7 +240,8 @@ where
                         0.0
                     });
                 }
-                let sample = if control.deafened.load(Ordering::Relaxed) {
+                let sample = if control.deafened.load(Ordering::Relaxed) && !control.cues.audible()
+                {
                     0.0
                 } else {
                     current.clamp(-0.98, 0.98)

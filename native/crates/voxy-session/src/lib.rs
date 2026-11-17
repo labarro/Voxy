@@ -2,6 +2,7 @@
 mod notifications;
 mod recovery;
 mod screen;
+mod sounds;
 mod transport;
 mod tray;
 use anyhow::{Context, Result, ensure};
@@ -57,6 +58,7 @@ pub(crate) async fn run(
     };
     let mut notification_tracker = notifications::Tracker::default();
     let mut ui_detached = true;
+    let detached_flag = Arc::new(std::sync::atomic::AtomicBool::new(true));
     let control = Arc::new(VoiceControl::default());
     control.prepare_audio_generation(0, false);
     let mut tray = match tray::Tray::start(control.clone()) {
@@ -98,7 +100,14 @@ pub(crate) async fn run(
     let mut camera_publisher: Option<screen::Publisher> = None;
     let mut camera_generation = 0_u64;
     let mut camera_watchers = 0_u32;
-    let mut stats = tokio::time::interval(Duration::from_millis(500));
+    sounds::spawn(
+        states.subscribe(),
+        control.clone(),
+        path.clone(),
+        local_id,
+        detached_flag.clone(),
+    );
+    let mut stats = tokio::time::interval(Duration::from_millis(250));
     stats.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     loop {
         tokio::select! {
@@ -135,7 +144,7 @@ pub(crate) async fn run(
                 state.error=None;
                 let shutdown=matches!(request,Request::Shutdown);
                 if matches!(request,Request::Detached) && network.is_none(){break}
-                if matches!(request,Request::Detached){ui_detached=true;}
+                if matches!(request,Request::Detached){ui_detached=true;detached_flag.store(true,Ordering::Release);}
                 let result=async {match request {
                     Request::Detached=>{
                         // No window means no visible indicator or control for video: stop
@@ -145,7 +154,7 @@ pub(crate) async fn run(
                             if network.is_some(){let _=send(&network,media_action(&state)).await;}
                         }
                     },
-                    Request::Attached=>{ui_detached=false;},
+                    Request::Attached=>{ui_detached=false;detached_flag.store(false,Ordering::Release);},
                     Request::Host{server,endpoint,stun}=>{
                         ensure!(network.is_none(),"Desconecte o servidor atual antes de hospedar");
                         let store=Store::open(&path.join("voxy.sqlite"))?;let profile=store.profile()?;

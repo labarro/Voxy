@@ -23,6 +23,9 @@ pub struct Frame {
     pub dropped: u64,
     /// Mean luminance of a coarse 8x8 grid; lets tests check content changes.
     pub signature: Vec<u8>,
+    /// Display rate estimated by the UI from frame arrivals (0 until known).
+    pub fps: f32,
+    pub received: std::time::Instant,
 }
 struct Stream {
     queue: SyncSender<(bool, (u32, u32), Vec<u8>)>,
@@ -167,6 +170,8 @@ fn decode_loop(
             decoded,
             dropped: dropped.load(Ordering::Relaxed),
             signature,
+            fps: 0.0,
+            received: std::time::Instant::now(),
         };
         // A busy UI drops display frames; decoding state stays consistent.
         if let Err(error) = output.try_send(crate::Msg::VideoFrame(Box::new(frame)))

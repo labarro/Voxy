@@ -37,9 +37,9 @@ pub fn failures(nodes: &[Bounds]) -> usize {
         .iter()
         .filter(|node| {
             let expected = if node.label.contains("caption-") {
-                Some((46., 36.))
+                Some((46., 38.))
             } else if node.label.contains("nav-item-") {
-                Some((44., 44.))
+                Some((46., 46.))
             } else {
                 node.label
                     .split("avatar-")

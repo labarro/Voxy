@@ -29,6 +29,8 @@ pub struct VoiceControl {
     pub peer_levels: std::sync::Mutex<std::collections::BTreeMap<u64, f32>>,
     /// Peak processed outgoing RMS since the last take, after the transmit gate.
     pub sent_level_bits: AtomicU32,
+    /// Interface sounds mixed into the call output (see `cues`).
+    pub cues: crate::cues::CueQueue,
 }
 impl Default for VoiceControl {
     fn default() -> Self {
@@ -53,6 +55,7 @@ impl Default for VoiceControl {
             playback_underruns: AtomicU64::new(0),
             peer_levels: Default::default(),
             sent_level_bits: AtomicU32::new(0),
+            cues: Default::default(),
         }
     }
 }

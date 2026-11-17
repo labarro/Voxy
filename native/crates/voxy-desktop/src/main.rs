@@ -1,16 +1,20 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-mod art;
 mod automation;
 mod bridge;
+mod call;
+mod chat;
 mod chrome;
 mod design;
 mod fixtures;
+mod home;
+mod icons;
 mod image_transfer;
 mod platform;
 mod preferences;
 mod qa;
 mod screens;
 mod streams;
+mod ui;
 mod video;
 mod windows_integration;
 mod world;
@@ -39,6 +43,7 @@ use voxy_voice::{
 enum Page {
     Home,
     Chat,
+    Call,
     Settings,
     News,
     ServerSettings,
@@ -48,6 +53,8 @@ enum Page {
 enum Section {
     Profile,
     Audio,
+    Video,
+    Notifications,
     Appearance,
     Privacy,
     Windows,
@@ -152,11 +159,14 @@ enum Msg {
     Close,
     CloseTimeout,
     Fullscreen,
+    // 3D previews are frozen in this stage: code kept, no conventional UI entry.
+    #[allow(dead_code)]
     World(&'static str),
     WorldReady(
         u64,
         Result<Arc<std::sync::Mutex<world::WorldProcess>>, String>,
     ),
+    #[allow(dead_code)]
     CloseWorld,
     PickImage,
     ImagePicked(Result<Option<image_transfer::Picked>, String>),
@@ -192,6 +202,29 @@ enum Msg {
     AutomationEvent(String),
     AutomationTexts(Vec<automation::Label>),
     AutomationShot(String, iced::window::Screenshot),
+    TileMenu(Option<uuid::Uuid>),
+    StreamPipOf((uuid::Uuid, bool)),
+    StreamFullscreenOf((uuid::Uuid, bool)),
+    DevicePopover(bool),
+    QuickDevice(bool, String),
+    OpenCall,
+    OpenChat,
+    JoinCall(uuid::Uuid),
+    SoundSetting(&'static str, serde_json::Value),
+    PreviewSound,
+    CameraOpenSettings,
+    MemberPopover(Option<uuid::Uuid>),
+    ToggleMembers,
+}
+/// Effective call media state for the connection panel and call header.
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum CallQuality {
+    Opening,
+    Negotiating,
+    Reconnecting,
+    Alone,
+    Good(Option<u64>),
+    Degraded,
 }
 struct App {
     service: Option<tokio::sync::mpsc::Sender<voxy_core::ipc::Request>>,
@@ -238,7 +271,6 @@ struct App {
     control: Arc<VoiceControl>,
     mic_control: Arc<VoiceControl>,
     mic_test: Option<MicrophoneTest>,
-    atmosphere: art::Atmosphere,
     notes_pending: bool,
     smoke_dir: Option<std::path::PathBuf>,
     backdrop: bool,
@@ -276,6 +308,13 @@ struct App {
     automation_clicks: u64,
     automation_cursor: Vec<f32>,
     automation_last_click: Vec<f32>,
+    /// Speech hold per member: shown until this instant (smoothing + hysteresis).
+    speaking_until: std::collections::HashMap<uuid::Uuid, std::time::Instant>,
+    call_channel: Option<uuid::Uuid>,
+    tile_menu: Option<uuid::Uuid>,
+    device_popover: bool,
+    member_popover: Option<uuid::Uuid>,
+    members_panel: bool,
 }
 impl App {
     fn new() -> (Self, Task<Msg>) {
@@ -407,7 +446,6 @@ impl App {
                 control: Arc::new(VoiceControl::default()),
                 mic_control: Arc::new(VoiceControl::default()),
                 mic_test: None,
-                atmosphere: Default::default(),
                 notes_pending,
                 smoke_dir,
                 backdrop: false,
@@ -448,6 +486,12 @@ impl App {
                 automation_clicks: 0,
                 automation_cursor: vec![],
                 automation_last_click: vec![],
+                speaking_until: Default::default(),
+                call_channel: None,
+                tile_menu: None,
+                device_popover: false,
+                member_popover: None,
+                members_panel: true,
             },
             task,
         )
@@ -772,6 +816,30 @@ impl App {
                     .deafened
                     .store(state.deafened, Ordering::Relaxed);
                 self.remote = state;
+                // Speech indicator: onset on any confirmed speaking sample (local gate or
+                // decoded remote level), held 450 ms to bridge pauses and avoid flicker.
+                let now = std::time::Instant::now();
+                if let Some(snapshot) = &self.remote.snapshot {
+                    for member in &snapshot.members {
+                        let talking = if member.id == self.profile.id {
+                            self.remote.transmitting
+                        } else {
+                            self.remote
+                                .links
+                                .iter()
+                                .any(|l| l.key == member.public_key && l.speaking)
+                        };
+                        if talking && member.voice.is_some() && member.voice == self.remote.voice {
+                            self.speaking_until
+                                .insert(member.id, now + std::time::Duration::from_millis(450));
+                        }
+                    }
+                }
+                self.speaking_until.retain(|_, until| *until > now);
+                if self.remote.voice.is_none() {
+                    self.speaking_until.clear();
+                    self.device_popover = false;
+                }
                 // Drop frames from streams the host no longer confirms we watch.
                 let stale: Vec<(uuid::Uuid, bool)> = self
                     .streams
@@ -1525,7 +1593,6 @@ impl App {
                         preferences::shortcut_text(&self.profile, "deafenShortcut");
                 }
                 self.page = page;
-                self.atmosphere.cache.clear();
                 self.status.clear();
                 self.control.set_gain(self.profile.input_volume);
                 let reduced = self.profile.low_resource_mode;
@@ -1624,11 +1691,9 @@ impl App {
             }
             Msg::Theme(theme) => {
                 self.editing.theme = theme;
-                self.atmosphere.cache.clear();
             }
             Msg::Low(value) => {
                 self.editing.low_resource_mode = value;
-                self.atmosphere.cache.clear();
                 return iced::window::latest()
                     .and_then(move |id| {
                         iced::window::run(id, move |window| platform::set_backdrop(window, value))
@@ -1789,11 +1854,17 @@ impl App {
                         self.store.messages(id, None).unwrap_or_default()
                     };
                 } else {
-                    self.mic_test = None;
-                    self.send_service(voxy_core::ipc::Request::VoiceEnter {
-                        channel: id,
-                        profile: self.profile.clone(),
-                    });
+                    // Voice channel: open its call view; join unless already in it.
+                    self.call_channel = Some(id);
+                    self.page = Page::Call;
+                    self.tile_menu = None;
+                    if self.remote.voice != Some(id) && self.is_remote() {
+                        self.mic_test = None;
+                        self.send_service(voxy_core::ipc::Request::VoiceEnter {
+                            channel: id,
+                            profile: self.profile.clone(),
+                        });
+                    }
                 }
             }
             Msg::Draft(value) => {
@@ -2060,7 +2131,23 @@ impl App {
             Msg::VideoFrame(frame) => {
                 // Accept only streams the host still confirms this member watches.
                 if self.watching(frame.member, frame.camera) {
-                    self.streams.insert((frame.member, frame.camera), *frame);
+                    let mut frame = *frame;
+                    let key = (frame.member, frame.camera);
+                    if let Some(previous) = self.streams.get(&key) {
+                        let dt = frame
+                            .received
+                            .duration_since(previous.received)
+                            .as_secs_f32();
+                        if dt > 0.0 {
+                            let instant = 1.0 / dt;
+                            frame.fps = if previous.fps > 0.0 {
+                                previous.fps * 0.9 + instant * 0.1
+                            } else {
+                                instant.min(120.0)
+                            };
+                        }
+                    }
+                    self.streams.insert(key, frame);
                 }
             }
             Msg::CameraOpen => {
@@ -2106,6 +2193,101 @@ impl App {
             }
             Msg::CameraStop => {
                 self.send_service(voxy_core::ipc::Request::CameraStop);
+            }
+            Msg::CameraOpenSettings => {
+                self.cameras = streams::cameras();
+                self.camera_selected = None;
+                self.camera_preview = None;
+            }
+            Msg::TileMenu(member) => self.tile_menu = member,
+            Msg::MemberPopover(member) => self.member_popover = member,
+            Msg::ToggleMembers => {
+                self.members_panel = !self.members_panel;
+                self.member_popover = None;
+            }
+            Msg::DevicePopover(open) => {
+                if open && self.devices.is_empty() {
+                    self.devices = voxy_voice::devices::enumerate().unwrap_or_default();
+                }
+                self.device_popover = open;
+            }
+            Msg::QuickDevice(input, id) => {
+                if input {
+                    self.profile.input = id.clone();
+                    self.editing.input = id;
+                } else {
+                    self.profile.output = id.clone();
+                    self.editing.output = id;
+                }
+                if let Err(error) = self.store.save_profile(&self.profile) {
+                    self.status = error.to_string();
+                } else if let Some(channel) = self.remote.voice {
+                    // Reopens audio on the new device; mute/deafen state is kept by the session.
+                    self.send_service(voxy_core::ipc::Request::VoiceEnter {
+                        channel,
+                        profile: self.profile.clone(),
+                    });
+                }
+            }
+            Msg::OpenCall => {
+                self.call_channel = self.remote.voice.or(self.call_channel);
+                self.page = Page::Call;
+            }
+            Msg::OpenChat => {
+                self.page = Page::Chat;
+                if self.channel.is_none()
+                    && let Some(first) = self.channels.iter().find(|c| c.kind == ChannelKind::Text)
+                {
+                    let id = first.id;
+                    return self.update(Msg::Channel(id));
+                }
+            }
+            Msg::JoinCall(channel) => {
+                self.mic_test = None;
+                self.call_channel = Some(channel);
+                self.page = Page::Call;
+                self.send_service(voxy_core::ipc::Request::VoiceEnter {
+                    channel,
+                    profile: self.profile.clone(),
+                });
+            }
+            Msg::StreamPipOf(key) => {
+                self.stream_focus = Some(key);
+                return self.update(Msg::StreamPip);
+            }
+            Msg::StreamFullscreenOf(key) => {
+                self.stream_focus = Some(key);
+                if !self.stream_fullscreen {
+                    return self.update(Msg::StreamFullscreen);
+                }
+            }
+            Msg::SoundSetting(key, value) => {
+                let sounds = self
+                    .editing
+                    .retained
+                    .entry("sounds".into())
+                    .or_insert_with(|| serde_json::json!({}));
+                if let Some(map) = sounds.as_object_mut() {
+                    map.insert(key.into(), value);
+                }
+            }
+            Msg::PreviewSound => {
+                let volume = self
+                    .editing
+                    .retained
+                    .get("sounds")
+                    .and_then(|s| s.get("volume"))
+                    .and_then(|v| v.as_f64())
+                    .unwrap_or(0.6) as f32;
+                if self.remote.voice.is_some() {
+                    self.status = "Prévia indisponível durante a chamada; os sons da chamada já usam este volume após salvar".into();
+                } else {
+                    voxy_voice::cues::play_detached(
+                        &self.editing.output,
+                        voxy_voice::cues::Cue::Join,
+                        volume,
+                    );
+                }
             }
             Msg::StreamFocus(member) => self.stream_focus = member,
             Msg::StreamFullscreen => {
@@ -2182,94 +2364,149 @@ impl App {
         let publisher = snapshot.members.iter().find(|m| m.id == member);
         matches!((me, publisher), (Some(me), Some(p)) if me.voice.is_some() && me.voice == p.voice && (if camera { p.camera } else { p.screen }) && me.watching.contains(&member))
     }
-    /// Session-confirmed tags for a voice member: speech, controls and media link.
-    fn member_tags(&self, member: &voxy_core::room::Member) -> (bool, String) {
-        let mut tags = Vec::new();
-        let local = member.id == self.profile.id;
-        let link = self
-            .remote
-            .links
-            .iter()
-            .find(|l| l.key == member.public_key);
-        let speaking = if local {
-            self.remote.transmitting
-        } else {
-            link.is_some_and(|l| l.speaking)
-        };
-        if speaking && !member.muted {
-            tags.push("falando".to_owned());
-        }
+    /// Session-confirmed state icons for a member (never color alone: each
+    /// state has its own glyph). Third item is the accessible description.
+    fn member_icons(
+        &self,
+        member: &voxy_core::room::Member,
+    ) -> Vec<(icons::Icon, Color, &'static str)> {
+        let m = self.palette();
+        let mut out = Vec::new();
         if member.screen {
-            tags.push("transmitindo tela".into());
+            out.push((icons::Icon::ScreenShare, m.live, "transmitindo tela"));
         }
         if member.camera {
-            tags.push("câmera ligada".into());
+            out.push((icons::Icon::Video, m.ink, "câmera ligada"));
         }
         if member.deafened {
-            tags.push("ensurdecido".into());
+            out.push((icons::Icon::HeadphoneOff, m.danger, "ensurdecido"));
         } else if member.muted {
-            tags.push("mudo".into());
+            out.push((icons::Icon::MicOff, m.danger, "mudo"));
         }
-        if local {
-            if !self.remote.microphone_ready {
-                tags.push("áudio abrindo".into());
+        if member.id != self.profile.id
+            && self.remote.voice.is_some()
+            && member.voice == self.remote.voice
+        {
+            match self
+                .remote
+                .links
+                .iter()
+                .find(|l| l.key == member.public_key)
+            {
+                Some(link) if link.state == "failed" || link.state == "disconnected" => {
+                    out.push((icons::Icon::WifiOff, m.danger, "mídia interrompida"))
+                }
+                Some(link) if link.state == "connected" && link.data_open => {}
+                _ => out.push((icons::Icon::LoaderCircle, m.warning, "negociando mídia")),
             }
-        } else if let Some(link) = link {
-            if link.state == "connected" && link.data_open {
-                tags.push(match link.rtt_ms {
-                    Some(rtt) => format!("mídia ok · {rtt} ms"),
-                    None => "mídia ok".into(),
-                });
-            } else if link.state == "failed" || link.state == "disconnected" {
-                tags.push("mídia interrompida".into());
-            } else {
-                tags.push("negociando mídia".into());
-            }
-        } else if self.remote.voice.is_some() {
-            tags.push("sem mídia".into());
         }
-        (speaking && !member.muted, tags.join(" · "))
+        out
     }
-    /// One-line call summary built only from confirmed session state.
-    fn call_summary(&self) -> Option<String> {
+    fn call_quality(&self) -> CallQuality {
         let r = &self.remote;
-        let channel = r.voice?;
-        let snapshot = r.snapshot.as_ref()?;
-        let others: Vec<_> = snapshot
-            .members
-            .iter()
-            .filter(|m| m.voice == Some(channel) && m.id != self.profile.id)
-            .collect();
-        let connected = others
-            .iter()
-            .filter(|m| {
-                r.links
+        if !r.microphone_ready {
+            return CallQuality::Opening;
+        }
+        if r.phase.contains("reconect") || r.phase.contains("Reconect") {
+            return CallQuality::Reconnecting;
+        }
+        let Some(channel) = r.voice else {
+            return CallQuality::Opening;
+        };
+        let others: Vec<_> = r
+            .snapshot
+            .as_ref()
+            .map(|s| {
+                s.members
                     .iter()
-                    .any(|l| l.key == m.public_key && l.state == "connected" && l.data_open)
+                    .filter(|m| m.voice == Some(channel) && m.id != self.profile.id)
+                    .collect()
             })
-            .count();
-        let mut parts = vec![r.phase.clone()];
-        if !others.is_empty() {
-            parts.push(format!("mídia {connected}/{}", others.len()));
+            .unwrap_or_default();
+        if others.is_empty() {
+            return CallQuality::Alone;
         }
-        parts.push(
-            if r.muted {
-                "microfone mudo"
-            } else if r.transmitting {
-                "transmitindo"
-            } else if r.microphone_ready {
-                "microfone pronto"
+        let links: Vec<_> = others
+            .iter()
+            .filter_map(|m| r.links.iter().find(|l| l.key == m.public_key))
+            .collect();
+        if links
+            .iter()
+            .any(|l| l.state == "failed" || l.state == "disconnected")
+        {
+            return CallQuality::Degraded;
+        }
+        if links.len() < others.len()
+            || links
+                .iter()
+                .any(|l| !(l.state == "connected" && l.data_open))
+        {
+            return CallQuality::Negotiating;
+        }
+        let rtts: Vec<u64> = links
+            .iter()
+            .filter_map(|l| l.rtt_ms.map(u64::from))
+            .collect();
+        CallQuality::Good((!rtts.is_empty()).then(|| rtts.iter().sum::<u64>() / rtts.len() as u64))
+    }
+    fn control_icons(&self) -> (Element<'_, Msg>, Element<'_, Msg>) {
+        self.control_icons_sized(30.0)
+    }
+    /// Microphone and deafen toggles; a request in flight shows as pending
+    /// until the session confirms it.
+    fn control_icons_sized(&self, px: f32) -> (Element<'_, Msg>, Element<'_, Msg>) {
+        let m = self.palette();
+        let pending_mute = self.control.muted.load(Ordering::Relaxed) != self.remote.muted;
+        let pending_deafen = self.control.deafened.load(Ordering::Relaxed) != self.remote.deafened;
+        let dock = px > 36.0;
+        let tone = |alert: bool| {
+            if alert {
+                design::Tone::Alert
+            } else if dock {
+                design::Tone::Secondary
             } else {
-                "microfone fechado"
+                design::Tone::Ghost
             }
-            .into(),
-        );
-        if r.deafened {
-            parts.push("ensurdecido".into());
-        } else if r.links.iter().any(|l| l.speaking) {
-            parts.push("recebendo voz".into());
-        }
-        Some(parts.join(" · "))
+        };
+        let muted = self.remote.muted || self.remote.deafened;
+        (
+            ui::icon_button(
+                m,
+                if pending_mute {
+                    icons::Icon::LoaderCircle
+                } else if muted {
+                    icons::Icon::MicOff
+                } else {
+                    icons::Icon::Mic
+                },
+                if self.remote.muted {
+                    "Ativar microfone"
+                } else {
+                    "Silenciar microfone"
+                },
+                Some(Msg::Mute),
+                tone(muted),
+                px,
+            ),
+            ui::icon_button(
+                m,
+                if pending_deafen {
+                    icons::Icon::LoaderCircle
+                } else if self.remote.deafened {
+                    icons::Icon::HeadphoneOff
+                } else {
+                    icons::Icon::Headphones
+                },
+                if self.remote.deafened {
+                    "Ativar áudio"
+                } else {
+                    "Ensurdecer"
+                },
+                Some(Msg::Deafen),
+                tone(self.remote.deafened),
+                px,
+            ),
+        )
     }
     /// Copyable diagnostics without invites, keys, SDP, addresses or device ids.
     fn diagnostics(&self) -> String {
@@ -2407,6 +2644,10 @@ impl App {
                 "labels": labels,
                 "mouseEvents": self.automation_events,
                 "streams": self.streams.values().map(|f| serde_json::json!({"member":f.member,"camera":f.camera,"width":f.width,"height":f.height,"decoded":f.decoded,"dropped":f.dropped,"signature":f.signature})).collect::<Vec<_>>(),
+                // What the UI draws for each voice member: speaking ring and state icons.
+                "memberView": self.remote.snapshot.as_ref().map(|s| s.members.iter().filter(|m| m.voice.is_some()).map(|m| serde_json::json!({"id":m.id,"name":m.name,"speakingRing":chrome::speaking(self,m),"icons":self.member_icons(m).iter().map(|i| i.2).collect::<Vec<_>>()})).collect::<Vec<_>>()),
+                "callQuality": format!("{:?}", self.call_quality()),
+                "speakingHeld": self.speaking_until.len(),
                 "streamFocus": self.stream_focus,
                 "streamFullscreen": self.stream_fullscreen,
                 "streamPip": self.stream_pip,
@@ -2543,31 +2784,42 @@ impl App {
                 .into();
         }
         let page = match self.page {
-            Page::Home => screens::home(self),
-            Page::Chat => match streams::stage(self) {
-                Some(stage) => column![
-                    container(stage).height(iced::Length::FillPortion(3)),
-                    container(screens::chat(self)).height(iced::Length::FillPortion(2))
-                ]
-                .into(),
-                None => screens::chat(self),
-            },
+            Page::Home => home::view(self),
+            Page::Chat => chat::view(self),
+            Page::Call => call::view(self),
             Page::Settings => screens::settings(self),
             Page::News => screens::news(self),
             Page::ServerSettings => screens::admin(self),
             Page::Direct => screens::direct(self),
         };
-        let footer = chrome::footer(self);
+        let canvas = container(page)
+            .width(Fill)
+            .height(Fill)
+            .style(move |_| container::Style {
+                background: Some(m.canvas.into()),
+                text_color: Some(m.ink),
+                border: Border {
+                    radius: iced::border::Radius {
+                        top_left: 14.0,
+                        top_right: 0.0,
+                        bottom_right: 0.0,
+                        bottom_left: 0.0,
+                    },
+                    width: 0.0,
+                    color: Color::TRANSPARENT,
+                },
+                ..Default::default()
+            });
         let shell = column![
             titlebar,
-            row![
-                chrome::sidebar(self),
-                column![page, footer].height(Fill).width(Fill)
-            ]
-            .height(Fill)
+            row![chrome::rail(self), chrome::sidebar(self), canvas].height(Fill)
         ]
         .height(Fill);
-        let content: Element<'_, Msg> = stack![self.atmosphere.view(m), shell].into();
+        let content: Element<'_, Msg> = container(shell)
+            .width(Fill)
+            .height(Fill)
+            .style(move |_| m.surface(m.base))
+            .into();
         let content: Element<'_, Msg> = if self.share_dialog {
             stack![content, streams::share_dialog(self)].into()
         } else if self.camera_dialog {
@@ -2608,11 +2860,11 @@ impl App {
             ]
             .into()
         } else if self.join_dialog {
-            stack![content,container(container(column![row![text("Entrar em servidor").font(bold()).size(20),space::horizontal(),self.action("×",Msg::Cancel,false)],text("Cole o convite enviado pelo dono do servidor.").size(13).color(m.muted),text_input("voxy-native://join/…",&self.invite_text).on_input(Msg::InviteText).on_submit(Msg::JoinRemote).padding(12).style(m.input()),text("Conexões diretas compartilham seu IP com os participantes. O host armazena as mensagens. TURN está desativado.").size(12).color(m.muted),row![space::horizontal(),self.action("Cancelar",Msg::Cancel,false),self.action("Entrar",Msg::JoinRemote,true)].spacing(8)].spacing(16)).padding(24).width(470).style(move |_|m.dialog())).center(Fill).style(|_|container::Style{background:Some(alpha(Color::BLACK,0.65).into()),..Default::default()})].into()
+            stack![content,container(container(column![row![text("Entrar em servidor").font(bold()).size(20),space::horizontal(),self.action("×",Msg::Cancel,false)],text("Cole o convite enviado pelo dono do servidor.").size(13).color(m.muted),text_input("voxy-native://join/…",&self.invite_text).on_input(Msg::InviteText).on_submit(Msg::JoinRemote).padding(12).style(m.input()),text("Conexões diretas compartilham seu IP com os participantes. O host armazena as mensagens. TURN está desativado.").size(12).color(m.muted),row![space::horizontal(),self.action("Cancelar",Msg::Cancel,false),self.action("Entrar",Msg::JoinRemote,true)].spacing(8)].spacing(16)).padding(24).width(470).style(move |_|m.dialog())).center(Fill).style(move |_| m.scrim())].into()
         } else if self.modal {
-            stack![content,container(container(column![row![text("Criar servidor").font(bold()).size(20),space::horizontal(),self.action("×",Msg::Cancel,false)],text("Um lugar para o seu grupo, com canais de texto e voz.").size(14).color(m.muted),text_input("Nome do servidor",&self.server_name).on_input(Msg::ServerName).on_submit(Msg::CreateServer).padding(15).style(m.input()),text("Depois de criar, hospede o servidor e copie o convite para seu grupo.").color(m.muted).size(12),row![space::horizontal(),self.action("Cancelar",Msg::Cancel,false),self.action("Criar servidor",Msg::CreateServer,true)].spacing(10)].spacing(22)).padding(32).width(530).style(move|_|m.dialog())).center(Fill).width(Fill).height(Fill).style(|_|container::Style{background:Some(alpha(Color::BLACK,0.65).into()),..Default::default()})].into()
+            stack![content,container(container(column![row![text("Criar servidor").font(bold()).size(20),space::horizontal(),self.action("×",Msg::Cancel,false)],text("Um lugar para o seu grupo, com canais de texto e voz.").size(14).color(m.muted),text_input("Nome do servidor",&self.server_name).on_input(Msg::ServerName).on_submit(Msg::CreateServer).padding(15).style(m.input()),text("Depois de criar, hospede o servidor e copie o convite para seu grupo.").color(m.muted).size(12),row![space::horizontal(),self.action("Cancelar",Msg::Cancel,false),self.action("Criar servidor",Msg::CreateServer,true)].spacing(10)].spacing(22)).padding(32).width(530).style(move|_|m.dialog())).center(Fill).width(Fill).height(Fill).style(move |_| m.scrim())].into()
         } else if self.notes_pending && self.page != Page::News && self.smoke_dir.is_none() {
-            stack![content,container(container(column![text("Novidades do Voxy 2.0.0 em preparação").size(21).font(bold()),text("Esta versão experimental continua separada da 1.4.1 publicada. Consulte as funcionalidades e limitações antes de testar.").size(14),text("Comunicação nativa, comandos sociais, convites revogáveis e importação em cópia. Rede pública, mídia, 3D e homologação ainda pendentes.").size(13).color(m.muted),row![self.action("Ver novidades",Msg::Navigate(Page::News),false),self.action("Entendi",Msg::MarkNotes,true)].spacing(10)].spacing(18)).padding(26).width(540).style(move |_|m.dialog())).center(Fill).style(|_|container::Style{background:Some(alpha(Color::BLACK,0.65).into()),..Default::default()})].into()
+            stack![content,container(container(column![text("Novidades do Voxy 2.0.0 em preparação").size(21).font(bold()),text("Esta versão experimental continua separada da 1.4.1 publicada. Consulte as funcionalidades e limitações antes de testar.").size(14),text("Comunicação nativa, comandos sociais, convites revogáveis e importação em cópia. Rede pública, mídia, 3D e homologação ainda pendentes.").size(13).color(m.muted),row![self.action("Ver novidades",Msg::Navigate(Page::News),false),self.action("Entendi",Msg::MarkNotes,true)].spacing(10)].spacing(18)).padding(26).width(540).style(move |_|m.dialog())).center(Fill).style(move |_| m.scrim())].into()
         } else {
             content
         }
@@ -2633,17 +2885,10 @@ fn main() -> iced::Result {
     }
     iced::application(App::new, App::update, App::view)
         .title("Voxy 2.0 - Nativo")
-        .transparent(true)
+        .transparent(false)
         .theme(Theme::Dark)
         .style(|app, _| iced::theme::Style {
-            background_color: alpha(
-                app.palette().base,
-                if app.palette().reduced || !app.backdrop {
-                    1.0
-                } else {
-                    0.58
-                },
-            ),
+            background_color: app.palette().base,
             text_color: app.palette().ink,
         })
         .subscription(App::subscription)

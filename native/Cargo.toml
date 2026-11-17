@@ -33,3 +33,7 @@ strip = "debuginfo"
 [workspace.lints.clippy]
 dbg_macro = "deny"
 todo = "deny"
+
+# Local fix for shadow damage accumulation; see vendor/iced_tiny_skia/PATCH-VOXY.md.
+[patch.crates-io]
+iced_tiny_skia = { path = "vendor/iced_tiny_skia" }

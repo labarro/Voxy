@@ -1,0 +1,84 @@
+{
+  "binaries": "target/release",
+  "checks": [
+    {
+      "atSeconds": 7.696349143981934,
+      "check": "instâncias reais independentes",
+      "detail": {
+        "instances": 1
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 12.217123031616211,
+      "check": "hover produz alteração visível (tooltip/realce)",
+      "detail": {
+        "region": {
+          "changedFraction": 0.003467885816235504,
+          "maxDiff": 215,
+          "meanDiff": 0.09006690454950937,
+          "meanLumaAfter": 22.885844060615256,
+          "meanLumaBefore": 22.862153028055047,
+          "pixels": 896800.0
+        }
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 40.28759765625,
+      "check": "50 ciclos de hover sem acúmulo na lateral/canais",
+      "detail": {
+        "cycles": 50,
+        "railItems": 5,
+        "region": {
+          "changedFraction": 0.0,
+          "maxDiff": 0,
+          "meanDiff": 0.0,
+          "meanLumaAfter": 24.545350027139435,
+          "meanLumaBefore": 24.545350027139435,
+          "pixels": 250800.0
+        }
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 40.28760528564453,
+      "check": "janela inteira idêntica após hover",
+      "detail": {
+        "region": {
+          "changedFraction": 0.0,
+          "maxDiff": 0,
+          "meanDiff": 0.0,
+          "meanLumaAfter": 22.862153028055047,
+          "meanLumaBefore": 22.862153028055047,
+          "pixels": 896800.0
+        }
+      },
+      "passed": true
+    }
+  ],
+  "durationSeconds": 40.4790153503418,
+  "error": null,
+  "method": "independent voxy-desktop processes with own data dirs/identities/session processes; clicks are physical SendInput mouse input on visible labels, verified by the app's received-click position; text fields and pick-list choices applied as their widget messages; invite read from the clipboard written by the app's copy button; audio source/sink are the synthetic device boundary (VOXY_TEST_SYNTHETIC_AUDIO) feeding the unchanged DSP/Opus/SRTP/jitter/mixer pipeline",
+  "passed": true,
+  "physicalDevices": false,
+  "resourcesAtEnd": [
+    {
+      "cpuSeconds": 1.046875,
+      "participant": "Ana",
+      "pid": 16036,
+      "privateMiB": 11.3125,
+      "workingSetMiB": 29.55078125
+    },
+    {
+      "cpuSeconds": 0.078125,
+      "participant": "Ana",
+      "pid": 8180,
+      "privateMiB": 3.36328125,
+      "workingSetMiB": 15.20703125
+    }
+  ],
+  "sameMachine": true,
+  "scenario": "hover-1",
+  "signal": "wss://voxy.devbarros.com"
+}

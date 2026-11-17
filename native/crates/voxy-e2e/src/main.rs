@@ -6,6 +6,7 @@
 //! copied, and verifies session-confirmed state plus objective audio metrics
 //! from the synthetic playback analyzer. Only the device boundary is synthetic.
 mod pattern;
+mod visual;
 #[cfg(windows)]
 mod win;
 use anyhow::{Context, Result, bail, ensure};
@@ -156,8 +157,14 @@ impl Participant {
         Ok(())
     }
     /// Clicks the last visible label whose text matches exactly (overlays are last).
+    /// Matches visible text, or the accessible id of an icon-only control
+    /// (`btn-<label>` / `rail-<label>`, the same label its tooltip shows).
     fn click(&mut self, label: &str) -> Result<()> {
-        self.click_where(label, |text| text == label)
+        let ids = [format!("\"btn-{label}\""), format!("\"rail-{label}\"")];
+        self.click_where(label, |text| {
+            text == label
+                || (text.starts_with('#') && ids.iter().any(|id| text.contains(id.as_str())))
+        })
     }
     fn click_where(&mut self, what: &str, matches: impl Fn(&str) -> bool) -> Result<()> {
         let hwnd = self.hwnd()?;
@@ -414,6 +421,7 @@ fn voice_scenario(
         for p in &mut people {
             p.launch()?;
             // Profile name and synthetic devices through the real settings screen.
+            p.click("Configurações")?;
             p.click("Áudio e voz")?;
             p.wait("configurações de áudio", 10, |ui| {
                 ui["page"] == "Settings"
@@ -448,6 +456,9 @@ fn voice_scenario(
         host.type_text("serverName", "E2E Amigos")?;
         host.click("Criar servidor")?;
         host.wait("servidor local aberto", 10, |ui| ui["page"] == "Chat")?;
+        if kind == "hover" {
+            return visual::hover_cycles(host, &mut run, 50);
+        }
         host.click("Hospedar servidor")?;
         let ui = host.wait("servidor hospedado", 40, |ui| {
             ui["session"]["invitePresent"] == true && !ui["snapshot"].is_null()
@@ -482,7 +493,7 @@ fn voice_scenario(
             )?;
         }
         for p in &mut people {
-            p.click("◉  Sala dos amigos")?;
+            p.click("Sala dos amigos")?;
         }
         for p in &people {
             let ui = in_call(p, count)?;
@@ -495,6 +506,9 @@ fn voice_scenario(
         std::thread::sleep(Duration::from_secs(2));
         for p in &mut people {
             p.screenshot(&run.evidence, "in-call")?;
+        }
+        if kind == "tour" {
+            return visual::tour(&mut people, &mut run);
         }
         if kind == "screen" {
             return screen_steps(&mut people, &mut run);
@@ -521,14 +535,25 @@ fn voice_scenario(
             run.check(&format!("{} contadores de mídia", p.name), s["sentFrames"].as_u64() > Some(100) && s["receivedFrames"].as_u64() > Some(100) && s["decodedFrames"].as_u64() > Some(100), json!({"sent":s["sentFrames"],"received":s["receivedFrames"],"decoded":s["decodedFrames"],"playbackSamples":s["playbackSamples"]}))?;
         }
         for p in &people {
-            let expected = format!("mídia {}/{}", count - 1, count - 1);
-            let ui = p.wait("indicadores confirmados de fala e mídia", 15, |ui| {
-                let labels = texts(ui);
-                labels.iter().filter(|t| t.contains("mídia ok")).count() >= count - 1
-                    && labels.iter().filter(|t| t.starts_with("falando")).count() >= count - 1
-                    && labels.iter().any(|t| t.contains(&expected))
-                    && labels.iter().any(|t| t.contains("transmitindo"))
-            })?;
+            let ui = p.wait(
+                "indicadores de fala e mídia desenhados pela interface",
+                15,
+                |ui| {
+                    let view = ui["memberView"].as_array().cloned().unwrap_or_default();
+                    view.iter().filter(|m| m["speakingRing"] == true).count() >= count - 1
+                        && view.len() == count
+                        && !view.iter().any(|m| {
+                            m["icons"].as_array().is_some_and(|i| {
+                                i.iter()
+                                    .any(|x| x == "negociando mídia" || x == "mídia interrompida")
+                            })
+                        })
+                        && ui["callQuality"]
+                            .as_str()
+                            .is_some_and(|q| q.starts_with("Good"))
+                        && ui["session"]["transmitting"] == true
+                },
+            )?;
             let links = ui["session"]["links"]
                 .as_array()
                 .cloned()
@@ -572,7 +597,7 @@ fn voice_scenario(
         )?;
         std::fs::write(run.evidence.join("diagnostico-ana.txt"), &diagnostics)?;
         // Mute at A: confirmed by session and host, and A's voice disappears for others.
-        people[0].click("Microfone")?;
+        people[0].click("Silenciar microfone")?;
         let a_id = people[0].ui()["profileId"].clone();
         people[0].wait("mute confirmado pela sessão", 10, |ui| {
             ui["session"]["muted"] == true
@@ -592,18 +617,27 @@ fn voice_scenario(
             "mute de A interrompe a voz de A",
             3,
         )?;
-        people[1].wait("tag mudo de Ana na interface de Bruno", 10, |ui| {
-            texts(ui).iter().any(|t| t.starts_with("mudo"))
+        let ana_view = |ui: &Value| {
+            ui["memberView"]
+                .as_array()
+                .and_then(|v| v.iter().find(|m| m["id"] == a_id).cloned())
+                .unwrap_or_default()
+        };
+        people[1].wait("ícone de mudo de Ana na interface de Bruno", 10, |ui| {
+            ana_view(ui)["icons"]
+                .as_array()
+                .is_some_and(|i| i.iter().any(|x| x == "mudo"))
         })?;
+        // The speech hold is 450 ms; the ring must be gone after it.
+        std::thread::sleep(Duration::from_millis(700));
+        let seen = ana_view(&people[1].ui());
         run.check(
-            "Bruno vê Ana como mudo, sem indicador de fala",
-            !texts(&people[1].ui())
-                .iter()
-                .any(|t| t.starts_with("falando · mudo")),
-            json!({}),
+            "Bruno vê Ana com ícone de mudo e sem anel de fala",
+            seen["speakingRing"] == false,
+            seen.clone(),
         )?;
         people[1].screenshot(&run.evidence, "sees-ana-muted")?;
-        people[0].click("Mic mudo")?;
+        people[0].click("Ativar microfone")?;
         people[0].wait("desmute confirmado", 10, |ui| {
             ui["session"]["muted"] == false
         })?;
@@ -615,10 +649,12 @@ fn voice_scenario(
             3,
         )?;
         // Deafen at B: B stops delivering any playback; A still transmits.
-        people[1].click("Áudio")?;
+        people[1].click("Ensurdecer")?;
         people[1].wait("ensurdecer confirmado", 10, |ui| {
             ui["session"]["deafened"] == true
         })?;
+        // The deafen cue itself is audible by design; measure after it ends.
+        std::thread::sleep(Duration::from_millis(900));
         let since = now_ms();
         std::thread::sleep(Duration::from_secs(3));
         let (windows, rms, _) = people[1].band(since);
@@ -627,7 +663,7 @@ fn voice_scenario(
             windows >= 4 && rms < 0.002,
             json!({"rms":rms,"windows":windows}),
         )?;
-        people[1].click("Áudio mudo")?;
+        people[1].click("Ativar áudio")?;
         people[1].wait("ensurdecer desfeito", 10, |ui| {
             ui["session"]["deafened"] == false
         })?;
@@ -713,6 +749,11 @@ fn voice_scenario(
                     run.evidence
                         .join(format!("{}-failure-ui.json", p.name.to_lowercase())),
                 );
+                let _ = std::fs::copy(
+                    p.auto.join("audio.json"),
+                    run.evidence
+                        .join(format!("{}-failure-audio.json", p.name.to_lowercase())),
+                );
             }
         }
     }
@@ -764,6 +805,8 @@ fn main() -> Result<()> {
         "voice-3" => voice_scenario(&bin, &signal, &evidence, 3, "voice"),
         "screen-2" => voice_scenario(&bin, &signal, &evidence, 2, "screen"),
         "camera-2" => voice_scenario(&bin, &signal, &evidence, 2, "camera"),
+        "hover-50" => voice_scenario(&bin, &signal, &evidence, 1, "hover"),
+        "tour-3" => voice_scenario(&bin, &signal, &evidence, 3, "tour"),
         other => bail!("Cenário desconhecido: {other}"),
     }?;
     println!(
@@ -986,7 +1029,7 @@ fn camera_steps(people: &mut [Participant], run: &mut Run) -> Result<()> {
             && member_flag(&people[0].ui(), &bruno, "camera") == false,
         json!({}),
     )?;
-    people[1].click("Câmera")?;
+    people[1].click("Ligar câmera")?;
     people[1].wait("seletor de câmera aberto", 10, |ui| {
         ui["cameraDialog"] == true
     })?;

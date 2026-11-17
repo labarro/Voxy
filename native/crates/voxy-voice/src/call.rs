@@ -368,12 +368,13 @@ impl CallAudio {
                                 }
                             }
                         }
+                        if worker_control.deafened.load(Ordering::Relaxed) {
+                            mixed = [0.0; FRAME_SAMPLES];
+                        }
+                        // Cues after the deafen gate: the deafen cue itself stays audible.
+                        worker_control.cues.mix_into(&mut mixed);
                         for sample in mixed {
-                            let sample = if worker_control.deafened.load(Ordering::Relaxed) {
-                                0.0
-                            } else {
-                                sample.clamp(-0.98, 0.98)
-                            };
+                            let sample = sample.clamp(-0.98, 0.98);
                             let _ = playback.samples.push(sample);
                         }
                         next_playout += Duration::from_millis(20);

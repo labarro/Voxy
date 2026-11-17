@@ -18,7 +18,11 @@ voxy-core.workspace = true
 voxy-voice.workspace = true
 voxy-network.workspace = true
 voxy-media = { path = "../voxy-media" }
-iced = { version = "=0.14.0", default-features = false, features = ["tiny-skia", "tokio", "advanced", "canvas", "image-without-codecs"] }
+iced = { version = "=0.14.0", default-features = false, features = ["tiny-skia", "tokio", "advanced", "canvas", "image-without-codecs", "svg"] }
+
+[dev-dependencies]
+iced_tiny_skia = "=0.14.1"
+tiny-skia = "0.11"
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Graphics_Dwm", "Win32_UI_Controls", "Win32_UI_Controls_Dialogs", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_Foundation", "Win32_System_Time", "Win32_System_Registry", "Win32_Security"] }

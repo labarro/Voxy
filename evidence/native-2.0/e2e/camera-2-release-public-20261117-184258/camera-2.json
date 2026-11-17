@@ -1,0 +1,126 @@
+{
+  "binaries": "target/release",
+  "checks": [
+    {
+      "atSeconds": 13.897787094116211,
+      "check": "instâncias reais independentes",
+      "detail": {
+        "instances": 2
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 18.203731536865234,
+      "check": "host registrado na sinalização pública",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 18.92926788330078,
+      "check": "convite copiado pela interface",
+      "detail": {
+        "length": 531,
+        "scheme": "voxy-native://"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 22.211231231689453,
+      "check": "Bruno entrou por convite",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 23.661914825439453,
+      "check": "Ana em chamada confirmada pelo host",
+      "detail": {
+        "members": 2
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 23.662025451660156,
+      "check": "Bruno em chamada confirmada pelo host",
+      "detail": {
+        "members": 2
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 27.068073272705078,
+      "check": "câmera desligada ao entrar na chamada",
+      "detail": {},
+      "passed": true
+    },
+    {
+      "atSeconds": 29.129467010498047,
+      "check": "prévia privada não publica a câmera",
+      "detail": {},
+      "passed": true
+    },
+    {
+      "atSeconds": 31.060009002685547,
+      "check": "Bruno: câmera capturada e codificada",
+      "detail": {
+        "audio": false,
+        "audio_packets": 0,
+        "bitrate_kbps": 700,
+        "captured": 24,
+        "dropped": 0,
+        "encoded": 12,
+        "encoder": "H.264 software (Media Foundation)",
+        "fps": 30,
+        "height": 360,
+        "keyframes": 1,
+        "label": "Câmera de teste",
+        "preset": "360p30",
+        "sent_kbps": 18,
+        "watchers": 0,
+        "width": 640
+      },
+      "passed": true
+    }
+  ],
+  "durationSeconds": 53.683597564697266,
+  "error": "Ana: tempo esgotado aguardando quadros da câmera decodificados. phase=\"Em chamada\" error=null status=\"Em chamada\" labels=[\"voxy\", \"2.0\", \"#Id(Custom(\\\"caption-Minimizar\\\"))\", \"#Id(Custom(\\\"caption-Maximizar ou restaurar\\\"))\", \"#Id(Custom(\\\"caption-Fechar janela · a chamada continua\\\"))\", \"v\", \"#Id(Custom(\\\"nav-item-Início\\\"))\", \"#Id(Custom(\\\"nav-item-Conversas\\\"))\", \"#Id(Custom(\\\"nav-item-Novidades\\\"))\", \"#Id(Custom(\\\"nav-item-Configurações\\\"))\", \"E\", \"+\", \"A\", \"#Id(Custom(\\\"avatar-32\\\"))\", \"E\", \"E2E Amigos\", \"Texto\", \"#  conversa\", \"Voz\", \"◉  Sala dos amigos\", \"●\", \"#Id(Custom(\\\"avatar-21\\\"))\", \"B\", \"Bruno\", \"falando · câmera ligada · mídia ok · 0 ms\", \"Assistir\", \"●\", \"#Id(Custom(\\\"avatar-21\\\"))\", \"A\", \"Ana\", \"falando\", \"Gerenciar servidor\", \"Desconectar\", \"Copiar convite\", \"Copiar diagnóstico\", \"# conversa\", \"Conectado\", \"Buscar\", \"Anteriores\", \"Nenhuma mensagem neste canal.\", \"Enviar imagem\", \"PNG/JPEG · até 3 MiB\", \"Enviar\", \"Participantes\", \"#Id(Custom(\\\"avatar-28\\\"))\", \"B\", \"Bruno\", \"Em chamada\", \"Online\", \"Mencionar\", \"Volume\", \"100%\", \"#Id(Custom(\\\"avatar-28\\\"))\", \"A\", \"Ana\", \"Em chamada\", \"Online\", \"Mencionar\", \"●\", \"Em chamada · mídia 1/1 · transmitindo · recebendo voz\", \"Compartilhar tela\", \"Câmera\", \"Sair da chamada\", \"Microfone\", \"Áudio\"]",
+  "method": "independent voxy-desktop processes with own data dirs/identities/session processes; clicks are physical SendInput mouse input on visible labels, verified by the app's received-click position; text fields and pick-list choices applied as their widget messages; invite read from the clipboard written by the app's copy button; audio source/sink are the synthetic device boundary (VOXY_TEST_SYNTHETIC_AUDIO) feeding the unchanged DSP/Opus/SRTP/jitter/mixer pipeline",
+  "passed": false,
+  "physicalDevices": false,
+  "resourcesAtEnd": [
+    {
+      "cpuSeconds": 2.359375,
+      "participant": "Ana",
+      "pid": 7416,
+      "privateMiB": 11.73046875,
+      "workingSetMiB": 30.1328125
+    },
+    {
+      "cpuSeconds": 1.875,
+      "participant": "Ana",
+      "pid": 12352,
+      "privateMiB": 7.66796875,
+      "workingSetMiB": 26.68359375
+    },
+    {
+      "cpuSeconds": 2.296875,
+      "participant": "Bruno",
+      "pid": 17968,
+      "privateMiB": 11.73046875,
+      "workingSetMiB": 30.35546875
+    },
+    {
+      "cpuSeconds": 2.484375,
+      "participant": "Bruno",
+      "pid": 17124,
+      "privateMiB": 95.734375,
+      "workingSetMiB": 92.8515625
+    }
+  ],
+  "sameMachine": true,
+  "scenario": "camera-2",
+  "signal": "wss://voxy.devbarros.com"
+}

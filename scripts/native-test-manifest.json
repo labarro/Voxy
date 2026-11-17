@@ -1,0 +1,35 @@
+{
+  "description": "Suites that cargo test --lib --bins --tests must execute. minPassed counts only tests that actually passed; ignored tests never count.",
+  "required": [
+    { "suite": "voxy-core/lib", "minPassed": 28 },
+    { "suite": "voxy-desktop/bin", "minPassed": 4 },
+    { "suite": "voxy-games/lib", "minPassed": 1 },
+    { "suite": "voxy-games/tests/chess_differential", "minPassed": 1 },
+    { "suite": "voxy-games/tests/truco_differential", "minPassed": 2 },
+    { "suite": "voxy-media/lib", "minPassed": 1 },
+    { "suite": "voxy-media/tests/codec_windows", "minPassed": 1 },
+    { "suite": "voxy-cli/tests/media_transport", "minPassed": 1 },
+    { "suite": "voxy-network/lib", "minPassed": 12 },
+    { "suite": "voxy-session/lib", "minPassed": 6 },
+    { "suite": "voxy-voice/lib", "minPassed": 17 },
+    { "suite": "voxy-world/lib", "minPassed": 2 }
+  ],
+  "allowEmpty": [
+    { "suite": "voxy-cli/bin", "reason": "thin binary without unit tests" },
+    { "suite": "voxy-world/bin", "reason": "thin binary without unit tests" },
+    { "suite": "voxy-e2e/bin", "reason": "test-only multi-instance E2E driver; exercised by scripts/native.ps1 e2e-app" },
+    { "suite": "voxy-cli/tests/session_live", "reason": "all tests are opt-in; covered by optIn" },
+    { "suite": "voxy-media/tests/capture_windows", "reason": "all tests are opt-in; covered by optIn" },
+    { "suite": "voxy-media/tests/video_transport", "reason": "all tests are opt-in; covered by optIn" }
+  ],
+  "optIn": [
+    { "package": "voxy-media", "target": "capture_windows", "name": "wgc_captures_owned_window_and_releases_session", "requiredEnv": [], "description": "Real Windows Graphics Capture/D3D11 on an owned test window" },
+    { "package": "voxy-media", "target": "codec_windows", "name": "software_h264_roundtrip_and_malformed_limits", "requiredEnv": [], "description": "Windows software H.264 MFT roundtrip on synthetic pixels" },
+    { "package": "voxy-media", "target": "video_transport", "name": "h264_software_frames_cross_native_srtp_and_decode", "requiredEnv": [], "description": "H.264 frames over real local ICE/SRTP" },
+    { "package": "voxy-cli", "target": "session_live", "name": "independent_session_processes_deliver_chat_survive_ui_detach_and_reject_foreign_identity", "requiredEnv": ["VOXY_TEST_SIGNAL_URL"], "description": "Independent session processes against a local Worker emulator" },
+    { "package": "voxy-cli", "target": "session_live", "name": "authenticated_mesh_transmits_opus_and_isolates_other_voice_channels", "requiredEnv": ["VOXY_TEST_SIGNAL_URL"], "description": "Authenticated voice mesh against a local Worker emulator" },
+    { "package": "voxy-cli", "target": "session_live", "name": "reconnecting_identity_keeps_host_and_persistent_chat_across_generations", "requiredEnv": ["VOXY_TEST_SIGNAL_URL"], "description": "Reconnecting identity against a local Worker emulator" },
+    { "package": "voxy-cli", "target": "session_live", "name": "native_duplex_call_uses_devices_and_survives_ui_unload", "requiredEnv": ["VOXY_TEST_SIGNAL_URL", "VOXY_TEST_PHYSICAL_AUDIO"], "description": "Duplex call on physical default audio devices" },
+    { "package": "voxy-session", "target": "lib", "name": "tray::win32::tests::shell_icon_thread_registers_and_destroys_twice", "requiredEnv": [], "description": "Win32 shell tray icon lifecycle (needs interactive shell)" }
+  ]
+}

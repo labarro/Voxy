@@ -23,7 +23,8 @@
       "Prévias nativas dos catálogos Lounge/Cinema/Rooftop em processo opcional com confirmação do primeiro frame; mundo social completo ainda pendente.",
       "Sinalização experimental implantada em voxy.devbarros.com com Durable Objects SQLite; endpoint e STUN padrão no desktop, sem configurar IP ou VPN.",
       "Renomeação de canais na administração, paginação privada de DMs e remoção de servidores recentes pela interface.",
-      "Instalador e ZIP experimentais locais Windows x64, com assets, manifesto de integridade, runtime MSVC oficial verificado e guias de homologação; sem publicação ou ensaio em VM."
+      "Instalador e ZIP experimentais locais Windows x64, com assets, manifesto de integridade, runtime MSVC oficial verificado e guias de homologação; sem publicação ou ensaio em VM.",
+      "Indicadores confirmados pela sessão: quem está falando, mudo ou ensurdecido, mídia por participante (rota direta e RTT), transmissão e recepção; diagnóstico copiável sem convites, chaves ou SDP."
     ],
     "improvements": [
       "Controles e ícones vetoriais com dimensões fixas, avatares corrigidos, ações contextuais e rolagem sem encobrir conteúdo.",
@@ -36,7 +37,8 @@
       "Pipeline privado e chamada compartilham processamento selecionado; AEC pode ser desativado mantendo NS/AGC.",
       "Backend Windows H.264 software e transporte de vídeo RTP/SRTP testados localmente com frames sintéticos; interface de transmissão e webcam completas ainda pendentes.",
       "Testes de sessão contra WSS público com chat, imagens, malha Opus sintética, isolamento, revogação e reconexão; participantes na mesma máquina, sem homologação entre redes.",
-      "Recuperação de captura/saída após falha de chamada ativa: até três tentativas com a mesma seleção, cancelamento por geração e microfone silenciado até ação explícita; hotplug físico ainda pendente."
+      "Recuperação de captura/saída após falha de chamada ativa: até três tentativas com a mesma seleção, cancelamento por geração e microfone silenciado até ação explícita; hotplug físico ainda pendente.",
+      "Testes nativos com contagem por suíte, mínimos obrigatórios e opt-in explícitos; E2E com instâncias reais do aplicativo, cliques físicos, convite copiado pela interface e áudio sintético medido na reprodução."
     ],
     "fixes": [
       "Avatares deixam de se expandir e deslocar mensagens, nomes e participantes.",
@@ -53,7 +55,10 @@
       "Convites experimentais usam voxy-native:// sem disputar a associação voxy:// da instalação estável.",
       "Timeout de P2P distingue sinalização disponível de rota direta bloqueada e informa que TURN está desativado.",
       "Leitura de DMs em lote limitado e transacional evita saturar o IPC; mensagens não autorizadas revertem o lote completo.",
-      "Timeout de abertura de áudio cancela a geração para impedir ativação tardia de captura ou PTT."
+      "Timeout de abertura de áudio cancela a geração para impedir ativação tardia de captura ou PTT.",
+      "Sinalização: a vaga de cada sala passa a ser um lease do host (15 min, renovado enquanto conectado e liberado ao sair), em vez de ficar presa até a expiração do convite e bloquear novos servidores.",
+      "Botões de microfone e áudio mostram o estado confirmado pela sessão, não o clique local.",
+      "Falhas de sinalização exibem a causa (limite gratuito, convite recusado, host offline) em vez de mensagem genérica."
     ]
   },
   "1.4.1": {

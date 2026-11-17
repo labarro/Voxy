@@ -10,3 +10,5 @@ test-results/
 *.p12
 *-private.pem
 native/target/
+
+.test-logs/

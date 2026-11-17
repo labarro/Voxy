@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod art;
+mod automation;
 mod bridge;
 mod chrome;
 mod design;
@@ -63,6 +64,7 @@ enum Msg {
     Disconnect,
     LeaveVoice,
     CopyInvite,
+    CopyDiagnostics,
     RotateInvite,
     RoleName(String),
     RoleColor(String),
@@ -165,6 +167,10 @@ enum Msg {
     Ready(iced::window::Id),
     Backdrop(bool),
     BenchmarkReady(iced::window::Screenshot),
+    AutomationTick,
+    AutomationEvent(String),
+    AutomationTexts(Vec<automation::Label>),
+    AutomationShot(String, iced::window::Screenshot),
 }
 struct App {
     service: Option<tokio::sync::mpsc::Sender<voxy_core::ipc::Request>>,
@@ -227,6 +233,12 @@ struct App {
     geometry_failures: usize,
     geometry_nodes: usize,
     ready_file: Option<std::path::PathBuf>,
+    automation: Option<std::path::PathBuf>,
+    automation_seq: u64,
+    automation_events: std::collections::VecDeque<String>,
+    automation_clicks: u64,
+    automation_cursor: Vec<f32>,
+    automation_last_click: Vec<f32>,
 }
 impl App {
     fn new() -> (Self, Task<Msg>) {
@@ -377,6 +389,12 @@ impl App {
                     .windows(2)
                     .find(|w| w[0] == "--ready-file")
                     .map(|w| std::path::PathBuf::from(&w[1])),
+                automation: automation::directory(),
+                automation_seq: 0,
+                automation_events: Default::default(),
+                automation_clicks: 0,
+                automation_cursor: vec![],
+                automation_last_click: vec![],
             },
             task,
         )
@@ -545,6 +563,20 @@ impl App {
                 Subscription::none()
             },
             iced::window::open_events().map(Msg::Ready),
+            if self.automation.is_some() {
+                iced::time::every(std::time::Duration::from_millis(250))
+                    .map(|_| Msg::AutomationTick)
+            } else {
+                Subscription::none()
+            },
+            if self.automation.is_some() {
+                iced::event::listen_with(|event, _, _| match event {
+                    iced::Event::Mouse(mouse) => Some(Msg::AutomationEvent(format!("{mouse:?}"))),
+                    _ => None,
+                })
+            } else {
+                Subscription::none()
+            },
             if self.mic_test.is_some() || self.image_transfer.is_some() {
                 iced::time::every(std::time::Duration::from_millis(100)).map(|_| Msg::Tick)
             } else {
@@ -680,6 +712,12 @@ impl App {
                     .deafened
                     .store(state.deafened, Ordering::Release);
                 self.status = state.error.clone().unwrap_or_else(|| state.phase.clone());
+                // The session is the authority for controls; local flags only mark a
+                // request in flight until the next confirmed state arrives.
+                self.control.muted.store(state.muted, Ordering::Relaxed);
+                self.control
+                    .deafened
+                    .store(state.deafened, Ordering::Relaxed);
                 self.remote = state;
                 if let Some(transfer) = &self.image_transfer
                     && let Some((_, value)) = self
@@ -1762,13 +1800,24 @@ impl App {
                 }
             }
             Msg::Mute => {
-                self.control.muted.fetch_xor(true, Ordering::Relaxed);
+                self.control
+                    .muted
+                    .store(!self.remote.muted, Ordering::Relaxed);
+                self.control
+                    .deafened
+                    .store(self.remote.deafened, Ordering::Relaxed);
                 self.send_controls();
             }
             Msg::Deafen => {
-                self.control.deafened.fetch_xor(true, Ordering::Relaxed);
+                self.control
+                    .muted
+                    .store(self.remote.muted, Ordering::Relaxed);
+                self.control
+                    .deafened
+                    .store(!self.remote.deafened, Ordering::Relaxed);
                 self.send_controls();
             }
+            Msg::CopyDiagnostics => return iced::clipboard::write(self.diagnostics()),
             Msg::Drag => return iced::window::latest().and_then(iced::window::drag),
             Msg::Minimize => {
                 return iced::window::latest().and_then(|id| iced::window::minimize(id, true));
@@ -1873,8 +1922,255 @@ impl App {
                 }
             }
             Msg::Captured(step, shot) => return self.smoke_captured(step, shot),
+            Msg::AutomationTick => return self.automation_tick(),
+            Msg::AutomationEvent(event) => {
+                if let Some(position) = event.strip_prefix("CursorMoved { position: Point { x: ") {
+                    self.automation_cursor = position
+                        .split([',', ' ', '}'])
+                        .filter_map(|v| v.trim_start_matches("y:").parse().ok())
+                        .collect();
+                }
+                if event.starts_with("ButtonReleased") {
+                    self.automation_clicks += 1;
+                    self.automation_last_click = self.automation_cursor.clone();
+                }
+                self.automation_events.push_back(event);
+                while self.automation_events.len() > 24 {
+                    self.automation_events.pop_front();
+                }
+            }
+            Msg::AutomationTexts(labels) => self.automation_export(labels),
+            Msg::AutomationShot(name, shot) => {
+                if let Some(directory) = &self.automation
+                    && let Err(error) =
+                        automation::write_png(&directory.join(format!("{name}.png")), &shot)
+                {
+                    self.status = format!("Captura de teste falhou: {error}");
+                }
+            }
         }
         Task::none()
+    }
+    /// Session-confirmed tags for a voice member: speech, controls and media link.
+    fn member_tags(&self, member: &voxy_core::room::Member) -> (bool, String) {
+        let mut tags = Vec::new();
+        let local = member.id == self.profile.id;
+        let link = self
+            .remote
+            .links
+            .iter()
+            .find(|l| l.key == member.public_key);
+        let speaking = if local {
+            self.remote.transmitting
+        } else {
+            link.is_some_and(|l| l.speaking)
+        };
+        if speaking && !member.muted {
+            tags.push("falando".to_owned());
+        }
+        if member.deafened {
+            tags.push("ensurdecido".into());
+        } else if member.muted {
+            tags.push("mudo".into());
+        }
+        if local {
+            if !self.remote.microphone_ready {
+                tags.push("áudio abrindo".into());
+            }
+        } else if let Some(link) = link {
+            if link.state == "connected" && link.data_open {
+                tags.push(match link.rtt_ms {
+                    Some(rtt) => format!("mídia ok · {rtt} ms"),
+                    None => "mídia ok".into(),
+                });
+            } else if link.state == "failed" || link.state == "disconnected" {
+                tags.push("mídia interrompida".into());
+            } else {
+                tags.push("negociando mídia".into());
+            }
+        } else if self.remote.voice.is_some() {
+            tags.push("sem mídia".into());
+        }
+        (speaking && !member.muted, tags.join(" · "))
+    }
+    /// One-line call summary built only from confirmed session state.
+    fn call_summary(&self) -> Option<String> {
+        let r = &self.remote;
+        let channel = r.voice?;
+        let snapshot = r.snapshot.as_ref()?;
+        let others: Vec<_> = snapshot
+            .members
+            .iter()
+            .filter(|m| m.voice == Some(channel) && m.id != self.profile.id)
+            .collect();
+        let connected = others
+            .iter()
+            .filter(|m| {
+                r.links
+                    .iter()
+                    .any(|l| l.key == m.public_key && l.state == "connected" && l.data_open)
+            })
+            .count();
+        let mut parts = vec![r.phase.clone()];
+        if !others.is_empty() {
+            parts.push(format!("mídia {connected}/{}", others.len()));
+        }
+        parts.push(
+            if r.muted {
+                "microfone mudo"
+            } else if r.transmitting {
+                "transmitindo"
+            } else if r.microphone_ready {
+                "microfone pronto"
+            } else {
+                "microfone fechado"
+            }
+            .into(),
+        );
+        if r.deafened {
+            parts.push("ensurdecido".into());
+        } else if r.links.iter().any(|l| l.speaking) {
+            parts.push("recebendo voz".into());
+        }
+        Some(parts.join(" · "))
+    }
+    /// Copyable diagnostics without invites, keys, SDP, addresses or device ids.
+    fn diagnostics(&self) -> String {
+        let r = &self.remote;
+        let names = |key: &str| {
+            r.snapshot
+                .as_ref()
+                .and_then(|s| s.members.iter().find(|m| m.public_key == key))
+                .map(|m| m.name.clone())
+                .unwrap_or_else(|| "participante".into())
+        };
+        let mut lines = vec![
+            format!("Voxy {} · diagnóstico de chamada", voxy_core::VERSION),
+            format!("Sinalização/sessão: {}", r.phase),
+            format!("Servidor conectado: {}", r.snapshot.is_some()),
+            format!("Canal de voz ativo: {}", r.voice.is_some()),
+            format!(
+                "Microfone pronto: {} · mudo: {} · ensurdecido: {} · transmitindo: {}",
+                r.microphone_ready, r.muted, r.deafened, r.transmitting
+            ),
+            format!(
+                "Frames: codificados {} · enviados {} · recebidos {} · decodificados {} · amostras reproduzidas {}",
+                r.encoded_frames,
+                r.sent_frames,
+                r.received_frames,
+                r.decoded_frames,
+                r.playback_samples
+            ),
+            format!("Reconexões: {}", r.reconnects),
+            format!("Erro: {}", r.error.as_deref().unwrap_or("nenhum")),
+            "TURN/relay: desativado".into(),
+        ];
+        for link in &r.links {
+            lines.push(format!(
+                "Participante {}: estado {} · canal de dados {} · rota {} · RTT {} · voz enviada {} · voz recebida {} · bytes {}/{} · nível {:.3}",
+                names(&link.key),
+                link.state,
+                if link.data_open { "aberto" } else { "fechado" },
+                link.route,
+                link.rtt_ms.map_or("—".into(), |v| format!("{v} ms")),
+                link.audio_sent,
+                link.audio_received,
+                link.bytes_sent,
+                link.bytes_received,
+                link.level
+            ));
+        }
+        lines.join("\n")
+    }
+    fn automation_tick(&mut self) -> Task<Msg> {
+        let Some(directory) = self.automation.clone() else {
+            return Task::none();
+        };
+        let mut tasks = Vec::new();
+        for envelope in automation::pending(&directory, self.automation_seq) {
+            self.automation_seq = envelope.seq;
+            let message = match envelope.command {
+                automation::Command::Type { field, value } => match field.as_str() {
+                    "serverName" => Some(Msg::ServerName(value)),
+                    "invite" => Some(Msg::InviteText(value)),
+                    "draft" => Some(Msg::Draft(value)),
+                    "name" => Some(Msg::Name(value)),
+                    "friendId" => Some(Msg::FriendId(value)),
+                    "channelName" => Some(Msg::AdminChannelName(value)),
+                    "search" => Some(Msg::Search(value)),
+                    _ => None,
+                },
+                automation::Command::Select { field, value } => match field.as_str() {
+                    "input" => Some(Msg::Input(value)),
+                    "output" => Some(Msg::Output(value)),
+                    "pttKey" => Some(Msg::PttKey(value)),
+                    _ => None,
+                },
+                automation::Command::Screenshot { name } => {
+                    if let Some(name) = automation::safe_name(&name) {
+                        tasks.push(iced::window::latest().and_then(move |id| {
+                            let name = name.clone();
+                            iced::window::screenshot(id)
+                                .map(move |shot| Msg::AutomationShot(name.clone(), shot))
+                        }));
+                    }
+                    None
+                }
+            };
+            if let Some(message) = message {
+                tasks.push(self.update(message));
+            }
+        }
+        tasks.push(
+            iced::advanced::widget::operate(automation::Texts::default()).map(Msg::AutomationTexts),
+        );
+        Task::batch(tasks)
+    }
+    /// Exports what the window shows plus the session-confirmed state behind it.
+    fn automation_export(&self, labels: Vec<automation::Label>) {
+        let Some(directory) = &self.automation else {
+            return;
+        };
+        let snapshot = self.remote.snapshot.as_ref().map(|s| {
+            serde_json::json!({
+                "server": s.server.name,
+                "channels": s.channels.iter().map(|c| serde_json::json!({"id":c.id,"name":c.name,"kind":format!("{:?}",c.kind)})).collect::<Vec<_>>(),
+                "members": s.members.iter().map(|m| serde_json::json!({"id":m.id,"name":m.name,"voice":m.voice,"muted":m.muted,"deafened":m.deafened})).collect::<Vec<_>>(),
+                "messages": s.messages.len(),
+            })
+        });
+        let r = &self.remote;
+        automation::write_json(
+            directory,
+            "ui.json",
+            &serde_json::json!({
+                "seq": self.automation_seq,
+                "pid": std::process::id(),
+                "page": format!("{:?}", self.page),
+                "status": self.status,
+                "profileId": self.profile.id,
+                "profileName": self.profile.name,
+                "input": self.profile.input,
+                "output": self.profile.output,
+                "serviceAttached": self.service.is_some(),
+                "uiMutedFlag": self.control.muted.load(Ordering::Relaxed),
+                "uiDeafenedFlag": self.control.deafened.load(Ordering::Relaxed),
+                "session": {
+                    "phase": r.phase, "error": r.error, "voice": r.voice,
+                    "microphoneReady": r.microphone_ready, "muted": r.muted, "deafened": r.deafened,
+                    "invitePresent": r.invite.is_some(), "peers": r.peers.len(),
+                    "sentFrames": r.sent_frames, "receivedFrames": r.received_frames,
+                    "encodedFrames": r.encoded_frames, "decodedFrames": r.decoded_frames,
+                    "playbackSamples": r.playback_samples, "inputLevel": r.input_level, "transmitting": r.transmitting, "reconnects": r.reconnects,
+                    "links": r.links,
+                },
+                "snapshot": snapshot,
+                "labels": labels,
+                "mouseEvents": self.automation_events,
+                "clicks": self.automation_clicks,
+                "lastClick": self.automation_last_click,
+            }),
+        );
     }
     fn open_server(&mut self, id: uuid::Uuid) {
         if let Some(index) = self.communities.iter().position(|server| server.id == id) {

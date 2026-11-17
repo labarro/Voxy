@@ -216,7 +216,7 @@ pub async fn signaling_check(endpoint: &str) -> Result<serde_json::Value> {
             }
         }
         Ok::<_, anyhow::Error>(
-            serde_json::json!({"authenticatedSignaling":true,"signedSdpIce":true,"payloadReceived":true,"workerEmulator":true,"publicInternet":false,"relay":false}),
+            serde_json::json!({"authenticatedSignaling":true,"signedSdpIce":true,"payloadReceived":true,"endpointKind":if is_loopback_endpoint(endpoint){"local-emulator"}else{"public"},"bothPeersOnThisMachine":true,"mediaPathValidated":false,"relay":false}),
         )
     };
     let result = tokio::time::timeout(std::time::Duration::from_secs(20), result).await;
@@ -225,4 +225,14 @@ pub async fn signaling_check(endpoint: &str) -> Result<serde_json::Value> {
     let _ = hs.close(None).await;
     let _ = gs.close(None).await;
     result.map_err(|_| anyhow::anyhow!("Negociação com sinalização excedeu 20 segundos"))?
+}
+
+/// Labels diagnostics only; never used for authorization decisions.
+fn is_loopback_endpoint(endpoint: &str) -> bool {
+    let rest = endpoint.split("://").nth(1).unwrap_or(endpoint);
+    rest.starts_with("[::1]")
+        || matches!(
+            rest.split(['/', ':']).next().unwrap_or_default(),
+            "127.0.0.1" | "localhost"
+        )
 }

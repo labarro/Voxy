@@ -252,11 +252,23 @@ pub(super) fn sidebar(app: &App) -> Element<'_, Msg> {
 }
 pub(super) fn footer(app: &App) -> Element<'_, Msg> {
     let m = app.palette();
-    let status = if app.status.is_empty() {
-        "Nenhuma chamada ativa"
+    // Local action messages first, then confirmed session errors, then the call summary.
+    let local_message = !app.status.is_empty()
+        && app.status != app.remote.phase
+        && Some(&app.status) != app.remote.error.as_ref();
+    let status: String = if local_message {
+        app.status.clone()
+    } else if let Some(error) = &app.remote.error {
+        error.clone()
+    } else if let Some(summary) = app.call_summary() {
+        summary
+    } else if !app.remote.phase.is_empty() {
+        app.remote.phase.clone()
     } else {
-        &app.status
+        "Nenhuma chamada ativa".into()
     };
+    let pending_mute = app.control.muted.load(Ordering::Relaxed) != app.remote.muted;
+    let pending_deafen = app.control.deafened.load(Ordering::Relaxed) != app.remote.deafened;
     container(
         row![
             text(if app.remote.microphone_ready {
@@ -285,19 +297,19 @@ pub(super) fn footer(app: &App) -> Element<'_, Msg> {
                 false
             ),
             app.action(
-                if app.control.muted.load(Ordering::Relaxed) {
-                    "Mic mudo"
-                } else {
-                    "Microfone"
+                match (app.remote.muted, pending_mute) {
+                    (_, true) => "Microfone …",
+                    (true, false) => "Mic mudo",
+                    (false, false) => "Microfone",
                 },
                 Msg::Mute,
                 false
             ),
             app.action(
-                if app.control.deafened.load(Ordering::Relaxed) {
-                    "Áudio mudo"
-                } else {
-                    "Áudio"
+                match (app.remote.deafened, pending_deafen) {
+                    (_, true) => "Áudio …",
+                    (true, false) => "Áudio mudo",
+                    (false, false) => "Áudio",
                 },
                 Msg::Deafen,
                 false

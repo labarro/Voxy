@@ -346,7 +346,7 @@ impl CallAudio {
                         let mut mixed = [0.0_f32; FRAME_SAMPLES];
                         let mut decoded = [0.0; FRAME_SAMPLES];
                         remotes.retain(|_, remote| remote.last.elapsed() < Duration::from_secs(10));
-                        for remote in remotes.values_mut() {
+                        for (peer, remote) in remotes.iter_mut() {
                             let Some(data) = remote.jitter.pop() else { continue };
                             let count = remote
                                 .decoder
@@ -356,6 +356,11 @@ impl CallAudio {
                                 worker_control
                                     .decoded_frames
                                     .fetch_add(1, Ordering::Relaxed);
+                                let rms = (decoded[..count].iter().map(|s| s * s).sum::<f32>() / count as f32).sqrt();
+                                if let Ok(mut levels) = worker_control.peer_levels.try_lock() {
+                                    let peak = levels.entry(*peer).or_insert(0.0);
+                                    *peak = peak.max(rms);
+                                }
                             }
                             if !remote.muted {
                                 for (i, sample) in decoded[..count].iter().enumerate() {
@@ -412,6 +417,13 @@ impl CallAudio {
                                     }
                                 }
                                 transmitting = allowed;
+                                if allowed {
+                                    let rms = (outgoing.iter().map(|s| s * s).sum::<f32>() / FRAME_SAMPLES as f32).sqrt();
+                                    let previous = f32::from_bits(worker_control.sent_level_bits.load(Ordering::Relaxed));
+                                    if rms > previous {
+                                        worker_control.sent_level_bits.store(rms.to_bits(), Ordering::Relaxed);
+                                    }
+                                }
                                 let size = encoder.encode(&outgoing, &mut packet)?;
                                 // Successful device opening alone does not prove a live
                                 // capture path. Report readiness only after an encoded frame.

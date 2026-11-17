@@ -65,24 +65,46 @@ export default {
   }
 };
 
+// A room slot is a short host lease, renewed by the room's alarm while the host
+// socket is connected and released when it closes. It never lasts until the
+// invite expiry, so departed hosts stop consuming the global room quota.
+const ROOM_LEASE_MS = 15 * 60_000;
+const LEASE_RENEW_MS = 5 * 60_000;
+type Budget = { day: string; count: number; rooms: Record<string, number>; nonces: Record<string, number> };
 export class AdmissionBudget {
   constructor(private state: DurableObjectState, private env: Env) {}
   async fetch(request: Request) {
-    const data = await request.json() as { room: string; expiry: number; nonce: string; host: boolean };
+    const action = new URL(request.url).pathname;
+    const data = await request.json() as { room: string; expiry?: number; nonce?: string; host?: boolean };
     return this.state.storage.transaction(async tx => {
       const today = new Date().toISOString().slice(0,10);
-      const old = await tx.get<{ day: string; count: number; rooms: Record<string, number>; nonces: Record<string, number> }>("budget");
-      // Daily usage resets; live room registration and replay windows survive UTC midnight.
-      const budget = old ? { ...old, day: today, count: old.day === today ? old.count : 0 } : { day: today, count: 0, rooms: {}, nonces: {} };
+      const old = await tx.get<Budget>("budget");
+      // Daily usage resets; live room leases and replay windows survive UTC midnight.
+      const budget: Budget = old ? { ...old, day: today, count: old.day === today ? old.count : 0 } : { day: today, count: 0, rooms: {}, nonces: {} };
       const now = Date.now();
-      budget.rooms = Object.fromEntries(Object.entries(budget.rooms).filter(([,expires]) => expires > now));
+      // Older deployments stored invite expiry; cap every entry to one lease.
+      budget.rooms = Object.fromEntries(Object.entries(budget.rooms).filter(([,expires]) => expires > now).map(([room, expires]) => [room, Math.min(expires, now + ROOM_LEASE_MS)]));
       budget.nonces = Object.fromEntries(Object.entries(budget.nonces).filter(([,expires]) => expires > now));
-      if (budget.nonces[data.nonce] || budget.count >= Math.min(10000, Number(this.env.VOXY_DAILY_ADMISSIONS) || 1000)) return error("Quota", 429);
-      if (!(data.room in budget.rooms)) {
-        if (!data.host || Object.keys(budget.rooms).length >= Math.min(10, Number(this.env.VOXY_MAX_ROOMS) || 10)) return error("Room quota", 429);
-        budget.rooms[data.room] = data.expiry;
+      const maxRooms = Math.min(10, Number(this.env.VOXY_MAX_ROOMS) || 10);
+      if (action === "/release") {
+        delete budget.rooms[data.room];
+        await tx.put("budget", budget);
+        return new Response("ok");
       }
-      if (data.host) budget.rooms[data.room] = Math.max(budget.rooms[data.room], data.expiry);
+      if (action === "/renew") {
+        // Renewal does not consume a daily admission. A lapsed lease is
+        // re-acquired only while capacity exists.
+        if (!(data.room in budget.rooms) && Object.keys(budget.rooms).length >= maxRooms) return error("Room quota", 429);
+        budget.rooms[data.room] = now + ROOM_LEASE_MS;
+        await tx.put("budget", budget);
+        return new Response("ok");
+      }
+      if (action !== "/admit" || typeof data.nonce !== "string") return error("Ação", 404);
+      if (budget.nonces[data.nonce] || budget.count >= Math.min(10000, Number(this.env.VOXY_DAILY_ADMISSIONS) || 1000)) return error("Quota", 429);
+      // Hosts acquire a lease; a guest may re-acquire a lapsed lease only while
+      // capacity exists, and SignalRoom still refuses guests unless the host is online.
+      if (!(data.room in budget.rooms) && Object.keys(budget.rooms).length >= maxRooms) return error("Room quota", 429);
+      if (data.host || !(data.room in budget.rooms)) budget.rooms[data.room] = now + ROOM_LEASE_MS;
       budget.nonces[data.nonce] = now + 60000;
       budget.count++;
       await tx.put("budget", budget);
@@ -120,8 +142,9 @@ export class SignalRoom {
     const client = pair[0], server = pair[1];
     this.state.acceptWebSocket(server);
     server.serializeAttachment({ key, host, room: invite.room, endpoint: invite.signal_url, tokens: 512, updatedAt: Date.now(), expiresAt: invite.expires_at, nonce: request.headers.get("X-Voxy-Nonce")!, sequences: {} } satisfies Peer);
+    const wake = host ? Math.min(invite.expires_at, Date.now() + LEASE_RENEW_MS) : invite.expires_at;
     const alarm = await this.state.storage.getAlarm();
-    if (!alarm || alarm > invite.expires_at) await this.state.storage.setAlarm(invite.expires_at);
+    if (!alarm || alarm > wake) await this.state.storage.setAlarm(wake);
     server.send(JSON.stringify({ type: "welcome", peers: sockets.map(s => { const p = s.deserializeAttachment() as Peer; return { key: p.key, host: p.host, session_nonce: p.nonce }; }) }));
     for (const socket of sockets) socket.send(JSON.stringify({ type: "peer-joined", key, host, session_nonce: request.headers.get("X-Voxy-Nonce") }));
     return new Response(null, { status: 101, webSocket: client });
@@ -188,22 +211,28 @@ export class SignalRoom {
         guest.close(1008,"Convite revogado pelo host");
       }
     }
-    await this.state.storage.setAlarm(invite.expires_at);
+    await this.state.storage.setAlarm(Math.min(invite.expires_at, Date.now() + LEASE_RENEW_MS));
     socket.send(JSON.stringify({ type: "invite-rotated", expires_at: invite.expires_at }));
   }
   async webSocketClose(socket: WebSocket) {
     const peer = socket.deserializeAttachment() as Peer;
+    if (peer.host) await this.lease("/release", peer.room);
     for (const other of this.state.getWebSockets()) if (other !== socket) other.send(JSON.stringify({ type: "peer-left", key: peer.key, session_nonce: peer.nonce }));
     try { socket.close(1000,"Encerrado"); } catch { /* already closed */ }
   }
   async webSocketError(socket: WebSocket) { await this.webSocketClose(socket); }
+  private async lease(action: "/renew" | "/release", room: string) {
+    return this.env.ADMISSION.get(this.env.ADMISSION.idFromName("global-v3")).fetch(new Request(`https://budget.internal${action}`, { method: "POST", body: JSON.stringify({ room }) }));
+  }
   async alarm() {
     let next = Number.MAX_SAFE_INTEGER;
+    let hostRoom: string | undefined;
     for (const socket of this.state.getWebSockets()) {
       const peer = socket.deserializeAttachment() as Peer;
       if (peer.expiresAt <= Date.now()) socket.close(1008,"Sessão expirada");
-      else next = Math.min(next,peer.expiresAt);
+      else { next = Math.min(next,peer.expiresAt); if (peer.host) hostRoom = peer.room; }
     }
+    if (hostRoom) { await this.lease("/renew", hostRoom); next = Math.min(next, Date.now() + LEASE_RENEW_MS); }
     if (next !== Number.MAX_SAFE_INTEGER) await this.state.storage.setAlarm(next);
   }
 }

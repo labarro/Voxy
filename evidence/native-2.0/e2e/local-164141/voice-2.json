@@ -1,0 +1,265 @@
+{
+  "binaries": "target/debug",
+  "checks": [
+    {
+      "atSeconds": 17.61041259765625,
+      "check": "instâncias reais independentes",
+      "detail": {
+        "instances": 2
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 23.62697410583496,
+      "check": "host registrado na sinalização pública",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 24.306184768676758,
+      "check": "convite copiado pela interface",
+      "detail": {
+        "length": 525,
+        "scheme": "voxy-native://"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 30.318492889404297,
+      "check": "Bruno entrou por convite",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 32.664485931396484,
+      "check": "Ana em chamada confirmada pelo host",
+      "detail": {
+        "members": 2
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 32.664791107177734,
+      "check": "Bruno em chamada confirmada pelo host",
+      "detail": {
+        "members": 2
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 40.87480545043945,
+      "check": "Ana: recebe todos os outros, não a própria voz",
+      "detail": {
+        "140Hz": 0.0029,
+        "210Hz": 0.0609,
+        "rms": 0.0781,
+        "windows": 7
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 44.875205993652344,
+      "check": "Bruno: recebe todos os outros, não a própria voz",
+      "detail": {
+        "140Hz": 0.0986,
+        "210Hz": 0.0,
+        "rms": 0.1222,
+        "windows": 7
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 44.87554931640625,
+      "check": "Ana contadores de mídia",
+      "detail": {
+        "decoded": 643,
+        "playbackSamples": 683520,
+        "received": 646,
+        "sent": 647
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 44.87590026855469,
+      "check": "Bruno contadores de mídia",
+      "detail": {
+        "decoded": 635,
+        "playbackSamples": 614400,
+        "received": 639,
+        "sent": 638
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 44.87642288208008,
+      "check": "Ana: interface mostra fala, mídia e transmissão confirmadas",
+      "detail": [
+        {
+          "audioReceived": 590,
+          "audioSent": 591,
+          "route": "direto-stun",
+          "rttMs": 0,
+          "speaking": true,
+          "state": "connected"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "atSeconds": 44.876888275146484,
+      "check": "Bruno: interface mostra fala, mídia e transmissão confirmadas",
+      "detail": [
+        {
+          "audioReceived": 629,
+          "audioSent": 628,
+          "route": "direto-stun",
+          "rttMs": 0,
+          "speaking": true,
+          "state": "connected"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "atSeconds": 45.567108154296875,
+      "check": "diagnóstico copiável sem convite, chaves ou SDP",
+      "detail": {
+        "lines": 10
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 50.44160079956055,
+      "check": "Bruno: mute de A interrompe a voz de A",
+      "detail": {
+        "140Hz": 0.0,
+        "rms": 0.0,
+        "windows": 5
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 50.442230224609375,
+      "check": "Bruno vê Ana como mudo, sem indicador de fala",
+      "detail": {},
+      "passed": true
+    },
+    {
+      "atSeconds": 56.22465896606445,
+      "check": "Bruno: voz de A retorna após desmutar",
+      "detail": {
+        "140Hz": 0.064,
+        "rms": 0.079,
+        "windows": 5
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 60.14345169067383,
+      "check": "Bruno: ensurdecer zera a reprodução",
+      "detail": {
+        "rms": 0.0,
+        "windows": 5
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 64.61299133300781,
+      "check": "Bruno: reprodução retorna após desfazer ensurdecer",
+      "detail": {
+        "140Hz": 0.0478,
+        "rms": 0.0599,
+        "windows": 5
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 64.71358489990234,
+      "check": "Bruno: interface encerrada, sessão viva",
+      "detail": {
+        "sessionPid": 22344
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 68.7145767211914,
+      "check": "Bruno: continua ouvindo com a interface fechada",
+      "detail": {
+        "140Hz": 0.0414,
+        "rms": 0.0533,
+        "windows": 7
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 72.71611785888672,
+      "check": "Ana: continua ouvindo Bruno com a interface dele fechada",
+      "detail": {
+        "210Hz": 0.0757,
+        "rms": 0.1059,
+        "windows": 7
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 77.9553451538086,
+      "check": "Bruno: reabertura recupera a chamada",
+      "detail": {
+        "phase": "Em chamada"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 83.39366912841797,
+      "check": "Ana: Bruno saiu: voz dele some",
+      "detail": {
+        "210Hz": 0.0,
+        "rms": 0.0,
+        "windows": 5
+      },
+      "passed": true
+    }
+  ],
+  "durationSeconds": 83.69697570800781,
+  "error": null,
+  "method": "independent voxy-desktop processes with own data dirs/identities/session processes; clicks are real posted mouse messages on visible labels; text fields and pick-list choices applied as their widget messages; invite read from the clipboard written by the app's copy button; audio source/sink are the synthetic device boundary (VOXY_TEST_SYNTHETIC_AUDIO) feeding the unchanged DSP/Opus/SRTP/jitter/mixer pipeline",
+  "passed": true,
+  "physicalDevices": false,
+  "resourcesAtEnd": [
+    {
+      "cpuSeconds": 31.40625,
+      "participant": "Ana",
+      "pid": 15184,
+      "privateMiB": 11.0859375,
+      "workingSetMiB": 36.29296875
+    },
+    {
+      "cpuSeconds": 18.484375,
+      "participant": "Ana",
+      "pid": 5952,
+      "privateMiB": 8.0,
+      "workingSetMiB": 34.55859375
+    },
+    {
+      "cpuSeconds": 7.140625,
+      "participant": "Bruno",
+      "pid": 19908,
+      "privateMiB": 10.75,
+      "workingSetMiB": 35.5
+    },
+    {
+      "cpuSeconds": 15.515625,
+      "participant": "Bruno",
+      "pid": 22344,
+      "privateMiB": 7.1171875,
+      "workingSetMiB": 32.98046875
+    }
+  ],
+  "sameMachine": true,
+  "scenario": "voice-2",
+  "signal": "ws://127.0.0.1:8787"
+}

@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/voxy-core", "crates/voxy-voice", "crates/voxy-network", "crates/voxy-desktop", "crates/voxy-cli", "crates/voxy-session", "crates/voxy-games", "crates/voxy-media", "crates/voxy-world"]
+members = ["crates/voxy-core", "crates/voxy-voice", "crates/voxy-network", "crates/voxy-desktop", "crates/voxy-cli", "crates/voxy-session", "crates/voxy-games", "crates/voxy-media", "crates/voxy-world", "crates/voxy-e2e"]
 resolver = "2"
 
 [workspace.package]

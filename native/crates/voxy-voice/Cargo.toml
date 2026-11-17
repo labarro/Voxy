@@ -9,6 +9,7 @@ license.workspace = true
 [dependencies]
 anyhow.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 cpal = "=0.18.2"
 opus = "=0.4.0"
 rtrb = "0.3"

@@ -74,6 +74,35 @@ pub struct State {
     pub decoded_frames: u64,
     #[serde(default)]
     pub playback_samples: u64,
+    /// Direct media links confirmed by the network layer, one per remote participant.
+    #[serde(default)]
+    pub links: Vec<LinkStatus>,
+    /// Local microphone frames are currently leaving the gate with voice energy.
+    #[serde(default)]
+    pub transmitting: bool,
+    #[serde(default)]
+    pub reconnects: u32,
+}
+/// Per-participant transport diagnostics. Contains no SDP, address, invite or key
+/// material beyond the public identity key already shared in the room snapshot.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+pub struct LinkStatus {
+    pub peer: u64,
+    pub key: String,
+    pub state: String,
+    pub data_open: bool,
+    /// "direto-lan", "direto-stun", "relay" or "negociando".
+    pub route: String,
+    pub rtt_ms: Option<u32>,
+    pub audio_sent: u64,
+    pub audio_received: u64,
+    pub bytes_sent: u64,
+    pub bytes_received: u64,
+    /// Received voice level (0..1) over the last report interval; 0 when silent.
+    #[serde(default)]
+    pub level: f32,
+    #[serde(default)]
+    pub speaking: bool,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Endpoint {

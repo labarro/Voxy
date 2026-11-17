@@ -49,6 +49,7 @@ pub enum Event {
     },
     Sent(u64),
     PeerRemoved(u64),
+    Links(Vec<voxy_core::ipc::LinkStatus>),
     Error(&'static str),
 }
 pub struct Config {
@@ -74,6 +75,9 @@ struct Link {
     rate: RateLimit,
     task: tokio::task::JoinHandle<()>,
     created: Instant,
+    audio_sent: u64,
+    audio_received: u64,
+    state: String,
 }
 impl Link {
     async fn close(self) {
@@ -114,6 +118,9 @@ async fn create_link(
         rate: RateLimit::new(240, 120),
         task,
         created: Instant::now(),
+        audio_sent: 0,
+        audio_received: 0,
+        state: "new".into(),
     })
 }
 fn shared_voice(snapshot: &Option<Snapshot>, local: &str, remote: &str) -> bool {
@@ -173,7 +180,7 @@ pub async fn run(
     let mut socket = match rendezvous::connect(&config.invite, identity).await {
         Ok(socket) => socket,
         Err(error) => {
-            let _ = output.send(Event::Error("Não foi possível abrir a sinalização segura. Confira DNS, conexão, TLS e validade do convite; tentando reconectar sem relay pago")).await;
+            let _ = output.send(Event::Error(signaling_failure(&error))).await;
             return Err(error);
         }
     };
@@ -188,6 +195,7 @@ pub async fn run(
     let started = Instant::now();
     let mut rotation: Option<(Invite, Instant)> = None;
     let mut game_deadline: Option<tokio::time::Instant> = None;
+    let mut stats_tick = 0_u32;
     if let Some(state) = &snapshot {
         output.send(Event::Snapshot(state.clone())).await.ok();
     }
@@ -222,9 +230,9 @@ pub async fn run(
                     },
                     Some(Input::Audio(payload))=>{
                         let mut sent=0;
-                        for (key,link) in &links {
+                        for (key,link) in links.iter_mut() {
                             // Sending is gated by the host's authoritative membership.
-                            if config.microphone_allowed.as_ref().is_some_and(|allowed|allowed()) && shared_voice(&snapshot,key,&local) && link.track.send(&payload).await.is_ok(){sent+=1;}
+                            if config.microphone_allowed.as_ref().is_some_and(|allowed|allowed()) && shared_voice(&snapshot,key,&local) && link.track.send(&payload).await.is_ok(){sent+=1;link.audio_sent+=1;}
                         }
                         if sent>0 {let _=output.try_send(Event::Sent(sent));}
                     }
@@ -343,15 +351,19 @@ if let Some(room)=room.as_mut(){room.remove(&signal.from);snapshot=Some(publish(
                             }
                         },
                         PeerEvent::Audio{sequence,payload}=>{
-                            if shared_voice(&snapshot,&local,&key) {let _=output.try_send(Event::Audio{peer:link.number,sequence,payload});}
+                            if shared_voice(&snapshot,&local,&key) {link.audio_received+=1;let _=output.try_send(Event::Audio{peer:link.number,sequence,payload});}
                         },
                         PeerEvent::Closed|PeerEvent::State(webrtc::peer_connection::RTCPeerConnectionState::Failed)=>{
                             if let Some(link)=links.remove(&key){output.send(Event::PeerRemoved(link.number)).await.ok();link.close().await;}
                             if let Some(room)=room.as_mut(){room.remove(&key);snapshot=Some(publish(room,&links,output).await?);}else if key==config.invite.host_key{anyhow::bail!("A conexão direta com o host foi interrompida. Reconectando; redes restritivas podem exigir relay, que permanece desativado");}
-                        },_=>{}
+                        },
+                        PeerEvent::State(state)=>link.state=format!("{state:?}").to_lowercase(),
+                        _=>{}
                     }
                 },
                 _=maintenance.tick()=>{
+                    stats_tick=stats_tick.wrapping_add(1);
+                    if stats_tick.is_multiple_of(2) {let _=output.try_send(Event::Links(link_statuses(&links).await));}
                     if let Some(room)=room.as_mut() && room.has_games() && !room.games_need_fast_tick() && room.advance_games(now_ms())?{snapshot=Some(publish(room,&links,output).await?);}
                     if rotation.as_ref().is_some_and(|(_,started)|started.elapsed()>Duration::from_secs(8)) {anyhow::bail!("Renovação de convite sem confirmação; reconecte antes de compartilhar");}
                     let stale:Vec<_>=links.iter().filter(|(_,l)|l.channel.is_none()&&l.created.elapsed()>Duration::from_secs(20)).map(|(key,_)|key.clone()).collect();
@@ -369,6 +381,79 @@ output.send(Event::Error("Um participante não conseguiu estabelecer a rota P2P 
     }
     let _ = socket.close(None).await;
     result
+}
+
+/// Transport diagnostics per link from the WebRTC stats of the nominated ICE pair.
+/// Never includes SDP, candidate addresses or invite material.
+async fn link_statuses(links: &HashMap<String, Link>) -> Vec<voxy_core::ipc::LinkStatus> {
+    use webrtc::peer_connection::{RTCStatsReportEntry, StatsSelector};
+    let mut statuses = Vec::with_capacity(links.len());
+    for (key, link) in links {
+        let report = link
+            .connection
+            .get_stats(Instant::now(), StatsSelector::None)
+            .await;
+        let pair = report
+            .candidate_pairs()
+            .filter(|pair| pair.nominated)
+            .max_by_key(|pair| pair.bytes_received + pair.bytes_sent);
+        let candidate_type = |id: &str| match report.get(id) {
+            Some(
+                RTCStatsReportEntry::LocalCandidate(c) | RTCStatsReportEntry::RemoteCandidate(c),
+            ) => format!("{:?}", c.candidate_type).to_lowercase(),
+            _ => String::new(),
+        };
+        let route = match pair {
+            None => "negociando".to_owned(),
+            Some(pair) => {
+                let (local, remote) = (
+                    candidate_type(&pair.local_candidate_id),
+                    candidate_type(&pair.remote_candidate_id),
+                );
+                if local.contains("relay") || remote.contains("relay") {
+                    "relay".into()
+                } else if local.contains("host") && remote.contains("host") {
+                    "direto-lan".into()
+                } else {
+                    "direto-stun".into()
+                }
+            }
+        };
+        statuses.push(voxy_core::ipc::LinkStatus {
+            peer: link.number,
+            key: key.clone(),
+            state: link.state.clone(),
+            data_open: link.channel.is_some(),
+            route,
+            rtt_ms: pair
+                .filter(|pair| pair.current_round_trip_time > 0.0)
+                .map(|pair| (pair.current_round_trip_time * 1000.0).round() as u32),
+            audio_sent: link.audio_sent,
+            audio_received: link.audio_received,
+            bytes_sent: pair.map_or(0, |pair| pair.bytes_sent),
+            bytes_received: pair.map_or(0, |pair| pair.bytes_received),
+            level: 0.0,
+            speaking: false,
+        });
+    }
+    statuses.sort_by_key(|status| status.peer);
+    statuses
+}
+
+/// Maps signaling admission failures to actionable, non-sensitive diagnostics.
+fn signaling_failure(error: &anyhow::Error) -> &'static str {
+    let text = error.to_string();
+    if text.contains("429") {
+        "Sinalização recusou por limite gratuito (salas simultâneas ou admissões diárias). Aguarde alguns minutos; nenhum serviço pago é usado"
+    } else if text.contains("403") {
+        "Sinalização recusou o convite: expirado, revogado ou inválido. Peça um novo convite ao host"
+    } else if text.contains("409") {
+        "Host offline ou identidade já conectada nesta sala. Confirme que o host está hospedando e tente novamente"
+    } else if text.contains("503") {
+        "Sinalização experimental desativada no servidor"
+    } else {
+        "Não foi possível abrir a sinalização segura. Confira DNS, conexão, TLS e validade do convite; tentando reconectar sem relay pago"
+    }
 }
 
 #[cfg(test)]
@@ -422,10 +507,17 @@ mod tests {
         }
         let message =
             diagnostic.expect("A refused signaling connection must be visible to the session/UI");
-        assert!(message.contains("sinalização segura"));
+        assert!(message.contains("recusou o convite"), "{message}");
         assert!(!message.contains(&config.invite.capability));
         assert!(!message.contains("voxy-native://"));
         server.await.unwrap();
+    }
+    #[test]
+    fn signaling_admission_failures_map_to_actionable_redacted_messages() {
+        let quota = signaling_failure(&anyhow::anyhow!("HTTP error: 429 Too Many Requests"));
+        assert!(quota.contains("limite gratuito") && quota.contains("nenhum serviço pago"));
+        assert!(signaling_failure(&anyhow::anyhow!("HTTP error: 409 Conflict")).contains("Host offline"));
+        assert!(signaling_failure(&anyhow::anyhow!("dns error")).contains("Confira DNS"));
     }
     #[test]
     fn audio_requires_authoritative_shared_channel_and_mute_priority() {

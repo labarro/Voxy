@@ -588,19 +588,27 @@ pub(super) fn chat(app: &App) -> Element<'_, Msg> {
                     .iter()
                     .filter(|p| p.voice == Some(channel.id))
                 {
+                    let (speaking, tags) = app.member_tags(member);
                     channels = channels.push(
                         row![
                             space::horizontal().width(18),
+                            text(if speaking { "●" } else { "○" })
+                                .size(10)
+                                .color(if speaking {
+                                    design::rgb(0x9ec9b1)
+                                } else {
+                                    m.muted
+                                }),
                             avatar(&member.name, m, 21),
-                            text(&member.name).size(12).color(m.muted),
-                            text(if member.deafened {
-                                "◌"
-                            } else if member.muted {
-                                "−"
-                            } else {
-                                ""
-                            })
-                            .size(11)
+                            column![
+                                text(&member.name).size(12).color(if speaking {
+                                    m.ink
+                                } else {
+                                    m.muted
+                                }),
+                                text(tags).size(10).color(m.muted),
+                            ]
+                            .spacing(1)
                         ]
                         .spacing(7)
                         .align_y(iced::Center),
@@ -642,6 +650,12 @@ pub(super) fn chat(app: &App) -> Element<'_, Msg> {
     if app.remote.invite.is_some() && app.is_remote() {
         channels = channels.push(
             app.action("Copiar convite", Msg::CopyInvite, false)
+                .width(Fill),
+        );
+    }
+    if app.is_remote() {
+        channels = channels.push(
+            app.action("Copiar diagnóstico", Msg::CopyDiagnostics, false)
                 .width(Fill),
         );
     }

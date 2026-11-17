@@ -86,7 +86,7 @@ pub(crate) async fn run(
     let mut audio_recovery: Option<recovery::AudioRecovery> = None;
     let mut audio_generation = 0_u64;
     let mut network_generation = 0_u64;
-    let mut stats = tokio::time::interval(Duration::from_secs(1));
+    let mut stats = tokio::time::interval(Duration::from_millis(500));
     stats.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     loop {
         tokio::select! {
@@ -269,7 +269,7 @@ pub(crate) async fn run(
                         },Err(error)=>state.error=Some(error.to_string())}
                     },
                     Event::Peer(id,key)=>{state.peers.push(voxy_core::ipc::Peer{id,key,volume:1.0});},
-                    Event::Phase(phase)=>{state.phase=phase.into();if phase=="Conectando à sinalização"{state.peers.clear();if let Some(audio)=&audio{audio.input.clear();}}},
+                    Event::Phase(phase)=>{state.phase=phase.into();if phase=="Conexão interrompida — reconectando"{state.reconnects=state.reconnects.saturating_add(1);}else if phase=="Conectando à sinalização"{state.peers.clear();state.links.clear();if let Some(audio)=&audio{audio.input.clear();}}},
                     Event::Snapshot(snapshot)=>{
                         if let Ok(profile)=Store::open(&path.join("voxy.sqlite")).and_then(|s|s.profile()){
                             if let Some(alert)=notification_tracker.observe(&snapshot,&profile,now_ms(),ui_detached)
@@ -295,7 +295,11 @@ pub(crate) async fn run(
                     },
                     Event::Audio{peer,sequence,payload}=>{if let Some(audio)=&audio&& audio.input.packet(IncomingVoice{peer,sequence,payload}).is_ok(){state.received_frames+=1;}continue},
                     Event::Sent(count)=>{state.sent_frames+=count;continue},
-                    Event::PeerRemoved(peer)=>{state.peers.retain(|p|p.id!=peer);if let Some(audio)=&audio{audio.input.remove(peer);}},
+                    Event::Links(mut links)=>{
+                        for link in &mut links {if let Some(previous)=state.links.iter().find(|p|p.peer==link.peer){link.level=previous.level;link.speaking=previous.speaking;}}
+                        state.links=links;
+                    },
+                    Event::PeerRemoved(peer)=>{state.peers.retain(|p|p.id!=peer);state.links.retain(|l|l.peer!=peer);if let Some(audio)=&audio{audio.input.remove(peer);}},
                     Event::Error(error)=>state.error=Some(error.into()),
                 }
                 states.send_replace(state.clone());
@@ -303,6 +307,9 @@ pub(crate) async fn run(
             _=stats.tick(),if audio.is_some() || audio_recovery.is_some()=>{
                 state.decoded_frames=control.decoded_frames.load(Ordering::Relaxed);state.playback_samples=control.rendered_samples.load(Ordering::Relaxed);
                 state.input_level=control.level();
+                let (levels,sent_level)=control.take_levels();
+                for link in &mut state.links {link.level=levels.get(&link.peer).copied().unwrap_or(0.0);link.speaking=link.level>0.02;}
+                state.transmitting=audio.is_some() && control.may_transmit() && sent_level>0.01;
                 if audio.is_some() && (control.device_failed.load(Ordering::Acquire)||audio.as_ref().is_some_and(CallAudio::is_finished)) {
                     audio_generation+=1;recovery::silence_failed_device(&mut state,&control,audio_generation);audio=None;
                     audio_recovery=audio_configured.clone().filter(|_|state.voice.is_some()).map(|config|recovery::AudioRecovery::new(config,std::time::Instant::now()));
@@ -474,7 +481,12 @@ fn start_network(
                 break;
             }
             if attempt >= 7 {
-                let _=tx.send(Event::Error("Reconexão pausada após 8 tentativas. Confira a rede, a sinalização e o convite; desconecte e tente novamente. TURN está desativado.")).await;
+                // Keep the last specific cause (quota, revoked invite, NAT) visible as the error.
+                let _ = tx
+                    .send(Event::Phase(
+                        "Reconexão pausada após 8 tentativas — desconecte e tente novamente",
+                    ))
+                    .await;
                 break;
             }
             if now_ms() >= config.invite.expires_at {

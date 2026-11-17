@@ -24,6 +24,11 @@ pub struct VoiceControl {
     pub recoverable_device_events: AtomicU64,
     pub capture_overruns: AtomicU64,
     pub playback_underruns: AtomicU64,
+    /// Peak decoded voice RMS per remote peer since the last `take_peer_levels`.
+    /// Written only by the DSP worker (never by device callbacks) with try_lock.
+    pub peer_levels: std::sync::Mutex<std::collections::BTreeMap<u64, f32>>,
+    /// Peak processed outgoing RMS since the last take, after the transmit gate.
+    pub sent_level_bits: AtomicU32,
 }
 impl Default for VoiceControl {
     fn default() -> Self {
@@ -46,10 +51,24 @@ impl Default for VoiceControl {
             recoverable_device_events: AtomicU64::new(0),
             capture_overruns: AtomicU64::new(0),
             playback_underruns: AtomicU64::new(0),
+            peer_levels: Default::default(),
+            sent_level_bits: AtomicU32::new(0),
         }
     }
 }
 impl VoiceControl {
+    /// Returns and clears per-peer peak receive levels and the outgoing peak.
+    pub fn take_levels(&self) -> (std::collections::BTreeMap<u64, f32>, f32) {
+        let peers = self
+            .peer_levels
+            .lock()
+            .map(|mut levels| std::mem::take(&mut *levels))
+            .unwrap_or_default();
+        (
+            peers,
+            f32::from_bits(self.sent_level_bits.swap(0, Ordering::Relaxed)),
+        )
+    }
     pub fn may_transmit(&self) -> bool {
         let audio = self.audio_state.load(Ordering::Acquire);
         audio & 1 != 0

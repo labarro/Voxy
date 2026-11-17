@@ -118,3 +118,20 @@ test('guest cannot rotate host invitation and recipient reconnect resets only it
     const accepted=nextMessage(again);hs.send(JSON.stringify(signal(body,host,guest,hh)));assert.equal((await accepted).sequence,1);
   } finally {for(const socket of sockets){try{socket.close()}catch{}}await mf.dispose();}
 });
+
+test('room quota is a host lease released when the host disconnects, not held until invite expiry',async()=>{
+  const mf=setup({VOXY_MAX_ROOMS:'1'});const sockets=[];
+  try{
+    const first=makeKey(),firstRoom=invite(first);
+    const {socket:firstHost}=await open(mf,firstRoom,first,sockets);
+    const second=makeKey(),secondRoom=invite(second),secondUrl=secondRoom.signal_url.replace('ws:','http:');
+    assert.equal((await mf.dispatchFetch(secondUrl,{headers:headers(secondRoom,second)})).status,429);
+    const closed=nextClose(firstHost);firstHost.close(1000,'host left');await closed.catch(()=>{});
+    let status=0;
+    for(let attempt=0;attempt<20&&status!==101;attempt++){
+      const response=await mf.dispatchFetch(secondUrl,{headers:headers(secondRoom,second)});status=response.status;
+      if(status===101){sockets.push(response.webSocket);response.webSocket.accept();}else await new Promise(r=>setTimeout(r,100));
+    }
+    assert.equal(status,101,'second host must obtain the released room slot');
+  }finally{for(const socket of sockets){try{socket.close()}catch{}}await mf.dispose();}
+});

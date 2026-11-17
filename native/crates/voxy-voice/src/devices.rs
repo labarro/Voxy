@@ -49,6 +49,7 @@ pub fn enumerate() -> Result<Vec<AudioDevice>> {
             }
         }
     }
+    devices.extend(crate::synthetic::devices());
     Ok(devices)
 }
 fn choose(id: &str, input: bool) -> Result<cpal::Device> {
@@ -76,8 +77,13 @@ fn choose(id: &str, input: bool) -> Result<cpal::Device> {
     }
     .context("Nenhum dispositivo de áudio disponível")
 }
+/// Physical CPAL stream or the explicit test-only synthetic endpoint.
+enum Backend {
+    Device(#[allow(dead_code)] cpal::Stream),
+    Synthetic(#[allow(dead_code)] crate::synthetic::Worker),
+}
 pub struct Capture {
-    _stream: cpal::Stream,
+    _stream: Backend,
     pub samples: rtrb::Consumer<f32>,
     pub sample_rate: u32,
     pub channels: u16,
@@ -85,6 +91,15 @@ pub struct Capture {
 impl Capture {
     /// Called only on explicit microphone action. No network or storage is accessed.
     pub fn start(id: &str, control: Arc<VoiceControl>) -> Result<Self> {
+        if crate::synthetic::is_synthetic(id) {
+            let (producer, consumer) = rtrb::RingBuffer::new(4_800);
+            return Ok(Self {
+                _stream: Backend::Synthetic(crate::synthetic::capture(id, producer, control)?),
+                samples: consumer,
+                sample_rate: 48_000,
+                channels: 1,
+            });
+        }
         let device = choose(id, true)?;
         let config = device.default_input_config()?;
         let sample_rate = config.sample_rate();
@@ -98,7 +113,7 @@ impl Capture {
         };
         stream.play()?;
         Ok(Self {
-            _stream: stream,
+            _stream: Backend::Device(stream),
             samples: consumer,
             sample_rate,
             channels,
@@ -153,12 +168,23 @@ where
     )?)
 }
 pub struct Playback {
-    _stream: cpal::Stream,
+    _stream: Backend,
     pub samples: rtrb::Producer<f32>,
     pub rendered: rtrb::Consumer<f32>,
 }
 impl Playback {
     pub fn start(id: &str, control: Arc<VoiceControl>) -> Result<Self> {
+        if crate::synthetic::is_synthetic(id) {
+            let (producer, consumer) = rtrb::RingBuffer::new(4_800);
+            let (reference, rendered) = rtrb::RingBuffer::new(4_800);
+            return Ok(Self {
+                _stream: Backend::Synthetic(crate::synthetic::playback(
+                    id, consumer, reference, control,
+                )?),
+                samples: producer,
+                rendered,
+            });
+        }
         let device = choose(id, false)?;
         let config = device.default_output_config()?;
         let (producer, consumer) = rtrb::RingBuffer::new(4_800);
@@ -177,7 +203,7 @@ impl Playback {
         };
         stream.play()?;
         Ok(Self {
-            _stream: stream,
+            _stream: Backend::Device(stream),
             samples: producer,
             rendered,
         })

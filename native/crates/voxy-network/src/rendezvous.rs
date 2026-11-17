@@ -178,8 +178,8 @@ pub async fn signaling_check(endpoint: &str) -> Result<serde_json::Value> {
     let guest_session = gs.session_nonce.clone();
     let host_signer = hs.signer();
     let guest_signer = gs.signer();
-    let mut a = Peer::new(&NetworkPolicy::default(), true).await?;
-    let mut b = Peer::new(&NetworkPolicy::default(), false).await?;
+    let mut a = Peer::new(&NetworkPolicy { loopback_only: true, ..Default::default() }, true).await?;
+    let mut b = Peer::new(&NetworkPolicy { loopback_only: true, ..Default::default() }, false).await?;
     let result = async {
         let offer = a.offer().await?;
         let mut a_sequence = 1;

@@ -597,7 +597,7 @@ mod tests {
             invite,
             host: None,
             database: Default::default(),
-            policy: Default::default(),
+            policy: crate::policy::NetworkPolicy { loopback_only: true, ..Default::default() },
             microphone_allowed: None,
             video: None,
         };

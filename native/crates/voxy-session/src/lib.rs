@@ -1,6 +1,7 @@
 //! Persistent session process: no window, renderer, world or browser dependency.
 mod notifications;
 mod recovery;
+mod screen;
 mod transport;
 mod tray;
 use anyhow::{Context, Result, ensure};
@@ -48,6 +49,7 @@ pub(crate) async fn run(
     identity: Arc<Identity>,
     mut requests: mpsc::Receiver<Request>,
     states: watch::Sender<State>,
+    video_frames: tokio::sync::broadcast::Sender<Arc<Vec<u8>>>,
 ) -> Result<()> {
     let mut state = State {
         phase: "Desconectado".into(),
@@ -86,6 +88,13 @@ pub(crate) async fn run(
     let mut audio_recovery: Option<recovery::AudioRecovery> = None;
     let mut audio_generation = 0_u64;
     let mut network_generation = 0_u64;
+    // Screen publication: bounded queue into the current network run, publisher thread.
+    let mut video_out: Option<mpsc::Sender<voxy_network::live::VideoOut>> = None;
+    let mut publisher: Option<screen::Publisher> = None;
+    let mut screen_generation = 0_u64;
+    let (screen_tx, mut screen_opened) =
+        mpsc::channel::<(u64, Result<screen::Publisher, String>)>(2);
+    let mut screen_watchers = 0_u32;
     let mut stats = tokio::time::interval(Duration::from_millis(500));
     stats.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     loop {
@@ -136,7 +145,8 @@ pub(crate) async fn run(
                         state.invite=Some(invite.encode()?);
                         let policy=NetworkPolicy{stun_urls:stun,relay_enabled:false};policy.validate()?;
                         let gate=control.clone();
-                        let config=Config{invite,host:Some(community),database:path.join("voxy.sqlite"),policy,microphone_allowed:Some(Arc::new(move||gate.may_transmit()))};
+                        let (video_sender,video_queue)=mpsc::channel(4);video_out=Some(video_sender);
+                        let config=Config{invite,host:Some(community),database:path.join("voxy.sqlite"),policy,microphone_allowed:Some(Arc::new(move||gate.may_transmit())),video:Some(Arc::new(tokio::sync::Mutex::new(video_queue)))};
                         network_generation+=1;
                         recent_server=None;
                         let (sender,task)=start_network(config,identity.clone(),profile,event_tx.clone(),network_generation);
@@ -149,7 +159,8 @@ pub(crate) async fn run(
                         let profile=Store::open(&path.join("voxy.sqlite"))?.profile()?;
                         let policy=NetworkPolicy{stun_urls:stun,relay_enabled:false};policy.validate()?;
                         let gate=control.clone();
-                        let config=Config{invite,host:None,database:path.join("voxy.sqlite"),policy,microphone_allowed:Some(Arc::new(move||gate.may_transmit()))};
+                        let (video_sender,video_queue)=mpsc::channel(4);video_out=Some(video_sender);
+                        let config=Config{invite,host:None,database:path.join("voxy.sqlite"),policy,microphone_allowed:Some(Arc::new(move||gate.may_transmit())),video:Some(Arc::new(tokio::sync::Mutex::new(video_queue)))};
                         network_generation+=1;
                         recent_server=None;
                         let (sender,task)=start_network(config,identity.clone(),profile,event_tx.clone(),network_generation);
@@ -174,6 +185,7 @@ pub(crate) async fn run(
                         let configured_shortcuts=configure_shortcuts(&profile)?;
                         shortcuts=configured_shortcuts;
                         audio_generation+=1;control.prepare_audio_generation(audio_generation,profile.ptt_enabled);let generation=audio_generation;
+                        if state.voice!=Some(channel){screen_generation+=1;publisher=None;state.screen=None;}
                         audio=None;state.voice=Some(channel);state.microphone_ready=false;
                         state.phase="Abrindo microfone e saída de áudio".into();
                         control.muted.store(state.muted,Ordering::Release);control.deafened.store(state.deafened,Ordering::Release);control.device_failed.store(false,Ordering::Release);control.set_gain(profile.input_volume);
@@ -181,7 +193,21 @@ pub(crate) async fn run(
                         let config=audio_config(&profile);audio_configured=Some(config.clone());
                         open_audio(config,control.clone(),generation,opened_tx.clone());
                     },
-                    Request::VoiceLeave=>{audio_recovery=None;audio_configured=None;audio_generation+=1;control.prepare_audio_generation(audio_generation,control.ptt.load(Ordering::Acquire));audio=None;state.voice=None;state.microphone_ready=false;send(&network,action(Action::VoiceLeave)).await?;state.phase="Conectado".into();},
+                    Request::ScreenStart{source,preset}=>{
+                        ensure!(state.voice.is_some() && state.microphone_ready,"Entre em um canal de voz antes de compartilhar");
+                        let sender=video_out.clone().context("Conecte ao servidor primeiro")?;
+                        screen::preset(&preset)?;
+                        publisher=None;screen_generation+=1;let generation=screen_generation;let opened=screen_tx.clone();
+                        state.phase="Iniciando compartilhamento de tela".into();
+                        tokio::task::spawn_local(async move{
+                            let result=tokio::task::spawn_blocking(move||screen::start(source,&preset,sender)).await;
+                            let result=match result{Ok(Ok(p))=>Ok(p),Ok(Err(e))=>Err(e.to_string()),Err(_)=>Err("Captura encerrou inesperadamente".into())};
+                            let _=opened.send((generation,result)).await;
+                        });
+                    },
+                    Request::ScreenStop=>{screen_generation+=1;if publisher.take().is_some()||state.screen.is_some(){state.screen=None;send(&network,action(Action::Media{screen:false,camera:false,size:None})).await?;}},
+                    Request::Watch{member,watching}=>send(&network,action(Action::Watch{member,watching})).await?,
+                    Request::VoiceLeave=>{screen_generation+=1;publisher=None;state.screen=None;audio_recovery=None;audio_configured=None;audio_generation+=1;control.prepare_audio_generation(audio_generation,control.ptt.load(Ordering::Acquire));audio=None;state.voice=None;state.microphone_ready=false;send(&network,action(Action::VoiceLeave)).await?;state.phase="Conectado".into();},
                     Request::Controls{muted,deafened}=>{
                         state.muted=muted;state.deafened=deafened;
                         control.muted.store(muted,Ordering::Release);control.deafened.store(deafened,Ordering::Release);
@@ -198,7 +224,7 @@ pub(crate) async fn run(
                         }
                     },
                     Request::Disconnect|Request::Shutdown=>{
-                        audio_recovery=None;audio_configured=None;
+                        screen_generation+=1;publisher=None;video_out=None;audio_recovery=None;audio_configured=None;
                         audio_generation+=1;control.prepare_audio_generation(audio_generation,control.ptt.load(Ordering::Acquire));audio=None;
                         if let Some(sender)=network.take(){let _=sender.send(Input::Stop).await;}
                         if let Some(task)=network_task.take(){let _=tokio::time::timeout(Duration::from_secs(4),task).await;}
@@ -208,6 +234,17 @@ pub(crate) async fn run(
                 if let Err(error)=result {state.error=Some(error.to_string());}
                 states.send_replace(state.clone());
                 if shutdown{break}
+            },
+            result=screen_opened.recv()=>if let Some((generation,result))=result {
+                if generation!=screen_generation{continue}
+                match result {
+                    Ok(started)=>{
+                        state.screen=Some(started.status.clone());publisher=Some(started);screen_watchers=0;state.error=None;
+                        if let Err(error)=send(&network,action(Action::Media{screen:true,camera:false,size:state.screen.as_ref().map(|s|(s.width,s.height))})).await{publisher=None;state.screen=None;state.error=Some(error.to_string());}
+                    },
+                    Err(error)=>{state.screen=None;state.error=Some(format!("Não foi possível compartilhar: {error}"));}
+                }
+                states.send_replace(state.clone());
             },
             result=opened.recv()=>if let Some((generation,result))=result {
                 if generation!=audio_generation{continue}
@@ -252,7 +289,7 @@ pub(crate) async fn run(
             event=events.recv()=>if let Some((generation,event))=event {
                 if generation!=network_generation{continue}
                 match event {
-                    Event::Ended=>{audio_recovery=None;audio_configured=None;audio_generation+=1;control.prepare_audio_generation(audio_generation,control.ptt.load(Ordering::Acquire));audio=None;state.voice=None;state.microphone_ready=false;state.snapshot=None;state.peers.clear();network=None;network_task=None;state.phase="Sessão encerrada".into();if ui_detached{break}},
+                    Event::Ended=>{screen_generation+=1;publisher=None;video_out=None;audio_recovery=None;audio_configured=None;audio_generation+=1;control.prepare_audio_generation(audio_generation,control.ptt.load(Ordering::Acquire));audio=None;state.voice=None;state.microphone_ready=false;state.snapshot=None;state.peers.clear();network=None;network_task=None;state.phase="Sessão encerrada".into();if ui_detached{break}},
                     Event::Acknowledged(id)=>{state.acknowledged=Some(id);if !state.acknowledgements.contains(&id){state.acknowledgements.push(id);if state.acknowledgements.len()>64{state.acknowledgements.remove(0);}}},
                     Event::Replied(id,value)=>{
                         state.acknowledged=Some(id);
@@ -293,6 +330,12 @@ pub(crate) async fn run(
                         }else{state.phase="Conectado".into();}
                         state.snapshot=Some(snapshot);
                     },
+                    Event::Video{member,keyframe,bytes}=>{
+                        // Decoding happens in the UI; with no UI attached nothing is forwarded.
+                        let size=state.snapshot.as_ref().and_then(|s|s.members.iter().find(|m|m.id==member)).and_then(|m|m.screen_size);
+                        if !ui_detached && let Some(size)=size {let _=video_frames.send(Arc::new(voxy_core::ipc::encode_video_frame(member,keyframe,size,&bytes)));}
+                        continue
+                    },
                     Event::Audio{peer,sequence,payload}=>{if let Some(audio)=&audio&& audio.input.packet(IncomingVoice{peer,sequence,payload}).is_ok(){state.received_frames+=1;}continue},
                     Event::Sent(count)=>{state.sent_frames+=count;continue},
                     Event::Links(mut links)=>{
@@ -304,9 +347,19 @@ pub(crate) async fn run(
                 }
                 states.send_replace(state.clone());
             },
-            _=stats.tick(),if audio.is_some() || audio_recovery.is_some()=>{
+            _=stats.tick(),if audio.is_some() || audio_recovery.is_some() || publisher.is_some()=>{
                 state.decoded_frames=control.decoded_frames.load(Ordering::Relaxed);state.playback_samples=control.rendered_samples.load(Ordering::Relaxed);
                 state.input_level=control.level();
+                if let Some(active)=publisher.as_mut() {
+                    let local_member=state.snapshot.as_ref().and_then(|s|s.members.iter().find(|m|m.id==local_id)).cloned();
+                    let watchers=state.snapshot.as_ref().zip(local_member.as_ref()).map(|(s,me)|s.members.iter().filter(|m|m.voice==me.voice&&m.watching.contains(&me.id)).count() as u32).unwrap_or(0);
+                    if watchers>screen_watchers {active.keyframe.store(true,Ordering::Release);}
+                    screen_watchers=watchers;
+                    if active.is_finished() || active.counters.failed.load(Ordering::Acquire) {
+                        publisher=None;state.screen=None;state.error=Some("Compartilhamento interrompido: a janela ou monitor deixou de estar disponível".into());
+                        let _=send(&network,action(Action::Media{screen:false,camera:false,size:None})).await;
+                    } else {state.screen=Some(active.refresh(watchers));}
+                }
                 let (levels,sent_level)=control.take_levels();
                 for link in &mut state.links {link.level=levels.get(&link.peer).copied().unwrap_or(0.0);link.speaking=link.level>0.02;}
                 state.transmitting=audio.is_some() && control.may_transmit() && sent_level>0.01;

@@ -1,16 +1,16 @@
 {
   "description": "Suites that cargo test --lib --bins --tests must execute. minPassed counts only tests that actually passed; ignored tests never count.",
   "required": [
-    { "suite": "voxy-core/lib", "minPassed": 28 },
+    { "suite": "voxy-core/lib", "minPassed": 29 },
     { "suite": "voxy-desktop/bin", "minPassed": 4 },
     { "suite": "voxy-games/lib", "minPassed": 1 },
     { "suite": "voxy-games/tests/chess_differential", "minPassed": 1 },
     { "suite": "voxy-games/tests/truco_differential", "minPassed": 2 },
-    { "suite": "voxy-media/lib", "minPassed": 1 },
+    { "suite": "voxy-media/lib", "minPassed": 3 },
     { "suite": "voxy-media/tests/codec_windows", "minPassed": 1 },
     { "suite": "voxy-cli/tests/media_transport", "minPassed": 1 },
     { "suite": "voxy-network/lib", "minPassed": 12 },
-    { "suite": "voxy-session/lib", "minPassed": 6 },
+    { "suite": "voxy-session/lib", "minPassed": 7 },
     { "suite": "voxy-voice/lib", "minPassed": 17 },
     { "suite": "voxy-world/lib", "minPassed": 2 }
   ],

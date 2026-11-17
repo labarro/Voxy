@@ -1,0 +1,198 @@
+{
+  "binaries": "target/release",
+  "checks": [
+    {
+      "atSeconds": 13.214795112609863,
+      "check": "instâncias reais independentes",
+      "detail": {
+        "instances": 2
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 17.116952896118164,
+      "check": "host registrado na sinalização pública",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 17.7417049407959,
+      "check": "convite copiado pela interface",
+      "detail": {
+        "length": 531,
+        "scheme": "voxy-native://"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 20.82457160949707,
+      "check": "Bruno entrou por convite",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 22.182260513305664,
+      "check": "Ana em chamada confirmada pelo host",
+      "detail": {
+        "members": 2
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 22.182371139526367,
+      "check": "Bruno em chamada confirmada pelo host",
+      "detail": {
+        "members": 2
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 28.15452003479004,
+      "check": "Ana: seletor lista a janela de teste e mostra prévia",
+      "detail": {},
+      "passed": true
+    },
+    {
+      "atSeconds": 29.9815673828125,
+      "check": "Ana: captura WGC e codificação H.264 reais",
+      "detail": {
+        "bitrate_kbps": 2500,
+        "captured": 28,
+        "dropped": 0,
+        "encoded": 16,
+        "encoder": "H.264 software (Media Foundation)",
+        "fps": 30,
+        "height": 720,
+        "keyframes": 1,
+        "label": "Voxy E2E Padrao",
+        "preset": "720p30",
+        "sent_kbps": 53,
+        "watchers": 0,
+        "width": 1280
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 31.709474563598633,
+      "check": "Bruno: imagem decodificada corresponde ao padrão da janela de origem",
+      "detail": {
+        "height": 720,
+        "mismatches": [],
+        "row0": [
+          214,
+          50,
+          213,
+          50,
+          213,
+          49,
+          213,
+          50
+        ],
+        "width": 1280
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 33.210174560546875,
+      "check": "Bruno: quadros contínuos e conteúdo em movimento",
+      "detail": {
+        "decodedIn1500ms": 34,
+        "dropped": 0,
+        "row7After": [
+          54,
+          50,
+          50,
+          50,
+          137,
+          147,
+          50,
+          50
+        ],
+        "row7Before": [
+          54,
+          105,
+          179,
+          50,
+          50,
+          50,
+          50,
+          50
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 33.91325759887695,
+      "check": "Ana: envia somente com espectador confirmado",
+      "detail": {
+        "bitrateKbps": 2500,
+        "dropped": 0,
+        "sentKbps": 128
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 40.36904525756836,
+      "check": "Bruno: tela cheia com HUD que some e reaparece",
+      "detail": {},
+      "passed": true
+    },
+    {
+      "atSeconds": 49.04878234863281,
+      "check": "Ana: sem espectadores, nenhum quadro é enviado",
+      "detail": {
+        "videoSentAfter": 247,
+        "videoSentBefore": 247
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 49.77476501464844,
+      "check": "encerramento confirmado pelos dois lados",
+      "detail": {},
+      "passed": true
+    }
+  ],
+  "durationSeconds": 50.04513168334961,
+  "error": null,
+  "method": "independent voxy-desktop processes with own data dirs/identities/session processes; clicks are physical SendInput mouse input on visible labels, verified by the app's received-click position; text fields and pick-list choices applied as their widget messages; invite read from the clipboard written by the app's copy button; audio source/sink are the synthetic device boundary (VOXY_TEST_SYNTHETIC_AUDIO) feeding the unchanged DSP/Opus/SRTP/jitter/mixer pipeline",
+  "passed": true,
+  "physicalDevices": false,
+  "resourcesAtEnd": [
+    {
+      "cpuSeconds": 2.859375,
+      "participant": "Ana",
+      "pid": 16608,
+      "privateMiB": 16.62109375,
+      "workingSetMiB": 43.265625
+    },
+    {
+      "cpuSeconds": 4.671875,
+      "participant": "Ana",
+      "pid": 4576,
+      "privateMiB": 29.6875,
+      "workingSetMiB": 48.40234375
+    },
+    {
+      "cpuSeconds": 6.953125,
+      "participant": "Bruno",
+      "pid": 15316,
+      "privateMiB": 12.9609375,
+      "workingSetMiB": 32.68359375
+    },
+    {
+      "cpuSeconds": 1.96875,
+      "participant": "Bruno",
+      "pid": 21956,
+      "privateMiB": 6.984375,
+      "workingSetMiB": 25.6015625
+    }
+  ],
+  "sameMachine": true,
+  "scenario": "screen-2",
+  "signal": "wss://voxy.devbarros.com"
+}

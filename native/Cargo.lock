@@ -4302,6 +4302,8 @@ dependencies = [
  "tokio",
  "uuid",
  "voxy-core",
+ "voxy-media",
+ "voxy-network",
  "voxy-voice",
  "windows-sys 0.61.2",
 ]
@@ -4371,6 +4373,7 @@ dependencies = [
  "tokio",
  "uuid",
  "voxy-core",
+ "voxy-media",
  "voxy-network",
  "voxy-voice",
  "windows-sys 0.61.2",

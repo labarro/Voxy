@@ -10,6 +10,8 @@ mod platform;
 mod preferences;
 mod qa;
 mod screens;
+mod streams;
+mod video;
 mod windows_integration;
 mod world;
 use design::{Materials, alpha};
@@ -167,6 +169,17 @@ enum Msg {
     Ready(iced::window::Id),
     Backdrop(bool),
     BenchmarkReady(iced::window::Screenshot),
+    ShareOpen,
+    ShareSelect(usize),
+    SharePreset(String),
+    SharePreview(usize, Option<iced::widget::image::Handle>),
+    ShareStart,
+    ShareStop,
+    Watch(uuid::Uuid, bool),
+    VideoFrame(Box<video::Frame>),
+    StreamFocus(Option<uuid::Uuid>),
+    StreamFullscreen,
+    StreamHud,
     AutomationTick,
     AutomationEvent(String),
     AutomationTexts(Vec<automation::Label>),
@@ -233,6 +246,15 @@ struct App {
     geometry_failures: usize,
     geometry_nodes: usize,
     ready_file: Option<std::path::PathBuf>,
+    share_dialog: bool,
+    share_sources: Vec<voxy_core::ipc::ScreenSource>,
+    share_selected: Option<usize>,
+    share_preset: String,
+    share_preview: Option<iced::widget::image::Handle>,
+    streams: std::collections::HashMap<uuid::Uuid, video::Frame>,
+    stream_focus: Option<uuid::Uuid>,
+    stream_fullscreen: bool,
+    hud_until: std::time::Instant,
     automation: Option<std::path::PathBuf>,
     automation_seq: u64,
     automation_events: std::collections::VecDeque<String>,
@@ -389,6 +411,15 @@ impl App {
                     .windows(2)
                     .find(|w| w[0] == "--ready-file")
                     .map(|w| std::path::PathBuf::from(&w[1])),
+                share_dialog: false,
+                share_sources: vec![],
+                share_selected: None,
+                share_preset: "1080p30".into(),
+                share_preview: None,
+                streams: Default::default(),
+                stream_focus: None,
+                stream_fullscreen: false,
+                hud_until: std::time::Instant::now(),
                 automation: automation::directory(),
                 automation_seq: 0,
                 automation_events: Default::default(),
@@ -719,6 +750,19 @@ impl App {
                     .deafened
                     .store(state.deafened, Ordering::Relaxed);
                 self.remote = state;
+                // Drop frames from streams the host no longer confirms we watch.
+                let stale: Vec<uuid::Uuid> = self
+                    .streams
+                    .keys()
+                    .copied()
+                    .filter(|member| !self.watching(*member))
+                    .collect();
+                for member in stale {
+                    self.streams.remove(&member);
+                    if self.stream_focus == Some(member) {
+                        self.stream_focus = None;
+                    }
+                }
                 if let Some(transfer) = &self.image_transfer
                     && let Some((_, value)) = self
                         .remote
@@ -1659,6 +1703,14 @@ impl App {
             }
             Msg::ServerName(name) => self.server_name = name,
             Msg::Cancel => {
+                if self.stream_fullscreen {
+                    return self.update(Msg::StreamFullscreen);
+                }
+                if self.share_dialog {
+                    self.share_dialog = false;
+                    self.share_preview = None;
+                    return Task::none();
+                }
                 if self.image_preview.take().is_some() {
                     return Task::none();
                 }
@@ -1922,6 +1974,77 @@ impl App {
                 }
             }
             Msg::Captured(step, shot) => return self.smoke_captured(step, shot),
+            Msg::ShareOpen => {
+                self.share_sources = streams::sources();
+                self.share_selected = None;
+                self.share_preview = None;
+                self.share_dialog = true;
+            }
+            Msg::ShareSelect(index) => {
+                self.share_selected = Some(index);
+                self.share_preview = None;
+                if let Some(source) = self.share_sources.get(index).cloned() {
+                    return Task::perform(
+                        async move {
+                            tokio::task::spawn_blocking(move || streams::preview(&source).ok())
+                                .await
+                                .ok()
+                                .flatten()
+                        },
+                        move |handle| Msg::SharePreview(index, handle),
+                    );
+                }
+            }
+            Msg::SharePreview(index, handle) => {
+                if self.share_selected == Some(index) {
+                    self.share_preview = handle;
+                }
+            }
+            Msg::SharePreset(preset) => self.share_preset = preset,
+            Msg::ShareStart => {
+                if let Some(source) = self.share_selected.and_then(|i| self.share_sources.get(i)) {
+                    let request = voxy_core::ipc::Request::ScreenStart {
+                        source: source.clone(),
+                        preset: self.share_preset.clone(),
+                    };
+                    if self.send_service(request) {
+                        self.share_dialog = false;
+                        self.share_preview = None;
+                    }
+                }
+            }
+            Msg::ShareStop => {
+                self.send_service(voxy_core::ipc::Request::ScreenStop);
+            }
+            Msg::Watch(member, watching) => {
+                if !watching {
+                    self.streams.remove(&member);
+                    if self.stream_focus == Some(member) {
+                        self.stream_focus = None;
+                    }
+                }
+                self.send_service(voxy_core::ipc::Request::Watch { member, watching });
+            }
+            Msg::VideoFrame(frame) => {
+                // Accept only streams the host still confirms this member watches.
+                if self.watching(frame.member) {
+                    self.streams.insert(frame.member, *frame);
+                }
+            }
+            Msg::StreamFocus(member) => self.stream_focus = member,
+            Msg::StreamFullscreen => {
+                self.stream_fullscreen = !self.stream_fullscreen;
+                self.hud_until = std::time::Instant::now() + std::time::Duration::from_secs(3);
+                let mode = if self.stream_fullscreen {
+                    iced::window::Mode::Fullscreen
+                } else {
+                    iced::window::Mode::Windowed
+                };
+                return iced::window::latest().and_then(move |id| iced::window::set_mode(id, mode));
+            }
+            Msg::StreamHud => {
+                self.hud_until = std::time::Instant::now() + std::time::Duration::from_secs(3);
+            }
             Msg::AutomationTick => return self.automation_tick(),
             Msg::AutomationEvent(event) => {
                 if let Some(position) = event.strip_prefix("CursorMoved { position: Point { x: ") {
@@ -1951,6 +2074,15 @@ impl App {
         }
         Task::none()
     }
+    /// True while the host-confirmed snapshot says we watch a live publisher in our channel.
+    fn watching(&self, member: uuid::Uuid) -> bool {
+        let Some(snapshot) = &self.remote.snapshot else {
+            return false;
+        };
+        let me = snapshot.members.iter().find(|m| m.id == self.profile.id);
+        let publisher = snapshot.members.iter().find(|m| m.id == member);
+        matches!((me, publisher), (Some(me), Some(p)) if me.voice.is_some() && me.voice == p.voice && p.screen && me.watching.contains(&member))
+    }
     /// Session-confirmed tags for a voice member: speech, controls and media link.
     fn member_tags(&self, member: &voxy_core::room::Member) -> (bool, String) {
         let mut tags = Vec::new();
@@ -1967,6 +2099,9 @@ impl App {
         };
         if speaking && !member.muted {
             tags.push("falando".to_owned());
+        }
+        if member.screen {
+            tags.push("transmitindo tela".into());
         }
         if member.deafened {
             tags.push("ensurdecido".into());
@@ -2104,6 +2239,7 @@ impl App {
                     "input" => Some(Msg::Input(value)),
                     "output" => Some(Msg::Output(value)),
                     "pttKey" => Some(Msg::PttKey(value)),
+                    "sharePreset" => Some(Msg::SharePreset(value)),
                     _ => None,
                 },
                 automation::Command::Screenshot { name } => {
@@ -2135,7 +2271,7 @@ impl App {
             serde_json::json!({
                 "server": s.server.name,
                 "channels": s.channels.iter().map(|c| serde_json::json!({"id":c.id,"name":c.name,"kind":format!("{:?}",c.kind)})).collect::<Vec<_>>(),
-                "members": s.members.iter().map(|m| serde_json::json!({"id":m.id,"name":m.name,"voice":m.voice,"muted":m.muted,"deafened":m.deafened})).collect::<Vec<_>>(),
+                "members": s.members.iter().map(|m| serde_json::json!({"id":m.id,"name":m.name,"voice":m.voice,"muted":m.muted,"deafened":m.deafened,"screen":m.screen,"screenSize":m.screen_size,"watching":m.watching})).collect::<Vec<_>>(),
                 "messages": s.messages.len(),
             })
         });
@@ -2167,6 +2303,11 @@ impl App {
                 "snapshot": snapshot,
                 "labels": labels,
                 "mouseEvents": self.automation_events,
+                "streams": self.streams.values().map(|f| serde_json::json!({"member":f.member,"width":f.width,"height":f.height,"decoded":f.decoded,"dropped":f.dropped,"signature":f.signature})).collect::<Vec<_>>(),
+                "streamFocus": self.stream_focus,
+                "streamFullscreen": self.stream_fullscreen,
+                "shareDialog": self.share_dialog,
+                "screen": self.remote.screen,
                 "clicks": self.automation_clicks,
                 "lastClick": self.automation_last_click,
             }),
@@ -2280,9 +2421,28 @@ impl App {
     fn view(&self) -> Element<'_, Msg> {
         let m = self.palette();
         let titlebar = chrome::titlebar(self);
+        if self.stream_fullscreen
+            && let Some(stage) = streams::stage(self)
+        {
+            return container(stage)
+                .width(Fill)
+                .height(Fill)
+                .style(|_| container::Style {
+                    background: Some(Color::BLACK.into()),
+                    ..Default::default()
+                })
+                .into();
+        }
         let page = match self.page {
             Page::Home => screens::home(self),
-            Page::Chat => screens::chat(self),
+            Page::Chat => match streams::stage(self) {
+                Some(stage) => column![
+                    container(stage).height(iced::Length::FillPortion(3)),
+                    container(screens::chat(self)).height(iced::Length::FillPortion(2))
+                ]
+                .into(),
+                None => screens::chat(self),
+            },
             Page::Settings => screens::settings(self),
             Page::News => screens::news(self),
             Page::ServerSettings => screens::admin(self),
@@ -2299,6 +2459,11 @@ impl App {
         ]
         .height(Fill);
         let content: Element<'_, Msg> = stack![self.atmosphere.view(m), shell].into();
+        let content: Element<'_, Msg> = if self.share_dialog {
+            stack![content, streams::share_dialog(self)].into()
+        } else {
+            content
+        };
         if let Some(preview) = &self.image_preview {
             stack![
                 content,

@@ -152,6 +152,11 @@ pub fn click(hwnd: HWND, x: f32, y: f32) -> Result<()> {
             },
         };
         let absolute = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK;
+        // Hover first so the move reaches this (now topmost) window and Iced
+        // records the position before the press arrives in a later batch.
+        let hover = [event(absolute, dx, dy)];
+        SendInput(1, hover.as_ptr(), std::mem::size_of::<INPUT>() as i32);
+        std::thread::sleep(std::time::Duration::from_millis(90));
         let inputs = [
             event(absolute, dx, dy),
             event(MOUSEEVENTF_LEFTDOWN, 0, 0),
@@ -271,5 +276,23 @@ pub fn kill(pid: u32) -> Result<()> {
         .status()
         .context("taskkill")?;
     let _ = status;
+    Ok(())
+}
+/// Physical mouse move (no click) to logical client coordinates.
+pub fn hover(hwnd: HWND, x: f32, y: f32) -> Result<()> {
+    use windows_sys::Win32::{
+        Foundation::POINT, Graphics::Gdi::ClientToScreen, UI::WindowsAndMessaging::SetCursorPos,
+    };
+    let s = scale(hwnd);
+    let mut point = POINT {
+        x: (x * s) as i32,
+        y: (y * s) as i32,
+    };
+    unsafe {
+        ClientToScreen(hwnd, &mut point);
+        SetCursorPos(point.x, point.y);
+        std::thread::sleep(std::time::Duration::from_millis(60));
+        SetCursorPos(point.x + 3, point.y + 2);
+    }
     Ok(())
 }

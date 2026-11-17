@@ -5,6 +5,7 @@
 //! visible labels with posted mouse messages, reads the clipboard invite the app
 //! copied, and verifies session-confirmed state plus objective audio metrics
 //! from the synthetic playback analyzer. Only the device boundary is synthetic.
+mod pattern;
 #[cfg(windows)]
 mod win;
 use anyhow::{Context, Result, bail, ensure};
@@ -39,6 +40,7 @@ impl Participant {
                 self.auto.join("audio.json"),
             )
             .env("VOXY_SIGNAL_URL", &self.signal)
+            .env("VOXY_TEST_SOURCE_FILTER", pattern::TITLE)
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
             .spawn()
@@ -363,7 +365,23 @@ fn in_call(p: &Participant, members: usize) -> Result<Value> {
     })
 }
 
-fn voice_scenario(bin: &Path, signal: &str, evidence: &Path, count: usize) -> Result<Value> {
+fn voice_scenario(
+    bin: &Path,
+    signal: &str,
+    evidence: &Path,
+    count: usize,
+    kind: &str,
+) -> Result<Value> {
+    // Screen scenarios share a dynamic synthetic window; killed when the run ends.
+    let mut pattern_window = if kind == "screen" {
+        Some(
+            std::process::Command::new(std::env::current_exe()?)
+                .args(["--pattern-window"])
+                .spawn()?,
+        )
+    } else {
+        None
+    };
     let root = std::env::temp_dir().join(format!("voxy-e2e-{}", now_ms()));
     let names = ["Ana", "Bruno", "Clara"];
     let mut people: Vec<Participant> = (0..count)
@@ -476,6 +494,9 @@ fn voice_scenario(bin: &Path, signal: &str, evidence: &Path, count: usize) -> Re
         std::thread::sleep(Duration::from_secs(2));
         for p in &mut people {
             p.screenshot(&run.evidence, "in-call")?;
+        }
+        if kind == "screen" {
+            return screen_steps(&mut people, &mut run);
         }
         // Every listener hears every other participant and never itself.
         for listener in &people {
@@ -694,12 +715,16 @@ fn voice_scenario(bin: &Path, signal: &str, evidence: &Path, count: usize) -> Re
     for p in &mut people {
         p.stop();
     }
+    if let Some(mut window) = pattern_window.take() {
+        let _ = window.kill();
+        let _ = window.wait();
+    }
     if let Some(text) = previous_clipboard {
         let _ = win::set_clipboard_text(&text);
     }
     let _ = std::fs::remove_dir_all(&root);
     let report = json!({
-        "scenario": format!("voice-{count}"),
+        "scenario": format!("{kind}-{count}"),
         "signal": signal,
         "binaries": bin,
         "passed": result.is_ok(),
@@ -707,12 +732,12 @@ fn voice_scenario(bin: &Path, signal: &str, evidence: &Path, count: usize) -> Re
         "durationSeconds": run.started.elapsed().as_secs_f32(),
         "checks": run.checks,
         "resourcesAtEnd": resources,
-        "method": "independent voxy-desktop processes with own data dirs/identities/session processes; clicks are real posted mouse messages on visible labels; text fields and pick-list choices applied as their widget messages; invite read from the clipboard written by the app's copy button; audio source/sink are the synthetic device boundary (VOXY_TEST_SYNTHETIC_AUDIO) feeding the unchanged DSP/Opus/SRTP/jitter/mixer pipeline",
+        "method": "independent voxy-desktop processes with own data dirs/identities/session processes; clicks are physical SendInput mouse input on visible labels, verified by the app's received-click position; text fields and pick-list choices applied as their widget messages; invite read from the clipboard written by the app's copy button; audio source/sink are the synthetic device boundary (VOXY_TEST_SYNTHETIC_AUDIO) feeding the unchanged DSP/Opus/SRTP/jitter/mixer pipeline",
         "physicalDevices": false,
         "sameMachine": true,
     });
     std::fs::write(
-        evidence.join(format!("voice-{count}.json")),
+        evidence.join(format!("{kind}-{count}.json")),
         serde_json::to_vec_pretty(&report)?,
     )?;
     result.map(|_| report)
@@ -720,6 +745,9 @@ fn voice_scenario(bin: &Path, signal: &str, evidence: &Path, count: usize) -> Re
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    if args.first().map(String::as_str) == Some("--pattern-window") {
+        return pattern::run(40, 40);
+    }
     let get = |name: &str| args.windows(2).find(|w| w[0] == name).map(|w| w[1].clone());
     let bin =
         PathBuf::from(get("--bin").context("--bin <pasta com voxy-desktop.exe e voxy-core.exe>")?);
@@ -728,8 +756,9 @@ fn main() -> Result<()> {
     let scenario = get("--scenario").unwrap_or_else(|| "voice-2".into());
     std::fs::create_dir_all(&evidence)?;
     let report = match scenario.as_str() {
-        "voice-2" => voice_scenario(&bin, &signal, &evidence, 2),
-        "voice-3" => voice_scenario(&bin, &signal, &evidence, 3),
+        "voice-2" => voice_scenario(&bin, &signal, &evidence, 2, "voice"),
+        "voice-3" => voice_scenario(&bin, &signal, &evidence, 3, "voice"),
+        "screen-2" => voice_scenario(&bin, &signal, &evidence, 2, "screen"),
         other => bail!("Cenário desconhecido: {other}"),
     }?;
     println!(
@@ -749,4 +778,156 @@ fn texts(ui: &Value) -> Vec<String> {
                 .collect()
         })
         .unwrap_or_default()
+}
+
+fn member_flag(ui: &Value, id: &Value, field: &str) -> Value {
+    ui["snapshot"]["members"]
+        .as_array()
+        .and_then(|m| m.iter().find(|m| &m["id"] == id))
+        .map(|m| m[field].clone())
+        .unwrap_or(Value::Null)
+}
+fn stream_of<'a>(ui: &'a Value, id: &Value) -> Option<&'a Value> {
+    ui["streams"]
+        .as_array()?
+        .iter()
+        .find(|s| &s["member"] == id)
+}
+fn video_sent(ui: &Value) -> u64 {
+    ui["session"]["links"]
+        .as_array()
+        .map(|l| l.iter().filter_map(|l| l["video_sent"].as_u64()).sum())
+        .unwrap_or(0)
+}
+
+/// Screen share through the real UI: A shares the synthetic pattern window, B
+/// watches; image content is verified against the known pattern.
+fn screen_steps(people: &mut [Participant], run: &mut Run) -> Result<()> {
+    let ana = people[0].ui()["profileId"].clone();
+    people[0].click("Compartilhar tela")?;
+    people[0].wait("seletor de compartilhamento aberto", 10, |ui| {
+        ui["shareDialog"] == true
+    })?;
+    people[0].click_where("janela de teste no seletor", |t| t.contains(pattern::TITLE))?;
+    people[0].select("sharePreset", "720p30")?;
+    let ui = people[0].wait("prévia privada da fonte", 10, |ui| {
+        !texts(ui)
+            .iter()
+            .any(|t| t.starts_with("Carregando prévia") || t.starts_with("Escolha uma janela"))
+    })?;
+    people[0].screenshot(&run.evidence, "share-picker")?;
+    run.check(
+        "Ana: seletor lista a janela de teste e mostra prévia",
+        texts(&ui).iter().any(|t| t.contains(pattern::TITLE)),
+        json!({}),
+    )?;
+    people[0].click("Iniciar compartilhamento")?;
+    let ui = people[0].wait("captura e codificação ativas", 20, |ui| {
+        ui["screen"]["encoded"].as_u64() > Some(10)
+    })?;
+    run.check(
+        "Ana: captura WGC e codificação H.264 reais",
+        ui["screen"]["width"] == 1280 && ui["screen"]["keyframes"].as_u64() >= Some(1),
+        ui["screen"].clone(),
+    )?;
+    people[1].wait("Bruno vê Ana transmitindo", 15, |ui| {
+        member_flag(ui, &ana, "screen") == true && texts(ui).iter().any(|t| t == "Assistir")
+    })?;
+    people[1].click("Assistir")?;
+    let ui = people[1].wait("quadros decodificados de Ana", 25, |ui| {
+        stream_of(ui, &ana).is_some_and(|s| s["decoded"].as_u64() > Some(20))
+    })?;
+    let stream = stream_of(&ui, &ana).cloned().unwrap_or_default();
+    let signature: Vec<u64> = stream["signature"]
+        .as_array()
+        .map(|s| s.iter().filter_map(Value::as_u64).collect())
+        .unwrap_or_default();
+    let mut mismatches = vec![];
+    for gy in 0..7 {
+        for gx in 0..8 {
+            let value = signature.get(gy * 8 + gx).copied().unwrap_or(0);
+            let ok = if pattern::bright(gx, gy) {
+                value > 150
+            } else {
+                value < 100
+            };
+            if !ok {
+                mismatches.push(json!({"cell":[gx,gy],"luma":value}));
+            }
+        }
+    }
+    run.check("Bruno: imagem decodificada corresponde ao padrão da janela de origem", signature.len() == 64 && mismatches.is_empty(), json!({"width":stream["width"],"height":stream["height"],"mismatches":mismatches,"row0":&signature.get(0..8)}))?;
+    let first = (
+        stream["decoded"].as_u64().unwrap_or(0),
+        signature[56..64].to_vec(),
+    );
+    std::thread::sleep(Duration::from_millis(1500));
+    let later = stream_of(&people[1].ui(), &ana)
+        .cloned()
+        .unwrap_or_default();
+    let later_row: Vec<u64> = later["signature"]
+        .as_array()
+        .map(|s| s.iter().skip(56).filter_map(Value::as_u64).collect())
+        .unwrap_or_default();
+    let decoded = later["decoded"].as_u64().unwrap_or(0);
+    run.check("Bruno: quadros contínuos e conteúdo em movimento", decoded >= first.0 + 20 && later_row != first.1, json!({"decodedIn1500ms":decoded - first.0,"dropped":later["dropped"],"row7Before":first.1,"row7After":later_row}))?;
+    people[1].screenshot(&run.evidence, "watching")?;
+    let ui = people[0].wait("Ana: um espectador confirmado", 10, |ui| {
+        ui["screen"]["watchers"] == 1 && ui["screen"]["sent_kbps"].as_u64() > Some(0)
+    })?;
+    run.check("Ana: envia somente com espectador confirmado", true, json!({"sentKbps":ui["screen"]["sent_kbps"],"bitrateKbps":ui["screen"]["bitrate_kbps"],"dropped":ui["screen"]["dropped"]}))?;
+    people[1].click("Ampliar")?;
+    people[1].wait("transmissão ampliada", 10, |ui| {
+        !ui["streamFocus"].is_null()
+    })?;
+    people[1].screenshot(&run.evidence, "focused")?;
+    people[1].click("Voltar à grade")?;
+    people[1].wait("retorno à grade", 10, |ui| ui["streamFocus"].is_null())?;
+    people[1].click("Tela cheia")?;
+    people[1].wait("tela cheia", 10, |ui| ui["streamFullscreen"] == true)?;
+    std::thread::sleep(Duration::from_millis(600));
+    people[1].screenshot(&run.evidence, "fullscreen-hud")?;
+    let hidden = people[1].wait("HUD ocultado automaticamente", 8, |ui| {
+        !texts(ui).iter().any(|t| t == "Sair da tela cheia")
+    })?;
+    people[1].screenshot(&run.evidence, "fullscreen")?;
+    let hwnd = people[1].hwnd()?;
+    let (w, h) = win::client_size(hwnd);
+    win::hover(hwnd, w / 2.0, h / 2.0)?;
+    people[1].wait("HUD reaparece ao mover o mouse", 5, |ui| {
+        texts(ui).iter().any(|t| t == "Sair da tela cheia")
+    })?;
+    run.check(
+        "Bruno: tela cheia com HUD que some e reaparece",
+        hidden["streamFullscreen"] == true,
+        json!({}),
+    )?;
+    people[1].click("Sair da tela cheia")?;
+    people[1].wait("saída da tela cheia", 10, |ui| {
+        ui["streamFullscreen"] == false
+    })?;
+    people[1].click("Parar de assistir")?;
+    people[0].wait("Ana sem espectadores", 10, |ui| {
+        ui["screen"]["watchers"] == 0
+    })?;
+    // Link counters are reported every 2 s: wait for a report taken after the
+    // unsubscription, then compare across two more complete report cycles.
+    std::thread::sleep(Duration::from_millis(2600));
+    let before = video_sent(&people[0].ui());
+    std::thread::sleep(Duration::from_millis(4500));
+    let after = video_sent(&people[0].ui());
+    run.check(
+        "Ana: sem espectadores, nenhum quadro é enviado",
+        after == before,
+        json!({"videoSentBefore":before,"videoSentAfter":after}),
+    )?;
+    people[0].click("Parar compartilhamento")?;
+    people[0].wait("compartilhamento encerrado", 10, |ui| {
+        ui["screen"].is_null()
+    })?;
+    people[1].wait("Bruno vê o fim da transmissão", 10, |ui| {
+        member_flag(ui, &ana, "screen") == false
+    })?;
+    run.check("encerramento confirmado pelos dois lados", true, json!({}))?;
+    Ok(())
 }

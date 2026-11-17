@@ -26,7 +26,7 @@ try {
         'test' { & (Join-Path $PSScriptRoot 'native-test.ps1') @NativeArgs; exit $LASTEXITCODE }
         'e2e' { & (Join-Path $PSScriptRoot 'native-test.ps1') -OptIn @NativeArgs; exit $LASTEXITCODE }
         'e2e-app' {
-            # Real multi-instance desktop E2E: native.ps1 e2e-app [voice-2|voice-3] [release|debug] [wss://... | ws://127.0.0.1:8787]
+            # Real multi-instance desktop E2E: native.ps1 e2e-app [voice-2|voice-3|screen-2] [release|debug] [wss://... | ws://127.0.0.1:8787]
             # Each click injects physical mouse input briefly; do not use the mouse during the run.
             $scenario = if ($NativeArgs.Count -gt 0) { $NativeArgs[0] } else { 'voice-2' }
             $buildProfile = if ($NativeArgs.Count -gt 1) { $NativeArgs[1] } else { 'release' }

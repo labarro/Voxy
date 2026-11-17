@@ -283,6 +283,10 @@ pub(super) fn footer(app: &App) -> Element<'_, Msg> {
                 m.muted
             }),
             text(status).size(11).color(m.muted).width(Fill),
+            match crate::streams::share_button(app) {
+                Some(share) => Element::from(share),
+                None => Element::from(space::horizontal().width(0)),
+            },
             app.action(
                 if app.remote.voice.is_some() {
                     "Sair da chamada"

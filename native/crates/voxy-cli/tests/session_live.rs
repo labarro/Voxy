@@ -765,7 +765,7 @@ async fn authenticated_mesh_transmits_opus_and_isolates_other_voice_channels() -
         for index in 0..3 {
             let profile=if index==0{host.clone()}else{Default::default()};
             let identity=if index==0{identity.clone()}else{Arc::new(Identity::generate())};
-            let gate=microphone_gate.clone();let config=Config{invite:invite.clone(),host:(index==0).then(||server.clone()),database:root.path().join("host.sqlite"),policy:Default::default(),microphone_allowed:Some(Arc::new(move||gate.load(std::sync::atomic::Ordering::Acquire)))};
+            let gate=microphone_gate.clone();let config=Config{invite:invite.clone(),host:(index==0).then(||server.clone()),database:root.path().join("host.sqlite"),policy:Default::default(),microphone_allowed:Some(Arc::new(move||gate.load(std::sync::atomic::Ordering::Acquire))),video:None};
             let (tx,mut rx)=mpsc::channel(64);senders.push(tx);
             let (event_tx,mut event_rx)=mpsc::channel(256);let output=output.clone();
             tasks.push(tokio::task::spawn_local(async move {let forward=tokio::task::spawn_local(async move{while let Some(event)=event_rx.recv().await{if output.send((index,event)).await.is_err(){break}}});let result=live::run(&config,&identity,&profile,&mut rx,&event_tx).await;forward.abort();result}));
@@ -825,14 +825,14 @@ async fn reconnecting_identity_keeps_host_and_persistent_chat_across_generations
         let guest_identity=Arc::new(Identity::generate());
         let guest_profile=voxy_core::model::Profile::default();
         let invite=Invite::create(&host_identity,server.id,&format!("{endpoint}/v3/{}",server.id),now_ms()+60000)?;
-        let host_config=Config{invite:invite.clone(),host:Some(server),database:database.clone(),policy:Default::default(),microphone_allowed:None};
+        let host_config=Config{invite:invite.clone(),host:Some(server),database:database.clone(),policy:Default::default(),microphone_allowed:None,video:None};
         let (host_sender,mut host_input)=mpsc::channel(64);
         let (host_output,mut host_events)=mpsc::channel(256);
         let host=tokio::task::spawn_local(async move{live::run(&host_config,&host_identity,&host_profile,&mut host_input,&host_output).await});
         tokio::time::timeout(Duration::from_secs(5),async{loop{if matches!(host_events.recv().await,Some(Event::Snapshot(_))){break}}}).await?;
         let mut messages=vec![];
         for generation in 0..4 {
-            let config=Config{invite:invite.clone(),host:None,database:root.path().join("guest.sqlite"),policy:Default::default(),microphone_allowed:None};
+            let config=Config{invite:invite.clone(),host:None,database:root.path().join("guest.sqlite"),policy:Default::default(),microphone_allowed:None,video:None};
             let (sender,mut input)=mpsc::channel(64);let (output,mut events)=mpsc::channel(256);
             let identity=guest_identity.clone();let profile=guest_profile.clone();
             let guest=tokio::task::spawn_local(async move{live::run(&config,&identity,&profile,&mut input,&output).await});

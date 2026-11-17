@@ -3,7 +3,7 @@
 use crate::{
     framing::Assembler,
     invite::{Invite, SignedSignal},
-    peer::{OpusTrack, Peer, PeerEvent},
+    peer::{H264Track, OpusTrack, Peer, PeerEvent},
     policy::{NetworkPolicy, RateLimit},
     rendezvous,
     room_service::{ClientPacket, ServerPacket, send_packet},
@@ -49,6 +49,12 @@ pub enum Event {
     },
     Sent(u64),
     PeerRemoved(u64),
+    /// Video from a member this participant is watching (host-confirmed).
+    Video {
+        member: uuid::Uuid,
+        keyframe: bool,
+        bytes: Vec<u8>,
+    },
     Links(Vec<voxy_core::ipc::LinkStatus>),
     Error(&'static str),
 }
@@ -60,10 +66,21 @@ pub struct Config {
     /// Evaluated immediately before every outbound audio send. None fails closed.
     /// The session supplies the live mute/deafen/PTT control, independent of snapshots.
     pub microphone_allowed: Option<Arc<dyn Fn() -> bool + Send + Sync>>,
+    /// Encoded local screen/camera access units. A dedicated bounded queue so video
+    /// can never displace voice or control inputs. Held for the duration of a run.
+    pub video: Option<Arc<tokio::sync::Mutex<mpsc::Receiver<VideoOut>>>>,
+}
+/// One encoded H.264 access unit produced by the local publisher.
+pub struct VideoOut {
+    pub frame: Arc<[u8]>,
+    pub duration: Duration,
 }
 struct Link {
     connection: Arc<dyn PeerConnection>,
     track: OpusTrack,
+    video: H264Track,
+    video_sent: u64,
+    video_received: u64,
     channel: Option<Arc<dyn DataChannel>>,
     nonce: String,
     pending: Vec<RTCIceCandidateInit>,
@@ -94,12 +111,34 @@ async fn create_link(
     offerer: bool,
     tx: mpsc::Sender<(String, u64, PeerEvent)>,
 ) -> Result<Link> {
-    let mut peer = Peer::new(policy, offerer).await?;
+    let mut peer = Peer::with_video(policy, offerer).await?;
     let track = peer.add_opus_track().await?;
+    let video = peer.add_h264_track().await?;
     let connection = peer.connection.clone();
+    let mut frames = peer
+        .video
+        .take()
+        .context("Transporte de vídeo indisponível")?;
     let task = tokio::spawn(async move {
-        while let Some(event) = peer.events.recv().await {
-            if tx.send((key.clone(), number, event)).await.is_err() {
+        let mut video_open = true;
+        loop {
+            let event = tokio::select! {
+                event = peer.events.recv() => match event { Some(event) => event, None => break },
+                frame = frames.recv(), if video_open => match frame {
+                    Some(frame) => PeerEvent::Video(frame),
+                    None => { video_open = false; continue }
+                },
+            };
+            // Video is lossy: never block the control/voice path on a slow consumer.
+            let result = if matches!(event, PeerEvent::Video(_)) {
+                match tx.try_send((key.clone(), number, event)) {
+                    Err(mpsc::error::TrySendError::Closed(_)) => Err(()),
+                    _ => Ok(()),
+                }
+            } else {
+                tx.send((key.clone(), number, event)).await.map_err(|_| ())
+            };
+            if result.is_err() {
                 break;
             }
         }
@@ -107,6 +146,9 @@ async fn create_link(
     Ok(Link {
         connection,
         track,
+        video,
+        video_sent: 0,
+        video_received: 0,
         channel: None,
         nonce,
         pending: vec![],
@@ -196,6 +238,11 @@ pub async fn run(
     let mut rotation: Option<(Invite, Instant)> = None;
     let mut game_deadline: Option<tokio::time::Instant> = None;
     let mut stats_tick = 0_u32;
+    let mut video_guard = match &config.video {
+        Some(queue) => Some(queue.lock().await),
+        None => None,
+    };
+    let mut video_queue = video_guard.as_deref_mut();
     if let Some(state) = &snapshot {
         output.send(Event::Snapshot(state.clone())).await.ok();
     }
@@ -235,6 +282,20 @@ pub async fn run(
                             if config.microphone_allowed.as_ref().is_some_and(|allowed|allowed()) && shared_voice(&snapshot,key,&local) && link.track.send(&payload).await.is_ok(){sent+=1;link.audio_sent+=1;}
                         }
                         if sent>0 {let _=output.try_send(Event::Sent(sent));}
+                    }
+                },
+                video=async {match video_queue.as_mut() {Some(queue)=>queue.recv().await,None=>std::future::pending().await}}=>{
+                    let Some(VideoOut{frame,duration})=video else {video_queue=None;continue};
+                    {
+                        // Encode once, send only to links whose member subscribed to this
+                        // publisher in the same voice channel (host-confirmed snapshot).
+                        let me=snapshot.as_ref().and_then(|s|s.members.iter().find(|m|m.public_key==local)).filter(|m|m.voice.is_some()&&(m.screen||m.camera)).cloned();
+                        if let Some(me)=me {
+                            for (key,link) in links.iter_mut() {
+                                let watching=snapshot.as_ref().and_then(|s|s.members.iter().find(|m|&m.public_key==key)).is_some_and(|m|m.voice==me.voice&&m.watching.contains(&me.id));
+                                if watching && link.video.send(&frame,duration).await.is_ok(){link.video_sent+=1;}
+                            }
+                        }
                     }
                 },
                 message=socket.next()=>{
@@ -358,6 +419,16 @@ if let Some(room)=room.as_mut(){room.remove(&signal.from);snapshot=Some(publish(
                             if let Some(room)=room.as_mut(){room.remove(&key);snapshot=Some(publish(room,&links,output).await?);}else if key==config.invite.host_key{anyhow::bail!("A conexão direta com o host foi interrompida. Reconectando; redes restritivas podem exigir relay, que permanece desativado");}
                         },
                         PeerEvent::State(state)=>link.state=format!("{state:?}").to_lowercase(),
+                        PeerEvent::Video(frame)=>{
+                            let members=snapshot.as_ref().map(|s|s.members.as_slice()).unwrap_or_default();
+                            let me=members.iter().find(|m|m.public_key==local);
+                            let publisher=members.iter().find(|m|m.public_key==key);
+                            if let (Some(me),Some(publisher))=(me,publisher)
+                                && me.voice.is_some() && me.voice==publisher.voice && (publisher.screen||publisher.camera) && me.watching.contains(&publisher.id) {
+                                link.video_received+=1;
+                                let _=output.try_send(Event::Video{member:publisher.id,keyframe:frame.keyframe,bytes:frame.bytes});
+                            }
+                        },
                         _=>{}
                     }
                 },
@@ -430,6 +501,8 @@ async fn link_statuses(links: &HashMap<String, Link>) -> Vec<voxy_core::ipc::Lin
                 .map(|pair| (pair.current_round_trip_time * 1000.0).round() as u32),
             audio_sent: link.audio_sent,
             audio_received: link.audio_received,
+            video_sent: link.video_sent,
+            video_received: link.video_received,
             bytes_sent: pair.map_or(0, |pair| pair.bytes_sent),
             bytes_received: pair.map_or(0, |pair| pair.bytes_received),
             level: 0.0,
@@ -489,6 +562,7 @@ mod tests {
             database: Default::default(),
             policy: Default::default(),
             microphone_allowed: None,
+            video: None,
         };
         let (_sender, mut input) = mpsc::channel(8);
         let (output, mut events) = mpsc::channel(8);
@@ -516,7 +590,10 @@ mod tests {
     fn signaling_admission_failures_map_to_actionable_redacted_messages() {
         let quota = signaling_failure(&anyhow::anyhow!("HTTP error: 429 Too Many Requests"));
         assert!(quota.contains("limite gratuito") && quota.contains("nenhum serviço pago"));
-        assert!(signaling_failure(&anyhow::anyhow!("HTTP error: 409 Conflict")).contains("Host offline"));
+        assert!(
+            signaling_failure(&anyhow::anyhow!("HTTP error: 409 Conflict"))
+                .contains("Host offline")
+        );
         assert!(signaling_failure(&anyhow::anyhow!("dns error")).contains("Confira DNS"));
     }
     #[test]
@@ -549,6 +626,10 @@ mod tests {
                 voice: Some(channel),
                 muted: false,
                 deafened: false,
+                screen: false,
+                camera: false,
+                watching: vec![],
+                screen_size: None,
             });
         }
         assert!(shared_voice(&Some(snapshot.clone()), "local", "remote"));

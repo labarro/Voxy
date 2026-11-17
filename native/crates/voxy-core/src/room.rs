@@ -17,6 +17,18 @@ pub struct Member {
     pub voice: Option<Uuid>,
     pub muted: bool,
     pub deafened: bool,
+    /// Publishing a screen share in its voice channel (host-confirmed).
+    #[serde(default)]
+    pub screen: bool,
+    /// Publishing a camera in its voice channel (host-confirmed).
+    #[serde(default)]
+    pub camera: bool,
+    /// Encoded resolution of the published screen, one of the documented presets.
+    #[serde(default)]
+    pub screen_size: Option<(u32, u32)>,
+    /// Members whose screen this member subscribed to; senders encode only for watchers.
+    #[serde(default)]
+    pub watching: Vec<Uuid>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -156,6 +168,18 @@ pub enum Action {
     VoiceState {
         muted: bool,
         deafened: bool,
+    },
+    /// Announce or stop publishing screen/camera in the current voice channel.
+    Media {
+        screen: bool,
+        camera: bool,
+        #[serde(default)]
+        size: Option<(u32, u32)>,
+    },
+    /// Subscribe to (or leave) another member's published screen/camera.
+    Watch {
+        member: Uuid,
+        watching: bool,
     },
 }
 impl Action {
@@ -359,6 +383,10 @@ impl RoomHost {
                 voice: None,
                 muted: false,
                 deafened: false,
+                screen: false,
+                camera: false,
+                watching: vec![],
+                screen_size: None,
             },
         );
         Ok(())
@@ -1026,11 +1054,24 @@ impl RoomHost {
                         self.require_channel(channel)?.kind == ChannelKind::Voice,
                         "Canal de voz inválido"
                     );
-                    self.members.get_mut(key).unwrap().voice = Some(channel);
+                    let member = self.members.get_mut(key).unwrap();
+                    if member.voice != Some(channel) {
+                        // Media and subscriptions never follow a member into another channel.
+                        member.screen = false;
+                        member.camera = false;
+                        member.watching.clear();
+                        member.screen_size = None;
+                    }
+                    member.voice = Some(channel);
                     serde_json::json!({"voice":channel})
                 }
                 Action::VoiceLeave => {
-                    self.members.get_mut(key).unwrap().voice = None;
+                    let member = self.members.get_mut(key).unwrap();
+                    member.voice = None;
+                    member.screen = false;
+                    member.camera = false;
+                    member.watching.clear();
+                    member.screen_size = None;
                     serde_json::json!({"voice":null})
                 }
                 Action::VoiceState { muted, deafened } => {
@@ -1038,6 +1079,49 @@ impl RoomHost {
                     member.muted = muted;
                     member.deafened = deafened;
                     serde_json::json!({"muted":muted,"deafened":deafened})
+                }
+                Action::Media {
+                    screen,
+                    camera,
+                    size,
+                } => {
+                    ensure!(
+                        size.is_none_or(|(w, h)| crate::ipc::SCREEN_PRESETS
+                            .iter()
+                            .any(|p| p.1 == w && p.2 == h)),
+                        "Resolução de transmissão inválida"
+                    );
+                    let member = self.members.get_mut(key).unwrap();
+                    member.screen_size = if screen { size } else { None };
+                    ensure!(
+                        member.voice.is_some() || (!screen && !camera),
+                        "Entre em um canal de voz antes de transmitir"
+                    );
+                    member.screen = screen;
+                    member.camera = camera;
+                    serde_json::json!({"screen":screen,"camera":camera})
+                }
+                Action::Watch {
+                    member: target,
+                    watching,
+                } => {
+                    let viewer = self.members.get(key).unwrap();
+                    let publisher = self.members.values().find(|m| m.id == target);
+                    if watching {
+                        ensure!(
+                            viewer.voice.is_some()
+                                && publisher.is_some_and(|p| p.voice == viewer.voice
+                                    && (p.screen || p.camera)
+                                    && p.public_key != key),
+                            "Transmissão indisponível neste canal"
+                        );
+                    }
+                    let viewer = self.members.get_mut(key).unwrap();
+                    viewer.watching.retain(|id| *id != target);
+                    if watching && viewer.watching.len() < 9 {
+                        viewer.watching.push(target);
+                    }
+                    serde_json::json!({"member":target,"watching":watching})
                 }
             };
             self.store.db.execute(
@@ -1284,6 +1368,74 @@ mod tests {
             id: Uuid::new_v4(),
             action,
         }
+    }
+    #[test]
+    fn media_publication_and_watching_are_authorized_and_scoped_to_one_voice_channel() {
+        let root = tempfile::tempdir().unwrap();
+        let mut store = Store::open(&root.path().join("media.db")).unwrap();
+        let owner = store.profile().unwrap().id;
+        let server = store.create_community(owner, "Media").unwrap();
+        let channel = store
+            .channels(server.id)
+            .unwrap()
+            .into_iter()
+            .find(|c| c.kind == ChannelKind::Voice)
+            .unwrap()
+            .id;
+        let other = store
+            .add_channel(owner, server.id, "Other", ChannelKind::Voice)
+            .unwrap()
+            .id;
+        let (a, b, c) = ("a".repeat(43), "b".repeat(43), "c".repeat(43));
+        let (ida, idb, idc) = (Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4());
+        let mut room = RoomHost::new(store, server, a.clone()).unwrap();
+        for (key, id) in [(&a, ida), (&b, idb), (&c, idc)] {
+            room.admit(key.clone(), id, "m".into()).unwrap();
+        }
+        let screen = |on| {
+            cmd(Action::Media {
+                screen: on,
+                camera: false,
+                size: Some((1280, 720)),
+            })
+        };
+        let watch = |member, watching| cmd(Action::Watch { member, watching });
+        // Publishing requires a voice channel; watching requires a live publisher.
+        assert!(room.handle(&a, screen(true)).is_err());
+        room.handle(&a, cmd(Action::VoiceJoin { channel })).unwrap();
+        room.handle(&b, cmd(Action::VoiceJoin { channel })).unwrap();
+        room.handle(&c, cmd(Action::VoiceJoin { channel: other }))
+            .unwrap();
+        assert!(room.handle(&b, watch(ida, true)).is_err());
+        room.handle(&a, screen(true)).unwrap();
+        room.handle(&b, watch(ida, true)).unwrap();
+        // Another channel and self-watching are refused.
+        assert!(room.handle(&c, watch(ida, true)).is_err());
+        assert!(room.handle(&a, watch(ida, true)).is_err());
+        let state = room.snapshot().unwrap();
+        let get = |id| state.members.iter().find(|m| m.id == id).unwrap().clone();
+        assert!(get(ida).screen && get(idb).watching == vec![ida]);
+        // Switching channel ends publication and subscriptions.
+        room.handle(&a, cmd(Action::VoiceJoin { channel: other }))
+            .unwrap();
+        room.handle(&b, cmd(Action::VoiceJoin { channel: other }))
+            .unwrap();
+        let state = room.snapshot().unwrap();
+        let get = |id| state.members.iter().find(|m| m.id == id).unwrap().clone();
+        assert!(!get(ida).screen && get(idb).watching.is_empty());
+        room.handle(&a, screen(true)).unwrap();
+        room.handle(&c, watch(ida, true)).unwrap();
+        room.handle(&c, cmd(Action::VoiceLeave)).unwrap();
+        let state = room.snapshot().unwrap();
+        assert!(
+            state
+                .members
+                .iter()
+                .find(|m| m.id == idc)
+                .unwrap()
+                .watching
+                .is_empty()
+        );
     }
     #[test]
     fn game_authority_scopes_voice_channels_hands_replay_and_departure() {

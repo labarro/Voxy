@@ -89,6 +89,27 @@ pub fn enumerate_sources() -> Result<Vec<CaptureSource>> {
             if !IsWindowVisible(hwnd).as_bool() || IsIconic(hwnd).as_bool() {
                 return true.into();
             }
+            // Tool windows and DWM-cloaked windows (suspended UWP, other desktops)
+            // are not user-pickable surfaces.
+            let extended = windows::Win32::UI::WindowsAndMessaging::GetWindowLongW(
+                hwnd,
+                windows::Win32::UI::WindowsAndMessaging::GWL_EXSTYLE,
+            ) as u32;
+            if extended & windows::Win32::UI::WindowsAndMessaging::WS_EX_TOOLWINDOW.0 != 0 {
+                return true.into();
+            }
+            let mut cloaked = 0u32;
+            if windows::Win32::Graphics::Dwm::DwmGetWindowAttribute(
+                hwnd,
+                windows::Win32::Graphics::Dwm::DWMWA_CLOAKED,
+                &mut cloaked as *mut u32 as *mut _,
+                4,
+            )
+            .is_ok()
+                && cloaked != 0
+            {
+                return true.into();
+            }
             let mut title = [0u16; 512];
             let length = GetWindowTextW(hwnd, &mut title);
             if length > 0 {

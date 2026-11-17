@@ -14,9 +14,14 @@ pub enum PeerEvent {
     State(RTCPeerConnectionState),
     DataOpen(Arc<dyn DataChannel>),
     Data(Vec<u8>),
-    Audio { sequence: u16, payload: Vec<u8> },
+    Audio {
+        sequence: u16,
+        payload: Vec<u8>,
+    },
     Closed,
     VideoError(&'static str),
+    /// Assembled H.264 access unit, forwarded from the peer's bounded video queue.
+    Video(crate::video::VideoFrame),
 }
 struct Handler {
     events: mpsc::Sender<PeerEvent>,

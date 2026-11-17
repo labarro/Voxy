@@ -608,7 +608,21 @@ pub(super) fn chat(app: &App) -> Element<'_, Msg> {
                                 }),
                                 text(tags).size(10).color(m.muted),
                             ]
-                            .spacing(1)
+                            .spacing(1),
+                            space::horizontal(),
+                            if member.screen
+                                && member.id != app.profile.id
+                                && app.remote.voice == member.voice
+                            {
+                                let watching = app.watching(member.id);
+                                Element::from(app.action(
+                                    if watching { "Assistindo" } else { "Assistir" },
+                                    Msg::Watch(member.id, !watching),
+                                    watching,
+                                ))
+                            } else {
+                                Element::from(space::horizontal().width(0))
+                            }
                         ]
                         .spacing(7)
                         .align_y(iced::Center),

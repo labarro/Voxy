@@ -42,6 +42,7 @@ async fn connection(
     requests: mpsc::Sender<Request>,
     mut states: watch::Receiver<State>,
     authenticated: Arc<std::sync::atomic::AtomicBool>,
+    mut video: tokio::sync::broadcast::Receiver<Arc<Vec<u8>>>,
 ) -> Result<()> {
     stream.set_nodelay(true)?;
     let (mut reader, mut writer) = stream.into_split();
@@ -78,7 +79,17 @@ async fn connection(
     loop {
         tokio::select! {
             request=read::<Request>(&mut reader,131072)=>{requests.send(request?).await.context("Núcleo encerrado")?;},
-            changed=states.changed()=>{changed?;let state=states.borrow_and_update().clone();write(&mut writer,&state).await?;}
+            changed=states.changed()=>{changed?;let state=states.borrow_and_update().clone();write(&mut writer,&state).await?;},
+            frame=video.recv()=>match frame {
+                Ok(frame)=>{
+                    // Binary video frame: flagged length prefix, no JSON. A slow UI
+                    // lags the broadcast and skips frames instead of growing memory.
+                    ensure!(frame.len()<(ipc::VIDEO_FRAME_FLAG as usize),"Frame de vídeo excede o limite");
+                    tokio::time::timeout(Duration::from_secs(1),async{writer.write_u32(frame.len() as u32|ipc::VIDEO_FRAME_FLAG).await?;writer.write_all(&frame).await}).await??;
+                },
+                Err(tokio::sync::broadcast::error::RecvError::Lagged(_))=>{},
+                Err(tokio::sync::broadcast::error::RecvError::Closed)=>std::future::pending::<()>().await,
+            }
         }
     }
 }
@@ -122,13 +133,20 @@ pub async fn serve() -> Result<()> {
     std::fs::write(path.join("session.json"), serde_json::to_vec(&endpoint)?)?;
     let (requests, receiver) = mpsc::channel(64);
     let (states, state_rx) = watch::channel(State::default());
-    let actor = crate::run(path.clone(), identity.clone(), receiver, states);
+    let (video_frames, _) = tokio::sync::broadcast::channel(8);
+    let actor = crate::run(
+        path.clone(),
+        identity.clone(),
+        receiver,
+        states,
+        video_frames.clone(),
+    );
     tokio::pin!(actor);
     let limit = Arc::new(Semaphore::new(8));
     let result = loop {
         tokio::select! {
             result=&mut actor=>break result,
-            accepted=listener.accept()=>{let (stream,address)=accepted?;if !address.ip().is_loopback(){continue}let Ok(permit)=limit.clone().try_acquire_owned()else{continue};let identity=identity.clone();let requests=requests.clone();let states=state_rx.clone();let slots=limit.clone();tokio::task::spawn_local(async move{let authenticated=Arc::new(std::sync::atomic::AtomicBool::new(false));let _=connection(stream,port,identity,requests.clone(),states,authenticated.clone()).await;drop(permit);if authenticated.load(std::sync::atomic::Ordering::Acquire)&&slots.available_permits()==8{let _=requests.try_send(Request::Detached);}});}
+            accepted=listener.accept()=>{let (stream,address)=accepted?;if !address.ip().is_loopback(){continue}let Ok(permit)=limit.clone().try_acquire_owned()else{continue};let identity=identity.clone();let requests=requests.clone();let states=state_rx.clone();let video=video_frames.subscribe();let slots=limit.clone();tokio::task::spawn_local(async move{let authenticated=Arc::new(std::sync::atomic::AtomicBool::new(false));let _=connection(stream,port,identity,requests.clone(),states,authenticated.clone(),video).await;drop(permit);if authenticated.load(std::sync::atomic::Ordering::Acquire)&&slots.available_permits()==8{let _=requests.try_send(Request::Detached);}});}
         }
     };
     let _ = std::fs::remove_file(path.join("session.json"));

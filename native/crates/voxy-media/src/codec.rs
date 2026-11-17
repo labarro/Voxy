@@ -550,3 +550,69 @@ impl Drop for H264Decoder<'_> {
         };
     }
 }
+
+/// Limited-range BT.601 NV12 → RGBA8 for display. Output is opaque.
+pub fn nv12_to_rgba(frame: &Nv12Frame) -> Result<Vec<u8>> {
+    let (width, height) = (frame.width as usize, frame.height as usize);
+    ensure!(
+        width % 2 == 0 && height % 2 == 0 && frame.pixels.len() == width * height * 3 / 2,
+        "Frame NV12 inconsistente"
+    );
+    let (luma, chroma) = frame.pixels.split_at(width * height);
+    let mut rgba = vec![255u8; width * height * 4];
+    for y in 0..height {
+        let chroma_row = &chroma[(y / 2) * width..(y / 2) * width + width];
+        let out = &mut rgba[y * width * 4..(y + 1) * width * 4];
+        for x in 0..width {
+            let c = (luma[y * width + x] as i32 - 16).max(0) * 298;
+            let d = chroma_row[x & !1] as i32 - 128;
+            let e = chroma_row[(x & !1) + 1] as i32 - 128;
+            let pixel = &mut out[x * 4..x * 4 + 3];
+            pixel[0] = ((c + 409 * e + 128) >> 8).clamp(0, 255) as u8;
+            pixel[1] = ((c - 100 * d - 208 * e + 128) >> 8).clamp(0, 255) as u8;
+            pixel[2] = ((c + 516 * d + 128) >> 8).clamp(0, 255) as u8;
+        }
+    }
+    Ok(rgba)
+}
+
+#[cfg(test)]
+mod display_tests {
+    use super::*;
+    #[test]
+    fn bgra_nv12_rgba_roundtrip_keeps_colours_close() {
+        let colours = [
+            [0u8, 0, 255, 255],
+            [0, 255, 0, 255],
+            [255, 0, 0, 255],
+            [128, 128, 128, 255],
+        ];
+        let mut pixels = Vec::new();
+        for _row in 0..4 {
+            for colour in colours {
+                for _ in 0..4 {
+                    pixels.extend_from_slice(&colour);
+                }
+            }
+        }
+        let frame = crate::CaptureFrame {
+            width: 16,
+            height: 4,
+            timestamp_us: 0,
+            pixels: pixels.into(),
+        };
+        let rgba = nv12_to_rgba(&bgra_to_nv12(&frame).unwrap()).unwrap();
+        for (index, colour) in colours.iter().enumerate() {
+            let at = (index * 4 + 1) * 4;
+            for channel in 0..3 {
+                // BGRA source vs RGBA output: swap R/B.
+                let expected = colour[2 - channel] as i32;
+                assert!(
+                    (rgba[at + channel] as i32 - expected).abs() <= 6,
+                    "{index}:{channel} {} vs {expected}",
+                    rgba[at + channel]
+                );
+            }
+        }
+    }
+}

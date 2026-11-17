@@ -39,6 +39,17 @@ pub enum Request {
         volume: f32,
         muted: bool,
     },
+    /// Start publishing a window or monitor chosen explicitly by the user.
+    ScreenStart {
+        source: ScreenSource,
+        preset: String,
+    },
+    ScreenStop,
+    /// Subscribe to another member's published screen in the same voice channel.
+    Watch {
+        member: Uuid,
+        watching: bool,
+    },
     Disconnect,
     Shutdown,
     Detached,
@@ -82,6 +93,64 @@ pub struct State {
     pub transmitting: bool,
     #[serde(default)]
     pub reconnects: u32,
+    #[serde(default)]
+    pub screen: Option<ScreenStatus>,
+}
+/// A capture source picked in the UI. Handles are re-validated by the session.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ScreenSource {
+    pub kind: String,
+    pub handle: u64,
+    pub process_id: u32,
+    pub label: String,
+}
+/// Local screen publication status, from the publisher thread counters.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+pub struct ScreenStatus {
+    pub label: String,
+    pub preset: String,
+    pub width: u32,
+    pub height: u32,
+    pub fps: u32,
+    pub captured: u64,
+    pub encoded: u64,
+    pub dropped: u64,
+    pub keyframes: u64,
+    pub bitrate_kbps: u32,
+    pub sent_kbps: u32,
+    pub watchers: u32,
+    pub encoder: String,
+}
+/// Screen presets: (name, width, height, fps, target bitrate). Only these are offered.
+pub const SCREEN_PRESETS: [(&str, u32, u32, u32, u32); 4] = [
+    ("720p30", 1280, 720, 30, 2_500_000),
+    ("720p60", 1280, 720, 60, 3_800_000),
+    ("1080p30", 1920, 1080, 30, 4_500_000),
+    ("1080p60", 1920, 1080, 60, 6_500_000),
+];
+/// Binary IPC video frames set this bit in the u32 length prefix. JSON state
+/// frames are bounded by MAX_FRAME, far below it, so the two never collide.
+pub const VIDEO_FRAME_FLAG: u32 = 0x8000_0000;
+/// Encoded video for the UI: 16-byte member id, keyframe byte, u32 LE width and
+/// height (host-confirmed preset), then the H.264 access unit.
+pub fn encode_video_frame(member: Uuid, keyframe: bool, size: (u32, u32), bytes: &[u8]) -> Vec<u8> {
+    let mut frame = Vec::with_capacity(25 + bytes.len());
+    frame.extend_from_slice(member.as_bytes());
+    frame.push(keyframe as u8);
+    frame.extend_from_slice(&size.0.to_le_bytes());
+    frame.extend_from_slice(&size.1.to_le_bytes());
+    frame.extend_from_slice(bytes);
+    frame
+}
+/// Decoded video frame header: publisher, keyframe flag, size, H.264 payload.
+pub type VideoFrameParts<'a> = (Uuid, bool, (u32, u32), &'a [u8]);
+pub fn decode_video_frame(frame: &[u8]) -> Option<VideoFrameParts<'_>> {
+    if frame.len() < 26 {
+        return None;
+    }
+    let member = Uuid::from_slice(&frame[..16]).ok()?;
+    let read = |at: usize| u32::from_le_bytes(frame[at..at + 4].try_into().unwrap());
+    Some((member, frame[16] == 1, (read(17), read(21)), &frame[25..]))
 }
 /// Per-participant transport diagnostics. Contains no SDP, address, invite or key
 /// material beyond the public identity key already shared in the room snapshot.
@@ -96,6 +165,10 @@ pub struct LinkStatus {
     pub rtt_ms: Option<u32>,
     pub audio_sent: u64,
     pub audio_received: u64,
+    #[serde(default)]
+    pub video_sent: u64,
+    #[serde(default)]
+    pub video_received: u64,
     pub bytes_sent: u64,
     pub bytes_received: u64,
     /// Received voice level (0..1) over the last report interval; 0 when silent.

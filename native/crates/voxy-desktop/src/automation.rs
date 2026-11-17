@@ -113,6 +113,13 @@ pub fn write_json(directory: &Path, name: &str, value: &serde_json::Value) {
 }
 
 pub fn write_png(path: &Path, shot: &iced::window::Screenshot) -> anyhow::Result<()> {
+    // Written to a temporary name and renamed, so readers never see a partial PNG.
+    let temporary = path.with_extension("png.tmp");
+    write_png_file(&temporary, shot)?;
+    std::fs::rename(&temporary, path)?;
+    Ok(())
+}
+fn write_png_file(path: &Path, shot: &iced::window::Screenshot) -> anyhow::Result<()> {
     let file = std::fs::File::create(path)?;
     let mut encoder = png::Encoder::new(
         std::io::BufWriter::new(file),

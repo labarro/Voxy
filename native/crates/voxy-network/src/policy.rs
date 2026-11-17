@@ -9,6 +9,10 @@ pub use voxy_core::links::{DEFAULT_SIGNAL_ENDPOINT, DEFAULT_STUN_URL};
 pub struct NetworkPolicy {
     pub stun_urls: Vec<String>,
     pub relay_enabled: bool,
+    /// Bind ICE sockets to 127.0.0.1 only. Used by automated tests so new test
+    /// binaries do not trigger Windows Firewall prompts; never set by the app.
+    #[serde(default)]
+    pub loopback_only: bool,
 }
 impl NetworkPolicy {
     pub fn validate(&self) -> Result<()> {
@@ -69,7 +73,8 @@ mod tests {
         assert!(
             NetworkPolicy {
                 stun_urls: vec![],
-                relay_enabled: true
+                relay_enabled: true,
+                loopback_only: false
             }
             .validate()
             .is_err()

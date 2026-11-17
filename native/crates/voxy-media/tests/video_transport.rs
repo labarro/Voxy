@@ -40,8 +40,22 @@ async fn h264_software_frames_cross_native_srtp_and_decode() -> Result<()> {
     );
     drop(encoder);
     let mut decoder = H264Decoder::new(&runtime, format)?;
-    let mut sender = Peer::with_video(&NetworkPolicy::default(), true).await?;
-    let mut receiver = Peer::with_video(&NetworkPolicy::default(), false).await?;
+    let mut sender = Peer::with_video(
+        &NetworkPolicy {
+            loopback_only: true,
+            ..Default::default()
+        },
+        true,
+    )
+    .await?;
+    let mut receiver = Peer::with_video(
+        &NetworkPolicy {
+            loopback_only: true,
+            ..Default::default()
+        },
+        false,
+    )
+    .await?;
     let mut frames = receiver.video.take().unwrap();
     let track = sender.add_h264_track("screen").await?;
     let result = async {

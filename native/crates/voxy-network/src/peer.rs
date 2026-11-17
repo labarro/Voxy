@@ -235,7 +235,11 @@ impl Peer {
                     video: video_sender,
                     video_claimed: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
                 }))
-                .with_udp_addrs(vec!["0.0.0.0:0", "[::]:0"])
+                .with_udp_addrs(if policy.loopback_only {
+                    vec!["127.0.0.1:0"]
+                } else {
+                    vec!["0.0.0.0:0", "[::]:0"]
+                })
                 .with_data_channel_send_buffer_limit(256 * 1024)
                 .build()
                 .await?,
@@ -417,8 +421,22 @@ impl OpusTrack {
 /// Real UDP/ICE/DTLS/SCTP integration on this machine. No signaling service or VPN.
 pub async fn local_transport_check() -> Result<serde_json::Value> {
     use std::time::Duration;
-    let mut left = Peer::new(&NetworkPolicy::default(), true).await?;
-    let mut right = Peer::new(&NetworkPolicy::default(), false).await?;
+    let mut left = Peer::new(
+        &NetworkPolicy {
+            loopback_only: true,
+            ..Default::default()
+        },
+        true,
+    )
+    .await?;
+    let mut right = Peer::new(
+        &NetworkPolicy {
+            loopback_only: true,
+            ..Default::default()
+        },
+        false,
+    )
+    .await?;
     let result = async {
         let offer = left.offer().await?;
         let answer = right.answer(offer).await?;
@@ -447,8 +465,22 @@ pub async fn local_media_check(packets: &[Vec<u8>]) -> Result<serde_json::Value>
         !packets.is_empty() && packets.len() <= 500,
         "Quantidade de frames inválida"
     );
-    let mut left = Peer::new(&NetworkPolicy::default(), true).await?;
-    let mut right = Peer::new(&NetworkPolicy::default(), false).await?;
+    let mut left = Peer::new(
+        &NetworkPolicy {
+            loopback_only: true,
+            ..Default::default()
+        },
+        true,
+    )
+    .await?;
+    let mut right = Peer::new(
+        &NetworkPolicy {
+            loopback_only: true,
+            ..Default::default()
+        },
+        false,
+    )
+    .await?;
     let result = async {
         let track = left.add_opus_track().await?;
         let offer = left.offer().await?;

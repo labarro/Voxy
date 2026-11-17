@@ -146,7 +146,7 @@ pub(crate) async fn run(
                         ensure!(community.owner==profile.id,"Somente o dono pode hospedar este servidor");
                         let invite=Invite::create(&identity,server,&format!("{}/v3/{server}",endpoint.trim_end_matches('/')),now_ms()+86_400_000)?;
                         state.invite=Some(invite.encode()?);
-                        let policy=NetworkPolicy{stun_urls:stun,relay_enabled:false};policy.validate()?;
+                        let policy=NetworkPolicy{stun_urls:stun,relay_enabled:false,loopback_only:false};policy.validate()?;
                         let gate=control.clone();
                         let (video_sender,video_queue)=mpsc::channel(4);video_out=Some(video_sender);
                         let config=Config{invite,host:Some(community),database:path.join("voxy.sqlite"),policy,microphone_allowed:Some(Arc::new(move||gate.may_transmit())),video:Some(Arc::new(tokio::sync::Mutex::new(video_queue)))};
@@ -160,7 +160,7 @@ pub(crate) async fn run(
                         let invite=Invite::parse(&invite,now_ms())?;
                         state.invite=Some(invite.encode()?);
                         let profile=Store::open(&path.join("voxy.sqlite"))?.profile()?;
-                        let policy=NetworkPolicy{stun_urls:stun,relay_enabled:false};policy.validate()?;
+                        let policy=NetworkPolicy{stun_urls:stun,relay_enabled:false,loopback_only:false};policy.validate()?;
                         let gate=control.clone();
                         let (video_sender,video_queue)=mpsc::channel(4);video_out=Some(video_sender);
                         let config=Config{invite,host:None,database:path.join("voxy.sqlite"),policy,microphone_allowed:Some(Arc::new(move||gate.may_transmit())),video:Some(Arc::new(tokio::sync::Mutex::new(video_queue)))};

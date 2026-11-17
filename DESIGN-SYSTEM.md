@@ -1,16 +1,56 @@
 # Interface do Voxy · 2.0 em preparação e histórico 1.x
 
-## Voxy 2.0 nativo — revisão atual, ainda não aprovada
+## Voxy 2.0 nativo — "Nocturne glass" (implementado, 2.0.0 em preparação)
 
-Esta seção substitui a direção anterior para o desktop Rust. Base Voxy: grafite #111214, carvão #1c1e21, superfície elevada #32353b, prata #dedfe3 e texto #e9e9ec. Oceano/Bosque/Kuromi alteram fundo, materiais, reflexos e acentos; a arte temática licenciada completa ainda não foi migrada.
+Código: `native/crates/voxy-desktop/src/design.rs` (tokens e estilos), `ui.rs` (componentes), `icons.rs` (Lucide), `chrome.rs` (janela e navegação), `call.rs`, `chat.rs`, `direct.rs`, `home.rs`, `admin.rs`. Telas não devem definir cores, tamanhos ou estilos fora desses módulos.
 
-Home é uma central social, sem hero publicitário. Sidebar: 64 px; itens: 44×44, ícone vetorial 22 px; servidores: 38×38. Caption: 36 px; cada controle: 46×36, glifo vetorial de 12 px, close com hover vermelho e restaurar com estado real da janela. Avatar é sempre quadrado com alinhamento central, sem centralização que transforme largura/altura em Fill. Chat: canais 210 px, conversa flexível, participantes 172 px; rolagem independente e espaço reservado para scrollbar. Ações de mensagem aparecem no hover ou menu contextual.
+### Direção
 
-Tipografia Segoe UI: corpo 13–14 px, auxiliares 11–12 px, títulos 20–25 px. Campos e toggles/sliders/selects/menus/scrollbars têm estilos próprios. Reservar separação entre estrutura de navegação, superfícies de conteúdo e controles; não usar botões primários como seleção de canal. Evitar banners, áreas de marketing e painéis elevados vazios.
+Comunicação primeiro: a chamada, quem está falando e o estado da mídia são sempre legíveis. Interface escura em camadas opacas com leve brilho superior ("vidro" sem desfoque real), profundidade apenas em camadas flutuantes, acento por tema e estados de comunicação com a mesma cor em todos os temas. Sem cards em tudo, sem bordas em todo elemento, sem gradientes arbitrários, sem neon.
 
-Material implementado: composição Acrylic do Windows por janela + superfícies localizadas no renderer, com fallback opaco se DWM não aceitar e opção de redução de efeitos. Não equivale a refração óptica do Liquid Glass da Apple. [APIs documentadas da Microsoft](https://learn.microsoft.com/en-us/windows/apps/develop/ui/system-backdrops) foram usadas; não há API privada de composição, WebView nem shader animado permanente. Um render pass wgpu com refração/blur próprio ainda precisaria ser prototipado/medido, especialmente pela integração futura do vídeo/3D; não está anunciado como entregue.
+**Liquid Glass adaptado ao desktop:** superfícies opacas com gradiente vertical sutil (`sheen`, 3,5–5 % de branco no topo) e contorno de 1 px; sombras somente em tooltips, menus, popovers, diálogos e no dock da chamada. Não usamos Acrylic/Mica nem transparência da janela: com cliente translúcido o DWM desenhava os botões nativos atrás dos personalizados e o alfa acumulava em redesenhos parciais. Funciona no renderer de software tiny-skia, sem GPU. "Reduzir efeitos" remove brilho e sombras.
 
-QA usa fixtures explícitas e pasta experimental vazia, dez participantes e histórico. Capturas em evidence/native-2.0/liquid-glass-reviewed; geometria real via Operation do Iced verifica avatares, itens de navegação e caption. Não são cliques humanos ou homologação de DPI/acessibilidade. Erros dos primeiros prints foram reconhecidos e corrigidos; a aprovação artística permanece pendente.
+### Tokens
+
+| Papel | Voxy | Uso |
+| :-- | :-- | :-- |
+| `base` | `#0a0c11` | Barra de título e piso da janela |
+| `rail` | `#0b0d12` | Trilho de servidores |
+| `sidebar` | `#10131a` | Lateral contextual (canais, DMs, seções) |
+| `canvas` | `#13161e` | Área principal (recorte de 14 px no canto) |
+| `panel` | `#1a1e28` | Cartões, tiles, compositor |
+| `elevated` | `#222734` | Menus, tooltips, diálogos, dock |
+| `accent` / `on_accent` | `#9b8cff` / `#06051a` | Ação principal, seleção, foco |
+| `secondary` | `#6fd6c9` | Apoio |
+| `ink` / `muted` / `faint` | `#eceef3` / `#a3a8b6` / `#6c7180` | Texto principal, secundário, terciário |
+| `speaking` | `#3ddc84` | Anel de fala, presença online, conexão ok |
+| `danger` | `#f2555a` | Mudo, ensurdecido, desconectar, destrutivo |
+| `warning` | `#f5b94a` | Negociando, reconectando, ausente |
+| `live` | `#ff4d5e` | Transmissão de tela ao vivo |
+
+Temas Oceano (`#5fc8e6`), Bosque (`#a3cf7e`) e Kuromi (`#f39bcb` + lilás `#b89cf2`, superfícies ameixa) trocam acento e superfícies; `speaking`, `danger`, `warning` e `live` são fixos. Teste `design::tests::every_theme_keeps_readable_contrast`: texto ≥ 10:1 em todas as superfícies, texto secundário ≥ 4,5:1 (AA), texto sobre acento ≥ 7:1, indicadores ≥ 3:1.
+
+Tipografia Segoe UI: 11 (micro), 12 (legenda), 13 (pequeno), 14 (corpo), 15 (destaque), 18 (cabeçalho), 22 (título), 28 (display). Espaçamento em grade de 4 (4, 8, 12, 16, 24, 32). Raios 6/10/14/20 e pílula. Área clicável mínima 36 px (ícones de 28–30 px só em barras densas, com tooltip).
+
+### Componentes
+
+- **Ícones:** Lucide (ISC) em SVG embutido no executável (`assets/icons`, extraídos por `scripts/extract-lucide-icons.mjs`), traço 2 em grade 24, renderizados por resvg e tingidos por estado. Nenhum caractere Unicode substitui ícone principal; nenhum acesso à internet.
+- **Botões (`Tone`):** Primary (acento), Secondary (preenchimento discreto), Ghost (só no hover), Danger (desconectar/excluir), Active (alternância ligada), Alert (estado de risco ligado, ex.: microfone mudo). Estado nunca depende só de cor: microfone mudo troca o ícone para `mic-off`; pendente mostra `loader-circle`.
+- **`icon_button`:** ícone + tooltip + id acessível `btn-<rótulo>` (usado também pelo E2E).
+- **Tooltip:** fundo `elevated`, borda clara, sombra, atraso de 350 ms, ajuste aos limites da janela; nunca altera layout.
+- **Avatar:** círculo com iniciais e cor estável por pessoa; anel verde de fala com espaço reservado (sem deslocar layout); selo vermelho com `mic-off`/`headphone-off`; ponto de presença.
+- **Indicador de fala:** ativa com qualquer amostra confirmada (gate local após mute/PTT/sensibilidade ou nível decodificado do participante) e mantém 450 ms (suavização/histerese contra piscadas). Aparece na lista de canais, tiles, painel de membros, mini perfil, Home e painel de perfil.
+- **Estados vazios:** ícone em selo de acento, título, explicação e ações reais; nunca conteúdo fictício.
+
+### Estrutura
+
+Barra de título 38 px (marca, contexto, controles únicos 46×38 com fechar vermelho). Trilho 72 px (Início, servidores com pílula de seleção, criar, entrar por convite, Novidades). Lateral 252 px: canais do servidor com participantes de voz; DMs na Home; seções nas Configurações. Rodapé da lateral: painel de conexão (sala, estado efetivo, latência, diagnóstico, sair) e painel de perfil (avatar, presença, microfone/ensurdecer — ocultos na tela da chamada para não duplicar o dock —, configurações).
+
+Chamada: cabeçalho com canal, contagem e pílula de qualidade; grade adaptativa 16:9 (tile de voz limitado a 440 px), destaque com faixa lateral (≥ 900 px) ou inferior; tiles de vídeo real com "AO VIVO"/"CÂMERA", resolução e FPS; menu do participante com volume 0–200 %, mencionar e mensagem; dock flutuante: microfone, ensurdecer | câmera, tela | dispositivos, configurações | sair (vermelho).
+
+### Verificação
+
+Capturas antes/depois em `evidence/native-2.0/visual/before` e `after` (instâncias reais, tour com cliques). Regressão de renderização: `tests/render_damage.rs` e cenário `hover-50` sobre os pixels apresentados. QA geométrico do fixture visual verifica tamanhos de avatar, itens do trilho e controles de janela. Escalas de DPI diferentes de 100 % e homologação de acessibilidade com leitor de tela não foram testadas.
 
 ## Histórico visual 1.x
 

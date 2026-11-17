@@ -225,7 +225,6 @@ impl CueQueue {
     }
 }
 
-
 /// Plays a cue on `output` without a call (social notifications, previews).
 /// Opens the device briefly on a background thread and releases it afterwards.
 /// Returns immediately; at most one detached cue plays at a time.

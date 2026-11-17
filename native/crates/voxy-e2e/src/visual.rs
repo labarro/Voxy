@@ -150,35 +150,59 @@ pub fn hover_cycles(p: &mut Participant, run: &mut Run, cycles: usize) -> Result
     result
 }
 
-/// Screenshot tour of the main screens for before/after comparison. Uses the
-/// same clicks a person would; every step is a real interaction.
+/// Screenshot tour of the main screens for before/after comparison. Every step
+/// is a real click or the same edit message a widget emits.
 pub fn tour(people: &mut [Participant], run: &mut Run) -> Result<()> {
     let evidence = run.evidence.clone();
-    let ana = &mut people[0];
-    ana.screenshot(&evidence, "tour-call")?;
-    ana.nav("Início")?;
-    std::thread::sleep(Duration::from_millis(600));
-    ana.screenshot(&evidence, "tour-home")?;
-    if ana.has_label("Criar servidor") {
-        ana.click("Criar servidor")?;
+    let shot = |p: &mut Participant, name: &str| -> Result<()> {
         std::thread::sleep(Duration::from_millis(500));
-        ana.screenshot(&evidence, "tour-modal-create")?;
-        ana.click("Cancelar")?;
-    }
-    ana.nav("Configurações")?;
-    std::thread::sleep(Duration::from_millis(600));
-    ana.screenshot(&evidence, "tour-settings")?;
+        p.screenshot(&evidence, name)
+    };
+    // Conversation with real messages from two identities.
+    people[0].click("conversa")?;
+    people[0].type_text("draft", "Oi pessoal! Partida às 21h, quem topa?")?;
+    people[0].click("Enviar")?;
+    people[1].click("conversa")?;
+    people[1].type_text("draft", "Chegando! Vou abrir a tela pra mostrar o mapa.")?;
+    people[1].click("Enviar")?;
+    people[2].click("conversa")?;
+    people[2].type_text("draft", "Topo. Já estou na sala de voz https://example.com")?;
+    people[2].click("Enviar")?;
+    people[0].wait("mensagens recebidas", 15, |ui| {
+        ui["snapshot"]["messages"].as_u64() >= Some(3)
+    })?;
+    shot(&mut people[0], "tour-chat")?;
+    let ana = &mut people[0];
+    ana.click("Bruno")?;
+    shot(ana, "tour-mini-profile")?;
+    ana.click("Fechar perfil")?;
+    ana.click("Gerenciar servidor")?;
+    shot(ana, "tour-admin")?;
+    ana.click("Voz conectada")?;
+    shot(ana, "tour-call")?;
+    ana.click("Opções de Bruno")?;
+    shot(ana, "tour-tile-menu")?;
+    ana.click("Fechar opções")?;
+    ana.click("Dispositivos de áudio")?;
+    shot(ana, "tour-devices")?;
+    ana.click("Dispositivos de áudio")?;
+    ana.nav("Início")?;
+    shot(ana, "tour-home")?;
+    ana.click("Criar servidor")?;
+    shot(ana, "tour-modal-create")?;
+    ana.click("Cancelar")?;
+    ana.click("Configurações")?;
+    shot(ana, "tour-settings-audio")?;
     for (label, file) in [
-        ("Áudio e voz", "tour-settings-audio"),
+        ("Vídeo e transmissão", "tour-settings-video"),
+        ("Perfil", "tour-settings-profile"),
+        ("Notificações e sons", "tour-settings-sounds"),
         ("Aparência", "tour-settings-appearance"),
     ] {
-        if ana.has_label(label) {
-            ana.click(label)?;
-            std::thread::sleep(Duration::from_millis(500));
-            ana.screenshot(&evidence, file)?;
-        }
+        ana.click(label)?;
+        shot(ana, file)?;
     }
-    // Tooltip: hover a rail item and capture the presented pixels.
+    // Tooltip on the presented pixels.
     let hwnd = ana.hwnd()?;
     let target = ana.ui()["labels"]
         .as_array()
@@ -199,8 +223,28 @@ pub fn tour(people: &mut [Participant], run: &mut Run) -> Result<()> {
         target["y"].as_f64().unwrap_or(0.0) as f32 + 20.0,
     )?;
     std::thread::sleep(Duration::from_millis(900));
-    let shot = grab(ana)?;
+    let tip = grab(ana)?;
     win::set_topmost(hwnd, false);
-    save(&evidence.join("ana-tour-tooltip.png"), &shot)?;
-    run.check("tour visual capturado", true, json!({"screens":8}))
+    save(&evidence.join("ana-tour-tooltip.png"), &tip)?;
+    // Window sizes on the call view (the connection panel opens it from anywhere).
+    ana.click("Voz conectada")?;
+    for (w, h) in [(1280, 720), (1600, 900), (1920, 1080)] {
+        win::place(hwnd, 20, 20, w, h);
+        std::thread::sleep(Duration::from_millis(900));
+        let file = format!("tour-call-{w}x{h}");
+        ana.screenshot(&evidence, &file)?;
+    }
+    win::place(hwnd, 20, 20, 1180, 760);
+    std::thread::sleep(Duration::from_millis(1500));
+    // Theme switch (Kuromi) through settings, then the call and home.
+    ana.click("Configurações")?;
+    ana.click("Aparência")?;
+    ana.click("Kuromi")?;
+    ana.click("Salvar")?;
+    ana.wait("tema salvo", 10, |ui| ui["theme"] == "Kuromi")?;
+    ana.click("Voz conectada")?;
+    shot(ana, "tour-call-kuromi")?;
+    ana.nav("Início")?;
+    shot(ana, "tour-home-kuromi")?;
+    run.check("tour visual capturado", true, json!({"screens":21}))
 }

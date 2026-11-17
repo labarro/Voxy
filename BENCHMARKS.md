@@ -31,3 +31,16 @@ Amostra única de cada processo do Voxy ao final de execuções E2E reais (`voxy
 | Tela 720p30, espectador (50 s) | interface / sessão | 32,7 / 25,6 MiB | 13,0 / 7,0 MiB | 7,0 / 2,0 s |
 
 Fonte: `evidence/native-2.0/e2e/voice-3-release-public-20261117-165715/voice-3.json` e `evidence/native-2.0/e2e/screen-2-release-public-20261117-171624/screen-2.json` (`resourcesAtEnd`). Codificação H.264 por software; a decodificação e a conversão de cores do espectador rodam na interface. Pendentes: câmera, várias transmissões simultâneas, multimídia com 3 participantes, chamada minimizada, PiP, encerramento de mídia e sessão prolongada.
+
+## Antes × depois do redesign — 17/11/2026 (noite)
+
+Mesmo cenário (voice-3: 3 instâncias reais, release, sinalização pública, áudio sintético), amostra única ao final. "Antes" = build anterior ao redesign; "depois" = nova interface, sons e correções. Médias dos três participantes; CPU acumulada no fim da execução.
+
+| Processo | Working set antes → depois | Private bytes antes → depois | CPU (s) antes (77 s) → depois (84 s) |
+| --- | --- | --- | --- |
+| Interface | 28,2 → 29,9 MiB | 10,7 → 11,0 MiB | 0,5–2,9 → 0,3–1,9 |
+| Sessão | 25,6 → 28,3 MiB | 8,0 → 9,4 MiB | 2,5–3,0 → 2,6–4,4 |
+
+Outras amostras com a nova interface: câmera 360p30 publicada (camera-2): interface/sessão 30,6/28,7 MiB WS; espectador 36,0/26,9 MiB. Tela 720p30 (screen-2): transmissor 45,3/49,4 MiB WS (17,6/29,4 MiB privados); espectador 33,4/26,4 MiB. Fontes: `evidence/native-2.0/e2e/voice-3-release-public-20261117-redesign`, `camera-2-release-public-20261117-193136`, `screen-2-release-public-20261117-193214`.
+
+Leitura: a interface ficou mais barata em CPU (sem atmosfera em canvas e sem composição translúcida) e ganhou ~1,7 MiB pelo rasterizador SVG dos ícones; a sessão ganhou ~2,7 MiB e publica estado a cada 250 ms (antes 500 ms) para o indicador de fala responder. Uma versão intermediária que clonava o estado inteiro a cada publicação atrasou o áudio (vazamento da própria voz no analisador) e foi corrigida. São amostras pontuais, não benchmarks prolongados: faltam execução longa (crescimento de memória), GPU/VRAM, aplicativo minimizado, multimídia simultânea e chamada com a interface fechada medidos após o redesign.

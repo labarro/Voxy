@@ -188,7 +188,11 @@ fn software_h264_decodes_heights_not_aligned_to_16() -> Result<()> {
             for x in 0..640 {
                 let offset = (y * 640 + x) * 4;
                 // Blue on top, red at the bottom (BGRA).
-                let color = if y < 180 { [200, 40, 30, 255] } else { [30, 40, 200, 255] };
+                let color = if y < 180 {
+                    [200, 40, 30, 255]
+                } else {
+                    [30, 40, 200, 255]
+                };
                 pixels[offset..offset + 4].copy_from_slice(&color);
             }
         }
@@ -205,12 +209,24 @@ fn software_h264_decodes_heights_not_aligned_to_16() -> Result<()> {
     for frame in encoder.finish()? {
         decoded.extend(decoder.decode(&frame)?);
     }
-    ensure!(decoded.len() >= 10, "360p decoded only {} pictures", decoded.len());
+    ensure!(
+        decoded.len() >= 10,
+        "360p decoded only {} pictures",
+        decoded.len()
+    );
     let last = decoded.last().unwrap();
-    ensure!(last.width == 640 && last.height == 360, "wrong picture size");
+    ensure!(
+        last.width == 640 && last.height == 360,
+        "wrong picture size"
+    );
     // Chroma: V (Cr) is high for red, low for blue.
     let uv = &last.pixels[640 * 360..];
     let v_at = |row: usize| uv[row * 640 + 321] as i32;
-    ensure!(v_at(20) < 128 && v_at(160) > 128, "chroma rows {} / {}", v_at(20), v_at(160));
+    ensure!(
+        v_at(20) < 128 && v_at(160) > 128,
+        "chroma rows {} / {}",
+        v_at(20),
+        v_at(160)
+    );
     Ok(())
 }

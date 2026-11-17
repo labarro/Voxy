@@ -1,14 +1,21 @@
 {
   "2.0.0": {
     "date": "2026-11-17",
-    "title": "Migração nativa em preparação: comunicação, segurança e dados",
+    "title": "Voxy 2.0 nativo em preparação: nova interface, chamadas e mídia",
     "items": [
-      "Sessão Rust separada da interface, com voz Opus/SRTP e chat integrados aos canais.",
-      "Home social compacta, navegação e barra de título reconstruídas em grafite e prata.",
-      "Amizades e mensagens privadas persistidas pelo host, com snapshots privados por participante.",
-      "Desenvolvimento funcional com redesign suspenso; versão experimental não publicada."
+      "Sessão Rust separada da interface, com voz Opus/SRTP, chat, tela, câmera e áudio de aplicativo.",
+      "Nova interface Nocturne: trilho de servidores, lateral contextual, ícones Lucide e temas Voxy/Oceano/Bosque/Kuromi.",
+      "Tela de chamada dedicada com grade, vídeo ao vivo, destaque, indicadores verdes de fala e dock de controles.",
+      "Sons de chamada e de controles de volta, sintetizados no núcleo e ligados apenas a eventos confirmados.",
+      "Versão experimental não publicada; homologação entre computadores e redes distintas pendente."
     ],
     "features": [
+      "Tela de chamada: participantes em grade adaptativa, câmeras e telas recebidas em tempo real, destaque com faixa lateral, tela cheia, Picture-in-Picture e volume individual pelo menu do participante.",
+      "Indicador verde de fala ao redor dos avatares na lista de canais, na chamada, nos membros e no perfil, com retenção de 450 ms contra piscadas.",
+      "Sons de entrar/sair, participantes, PTT, mute, ensurdecer, compartilhamento, mensagens privadas, menções e amizades, com volume, grupos individuais e Não Perturbe.",
+      "Compartilhamento com áudio do aplicativo isolado por processo, comprovado com tons físicos: outros aplicativos e a própria chamada não são retransmitidos.",
+      "Home com chamada em andamento, chamadas agora, servidores, mensagens recentes, amigos e notificações reais; mini perfil com mencionar, mensagem e volume.",
+      "Seletor rápido de microfone e saída durante a chamada, painel de conexão com latência e diagnóstico, e configurações de Notificações e sons e de Vídeo.",
       "Hospedar e entrar por convite pela interface, com sinalização assinada, ICE/STUN configuráveis e malha de voz nativa.",
       "Entrada e saída de voz, dispositivos, PTT global/Mouse 4 e 5, mute/deafen e volume individual até 200%.",
       "Chamada preservada ao encerrar a janela; abrir o aplicativo novamente reconecta a interface à sessão local autenticada.",
@@ -30,6 +37,10 @@
       "Áudio no compartilhamento (opcional): janela compartilha somente o áudio daquele aplicativo e seus subprocessos; monitor compartilha o áudio do sistema excluindo o processo do Voxy que toca a chamada."
     ],
     "improvements": [
+      "Design system com tokens de cor, tipografia, espaçamento, raios e elevação, componentes reutilizáveis e teste de contraste em todos os temas.",
+      "Chat com mensagens agrupadas por autor, ações em sobreposição sem deslocar o layout, reações em pílulas e compositor integrado; DMs e gerenciamento do servidor no mesmo padrão.",
+      "Janela opaca sem frame DWM estendido: menor custo de composição e controles de janela únicos.",
+      "Prévias 3D removidas da interface convencional enquanto essa etapa está congelada (código e assets preservados).",
       "Controles e ícones vetoriais com dimensões fixas, avatares corrigidos, ações contextuais e rolagem sem encobrir conteúdo.",
       "Estilos próprios para campos, seleção, sliders, toggles e scrollbars; Acrylic opcional com fallback opaco e modo reduzido.",
       "Testes entre processos de sessão, malha com três participantes, isolamento de canais e fluxo duplex pelas APIs locais de áudio.",
@@ -45,6 +56,13 @@
       "Vídeo em fila própria limitada, separada da voz e dos comandos; quadros descartados forçam keyframe e a taxa se ajusta à pressão local; sem espectadores nada é enviado."
     ],
     "fixes": [
+      "Camada preta que escurecia painéis a cada hover: sombras do renderer eram desenhadas sem recorte fora da região redesenhada (correção no renderer, com testes de regressão).",
+      "Botões de minimizar, maximizar e fechar duplicados pela decoração nativa atrás da janela translúcida.",
+      "Nomes do trilho apareciam sem fundo sobre os canais; tooltips agora têm superfície, atraso e ajuste aos limites da janela.",
+      "Câmeras 360p nunca eram exibidas: o decodificador recusava a superfície alinhada a 16 linhas.",
+      "Botão Assistir podia ficar com largura zero na lista de canais.",
+      "Clicar em um canal de texto durante a chamada não abria o chat.",
+      "Observador de sons copiava o estado inteiro da sessão e atrasava o áudio; agora usa um resumo pequeno.",
       "Avatares deixam de se expandir e deslocar mensagens, nomes e participantes.",
       "Barra lateral e controles de minimizar/maximizar/fechar usam alinhamento e dimensões próprios.",
       "Captura só confirma prontidão após codificar um frame; underrun recuperável não encerra a voz.",

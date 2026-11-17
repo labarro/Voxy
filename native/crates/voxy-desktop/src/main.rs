@@ -1,10 +1,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+mod admin;
 mod automation;
 mod bridge;
 mod call;
 mod chat;
 mod chrome;
 mod design;
+mod direct;
 mod fixtures;
 mod home;
 mod icons;
@@ -1838,6 +1840,8 @@ impl App {
                     .any(|c| c.id == id && c.kind == ChannelKind::Text)
                 {
                     self.channel = Some(id);
+                    // A text channel always opens its conversation (the call keeps running).
+                    self.page = Page::Chat;
                     self.messages = if self.is_remote() {
                         self.remote
                             .snapshot
@@ -2626,6 +2630,7 @@ impl App {
                 "status": self.status,
                 "profileId": self.profile.id,
                 "profileName": self.profile.name,
+                "theme": format!("{:?}", self.profile.theme),
                 "input": self.profile.input,
                 "output": self.profile.output,
                 "serviceAttached": self.service.is_some(),
@@ -2790,8 +2795,8 @@ impl App {
             Page::Call => call::view(self),
             Page::Settings => screens::settings(self),
             Page::News => screens::news(self),
-            Page::ServerSettings => screens::admin(self),
-            Page::Direct => screens::direct(self),
+            Page::ServerSettings => admin::view(self),
+            Page::Direct => direct::view(self),
         };
         let canvas = container(page)
             .width(Fill)
@@ -2861,9 +2866,9 @@ impl App {
             ]
             .into()
         } else if self.join_dialog {
-            stack![content,container(container(column![row![text("Entrar em servidor").font(bold()).size(20),space::horizontal(),self.action("×",Msg::Cancel,false)],text("Cole o convite enviado pelo dono do servidor.").size(13).color(m.muted),text_input("voxy-native://join/…",&self.invite_text).on_input(Msg::InviteText).on_submit(Msg::JoinRemote).padding(12).style(m.input()),text("Conexões diretas compartilham seu IP com os participantes. O host armazena as mensagens. TURN está desativado.").size(12).color(m.muted),row![space::horizontal(),self.action("Cancelar",Msg::Cancel,false),self.action("Entrar",Msg::JoinRemote,true)].spacing(8)].spacing(16)).padding(24).width(470).style(move |_|m.dialog())).center(Fill).style(move |_| m.scrim())].into()
+            stack![content,container(container(column![row![text("Entrar em servidor").font(bold()).size(20),space::horizontal(),ui::icon_button(m,icons::Icon::X,"Fechar",Some(Msg::Cancel),design::Tone::Ghost,32.0)],text("Cole o convite enviado pelo dono do servidor.").size(13).color(m.muted),text_input("voxy-native://join/…",&self.invite_text).on_input(Msg::InviteText).on_submit(Msg::JoinRemote).padding(12).style(m.input()),text("Conexões diretas compartilham seu IP com os participantes. O host armazena as mensagens. TURN está desativado.").size(12).color(m.muted),row![space::horizontal(),self.action("Cancelar",Msg::Cancel,false),self.action("Entrar",Msg::JoinRemote,true)].spacing(8)].spacing(16)).padding(24).width(470).style(move |_|m.dialog())).center(Fill).style(move |_| m.scrim())].into()
         } else if self.modal {
-            stack![content,container(container(column![row![text("Criar servidor").font(bold()).size(20),space::horizontal(),self.action("×",Msg::Cancel,false)],text("Um lugar para o seu grupo, com canais de texto e voz.").size(14).color(m.muted),text_input("Nome do servidor",&self.server_name).on_input(Msg::ServerName).on_submit(Msg::CreateServer).padding(15).style(m.input()),text("Depois de criar, hospede o servidor e copie o convite para seu grupo.").color(m.muted).size(12),row![space::horizontal(),self.action("Cancelar",Msg::Cancel,false),self.action("Criar servidor",Msg::CreateServer,true)].spacing(10)].spacing(22)).padding(32).width(530).style(move|_|m.dialog())).center(Fill).width(Fill).height(Fill).style(move |_| m.scrim())].into()
+            stack![content,container(container(column![row![text("Criar servidor").font(bold()).size(20),space::horizontal(),ui::icon_button(m,icons::Icon::X,"Fechar",Some(Msg::Cancel),design::Tone::Ghost,32.0)],text("Um lugar para o seu grupo, com canais de texto e voz.").size(14).color(m.muted),text_input("Nome do servidor",&self.server_name).on_input(Msg::ServerName).on_submit(Msg::CreateServer).padding(15).style(m.input()),text("Depois de criar, hospede o servidor e copie o convite para seu grupo.").color(m.muted).size(12),row![space::horizontal(),self.action("Cancelar",Msg::Cancel,false),self.action("Criar servidor",Msg::CreateServer,true)].spacing(10)].spacing(22)).padding(32).width(530).style(move|_|m.dialog())).center(Fill).width(Fill).height(Fill).style(move |_| m.scrim())].into()
         } else if self.notes_pending && self.page != Page::News && self.smoke_dir.is_none() {
             stack![content,container(container(column![text("Novidades do Voxy 2.0.0 em preparação").size(21).font(bold()),text("Esta versão experimental continua separada da 1.4.1 publicada. Consulte as funcionalidades e limitações antes de testar.").size(14),text("Comunicação nativa, comandos sociais, convites revogáveis e importação em cópia. Rede pública, mídia, 3D e homologação ainda pendentes.").size(13).color(m.muted),row![self.action("Ver novidades",Msg::Navigate(Page::News),false),self.action("Entendi",Msg::MarkNotes,true)].spacing(10)].spacing(18)).padding(26).width(540).style(move |_|m.dialog())).center(Fill).style(move |_| m.scrim())].into()
         } else {

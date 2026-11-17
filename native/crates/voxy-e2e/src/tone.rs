@@ -9,7 +9,10 @@ pub fn allowed() -> bool {
 /// Plays `hz` at a low level on the default output for as long as the
 /// returned stream lives.
 pub fn start(hz: f32) -> Result<cpal::Stream> {
-    ensure!(allowed(), "VOXY_TEST_PHYSICAL_AUDIO=1 é obrigatório para tons físicos");
+    ensure!(
+        allowed(),
+        "VOXY_TEST_PHYSICAL_AUDIO=1 é obrigatório para tons físicos"
+    );
     let device = cpal::default_host()
         .default_output_device()
         .context("sem saída padrão")?;

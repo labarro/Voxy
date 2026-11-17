@@ -71,7 +71,6 @@ fn live_call(app: &App) -> Option<Element<'_, Msg>> {
             },
         ));
     }
-    let (mute, deafen) = app.control_icons_sized(40.0);
     Some(
         container(
             row![
@@ -93,8 +92,6 @@ fn live_call(app: &App) -> Option<Element<'_, Msg>> {
                 ]
                 .spacing(8)
                 .width(Fill),
-                mute,
-                deafen,
                 ui::action(
                     m,
                     Some(Icon::Volume2),

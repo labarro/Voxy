@@ -1,0 +1,130 @@
+{
+  "binaries": "target/release",
+  "checks": [
+    {
+      "atSeconds": 21.836345672607422,
+      "check": "instâncias reais independentes",
+      "detail": {
+        "instances": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 26.042734146118164,
+      "check": "host registrado na sinalização pública",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 26.768232345581055,
+      "check": "convite copiado pela interface",
+      "detail": {
+        "length": 531,
+        "scheme": "voxy-native://"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 30.048248291015625,
+      "check": "Bruno entrou por convite",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 33.82954025268555,
+      "check": "Clara entrou por convite",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 35.80510711669922,
+      "check": "Ana em chamada confirmada pelo host",
+      "detail": {
+        "members": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 35.80532455444336,
+      "check": "Bruno em chamada confirmada pelo host",
+      "detail": {
+        "members": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 35.805511474609375,
+      "check": "Clara em chamada confirmada pelo host",
+      "detail": {
+        "members": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 88.49703216552734,
+      "check": "tour visual capturado",
+      "detail": {
+        "screens": 21
+      },
+      "passed": true
+    }
+  ],
+  "durationSeconds": 88.96709442138672,
+  "error": null,
+  "method": "independent voxy-desktop processes with own data dirs/identities/session processes; clicks are physical SendInput mouse input on visible labels, verified by the app's received-click position; text fields and pick-list choices applied as their widget messages; invite read from the clipboard written by the app's copy button; audio source/sink are the synthetic device boundary (VOXY_TEST_SYNTHETIC_AUDIO) feeding the unchanged DSP/Opus/SRTP/jitter/mixer pipeline",
+  "passed": true,
+  "physicalDevices": false,
+  "resourcesAtEnd": [
+    {
+      "cpuSeconds": 2.46875,
+      "participant": "Ana",
+      "pid": 13276,
+      "privateMiB": 11.81640625,
+      "workingSetMiB": 30.6875
+    },
+    {
+      "cpuSeconds": 4.09375,
+      "participant": "Ana",
+      "pid": 11076,
+      "privateMiB": 9.8828125,
+      "workingSetMiB": 28.91796875
+    },
+    {
+      "cpuSeconds": 1.625,
+      "participant": "Bruno",
+      "pid": 20260,
+      "privateMiB": 11.77734375,
+      "workingSetMiB": 30.41015625
+    },
+    {
+      "cpuSeconds": 4.796875,
+      "participant": "Bruno",
+      "pid": 24260,
+      "privateMiB": 9.58203125,
+      "workingSetMiB": 28.49609375
+    },
+    {
+      "cpuSeconds": 1.5625,
+      "participant": "Clara",
+      "pid": 24320,
+      "privateMiB": 11.76953125,
+      "workingSetMiB": 30.3671875
+    },
+    {
+      "cpuSeconds": 3.96875,
+      "participant": "Clara",
+      "pid": 9064,
+      "privateMiB": 9.73046875,
+      "workingSetMiB": 28.5625
+    }
+  ],
+  "sameMachine": true,
+  "scenario": "tour-3",
+  "signal": "wss://voxy.devbarros.com"
+}

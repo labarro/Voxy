@@ -477,7 +477,9 @@ impl<'runtime> H264Decoder<'runtime> {
             let height = size as u32;
             frame_bytes(width, height)?;
             // Same picture; the surface may be padded to the macroblock grid.
-            let padded = |picture: u32, surface: u32| surface >= picture && surface <= picture.div_ceil(16) * 16;
+            let padded = |picture: u32, surface: u32| {
+                surface >= picture && surface <= picture.div_ceil(16) * 16
+            };
             ensure!(
                 padded(self.format.width, width) && padded(self.format.height, height),
                 "Mudança de resolução H.264 exige renegociação explícita"

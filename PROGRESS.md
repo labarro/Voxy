@@ -1,5 +1,32 @@
 # Progresso — Voxy 2.0.0 nativo
 
+## Checkpoint 17/11/2026 (noite) — Experience & Design Polish + núcleo de comunicação
+
+Commits locais: `38bf0e5` (design system, tela de chamada, sons, correções de renderização), `2bd7e63` (decoder de câmera, E2E de mídia), `5c2ca3a` (E2E de áudio compartilhado) e o commit de documentação/telas deste checkpoint. Sem push, tag ou publicação.
+
+- **Camada preta acumulativa — causa raiz:** em `iced_tiny_skia 0.14.1` o pixmap da sombra era desenhado com máscara `None` (sem recorte) e o dano de um quad ignorava a sombra. Cada redesenho parcial escurecia o painel inteiro; só as regiões limpas voltavam ao normal (o padrão das capturas do usuário). Patch mínimo em `native/vendor/iced_tiny_skia` (ver `PATCH-VOXY.md`), testes `render_damage.rs` (o primeiro falhava com a correção parcial) e `hover-50` sobre pixels apresentados (PrintWindow): 0 pixels alterados após 50 ciclos.
+- **Controles duplicados — causa raiz:** `DwmExtendFrameIntoClientArea(-1)` + janela transparente fazia o DWM desenhar os botões nativos atrás dos personalizados. Janela opaca, sem backdrop; dark mode e cantos arredondados mantidos. Snap Layouts nativo no botão maximizar não implementado (exige hit-test não cliente).
+- **Interface:** design system (`design.rs`, `ui.rs`, Lucide em `icons.rs`), trilho/lateral/painéis (`chrome.rs`), tela de chamada (`call.rs`), chat e DMs (`chat.rs`, `direct.rs`), Home (`home.rs`), gerenciamento (`admin.rs`), seções de Vídeo e Notificações e sons. `art.rs` (ícones em canvas) e a atmosfera removidos. Prévias 3D fora da UI convencional; código preservado.
+- **Indicadores de fala:** anel verde a partir de estado confirmado (gate local; nível decodificado remoto), retenção 450 ms; exportado à automação (`memberView`) e verificado no voice-3.
+- **Sons:** `voxy-voice::cues` (tabela do Electron) + `voxy-session::sounds` (transições confirmadas, resumo pequeno do estado). Regressão encontrada e corrigida: clonar o `State` inteiro a cada publicação atrasava o áudio (voz própria vazava em 0,011); com o resumo voltou a 0,0.
+- **Câmera:** decoder recusava superfície 368 linhas para 360p (teste TDD `software_h264_decodes_heights_not_aligned_to_16`).
+- **Testes reais (release, sinalização pública, mesma máquina):** voice-3 28/28, screen-2 16/16 (inclui PiP), camera-2 12/12, share-audio-3 16/16 (tons físicos autorizados), hover-50 4/4, tour-3 (21 capturas). Isolamento WASAPI incluir/excluir árvore: A 6,06e-4 vs C 6,5e-11.
+- **Recursos (amostra pontual voice-3):** interface ~29–30 MiB WS / ~11 MiB privados, sessão ~28 MiB WS / ~9,7 MiB privados; ver BENCHMARKS.
+
+| Funcionalidade | Implementada | Integrada | E2E real | Homologação física | Evidência |
+| --- | --- | --- | --- | --- | --- |
+| Tela de chamada, grade, destaque, dock | sim | sim | sim (voice-3, screen-2, camera-2, tour-3) | não | `e2e/*-20261117-19*`, `visual/after` |
+| Indicador verde de fala | sim | sim | sim (memberView) | não (fonte sintética) | voice-3 redesign |
+| Sons | sim | sim | parcial (cue detectado no analisador; sem E2E dedicado) | não | `sounds.rs`, `cues.rs` |
+| Webcam | sim | sim | sim (camera-2) | não (câmera sintética) | camera-2-…-193136 |
+| PiP | sim | sim | sim (screen-2) | não | screen-2-…-193214 |
+| Áudio compartilhado isolado | sim | sim | sim (share-audio-3) | tons físicos no dispositivo padrão | share-audio-3-…-193728 |
+| Multimídia simultânea 3 participantes | — | — | **pendente** | não | — |
+| Encoder por hardware / bitrate por rede | não | — | — | — | — |
+
+Pendências técnicas: cenário multimídia simultâneo, E2E dedicado de sons e PTT, sincronia A/V precisa, H.264 por hardware e adaptação por RTT/perda, foto/capa/emoji de perfil, reações/respostas em DMs, chamadas privadas, Snap Layouts, migração privada, atualizador (download/aplicação/rollback), instalação em VM. Homologação física pendente: microfones e câmeras reais, computadores e redes distintas, DPI ≠ 100 %.
+
+
 ## Checkpoint 17/11/2026 (tarde) — validação real com instâncias do aplicativo
 
 Commits locais: `f0a989b` (runner de testes, E2E real, estados confirmados, lease da sinalização), `18c0115` (evidência pública de voz com 3 participantes), `62f76a9` (compartilhamento de tela ponta a ponta).

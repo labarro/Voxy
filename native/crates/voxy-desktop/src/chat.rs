@@ -38,7 +38,7 @@ pub(super) fn name_color(app: &App, member: uuid::Uuid) -> Option<Color> {
         .and_then(|r| hex(&r.color))
 }
 
-fn message_text(message: &str, m: Materials) -> Element<'_, Msg> {
+pub(super) fn message_text(message: &str, m: Materials) -> Element<'_, Msg> {
     let spans = voxy_core::links::message_parts(message)
         .into_iter()
         .map(|(label, link)| {

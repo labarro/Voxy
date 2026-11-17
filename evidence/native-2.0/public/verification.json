@@ -1,6 +1,6 @@
 {
   "checkedAt": "2026-11-17T18:22:19.175Z",
-  "version": "2.0.0",
+  "version": "2.0.0-beta.1",
   "publishedVersion": "1.4.1",
   "branch": "migration/2.0-native-audit",
   "rust": {
@@ -27,30 +27,16 @@
   "automaticUpdaterComplete": false,
   "artifacts": [
     {
-      "file": "Voxy-Native-Experimental-2.0.0-win-x64.zip",
-      "bytes": 18809855,
-      "sha256": "5542f5e7f12a8838f3a7608318f7afc09e25ca71f9577303ef2477aa5b9f1a95"
+      "file": "Voxy-Portable-2.0.0-beta.1-x64.zip",
+      "bytes": 19173225,
+      "sha256": "d912e5daf773282e72cd07e5e3ee5ecb36c70a0d093a48e202716d4be9b8cb2b"
     },
     {
-      "file": "Voxy-Native-Experimental-Setup-2.0.0-win-x64.exe",
-      "bytes": 12050825,
-      "sha256": "1cd45a748c984db78665ac96975c0e50a4bbe4dee4726722d5e465ad75522930"
+      "file": "Voxy-Setup-2.0.0-beta.1-x64.exe",
+      "bytes": 12760677,
+      "sha256": "44659759f2c25dcef5a1b7dadd8684fa50d1e2b75d0a39ab8c4899b138b9a814"
     }
   ],
-  "binaries": {
-    "voxy-core.exe": {
-      "bytes": 19133440,
-      "sha256": "abfa0d904f992dba736a908fdf96514359e40377022c63d3c50c3c5e10d60943"
-    },
-    "voxy-desktop.exe": {
-      "bytes": 16239616,
-      "sha256": "eadcebd108183e58cf73838bf2a87213ad9c57ac17f07439117bc8cffc4009f1"
-    },
-    "voxy-world.exe": {
-      "bytes": 5535232,
-      "sha256": "cea1f8b605b5193853c7d8b4b6e7d3db4c23ecaf60930ec57aed72995e2bda3e"
-    }
-  },
   "packagedProbes": {
     "version": "2.0.0",
     "appId": "dev.voxy.native.experimental",

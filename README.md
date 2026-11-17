@@ -6,9 +6,9 @@
 
 ### Converse. Mostre. Fique por perto.
 
-## Novidades na versão 2.0.0 em preparação
+## Voxy 2.0 Beta 1 (2.0.0-beta.1) — pre-release para homologação
 
-**Código em preparação: 2.0.0. Última versão publicada: 1.4.1.** Desenvolvimento isolado na branch de migração; Electron legado, main, releases e dados estáveis preservados. Nenhuma distribuição nativa foi publicada.
+**Beta: 2.0.0-beta.1 ([página da release](https://github.com/labarro/Voxy/releases/tag/v2.0.0-beta.1)). Versão estável: 1.4.1.** A beta é instalada à parte, com pasta, atalhos e dados próprios, e não substitui nem atualiza a 1.4.1. Instalador `Voxy-Setup-2.0.0-beta.1-x64.exe`, ZIP portátil `Voxy-Portable-2.0.0-beta.1-x64.zip` e `SHA256SUMS.txt` estão na página da release. Sem assinatura Authenticode: o Windows pode exibir o SmartScreen. Novidades e problemas conhecidos: [notas da Beta 1](release-notes/v2.0.0-beta.1.md).
 
 O desktop Rust/Iced controla uma sessão Rust independente: hospedar, entrar por convite, chat/imagens, amizades/DMs, canais e voz Opus/SRTP. Fechar a interface conserva a chamada e reabrir reconecta por IPC autenticado. Os dados experimentais ficam em %APPDATA%/voxy-native-experimental, separados da 1.4.1.
 
@@ -30,13 +30,13 @@ Testes contra a infraestrutura pública passaram com processos nesta máquina: c
 
 **Verificado com instâncias reais** (todas nesta máquina, sinalização pública): voz com três participantes 28/28, compartilhamento de tela com PiP 16/16, câmera 12/12, áudio compartilhado 16/16, 50 ciclos de hover sem resíduo e tour visual de 21 telas ([antes](evidence/native-2.0/visual/before) / [depois](evidence/native-2.0/visual/after)). Detalhes em [TESTING.md](TESTING.md).
 
-Para desenvolver: **npm run native:dev**. Um instalador experimental local é gerado por `powershell -File scripts/package-native.ps1` em `release/2.0.0/native-experimental/` (sem assinatura Authenticode, sem teste em VM, não publicado). [Guia nativo](native/README.md) e [homologação pública](native/PUBLIC-TESTING.md).
+Para desenvolver: **npm run native:dev**. Um instalador experimental local é gerado por `powershell -File scripts/package-native.ps1` em `release/2.0.0/native-experimental/` (sem assinatura Authenticode, sem teste em VM). [Guia nativo](native/README.md) e [homologação pública](native/PUBLIC-TESTING.md).
 
 A sinalização foi corrigida: cada servidor hospedado ocupa uma vaga somente enquanto o host está conectado (lease de 15 minutos renovado automaticamente). Antes a vaga ficava presa até o convite expirar, e após dez servidores no dia ninguém mais conseguia hospedar.
 
 Falhas de captura/saída em chamada ativa agora silenciam o microfone e tentam recuperar a mesma seleção em até três tentativas. Sair, desconectar ou remover o canal cancela a recuperação. O retorno exige desmutar explicitamente; hotplug e recuperação física ainda não estão homologados.
 
-**Ainda faltam:** foto/capa/emoji de perfil, reações e respostas em DMs, chamadas privadas, codificação por hardware e adaptação de bitrate por RTT/perda, migração privada integral, aplicação/rollback de atualizações, homologação entre computadores e redes distintas (TURN desativado: NAT/CGNAT restritivos podem impedir a conexão), DPI diferente de 100 % e acessibilidade. Ambientes 3D, avatares e minijogos seguem congelados. Nenhuma tag ou release 2.0 foi publicada.
+**Ainda faltam:** foto/capa/emoji de perfil, reações e respostas em DMs, chamadas privadas, codificação por hardware e adaptação de bitrate por RTT/perda, migração privada integral, aplicação/rollback de atualizações, homologação entre computadores e redes distintas (TURN desativado: NAT/CGNAT restritivos podem impedir a conexão), DPI diferente de 100 % e acessibilidade. Ambientes 3D, avatares e minijogos seguem congelados. A 2.0.0-beta.1 é uma pre-release para homologação; a 1.4.1 continua sendo a versão estável.
 
 [Progresso](PROGRESS.md) · [Arquitetura](ARCHITECTURE.md) · [Paridade](FEATURE_PARITY.md) · [Benchmarks](BENCHMARKS.md) · [Design system](DESIGN-SYSTEM.md). Os downloads abaixo continuam sendo da **1.4.1 publicada**.
 

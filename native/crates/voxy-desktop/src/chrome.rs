@@ -30,20 +30,9 @@ pub(super) fn titlebar(app: &App) -> Element<'_, Msg> {
     let drag = mouse_area(
         container(
             row![
-                container(text("V").size(13).font(bold()).color(m.on_accent))
-                    .width(20)
-                    .height(20)
-                    .center(20)
-                    .style(move |_| container::Style {
-                        background: Some(m.accent.into()),
-                        border: Border {
-                            radius: 6.0.into(),
-                            ..Default::default()
-                        },
-                        ..Default::default()
-                    }),
+                widget::image(crate::brand::mark()).width(20).height(20),
                 text("Voxy").font(bold()).size(size::SMALL),
-                text("2.0 prévia").size(size::MICRO).color(m.faint),
+                text("2.0 Beta 1").size(size::MICRO).color(m.faint),
                 text("·").color(m.faint),
                 text(context).size(size::SMALL).color(m.muted),
                 text(if app.smoke_dir.is_some() {

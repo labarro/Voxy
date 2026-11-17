@@ -175,6 +175,31 @@ mod win32 {
     fn wide(value: &str) -> Vec<u16> {
         value.encode_utf16().chain(Some(0)).collect()
     }
+    /// The Voxy icon embedded in voxy-core.exe (resource id 1, small size for
+    /// the notification area); the generic application icon if absent.
+    fn app_icon() -> windows_sys::Win32::UI::WindowsAndMessaging::HICON {
+        use windows_sys::Win32::{
+            System::LibraryLoader::GetModuleHandleW,
+            UI::WindowsAndMessaging::{
+                GetSystemMetrics, IMAGE_ICON, LR_DEFAULTCOLOR, LoadImageW, SM_CXSMICON, SM_CYSMICON,
+            },
+        };
+        unsafe {
+            let icon = LoadImageW(
+                GetModuleHandleW(std::ptr::null()),
+                1 as _,
+                IMAGE_ICON,
+                GetSystemMetrics(SM_CXSMICON),
+                GetSystemMetrics(SM_CYSMICON),
+                LR_DEFAULTCOLOR,
+            );
+            if icon.is_null() {
+                LoadIconW(null_mut(), IDI_APPLICATION)
+            } else {
+                icon as _
+            }
+        }
+    }
     fn icon_data(window: HWND) -> NOTIFYICONDATAW {
         let mut data = NOTIFYICONDATAW {
             cbSize: std::mem::size_of::<NOTIFYICONDATAW>() as u32,
@@ -182,10 +207,10 @@ mod win32 {
             uID: 1,
             uFlags: NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_SHOWTIP,
             uCallbackMessage: CALLBACK,
-            hIcon: unsafe { LoadIconW(null_mut(), IDI_APPLICATION) },
+            hIcon: app_icon(),
             ..Default::default()
         };
-        let tooltip = wide("Voxy — sessão nativa");
+        let tooltip = wide("Voxy 2.0 Beta");
         data.szTip[..tooltip.len()].copy_from_slice(&tooltip);
         data
     }

@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod admin;
 mod automation;
+mod brand;
 mod bridge;
 mod call;
 mod chat;
@@ -2893,7 +2894,7 @@ impl App {
         } else if self.modal {
             stack![content,container(container(column![row![text("Criar servidor").font(bold()).size(20),space::horizontal(),ui::icon_button(m,icons::Icon::X,"Fechar",Some(Msg::Cancel),design::Tone::Ghost,32.0)],text("Um lugar para o seu grupo, com canais de texto e voz.").size(14).color(m.muted),text_input("Nome do servidor",&self.server_name).on_input(Msg::ServerName).on_submit(Msg::CreateServer).padding(15).style(m.input()),text("Depois de criar, hospede o servidor e copie o convite para seu grupo.").color(m.muted).size(12),row![space::horizontal(),self.action("Cancelar",Msg::Cancel,false),self.action("Criar servidor",Msg::CreateServer,true)].spacing(10)].spacing(22)).padding(32).width(530).style(move|_|m.dialog())).center(Fill).width(Fill).height(Fill).style(move |_| m.scrim())].into()
         } else if self.notes_pending && self.page != Page::News && self.smoke_dir.is_none() {
-            stack![content,container(container(column![text("Novidades do Voxy 2.0.0 em preparação").size(21).font(bold()),text("Esta versão experimental continua separada da 1.4.1 publicada. Consulte as funcionalidades e limitações antes de testar.").size(14),text("Comunicação nativa, comandos sociais, convites revogáveis e importação em cópia. Rede pública, mídia, 3D e homologação ainda pendentes.").size(13).color(m.muted),row![self.action("Ver novidades",Msg::Navigate(Page::News),false),self.action("Entendi",Msg::MarkNotes,true)].spacing(10)].spacing(18)).padding(26).width(540).style(move |_|m.dialog())).center(Fill).style(move |_| m.scrim())].into()
+            stack![content,container(container(column![text("Novidades do Voxy 2.0 Beta 1").size(21).font(bold()),text("Beta para homologação, instalada em paralelo à 1.4.1 estável. Consulte as novidades e os problemas conhecidos antes de testar.").size(14),text("Nova interface e tela de chamada, voz, tela com áudio do aplicativo, webcam, PiP e sons. Algumas redes podem não conectar (TURN desativado).").size(13).color(m.muted),row![self.action("Ver novidades",Msg::Navigate(Page::News),false),self.action("Entendi",Msg::MarkNotes,true)].spacing(10)].spacing(18)).padding(26).width(540).style(move |_|m.dialog())).center(Fill).style(move |_| m.scrim())].into()
         } else {
             content
         }
@@ -2925,6 +2926,7 @@ fn main() -> iced::Result {
         .window(iced::window::Settings {
             size: iced::Size::new(1240.0, 820.0),
             min_size: Some(iced::Size::new(900.0, 640.0)),
+            icon: brand::window_icon(),
             decorations: false,
             exit_on_close_request: false,
             ..Default::default()

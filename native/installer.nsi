@@ -14,7 +14,22 @@ Unicode true
 !endif
 !define APP_ID "dev.voxy.native.experimental"
 !define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\VoxyNativeExperimental"
-Name "Voxy Native Experimental ${VOXY_VERSION}"
+Name "Voxy 2.0 Beta ${VOXY_VERSION}"
+!ifndef VOXY_NUMERIC_VERSION
+!error "VOXY_NUMERIC_VERSION is required (x.y.z.w)"
+!endif
+Icon "${VOXY_ICON}"
+UninstallIcon "${VOXY_ICON}"
+!define MUI_ICON "${VOXY_ICON}"
+!define MUI_UNICON "${VOXY_ICON}"
+VIProductVersion "${VOXY_NUMERIC_VERSION}"
+VIFileVersion "${VOXY_NUMERIC_VERSION}"
+VIAddVersionKey "ProductName" "Voxy"
+VIAddVersionKey "FileDescription" "Instalador do Voxy 2.0 Beta"
+VIAddVersionKey "ProductVersion" "${VOXY_VERSION}"
+VIAddVersionKey "FileVersion" "${VOXY_VERSION}"
+VIAddVersionKey "CompanyName" "Voxy"
+VIAddVersionKey "LegalCopyright" "Voxy · MIT"
 OutFile "${VOXY_OUTPUT}"
 InstallDir "$LOCALAPPDATA\Programs\VoxyNativeExperimental"
 RequestExecutionLevel user
@@ -98,7 +113,7 @@ Function ${PREFIX}CheckExecutableUnlocked
   System::Call 'kernel32::CloseHandle(p r1)'
   Goto unlocked_${PREFIX}
   locked_${PREFIX}:
-    MessageBox MB_ICONSTOP "Feche o Voxy Native Experimental, a sessão e as prévias 3D antes de continuar. Nenhum processo será encerrado pelo instalador."
+    MessageBox MB_ICONSTOP "Feche o Voxy 2.0 Beta, a sessão e as prévias 3D antes de continuar. Nenhum processo será encerrado pelo instalador."
     Abort
   unlocked_${PREFIX}:
   Pop $0
@@ -122,7 +137,7 @@ Function un.onInit
     Abort
 FunctionEnd
 
-Section "Voxy Native Experimental" Main
+Section "Voxy 2.0 Beta" Main
   Call ValidateDestination
   Push "voxy-desktop.exe"
   Call CheckExecutableUnlocked
@@ -137,10 +152,15 @@ Section "Voxy Native Experimental" Main
   WriteINIStr "$INSTDIR\.voxy-native-install.ini" "Voxy" "Path" "$INSTDIR"
   WriteINIStr "$INSTDIR\.voxy-native-install.ini" "Voxy" "Version" "${VOXY_VERSION}"
   WriteUninstaller "$INSTDIR\Uninstall.exe"
-  CreateDirectory "$SMPROGRAMS\Voxy Native Experimental"
-  CreateShortcut "$SMPROGRAMS\Voxy Native Experimental\Voxy Native Experimental.lnk" "$INSTDIR\voxy-desktop.exe"
-  CreateShortcut "$SMPROGRAMS\Voxy Native Experimental\Desinstalar.lnk" "$INSTDIR\Uninstall.exe"
-  WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayName" "Voxy Native Experimental"
+  ; Earlier experimental builds used another Start menu folder: remove only our own links.
+  Delete "$SMPROGRAMS\Voxy Native Experimental\Voxy Native Experimental.lnk"
+  Delete "$SMPROGRAMS\Voxy Native Experimental\Desinstalar.lnk"
+  RMDir "$SMPROGRAMS\Voxy Native Experimental"
+  CreateDirectory "$SMPROGRAMS\Voxy 2.0 Beta"
+  CreateShortcut "$SMPROGRAMS\Voxy 2.0 Beta\Voxy 2.0 Beta.lnk" "$INSTDIR\voxy-desktop.exe" "" "$INSTDIR\voxy-desktop.exe" 0
+  CreateShortcut "$SMPROGRAMS\Voxy 2.0 Beta\Desinstalar.lnk" "$INSTDIR\Uninstall.exe"
+  WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayName" "Voxy 2.0 Beta"
+  WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayIcon" "$INSTDIR\voxy-desktop.exe,0"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayVersion" "${VOXY_VERSION}"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "Publisher" "Voxy"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "VoxyNativeOwner" "${APP_ID}"
@@ -165,6 +185,9 @@ Section "Uninstall"
   Delete "$INSTDIR\Uninstall.exe"
   RMDir "$INSTDIR\world-assets"
   RMDir "$INSTDIR"
+  Delete "$SMPROGRAMS\Voxy 2.0 Beta\Voxy 2.0 Beta.lnk"
+  Delete "$SMPROGRAMS\Voxy 2.0 Beta\Desinstalar.lnk"
+  RMDir "$SMPROGRAMS\Voxy 2.0 Beta"
   Delete "$SMPROGRAMS\Voxy Native Experimental\Voxy Native Experimental.lnk"
   Delete "$SMPROGRAMS\Voxy Native Experimental\Desinstalar.lnk"
   RMDir "$SMPROGRAMS\Voxy Native Experimental"

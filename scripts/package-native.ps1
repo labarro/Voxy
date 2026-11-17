@@ -29,7 +29,7 @@ function Assert-NativePlainPath([string]$Path) {
     }
 }
 foreach ($path in @((Join-Path $nativePackageRoot 'release'),$releaseParent,$output,$outputMarker)) { Assert-NativePlainPath $path }
-foreach ($name in @('packaged-probes.json','artifacts.json',"Voxy-Native-Experimental-$version-win-x64.zip","Voxy-Native-Experimental-Setup-$version-win-x64.exe")) { Assert-NativePlainPath (Join-Path $output $name) }
+foreach ($name in @('packaged-probes.json','artifacts.json',"Voxy-Portable-$version-x64.zip","Voxy-Setup-$version-x64.exe","SHA256SUMS.txt")) { Assert-NativePlainPath (Join-Path $output $name) }
 if (Test-Path -LiteralPath $output) {
     $existing=@(Get-ChildItem -LiteralPath $output -Force)
     if ($existing.Count -gt 0 -and (!(Test-Path -LiteralPath $outputMarker) -or (Get-Content -Raw -Encoding utf8 $outputMarker) -ne $nativePackageId)) { throw 'Destino não vazio pertence a outro conjunto; nenhum arquivo será substituído.' }
@@ -104,7 +104,7 @@ foreach ($dependency in $metadata.packages | Where-Object { $_.source } | Sort-O
 }
 Write-NativeUtf8 (Join-Path $licenseRoot 'rust-dependencies.json') ($licenseInventory | ConvertTo-Json -Depth 8)
 Write-NativeUtf8 (Join-Path $licenseRoot 'REVIEW-STATUS.txt') "Local experimental build. Includes available notices from the locked Rust dependency sources, including target-only and development dependencies. This inventory is not a completed distribution license review. Voxy author copyright/license notice remains pending; see world-assets/NOTICE-Voxy.txt. Asset attribution is in world-assets/LICENSE-furniture.txt.`r`n"
-Write-NativeUtf8 (Join-Path $payload 'DISTRIBUTION-NOTICE.txt') "Voxy $version - Native Experimental`r`nAppId: $nativePackageId`r`nPacote local sem assinatura de distribuição. Não é atualização estável nem release publicada.`r`nInstalação paralela: LOCALAPPDATA/Programs/VoxyNativeExperimental. Dados experimentais e dados 1.4.1 preservados.`r`nProtocolo voxy-native:// somente quando habilitado nas preferências. Nenhum registro voxy:// pelo instalador.`r`nREADME e world-assets/NOTICE-Voxy.txt registram limitações e atribuições. Instalação/desinstalação ainda exigem ensaio em VM.`r`n"
+Write-NativeUtf8 (Join-Path $payload 'DISTRIBUTION-NOTICE.txt') "Voxy $version - beta para homologação`r`nAppId: $nativePackageId`r`nSem assinatura Authenticode. Não substitui nem atualiza a versão estável 1.4.1.`r`nInstalação paralela: LOCALAPPDATA/Programs/VoxyNativeExperimental. Dados experimentais e dados 1.4.1 preservados.`r`nProtocolo voxy-native:// somente quando habilitado nas preferências. Nenhum registro voxy:// pelo instalador.`r`nREADME e world-assets/NOTICE-Voxy.txt registram limitações e atribuições. Instalação/desinstalação ainda exigem ensaio em VM.`r`n"
 $probeRoot=Join-Path $output ('verification-'+[guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $probeRoot | Out-Null
 Write-NativeUtf8 (Join-Path $probeRoot '.voxy-probe-owner') $nativePackageId
@@ -170,7 +170,7 @@ foreach ($directory in $directories) { $uninstallLines.Add('RMDir "$INSTDIR\'+(E
 Write-NativeUtf8 (Join-Path $stage 'install-files.nsh') ($installLines -join "`r`n")
 Write-NativeUtf8 (Join-Path $stage 'uninstall-files.nsh') ($uninstallLines -join "`r`n")
 Write-NativeUtf8 (Join-Path $stage 'validate-files.nsh') ($validateLines -join "`r`n")
-$zip=Join-Path $output "Voxy-Native-Experimental-$version-win-x64.zip"
+$zip=Join-Path $output "Voxy-Portable-$version-x64.zip"
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $pendingZip=Join-Path $stage 'portable.pending.zip'
 [IO.Compression.ZipFile]::CreateFromDirectory($payload,$pendingZip,[IO.Compression.CompressionLevel]::Optimal,$false)
@@ -179,10 +179,15 @@ $artifacts=@([ordered]@{file=[IO.Path]::GetFileName($zip);bytes=(Get-Item -Liter
 if (!$SkipInstaller) {
     if (!$NsisPath) { $nsisCache=Join-Path $env:LOCALAPPDATA 'electron-builder/Cache/nsis-3.0.4.1';$NsisPath=Get-ChildItem -LiteralPath $nsisCache -Recurse -File -Filter makensis.exe | Sort-Object FullName | Select-Object -First 1 -ExpandProperty FullName }
     if (!$NsisPath -or !(Test-Path -LiteralPath $NsisPath)) { throw 'makensis não encontrado. Informe -NsisPath ou prepare somente o ZIP com -SkipInstaller.' }
-    $installer=Join-Path $output "Voxy-Native-Experimental-Setup-$version-win-x64.exe"
-    & $NsisPath '/V2' "/DVOXY_VERSION=$version" "/DVOXY_PAYLOAD=$stage" "/DVOXY_OUTPUT=$installer" (Join-Path $nativePackageRoot 'native/installer.nsi')
+    $installer=Join-Path $output "Voxy-Setup-$version-x64.exe"
+    # Windows numeric version: x.y.z plus the prerelease number (2.0.0-beta.1 -> 2.0.0.1).
+    $core,$pre=$version.Split('-',2); $build=if ($pre -match '(\d+)$') { $Matches[1] } else { '0' }
+    $icon=Join-Path $nativePackageRoot 'native/crates/voxy-desktop/assets/voxy.ico'
+    & $NsisPath '/V2' "/DVOXY_VERSION=$version" "/DVOXY_NUMERIC_VERSION=$core.$build" "/DVOXY_ICON=$icon" "/DVOXY_PAYLOAD=$stage" "/DVOXY_OUTPUT=$installer" (Join-Path $nativePackageRoot 'native/installer.nsi')
     if ($LASTEXITCODE -ne 0) { throw 'NSIS experimental não compilou.' }
     $artifacts+=[ordered]@{file=[IO.Path]::GetFileName($installer);bytes=(Get-Item -LiteralPath $installer).Length;sha256=(Get-FileHash -LiteralPath $installer).Hash.ToLowerInvariant()}
 }
 Write-NativeUtf8 (Join-Path $output 'artifacts.json') ([ordered]@{version=$version;appId=$nativePackageId;experimental=$true;signed=$false;published=$false;payload=$payload;artifacts=$artifacts} | ConvertTo-Json -Depth 8)
+# Release checksums for the published files (sha256sum format).
+Write-NativeUtf8 (Join-Path $output 'SHA256SUMS.txt') ((($artifacts | ForEach-Object { $_.sha256+'  '+$_.file }) -join "`n")+"`n")
 Write-Output "Pacote nativo experimental preparado localmente em $output. Nenhuma instalação, assinatura, publicação ou atualização estável foi executada."

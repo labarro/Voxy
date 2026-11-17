@@ -1,6 +1,6 @@
-# Voxy Native Experimental 2.0.0
+# Voxy 2.0 Beta 1 (2.0.0-beta.1)
 
-Pacote local de testes, sem publicação e sem assinatura Authenticode. A versão estável continua sendo a 1.4.1. Confira o SHA-256 do instalador/ZIP em `artifacts.json`, recebido diretamente do operador.
+Beta para homologação, sem assinatura Authenticode (o Windows pode exibir o SmartScreen: "Mais informações" › "Executar assim mesmo"). A versão estável continua sendo a 1.4.1, instalada separadamente; esta beta não a substitui nem altera seus dados. Confira o SHA-256 em SHA256SUMS.txt da página da release.
 
 Execute `voxy-desktop.exe`, crie um servidor e escolha **Hospedar**. Compartilhe o convite **voxy-native://join/**; os amigos usam **Entrar por convite**. A sinalização já usa **wss://voxy.devbarros.com** e STUN, sem configurar IP, VPN ou portas. O host deve permanecer ligado. TURN está desativado; redes restritivas podem impedir a conexão direta e mostrar erro.
 

@@ -1,6 +1,6 @@
 {
   "name": "voxy-desktop",
-  "version": "2.0.0",
+  "version": "2.0.0-beta.1",
   "private": true,
   "description": "Voxy 2.0 nativo experimental — voz e comunicação P2P entre amigos",
   "author": "Voxy",
@@ -87,7 +87,7 @@
     "appId": "dev.voxy.desktop",
     "productName": "Voxy",
     "directories": {
-      "output": "release/2.0.0"
+      "output": "release/2.0.0-beta.1"
     },
     "files": [
       "dist/**/*",

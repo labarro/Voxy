@@ -1,13 +1,13 @@
 {
-  "2.0.0": {
+  "2.0.0-beta.1": {
     "date": "2026-11-17",
-    "title": "Voxy 2.0 nativo em preparação: nova interface, chamadas e mídia",
+    "title": "Voxy 2.0 Beta 1 — Uma nova geração do Voxy",
     "items": [
-      "Sessão Rust separada da interface, com voz Opus/SRTP, chat, tela, câmera e áudio de aplicativo.",
-      "Nova interface Nocturne: trilho de servidores, lateral contextual, ícones Lucide e temas Voxy/Oceano/Bosque/Kuromi.",
-      "Tela de chamada dedicada com grade, vídeo ao vivo, destaque, indicadores verdes de fala e dock de controles.",
-      "Sons de chamada e de controles de volta, sintetizados no núcleo e ligados apenas a eventos confirmados.",
-      "Versão experimental não publicada; homologação entre computadores e redes distintas pendente."
+      "Primeira beta do Voxy 2.0, reconstruído em Rust nativo: destinada à homologação com amigos, instalada em paralelo à 1.4.1 estável.",
+      "Nova identidade visual, novo ícone e nova interface com trilho de servidores, lateral de canais e tela de chamada dedicada.",
+      "Conexão por convite pela sinalização pública do Voxy, sem dependência obrigatória do Radmin VPN (TURN desativado: algumas redes podem não conectar).",
+      "Voz, compartilhamento de tela com áudio isolado do aplicativo, webcam, tela cheia, Picture-in-Picture, indicadores de fala e efeitos sonoros.",
+      "Executável sem assinatura Authenticode; o Windows pode exibir aviso do SmartScreen."
     ],
     "features": [
       "Tela de chamada: participantes em grade adaptativa, câmeras e telas recebidas em tempo real, destaque com faixa lateral, tela cheia, Picture-in-Picture e volume individual pelo menu do participante.",

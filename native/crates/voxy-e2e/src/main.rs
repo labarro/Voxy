@@ -384,16 +384,16 @@ fn voice_scenario(
     kind: &str,
 ) -> Result<Value> {
     // Screen scenarios share a dynamic synthetic window; killed when the run ends.
-    if kind == "share-audio" {
+    if kind == "share-audio" || kind == "multi" {
         ensure!(
             tone::allowed(),
             "share-audio exige VOXY_TEST_PHYSICAL_AUDIO=1 (tons físicos autorizados)"
         );
     }
-    let mut pattern_window = if kind == "screen" || kind == "share-audio" {
+    let mut pattern_window = if kind == "screen" || kind == "share-audio" || kind == "multi" {
         let mut command = std::process::Command::new(std::env::current_exe()?);
         command.args(["--pattern-window"]);
-        if kind == "share-audio" {
+        if kind == "share-audio" || kind == "multi" {
             command.env("VOXY_E2E_TONE_HZ", "470");
         }
         Some(command.spawn()?)
@@ -522,6 +522,7 @@ fn voice_scenario(
                 json!({"phase":ui["session"]["phase"]}),
             )?;
         }
+        let joins_at = now_ms();
         for p in &mut people {
             p.click("Sala dos amigos")?;
         }
@@ -537,8 +538,24 @@ fn voice_scenario(
         for p in &mut people {
             p.screenshot(&run.evidence, "in-call")?;
         }
+        if kind == "voice" {
+            // Interface sounds reach the local output only: own join (392/523/784 Hz,
+            // 520 probe) and a participant joining (440/660 Hz, 440 probe).
+            // Join notes (392/523 Hz) sit 3–4 Hz from the 380/520 probes, so the
+            // own-join cue is checked by spectral dominance in a window instead.
+            let own = dominance(&people[0], joins_at, 520);
+            let peer = peak(&people[0], joins_at, 440);
+            run.check(
+                "Ana ouve o som de entrada e o de participante entrando",
+                own > 0.05 && peer > 0.008,
+                json!({"join520Fraction":own,"peerJoin440":peer}),
+            )?;
+        }
         if kind == "tour" {
             return visual::tour(&mut people, &mut run);
+        }
+        if kind == "multi" {
+            return multi_steps(&mut people, &mut run);
         }
         if kind == "share-audio" {
             return share_audio_steps(&mut people, &mut run);
@@ -630,6 +647,7 @@ fn voice_scenario(
         )?;
         std::fs::write(run.evidence.join("diagnostico-ana.txt"), &diagnostics)?;
         // Mute at A: confirmed by session and host, and A's voice disappears for others.
+        let mute_at = now_ms();
         people[0].click("Silenciar microfone")?;
         let a_id = people[0].ui()["profileId"].clone();
         people[0].wait("mute confirmado pela sessão", 10, |ui| {
@@ -670,10 +688,27 @@ fn voice_scenario(
             seen.clone(),
         )?;
         people[1].screenshot(&run.evidence, "sees-ana-muted")?;
+        let (own, leaked) = (
+            peak(&people[0], mute_at, 380),
+            peak(&people[1], mute_at, 380),
+        );
+        run.check(
+            "som de mute toca para Ana e não vaza para a chamada",
+            own > 0.008 && leaked < ABSENT,
+            json!({"ana380":own,"bruno380":leaked}),
+        )?;
+        let unmute_at = now_ms();
         people[0].click("Ativar microfone")?;
         people[0].wait("desmute confirmado", 10, |ui| {
             ui["session"]["muted"] == false
         })?;
+        std::thread::sleep(Duration::from_millis(1200));
+        let own = peak(&people[0], unmute_at, 520);
+        run.check(
+            "som de desmute toca para Ana",
+            own > 0.008,
+            json!({"ana520":own}),
+        )?;
         hear(
             &mut run,
             &people[1],
@@ -858,6 +893,7 @@ fn main() -> Result<()> {
         "hover-50" => voice_scenario(&bin, &signal, &evidence, 1, "hover"),
         "tour-3" => voice_scenario(&bin, &signal, &evidence, 3, "tour"),
         "share-audio-3" => voice_scenario(&bin, &signal, &evidence, 3, "share-audio"),
+        "multi-3" => voice_scenario(&bin, &signal, &evidence, 3, "multi"),
         other => bail!("Cenário desconhecido: {other}"),
     }?;
     println!(
@@ -1295,4 +1331,166 @@ fn share_audio_steps(people: &mut [Participant], run: &mut Run) -> Result<()> {
     )?;
     people[1].screenshot(&run.evidence, "after-share-audio")?;
     Ok(())
+}
+
+/// Largest absolute amplitude of `hz` at `listener` in any window after `since`.
+fn peak(listener: &Participant, since_ms: u64, hz: u32) -> f64 {
+    listener.audio()["windows"]
+        .as_array()
+        .map(|w| {
+            w.iter()
+                .filter(|w| w["atMs"].as_u64().unwrap_or(0) > since_ms)
+                .map(|w| {
+                    w["bandFraction"][hz.to_string()]
+                        .as_f64()
+                        .unwrap_or(0.0)
+                        .sqrt()
+                        * w["rms"].as_f64().unwrap_or(0.0)
+                })
+                .fold(0.0, f64::max)
+        })
+        .unwrap_or(0.0)
+}
+
+/// Simultaneous multimedia with three real participants: A shares a window with
+/// its application audio, B publishes a camera, C watches both while everyone
+/// talks; grid, spotlight, fullscreen, PiP, deafen, per-person volume, mute and
+/// media shutdown are exercised through the interface.
+fn multi_steps(people: &mut [Participant], run: &mut Run) -> Result<()> {
+    const APP: u32 = 470;
+    let ana = people[0].ui()["profileId"].clone();
+    let bruno = people[1].ui()["profileId"].clone();
+    people[0].click("Compartilhar tela")?;
+    people[0].wait("seletor aberto", 10, |ui| ui["shareDialog"] == true)?;
+    people[0].click_where("janela de teste no seletor", |t| t.contains(pattern::TITLE))?;
+    people[0].select("sharePreset", "720p30")?;
+    people[0].click("Incluir áudio deste aplicativo")?;
+    people[0].click("Iniciar compartilhamento")?;
+    people[0].wait("tela e áudio publicados", 25, |ui| {
+        ui["screen"]["encoded"].as_u64() > Some(10) && ui["screen"]["audio"] == true
+    })?;
+    people[1].click("Ligar câmera")?;
+    people[1].wait("seletor de câmera", 10, |ui| ui["cameraDialog"] == true)?;
+    people[1].click("Câmera de teste sintética")?;
+    people[1].select("cameraPreset", "360p30")?;
+    people[1].click("Ativar câmera")?;
+    people[1].wait("câmera publicada", 20, |ui| {
+        ui["camera"]["encoded"].as_u64() > Some(10)
+    })?;
+    run.check(
+        "Ana transmite tela com áudio e Bruno publica a câmera",
+        true,
+        json!({}),
+    )?;
+    let clara = people[2].ui()["profileId"].clone();
+    for watched in 1..=2_usize {
+        people[2].wait("oferta de mídia", 15, |ui| {
+            texts(ui).iter().any(|t| t == "Assistir")
+        })?;
+        people[2].click("Assistir")?;
+        // Next offer only after the host confirms this subscription.
+        people[2].wait("assinatura confirmada pelo host", 15, |ui| {
+            ui["snapshot"]["members"].as_array().is_some_and(|m| {
+                m.iter().any(|m| {
+                    m["id"] == clara && m["watching"].as_array().is_some_and(|w| w.len() >= watched)
+                })
+            })
+        })?;
+        std::thread::sleep(Duration::from_millis(500));
+    }
+    let ui = people[2].wait("Clara decodifica tela e câmera", 30, |ui| {
+        stream_kind(ui, &ana, false).is_some_and(|s| s["decoded"].as_u64() > Some(20))
+            && stream_kind(ui, &bruno, true).is_some_and(|s| s["decoded"].as_u64() > Some(20))
+    })?;
+    run.check(
+        "Clara recebe tela de Ana e câmera de Bruno ao mesmo tempo",
+        true,
+        json!({"screen":stream_kind(&ui, &ana, false).map(|s| s["decoded"].clone()),"camera":stream_kind(&ui, &bruno, true).map(|s| s["decoded"].clone())}),
+    )?;
+    people[2].screenshot(&run.evidence, "multi-grid")?;
+    let all = listen(people, 2, 4, &[VOICES[0], VOICES[1], APP]);
+    let g = |v: &Value, k: u32| v[format!("{k}Hz")].as_f64().unwrap_or(0.0);
+    run.check(
+        "Clara ouve Ana, Bruno e o aplicativo compartilhado",
+        g(&all, VOICES[0]) > PRESENT && g(&all, VOICES[1]) > PRESENT && g(&all, APP) > 0.008,
+        all.clone(),
+    )?;
+    people[2].select("peerVolume", "Bruno=0")?;
+    std::thread::sleep(Duration::from_millis(600));
+    let quiet = listen(people, 2, 3, &[VOICES[0], VOICES[1]]);
+    run.check(
+        "volume individual zero cala só Bruno para Clara",
+        g(&quiet, VOICES[1]) < ABSENT && g(&quiet, VOICES[0]) > PRESENT,
+        quiet,
+    )?;
+    people[2].select("peerVolume", "Bruno=1")?;
+    people[2].click("Ampliar")?;
+    people[2].wait("destaque", 10, |ui| !ui["streamFocus"].is_null())?;
+    people[2].screenshot(&run.evidence, "multi-focus")?;
+    people[2].click("Voltar à grade")?;
+    people[2].wait("grade", 10, |ui| ui["streamFocus"].is_null())?;
+    people[2].click("Tela cheia")?;
+    people[2].wait("tela cheia", 10, |ui| ui["streamFullscreen"] == true)?;
+    people[2].screenshot(&run.evidence, "multi-fullscreen")?;
+    people[2].click("Sair da tela cheia")?;
+    people[2].wait("janela", 10, |ui| ui["streamFullscreen"] == false)?;
+    people[2].keep_z = true;
+    let pip = people[2].click("Picture-in-Picture");
+    people[2].keep_z = false;
+    pip?;
+    people[2].wait("PiP", 10, |ui| ui["streamPip"] == true)?;
+    std::thread::sleep(Duration::from_millis(800));
+    people[2].screenshot(&run.evidence, "multi-pip")?;
+    let hwnd = people[2].hwnd()?;
+    run.check(
+        "PiP de Clara fica no topo",
+        win::is_topmost(hwnd),
+        json!({}),
+    )?;
+    people[2].click("Voltar à janela")?;
+    people[2].wait("janela restaurada", 10, |ui| ui["streamPip"] == false)?;
+    std::thread::sleep(Duration::from_millis(600));
+    people[2].click("Ensurdecer")?;
+    people[2].wait("Clara ensurdecida", 10, |ui| {
+        ui["session"]["deafened"] == true
+    })?;
+    std::thread::sleep(Duration::from_millis(900));
+    let deaf = listen(people, 2, 3, &[VOICES[0], VOICES[1], APP]);
+    run.check(
+        "ensurdecer cala vozes e aplicativo para Clara",
+        g(&deaf, VOICES[0]) < ABSENT && g(&deaf, VOICES[1]) < ABSENT && g(&deaf, APP) < ABSENT,
+        deaf,
+    )?;
+    people[2].click("Ativar áudio")?;
+    people[2].wait("Clara ouve de novo", 10, |ui| {
+        ui["session"]["deafened"] == false
+    })?;
+    people[0].click("Parar compartilhamento")?;
+    people[1].click("Desligar câmera")?;
+    let ui = people[2].wait("mídias encerradas para Clara", 15, |ui| {
+        stream_kind(ui, &ana, false).is_none() && stream_kind(ui, &bruno, true).is_none()
+    })?;
+    std::thread::sleep(Duration::from_millis(1200));
+    let after = listen(people, 2, 3, &[VOICES[0], APP]);
+    run.check(
+        "encerrar mídia remove tela, câmera e áudio do aplicativo; voz continua",
+        g(&after, APP) < ABSENT
+            && g(&after, VOICES[0]) > PRESENT
+            && ui["streams"].as_array().is_some_and(|s| s.is_empty()),
+        after,
+    )?;
+    Ok(())
+}
+
+/// Largest band fraction of `hz` in any window after `since` (share of energy).
+fn dominance(listener: &Participant, since_ms: u64, hz: u32) -> f64 {
+    listener.audio()["windows"]
+        .as_array()
+        .map(|w| {
+            w.iter()
+                .filter(|w| w["atMs"].as_u64().unwrap_or(0) > since_ms)
+                .map(|w| w["bandFraction"][hz.to_string()].as_f64().unwrap_or(0.0))
+                .fold(0.0, f64::max)
+        })
+        .unwrap_or(0.0)
 }

@@ -300,3 +300,37 @@ pub fn empty<'a>(
     }
     container(content).center(Fill).into()
 }
+
+/// Full-width action with centered icon + label (narrow popovers, menus).
+pub fn action_wide<'a>(
+    m: Materials,
+    glyph: Icon,
+    label: &str,
+    msg: Option<Msg>,
+    tone: Tone,
+) -> Element<'a, Msg> {
+    let color = match tone {
+        Tone::Primary => m.on_accent,
+        Tone::Danger => Color::WHITE,
+        Tone::Ghost => m.muted,
+        _ => m.ink,
+    };
+    let mut b = button(
+        container(
+            row![
+                icon(glyph, 16.0, color),
+                text(label.to_owned()).size(size::SMALL).font(bold())
+            ]
+            .spacing(8)
+            .align_y(iced::Center),
+        )
+        .center_x(Fill),
+    )
+    .width(Fill)
+    .padding([7, 12])
+    .style(m.tone(tone));
+    if let Some(msg) = msg {
+        b = b.on_press(msg);
+    }
+    b.into()
+}

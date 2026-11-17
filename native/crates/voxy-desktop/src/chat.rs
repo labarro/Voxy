@@ -511,23 +511,23 @@ pub(super) fn mini_profile<'a>(
     .spacing(8);
     if member.id != app.profile.id {
         body = body.push(
-            row![
-                ui::action(
+            // Stacked full-width actions: the popover is ~200 px wide, side by side
+            // the labels overflowed their buttons.
+            column![
+                ui::action_wide(
                     m,
-                    Some(Icon::AtSign),
-                    "Mencionar",
-                    Some(Msg::Mention(member.id)),
-                    Tone::Secondary
-                )
-                .padding([6, 10]),
-                ui::action(
-                    m,
-                    Some(Icon::MessageCircle),
+                    Icon::MessageCircle,
                     "Mensagem",
                     Some(Msg::Direct(member.id)),
                     Tone::Primary
-                )
-                .padding([6, 10]),
+                ),
+                ui::action_wide(
+                    m,
+                    Icon::AtSign,
+                    "Mencionar",
+                    Some(Msg::Mention(member.id)),
+                    Tone::Secondary
+                ),
             ]
             .spacing(6),
         );
@@ -573,7 +573,12 @@ pub(super) fn mini_profile<'a>(
     .into()
 }
 
+/// The members panel floats over the conversation when the canvas is too
+/// narrow to keep the header actions and the messages readable side by side.
 pub(super) fn view(app: &App) -> Element<'_, Msg> {
+    iced::widget::responsive(move |size| view_sized(app, size.width >= 820.0)).into()
+}
+fn view_sized(app: &App, wide: bool) -> Element<'_, Msg> {
     let m = app.palette();
     if app.server.is_none() {
         return ui::empty(
@@ -613,13 +618,17 @@ pub(super) fn view(app: &App) -> Element<'_, Msg> {
             ui::icon(Icon::Hash, 20.0, m.muted),
             text(channel_name.clone()).size(size::HEADING).font(bold()),
             Space::new().width(Fill),
-            text_input("Buscar neste histórico", &app.search)
-                .on_input(Msg::Search)
-                .on_submit(Msg::SearchRemote)
-                .padding([7, 10])
-                .size(size::SMALL)
-                .width(220)
-                .style(m.input()),
+            container(
+                text_input("Buscar neste histórico", &app.search)
+                    .on_input(Msg::Search)
+                    .on_submit(Msg::SearchRemote)
+                    .padding([7, 10])
+                    .size(size::SMALL)
+                    .width(Fill)
+                    .style(m.input())
+            )
+            .width(Fill)
+            .max_width(220),
             ui::icon_button(
                 m,
                 Icon::Search,
@@ -831,9 +840,18 @@ pub(super) fn view(app: &App) -> Element<'_, Msg> {
     ]
     .width(Fill)
     .height(Fill);
-    if app.members_panel {
-        row![main, members_panel(app)].height(Fill).into()
-    } else {
-        main.into()
+    match (app.members_panel, wide) {
+        (true, true) => row![main, members_panel(app)].height(Fill).into(),
+        // Narrow canvas: the panel floats over the conversation's right edge.
+        (true, false) => stack![
+            main,
+            container(members_panel(app))
+                .width(Fill)
+                .height(Fill)
+                .align_x(iced::alignment::Horizontal::Right)
+                .padding(iced::Padding::new(0.0).top(56.0))
+        ]
+        .into(),
+        _ => main.into(),
     }
 }

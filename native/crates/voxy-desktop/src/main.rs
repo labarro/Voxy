@@ -585,6 +585,13 @@ impl App {
                 if let Some(message) = self.messages.iter().find(|m| m.author == self.profile.id) {
                     self.message_menu = Some(message.id);
                 }
+                // Mini profile of another member in the same capture.
+                self.member_popover = self
+                    .remote
+                    .snapshot
+                    .as_ref()
+                    .and_then(|s| s.members.iter().find(|m| m.id != self.profile.id))
+                    .map(|m| m.id);
             }
             9 => {
                 let _ = self.update(Msg::ManageServer);
@@ -2583,6 +2590,22 @@ impl App {
                     "output" => Some(Msg::Output(value)),
                     "pttKey" => Some(Msg::PttKey(value)),
                     "sharePreset" => Some(Msg::SharePreset(value)),
+                    // "<member name>=<0.0..2.0>": the message the volume slider emits.
+                    "peerVolume" => value.split_once('=').and_then(|(name, volume)| {
+                        let member = self
+                            .remote
+                            .snapshot
+                            .as_ref()?
+                            .members
+                            .iter()
+                            .find(|m| m.name == name)?;
+                        let peer = self
+                            .remote
+                            .peers
+                            .iter()
+                            .find(|p| p.key == member.public_key)?;
+                        Some(Msg::PeerVolume(peer.id, volume.parse().ok()?))
+                    }),
                     "cameraPreset" => Some(Msg::CameraPreset(value)),
                     _ => None,
                 },

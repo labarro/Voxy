@@ -6,6 +6,7 @@
 //! copied, and verifies session-confirmed state plus objective audio metrics
 //! from the synthetic playback analyzer. Only the device boundary is synthetic.
 mod pattern;
+mod tone;
 mod visual;
 #[cfg(windows)]
 mod win;
@@ -383,10 +384,24 @@ fn voice_scenario(
     kind: &str,
 ) -> Result<Value> {
     // Screen scenarios share a dynamic synthetic window; killed when the run ends.
-    let mut pattern_window = if kind == "screen" {
+    if kind == "share-audio" {
+        ensure!(tone::allowed(), "share-audio exige VOXY_TEST_PHYSICAL_AUDIO=1 (tons físicos autorizados)");
+    }
+    let mut pattern_window = if kind == "screen" || kind == "share-audio" {
+        let mut command = std::process::Command::new(std::env::current_exe()?);
+        command.args(["--pattern-window"]);
+        if kind == "share-audio" {
+            command.env("VOXY_E2E_TONE_HZ", "470");
+        }
+        Some(command.spawn()?)
+    } else {
+        None
+    };
+    // A different application playing at the same time (must never be shared).
+    let mut other_app = if kind == "share-audio" {
         Some(
             std::process::Command::new(std::env::current_exe()?)
-                .args(["--pattern-window"])
+                .args(["--tone", "730", "600"])
                 .spawn()?,
         )
     } else {
@@ -430,7 +445,12 @@ fn voice_scenario(
                 ui["page"] == "Settings"
             })?;
             p.select("input", &format!("synthetic:voice:{}", p.voice_hz))?;
-            p.select("output", "synthetic:analyzer")?;
+            // share-audio: Ana renders the call on the physical default output, so
+            // retransmission of call audio through the share would be audible to Bruno.
+            p.select(
+                "output",
+                if kind == "share-audio" && p.slot == 0 { "" } else { "synthetic:analyzer" },
+            )?;
             p.click("Salvar")?;
             let hz = p.voice_hz;
             p.wait("dispositivos salvos", 10, |ui| {
@@ -512,6 +532,9 @@ fn voice_scenario(
         }
         if kind == "tour" {
             return visual::tour(&mut people, &mut run);
+        }
+        if kind == "share-audio" {
+            return share_audio_steps(&mut people, &mut run);
         }
         if kind == "screen" {
             return screen_steps(&mut people, &mut run);
@@ -767,6 +790,10 @@ fn voice_scenario(
         let _ = window.kill();
         let _ = window.wait();
     }
+    if let Some(mut other) = other_app.take() {
+        let _ = other.kill();
+        let _ = other.wait();
+    }
     if let Some(text) = previous_clipboard {
         let _ = win::set_clipboard_text(&text);
     }
@@ -794,7 +821,17 @@ fn voice_scenario(
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.first().map(String::as_str) == Some("--pattern-window") {
+        // Optional application audio for share-audio E2E (physical, consented).
+        let _tone = match std::env::var("VOXY_E2E_TONE_HZ").ok().and_then(|v| v.parse().ok()) {
+            Some(hz) => Some(tone::start(hz)?),
+            None => None,
+        };
         return pattern::run(40, 40);
+    }
+    if args.first().map(String::as_str) == Some("--tone") {
+        let hz = args.get(1).and_then(|v| v.parse().ok()).unwrap_or(730.0);
+        let seconds = args.get(2).and_then(|v| v.parse().ok()).unwrap_or(60);
+        return tone::run(hz, seconds);
     }
     let get = |name: &str| args.windows(2).find(|w| w[0] == name).map(|w| w[1].clone());
     let bin =
@@ -810,6 +847,7 @@ fn main() -> Result<()> {
         "camera-2" => voice_scenario(&bin, &signal, &evidence, 2, "camera"),
         "hover-50" => voice_scenario(&bin, &signal, &evidence, 1, "hover"),
         "tour-3" => voice_scenario(&bin, &signal, &evidence, 3, "tour"),
+        "share-audio-3" => voice_scenario(&bin, &signal, &evidence, 3, "share-audio"),
         other => bail!("Cenário desconhecido: {other}"),
     }?;
     println!(
@@ -1115,5 +1153,106 @@ fn camera_steps(people: &mut [Participant], run: &mut Run) -> Result<()> {
         true,
         json!({"streams":ui["streams"]}),
     )?;
+    Ok(())
+}
+
+/// Mean absolute amplitude of `hz` at `listener` over windows after `since`.
+fn amp(listener: &Participant, since_ms: u64, hz: u32) -> (usize, f64) {
+    let audio = listener.audio();
+    let windows: Vec<&Value> = audio["windows"]
+        .as_array()
+        .map(|w| w.iter().filter(|w| w["atMs"].as_u64().unwrap_or(0) > since_ms + 500).collect())
+        .unwrap_or_default();
+    let n = windows.len().max(1) as f64;
+    let value = windows
+        .iter()
+        .map(|w| {
+            w["bandFraction"][hz.to_string()].as_f64().unwrap_or(0.0).sqrt() * w["rms"].as_f64().unwrap_or(0.0)
+        })
+        .sum::<f64>()
+        / n;
+    (windows.len(), value)
+}
+fn listen(people: &[Participant], who: usize, seconds: u64, hz: &[u32]) -> Value {
+    let since = now_ms();
+    std::thread::sleep(Duration::from_secs(seconds));
+    let mut out = serde_json::Map::new();
+    for f in hz {
+        let (windows, value) = amp(&people[who], since, *f);
+        out.insert(format!("{f}Hz"), json!((value * 10_000.0).round() / 10_000.0));
+        out.insert("windows".into(), json!(windows));
+    }
+    Value::Object(out)
+}
+
+/// Shared application audio, objectively: the shared app's tone reaches the
+/// viewer, another app's tone does not, call audio rendered by the sharer is not
+/// retransmitted (the viewer never hears its own voice back), and the sharer's
+/// microphone is not duplicated through the share track.
+fn share_audio_steps(people: &mut [Participant], run: &mut Run) -> Result<()> {
+    const APP: u32 = 470;
+    const OTHER: u32 = 730;
+    let ana = people[0].ui()["profileId"].clone();
+    let before = listen(people, 1, 3, &[VOICES[0], VOICES[1], APP, OTHER]);
+    run.check(
+        "antes: Bruno não recebe áudio de aplicativos",
+        before[format!("{APP}Hz")].as_f64() < Some(ABSENT) && before[format!("{OTHER}Hz")].as_f64() < Some(ABSENT),
+        before.clone(),
+    )?;
+    people[0].click("Compartilhar tela")?;
+    people[0].wait("seletor aberto", 10, |ui| ui["shareDialog"] == true)?;
+    people[0].click_where("janela de teste no seletor", |t| t.contains(pattern::TITLE))?;
+    people[0].select("sharePreset", "720p30")?;
+    people[0].click("Incluir áudio deste aplicativo")?;
+    people[0].wait("áudio do aplicativo marcado", 5, |ui| ui["shareAudio"] == true)?;
+    people[0].click("Iniciar compartilhamento")?;
+    let ui = people[0].wait("captura de tela e áudio ativas", 25, |ui| {
+        ui["screen"]["encoded"].as_u64() > Some(10) && ui["screen"]["audio"] == true
+    })?;
+    run.check("Ana: compartilhamento com áudio do aplicativo ativo", true, ui["screen"].clone())?;
+    people[1].wait("Bruno vê Ana transmitindo", 15, |ui| {
+        member_flag(ui, &ana, "screen") == true && texts(ui).iter().any(|t| t == "Assistir")
+    })?;
+    people[1].click("Assistir")?;
+    people[1].wait("quadros de Ana", 25, |ui| {
+        stream_of(ui, &ana).is_some_and(|s| s["decoded"].as_u64() > Some(20))
+    })?;
+    std::thread::sleep(Duration::from_millis(1500));
+    let during = listen(people, 1, 4, &[VOICES[0], VOICES[1], VOICES[2], APP, OTHER]);
+    let g = |k: u32| during[format!("{k}Hz")].as_f64().unwrap_or(0.0);
+    run.check("Bruno ouve o áudio do aplicativo compartilhado", g(APP) > 0.008, during.clone())?;
+    run.check("Bruno não ouve o outro aplicativo (isolamento por processo)", g(OTHER) < ABSENT, during.clone())?;
+    run.check(
+        "chamada reproduzida por Ana não é retransmitida (Bruno não ouve a própria voz)",
+        g(VOICES[1]) < ABSENT,
+        during.clone(),
+    )?;
+    let clara = listen(people, 2, 3, &[APP]);
+    run.check(
+        "Clara, que não assiste, não recebe o áudio compartilhado",
+        clara[format!("{APP}Hz")].as_f64() < Some(ABSENT),
+        clara,
+    )?;
+    people[0].click("Silenciar microfone")?;
+    people[0].wait("Ana muda", 10, |ui| ui["session"]["muted"] == true)?;
+    std::thread::sleep(Duration::from_millis(800));
+    let muted = listen(people, 1, 3, &[VOICES[0], APP]);
+    run.check(
+        "microfone não duplicado: Ana muda some, aplicativo continua",
+        muted[format!("{}Hz", VOICES[0])].as_f64() < Some(ABSENT) && muted[format!("{APP}Hz")].as_f64() > Some(0.008),
+        muted,
+    )?;
+    people[0].click("Ativar microfone")?;
+    people[0].wait("Ana desmutada", 10, |ui| ui["session"]["muted"] == false)?;
+    people[0].click("Parar compartilhamento")?;
+    people[0].wait("compartilhamento encerrado", 10, |ui| ui["screen"].is_null())?;
+    std::thread::sleep(Duration::from_millis(1200));
+    let after = listen(people, 1, 3, &[VOICES[0], APP]);
+    run.check(
+        "fim do compartilhamento encerra o áudio do aplicativo",
+        after[format!("{APP}Hz")].as_f64() < Some(ABSENT) && after[format!("{}Hz", VOICES[0])].as_f64() > Some(PRESENT),
+        after,
+    )?;
+    people[1].screenshot(&run.evidence, "after-share-audio")?;
     Ok(())
 }

@@ -1,0 +1,224 @@
+{
+  "binaries": "target/release",
+  "checks": [
+    {
+      "atSeconds": 22.943817138671875,
+      "check": "instâncias reais independentes",
+      "detail": {
+        "instances": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 26.85015296936035,
+      "check": "host registrado na sinalização pública",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 27.97718048095703,
+      "check": "convite copiado pela interface",
+      "detail": {
+        "length": 531,
+        "scheme": "voxy-native://"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 31.156879425048828,
+      "check": "Bruno entrou por convite",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 34.937320709228516,
+      "check": "Clara entrou por convite",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 37.21915054321289,
+      "check": "Ana em chamada confirmada pelo host",
+      "detail": {
+        "members": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 37.219276428222656,
+      "check": "Bruno em chamada confirmada pelo host",
+      "detail": {
+        "members": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 37.21937942504883,
+      "check": "Clara em chamada confirmada pelo host",
+      "detail": {
+        "members": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 44.330162048339844,
+      "check": "antes: Bruno não recebe áudio de aplicativos",
+      "detail": {
+        "140Hz": 0.0377,
+        "210Hz": 0.0,
+        "470Hz": 0.0,
+        "730Hz": 0.0,
+        "windows": 5
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 48.66048812866211,
+      "check": "Ana: compartilhamento com áudio do aplicativo ativo",
+      "detail": {
+        "audio": true,
+        "audio_packets": 27,
+        "bitrate_kbps": 2500,
+        "captured": 24,
+        "dropped": 0,
+        "encoded": 12,
+        "encoder": "H.264 software (Media Foundation)",
+        "fps": 30,
+        "height": 720,
+        "keyframes": 1,
+        "label": "Voxy E2E Padrao",
+        "preset": "720p30",
+        "sent_kbps": 21,
+        "watchers": 0,
+        "width": 1280
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 55.592124938964844,
+      "check": "Bruno ouve o áudio do aplicativo compartilhado",
+      "detail": {
+        "140Hz": 0.0412,
+        "210Hz": 0.0,
+        "330Hz": 0.0468,
+        "470Hz": 0.0353,
+        "730Hz": 0.0,
+        "windows": 7
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 55.59212875366211,
+      "check": "Bruno não ouve o outro aplicativo (isolamento por processo)",
+      "detail": {
+        "140Hz": 0.0412,
+        "210Hz": 0.0,
+        "330Hz": 0.0468,
+        "470Hz": 0.0353,
+        "730Hz": 0.0,
+        "windows": 7
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 55.59214782714844,
+      "check": "chamada reproduzida por Ana não é retransmitida (Bruno não ouve a própria voz)",
+      "detail": {
+        "140Hz": 0.0412,
+        "210Hz": 0.0,
+        "330Hz": 0.0468,
+        "470Hz": 0.0353,
+        "730Hz": 0.0,
+        "windows": 7
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 58.59251022338867,
+      "check": "Clara, que não assiste, não recebe o áudio compartilhado",
+      "detail": {
+        "470Hz": 0.0042,
+        "windows": 5
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 63.01968765258789,
+      "check": "microfone não duplicado: Ana muda some, aplicativo continua",
+      "detail": {
+        "140Hz": 0.0,
+        "470Hz": 0.0353,
+        "windows": 5
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 68.67235565185547,
+      "check": "fim do compartilhamento encerra o áudio do aplicativo",
+      "detail": {
+        "140Hz": 0.0531,
+        "470Hz": 0.0,
+        "windows": 5
+      },
+      "passed": true
+    }
+  ],
+  "durationSeconds": 69.8621826171875,
+  "error": null,
+  "method": "independent voxy-desktop processes with own data dirs/identities/session processes; clicks are physical SendInput mouse input on visible labels, verified by the app's received-click position; text fields and pick-list choices applied as their widget messages; invite read from the clipboard written by the app's copy button; audio source/sink are the synthetic device boundary (VOXY_TEST_SYNTHETIC_AUDIO) feeding the unchanged DSP/Opus/SRTP/jitter/mixer pipeline",
+  "passed": true,
+  "physicalDevices": false,
+  "resourcesAtEnd": [
+    {
+      "cpuSeconds": 2.359375,
+      "participant": "Ana",
+      "pid": 5212,
+      "privateMiB": 17.95703125,
+      "workingSetMiB": 45.52734375
+    },
+    {
+      "cpuSeconds": 4.671875,
+      "participant": "Ana",
+      "pid": 19972,
+      "privateMiB": 34.015625,
+      "workingSetMiB": 53.01171875
+    },
+    {
+      "cpuSeconds": 4.515625,
+      "participant": "Bruno",
+      "pid": 8392,
+      "privateMiB": 11.68359375,
+      "workingSetMiB": 31.8125
+    },
+    {
+      "cpuSeconds": 2.390625,
+      "participant": "Bruno",
+      "pid": 16896,
+      "privateMiB": 9.82421875,
+      "workingSetMiB": 28.4609375
+    },
+    {
+      "cpuSeconds": 1.421875,
+      "participant": "Clara",
+      "pid": 13368,
+      "privateMiB": 11.8671875,
+      "workingSetMiB": 30.66796875
+    },
+    {
+      "cpuSeconds": 2.21875,
+      "participant": "Clara",
+      "pid": 6896,
+      "privateMiB": 9.6796875,
+      "workingSetMiB": 28.2109375
+    }
+  ],
+  "sameMachine": true,
+  "scenario": "share-audio-3",
+  "signal": "wss://voxy.devbarros.com"
+}

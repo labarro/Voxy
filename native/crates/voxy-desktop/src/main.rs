@@ -2652,6 +2652,7 @@ impl App {
                 "streamFullscreen": self.stream_fullscreen,
                 "streamPip": self.stream_pip,
                 "shareDialog": self.share_dialog,
+                "shareAudio": self.share_audio,
                 "screen": self.remote.screen,
                 "camera": self.remote.camera,
                 "cameraDialog": self.camera_dialog,

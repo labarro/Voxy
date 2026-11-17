@@ -4593,6 +4593,7 @@ name = "voxy-e2e"
 version = "2.0.0"
 dependencies = [
  "anyhow",
+ "cpal",
  "png 0.18.1",
  "serde_json",
  "windows-sys 0.61.2",

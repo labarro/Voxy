@@ -20,7 +20,7 @@ use std::{
 pub const PREFIX: &str = "synthetic:";
 pub const VOICES: [u32; 4] = [140, 210, 330, 470];
 /// Interface cue notes that are not harmonics of the synthetic voices (E2E).
-pub const CUE_PROBES: [u32; 4] = [380, 440, 520, 620];
+pub const CUE_PROBES: [u32; 5] = [380, 440, 520, 620, 730];
 const CHUNK: usize = 480;
 const WINDOW: usize = 24_000;
 const PROBE_OFFSETS: [f32; 9] = [-8.0, -6.0, -4.0, -2.0, 0.0, 2.0, 4.0, 6.0, 8.0];

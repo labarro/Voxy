@@ -16,6 +16,7 @@ pub struct VoiceControl {
     pub captured_samples: AtomicU64,
     pub rendered_samples: AtomicU64,
     pub processed_blocks: AtomicU64,
+    pub decoded_frames: AtomicU64,
     pub recoverable_device_events: AtomicU64,
 }
 impl Default for VoiceControl {
@@ -31,6 +32,7 @@ impl Default for VoiceControl {
             captured_samples: AtomicU64::new(0),
             rendered_samples: AtomicU64::new(0),
             processed_blocks: AtomicU64::new(0),
+            decoded_frames: AtomicU64::new(0),
             recoverable_device_events: AtomicU64::new(0),
         }
     }

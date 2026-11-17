@@ -17,6 +17,12 @@ tokio.workspace = true
 voxy-core.workspace = true
 voxy-voice.workspace = true
 voxy-network.workspace = true
+voxy-session = { path = "../voxy-session" }
+[dev-dependencies]
+tempfile.workspace = true
+uuid.workspace = true
+[target.'cfg(windows)'.dev-dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Threading", "Win32_System_ProcessStatus"] }
 
 [lints]
 workspace = true

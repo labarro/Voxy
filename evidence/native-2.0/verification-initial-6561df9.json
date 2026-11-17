@@ -1,0 +1,51 @@
+{
+  "checkedAt": "2026-11-16T20:13:56.995Z",
+  "version": "2.0.0",
+  "lastPublished": "1.4.1",
+  "branch": "migration/2.0-native-audit",
+  "stableMain": "7df27bc684c0743fa52e12bfe6aae5073dd02371",
+  "results": {
+    "rustTests": 19,
+    "rustFailures": 0,
+    "clippyWarningsDenied": true,
+    "rustfmt": true,
+    "optimizedBuild": true,
+    "legacyTests": 83,
+    "legacyFailures": 0,
+    "legacyBuild": true,
+    "legacyBuildWarning": "Existing Vite chunk greater than 500 kB",
+    "workerTests": 3,
+    "workerFailures": 0,
+    "workerTypecheck": true,
+    "workerNpmAuditKnownVulnerabilities": 0,
+    "nativeSignalingIntegration": true,
+    "twoProcessHostIntegration": true,
+    "releaseGuardsRejectedExperimentalDistribution": true,
+    "versionNotesOutputCoherent": true
+  },
+  "evidence": {
+    "audio": "audio-probe.json",
+    "signaling": "signaling-integration.json",
+    "host": "host-integration.json",
+    "ui": "ui/ui-smoke.json",
+    "resources": "resources-native.json"
+  },
+  "binaries": [
+    {
+      "path": "native/target/release/voxy-desktop.exe",
+      "bytes": 6784512,
+      "sha256": "345d9b1c7194b8e8c2924a507c249a3e06368cb60eef6d8f33caa51ed6df3c4c"
+    },
+    {
+      "path": "native/target/release/voxy-core.exe",
+      "bytes": 12099072,
+      "sha256": "331ff19a3d90e667c8fcc08f632e1dcf56096a83294769e7460fe808a422fc14"
+    }
+  ],
+  "limitations": [
+    "Local tests do not validate public networks, CGNAT, TURN or acoustic quality.",
+    "Resource measurements cover idle Home, not calls or feature-equivalent product performance.",
+    "External computer-use control was not approved for voxy-desktop; screenshots use internal Iced messages.",
+    "No deployment, paid plan, release, tag or push."
+  ]
+}

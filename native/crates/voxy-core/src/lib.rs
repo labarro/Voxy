@@ -1,4 +1,5 @@
 pub mod identity;
+pub mod ipc;
 pub mod migration;
 pub mod model;
 pub mod room;

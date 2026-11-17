@@ -4143,10 +4143,14 @@ version = "2.0.0"
 dependencies = [
  "anyhow",
  "serde_json",
+ "tempfile",
  "tokio",
+ "uuid",
  "voxy-core",
  "voxy-network",
+ "voxy-session",
  "voxy-voice",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4161,6 +4165,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "tempfile",
+ "tokio",
  "uuid",
  "windows-sys 0.61.2",
 ]
@@ -4172,6 +4177,7 @@ dependencies = [
  "anyhow",
  "iced",
  "png",
+ "serde",
  "serde_json",
  "tokio",
  "uuid",
@@ -4200,6 +4206,23 @@ dependencies = [
  "uuid",
  "voxy-core",
  "webrtc",
+]
+
+[[package]]
+name = "voxy-session"
+version = "2.0.0"
+dependencies = [
+ "anyhow",
+ "base64 0.22.1",
+ "rand 0.8.8",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uuid",
+ "voxy-core",
+ "voxy-network",
+ "voxy-voice",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

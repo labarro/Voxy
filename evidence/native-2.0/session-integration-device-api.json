@@ -1,0 +1,10 @@
+{
+  "checkedAt": "2026-11-17T02:06:04.200Z",
+  "workerEmulator": true,
+  "publicInternet": false,
+  "physicalDeviceApi": true,
+  "playbackMutedForDeviceTest": true,
+  "acousticQualityValidated": false,
+  "syntheticMeshVoice": true,
+  "output": "\nrunning 3 tests\nsession-processes: authenticated IPC, authoritative chat, UI detach/re-attach, foreign identity denied; no microphone\ntest independent_session_processes_deliver_chat_survive_ui_detach_and_reject_foreign_identity ... ok\nmesh: 12 native Opus/SRTP frames, 3 authenticated peers, channel isolation; synthetic audio, no physical microphone\ntest authenticated_mesh_transmits_opus_and_isolates_other_voice_channels ... ok\ndevice-api-duplex: local microphone -> DSP -> Opus/SRTP -> decoder/playback mixer; remote playback volume zero; call kept running after both UI clients unloaded; mute/deafen and leave acknowledged; no audio file, no public network, no acoustic quality certification\ntest native_duplex_call_uses_devices_and_survives_ui_unload ... ok\n\ntest result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.66s\n\n"
+}

@@ -12,41 +12,41 @@ Cada linha passará a registrar commit, teste, artefato de evidência, ambiente 
 
 | ID | Funcionalidade existente / fonte | Oráculo ou referência | Reuso | Estado Rust / aceite |
 | --- | --- | --- | --- | --- |
-| UI01 | Home/entrar/hospedar — `components/Home.tsx`, `App.tsx` | `ux.e2e.ts`, `redesign.e2e.ts` | E/R | Parcial — Home nativa e criação local implementadas; ingresso público ainda pendente |
-| UI02 | Recentes, disponibilidade, reconectar/remover — `recentRooms.ts`, `useSavedRooms.ts` | `rooms.test.ts`, `systemFeatures.e2e.ts` | E/A/R | Pendente; preservar 40 recentes e erro de alcance distinto de convite inválido |
-| UI03 | Trilho e navegação servidor/canal/DM/Novidades — `ServerRail`, `navigation.ts` | `desktop.e2e.ts`, `ux.e2e.ts` | E/R | Parcial — Trilho/servidores/canais/Novidades locais implementados; DM e navegação remota pendentes |
+| UI01 | Home/entrar/hospedar — `components/Home.tsx`, `App.tsx` | `ux.e2e.ts`, `redesign.e2e.ts` | E/R | Parcial — UI hospeda/entra por convite e usa sessão real; domínio/deploy/rede pública ainda pendentes |
+| UI02 | Recentes, disponibilidade, reconectar/remover — `recentRooms.ts`, `useSavedRooms.ts` | `rooms.test.ts`, `systemFeatures.e2e.ts` | E/A/R | Parcial — 40 recentes com convite DPAPI e reconexão implementados; disponibilidade/remoção completas pendentes |
+| UI03 | Trilho e navegação servidor/canal/DM/Novidades — `ServerRail`, `navigation.ts` | `desktop.e2e.ts`, `ux.e2e.ts` | E/R | Parcial — Navegação de servidores/canais/DM/novidades integrada; avisos/não lidas pendentes |
 | UI04 | Hub pesquisável, rascunho/desfazer e salvar — `App.tsx`, `HubNavigation` | `redesign.e2e.ts`, DESIGN-SYSTEM | E/R | Parcial — Configurações nativas com seções/rascunho/salvar/desfazer implementadas; busca global pendente |
 | UI05 | Temas Voxy/Oceano/Bosque/Kuromi, acento — `Personalization.tsx`, CSS | `ui-themes.test.ts`, `ui-1.3.0/` | E/A/R | Parcial — Quatro paletas nativas implementadas; ilustrações/atribuições/contraste completos pendentes |
-| UI06 | Layout, tipografia, hover, foco e movimento reduzido — CSS | `ux.e2e.ts`, DESIGN-SYSTEM | E/R | Parcial — Materiais/foco/hover/efeitos reduzidos implementados e capturados em 900×640; DPI/IME/acessibilidade pendentes |
-| UI07 | Perfil foto/emoji, nickname/capa e mini perfil — `ProfileForm`, `Avatar`, `photos.ts` | `personalization.test.ts`, `social.e2e.ts` | E/A/R | Parcial — Nome/emoji e perfil local implementados; foto/capa/mini perfil completos pendentes |
+| UI06 | Layout, tipografia, hover, foco e movimento reduzido — CSS | `ux.e2e.ts`, DESIGN-SYSTEM | E/R | Parcial — Sidebar/caption/avatars/chat corrigidos; bounds e capturas preenchidas; aprovação visual, DPI e acessibilidade pendentes |
+| UI07 | Perfil foto/emoji, nickname/capa e mini perfil — `ProfileForm`, `Avatar`, `photos.ts` | `personalization.test.ts`, `social.e2e.ts` | E/A/R | Parcial — Nome e ID locais; foto/capa/cor/status/mini perfil ainda pendentes |
 | UI08 | Canal Novidades offline e popup uma vez — `ReleaseChannel`, `ReleaseNotesStore` | `updates.test.ts`, `remoteUpdates.test.ts` | E/A/R | Parcial — Tela nativa de novidades e flag SQLite implementadas; atualização real/popup nativo pendentes |
-| SV01 | Criar/renomear/excluir servidor/canal — `host.ts`, `store.ts`, `ServerManager` | `signaling.test.ts`, `rooms.test.ts` | E/R | Parcial — Criar servidor/canais padrão e autoridade de criação de canal implementados; renomear/excluir completos pendentes |
+| SV01 | Criar/renomear/excluir servidor/canal — `host.ts`, `store.ts`, `ServerManager` | `signaling.test.ts`, `rooms.test.ts` | E/R | Parcial — Criar/renomear/excluir servidor local, criar/excluir canais na UI, renomear canal pela API; gestão completa pendente |
 | SV02 | Imagem e dono do servidor, legado sem dono — `store.ts` | `rooms.test.ts` | E/A/R | Pendente; dono não sobrescrito |
 | SV03 | Convites/rotação de segredo/limite dez — `main/index.ts`, `host.ts` | `signaling.test.ts`, INSTALACAO-E-CONEXAO | E/R | Parcial — Convites assinados/expiração/admissão/limite dez implementados e testados no emulador; público/rotação completa pendentes |
-| SV04 | Canais de voz, presença e estado de mídia — `host.ts`, `Presence`, `ParticipantStatus` | `signaling.test.ts`, `voiceControls.e2e.ts` | E/R | Pendente; ack e diagnóstico independentes do socket |
+| SV04 | Canais de voz, presença e estado de mídia — `host.ts`, `Presence`, `ParticipantStatus` | `signaling.test.ts`, `voiceControls.e2e.ts` | E/R | Parcial — Canais de voz com captura e transmissão/reprodução entre processos integradas; mídia de vídeo pendente |
 | SV05 | Cargos nome/cor/ordem/atribuição por servidor — `store.ts`, `Roles.tsx` | `personalization.test.ts` | E/A/R | Pendente; preservar escopo; permissões arbitrárias não implementadas na 1.x |
-| CH01 | Mensagens persistentes, imagens/preview/ampliação — `Chat`, `store.ts`, `image.ts` | `signaling.test.ts`, `social.e2e.ts` | E/A/R | Pendente; tamanhos, MIME e autorização de download |
-| CH02 | Editar/excluir só próprias mensagens — `host.ts`, `store.ts` | `signaling.test.ts` | E/R | Pendente; host não ganha exceção de autoria |
+| CH01 | Mensagens persistentes, imagens/preview/ampliação — `Chat`, `store.ts`, `image.ts` | `signaling.test.ts`, `social.e2e.ts` | E/A/R | Parcial — Texto persistente em tempo real na UI e host; imagens/preview/ampliação pendentes |
+| CH02 | Editar/excluir só próprias mensagens — `host.ts`, `store.ts` | `signaling.test.ts` | E/R | Parcial — Edição/exclusão por autoria integradas a comandos confirmados; validação ampla multiplayer ainda pendente |
 | CH03 | Respostas, menções, reações — `Chat`, `MessageText`, `store.ts` | `social.test.ts`, `social.e2e.ts` | E/R | Pendente; exclusão/revisão/escopo corretos |
-| CH04 | Histórico paginado/busca — `useChatHistory`, `store.ts`, `direct.ts` | `personalization.test.ts`, `social.test.ts` | E/A/R | Pendente; snapshot 100/canal e paginação, sem carregar banco inteiro na UI |
+| CH04 | Histórico paginado/busca — `useChatHistory`, `store.ts`, `direct.ts` | `personalization.test.ts`, `social.test.ts` | E/A/R | Parcial — Store pagina 100; UI filtra histórico recebido; paginação/busca remotas completas pendentes |
 | CH05 | Links clicáveis seguros — `links.ts`, `openExternal` | `links.test.ts` | E/R | Pendente; somente HTTP/S válido e sem credenciais |
 | SO01 | Presença online/away/busy e offline derivado — `types.ts`, `host.ts` | `direct.test.ts` | E/A/R | Pendente; busy mantém contadores |
-| SO02 | DMs privadas por sala, imagens, edição/reação/histórico — `DirectMessages`, `DirectStore` | `direct.test.ts`, `social.test.ts` | E/A/R | Pendente; sem vazamento no estado público; host continua confiável |
+| SO02 | DMs privadas por sala, imagens, edição/reação/histórico — `DirectMessages`, `DirectStore` | `direct.test.ts`, `social.test.ts` | E/A/R | Parcial — DMs de texto persistidas no host e snapshots privados; imagens/edição/reação/paginação completas pendentes |
 | SO03 | Inbox offline/não lidas/leitura focada — `DirectInbox`, `useInbox` | `direct.test.ts`, `directThreads.ts` | E/A/R | Pendente; não ressuscitar mensagem apagada |
-| SO04 | Amizade aceitar/recusar/remover — `SocialStore`, `Friends` | `social.test.ts` | E/A/R | Pendente; relações atuais são hospedadas por sala, não diretório global |
+| SO04 | Amizade aceitar/recusar/remover — `SocialStore`, `Friends` | `social.test.ts` | E/A/R | Parcial — Solicitar/aceitar/recusar/remover por servidor implementado, com teste de consentimento e privacidade |
 | SO05 | Chamada privada e canal reservado — `host.ts`, `Friends` | `social.test.ts`, `social.e2e.ts` | E/R | Pendente; acesso só aos convidados e cleanup |
-| AU01 | Captura/seleção de microfone/saída — `engine.ts`, `microphone.ts` | `microphone.e2e.ts`, `audio.e2e.ts` | E/R | Parcial — CPAL/seleção de dispositivos e sondagem de frames reais implementados; hotplug/qualidade física pendentes |
+| AU01 | Captura/seleção de microfone/saída — `engine.ts`, `microphone.ts` | `microphone.e2e.ts`, `audio.e2e.ts` | E/R | Parcial — CPAL integrado à chamada e teste duplex de APIs locais; hotplug e homologação acústica pendentes |
 | AU02 | AEC/NS/AGC — `microphoneConstraints` | `preferences.test.ts`, AUDIO-E-CONEXAO | E/R | Parcial — Adaptador AEC3/NS/AGC experimental implementado; homologação acústica pendente |
-| AU03 | Ganho/sensibilidade/VAD/gate e medidores — `MicrophonePipeline` | `preferences.test.ts`, `microphone.e2e.ts` | E/R | Parcial — Gate com histerese/hold/limiter e medidor implementados/testados; chamada UI pendente |
+| AU03 | Ganho/sensibilidade/VAD/gate e medidores — `MicrophonePipeline` | `preferences.test.ts`, `microphone.e2e.ts` | E/R | Parcial — Gate/ganho/VAD no pipeline integrado; controles de sensibilidade/medidores completos pendentes |
 | AU04 | Teste privado, pausa/restauração do envio — `microphoneTest.ts` | `microphone.e2e.ts` | E/R | Parcial — Monitor privado com ciclo de vida implementado; ainda sem AEC, homologação física pendente |
 | AU05 | PTT tecla global — `pushToTalk.ts`, `preferences.ts` | `pushToTalk.e2e.ts` | E/R | Parcial — PTT Win32 com falha fechada implementado/testado em lógica; teste com jogo em foco pendente |
 | AU06 | Mouse 4/5 e atalhos combinados — `pushToTalk.ts`, `ShortcutPicker` | `voiceControls.test.ts`, `pushToTalk.e2e.ts` | E/R | Parcial — Mouse4/5 mapeados no leitor nativo; combinações/conflitos e teste físico pendentes |
-| AU07 | Mute/deafen, atalhos e restauração do mute — `engine.ts`, `preferences.ts` | `voiceControls.test.ts`, `voiceControls.e2e.ts` | E/A/R | Parcial — Controle atômico mute/deafen prevalece sobre PTT, testado; integração de chamada UI pendente |
-| AU08 | Volume individual até 200%, mute local persistente — `voicePlayback.ts` | `voiceControls.e2e.ts`, `preferences.test.ts` | E/A/R | Parcial — Mixer por peer com ganho 0–2 e limiter implementado; persistência e qualidade física pendentes |
+| AU07 | Mute/deafen, atalhos e restauração do mute — `engine.ts`, `preferences.ts` | `voiceControls.test.ts`, `voiceControls.e2e.ts` | E/A/R | Parcial — Mute/deafen integrados à UI/serviço e têm prioridade; atalhos globais completos pendentes |
+| AU08 | Volume individual até 200%, mute local persistente — `voicePlayback.ts` | `voiceControls.e2e.ts`, `preferences.test.ts` | E/A/R | Parcial — Volume 0–200% no mixer/UI e persistência por UUID; mute local separado e acústica pendentes |
 | AU09 | Sons entrada/saída/tela/PTT/mute — `engine.ts`, `useNotifications` | `audio.e2e.ts`, `notifications.test.ts` | E/R | Pendente; sem repetição em snapshot nem envio ao mic |
-| AU10 | Reconexão ao canal, cancelamento e timeout — `App.tsx`, `engine.ts` | `callRecovery.e2e.ts`, `callDiagnostics.test.ts` | E/R | Pendente; 12/5/20 s de referência, recursos tardios liberados |
-| AU11 | Peers quatro transceivers, ICE restart/filas — `engine.ts` | `callNetwork.e2e.ts`, `media.e2e.ts` | E/R | Pendente; mídia real recebida, não apenas presença no servidor |
-| AU12 | Diagnóstico seguro e tentar novamente — `callDiagnostics.ts`, `App.tsx` | `callRecovery.e2e.ts` | E/R | Pendente; sem nomes/IP/SDP/credenciais |
+| AU10 | Reconexão ao canal, cancelamento e timeout — `App.tsx`, `engine.ts` | `callRecovery.e2e.ts`, `callDiagnostics.test.ts` | E/R | Parcial — Geração, timeout e backoff com oito tentativas implementados; falhas físicas/rede pública e ICE restart completos pendentes |
+| AU11 | Peers quatro transceivers, ICE restart/filas — `engine.ts` | `callNetwork.e2e.ts`, `media.e2e.ts` | E/R | Parcial — Malha Opus/SRTP com três peers testada; API duplex entre dois processos; vídeo/transceivers/ICE restart pendentes |
+| AU12 | Diagnóstico seguro e tentar novamente — `callDiagnostics.ts`, `App.tsx` | `callRecovery.e2e.ts` | E/R | Parcial — Etapas/erros/contadores sem SDP/credenciais na UI; exportação de diagnóstico completo pendente |
 | AU13 | Voz por proximidade/panorama estéreo — `RoomView`, `voicePlayback` | `room3d.test.ts`, `room3d.app.e2e.ts` | E/R | Parcial — Função de panorama/distância testada; integração ao mundo pendente |
 | ME01 | Tela inteira/janela e seleção explícita — `ShareForm`, main/engine | `media.e2e.ts`, `captureAudio.e2e.ts` | E/R | Pendente; captura nativa e término da fonte |
 | ME02 | Áudio de tela com exclusão do Voxy — `capture.ts`, engine | `voiceControls.test.ts`, `captureAudio.e2e.ts` | E/R | Pendente; isolar processo escolhido é melhoria nova, nunca loopback irrestrito |
@@ -80,9 +80,9 @@ Cada linha passará a registrar commit, teste, artefato de evidência, ambiente 
 | NT01 | Central avisos/histórico/leitura/deduplicação — `notifications.ts`, `NotificationCenter` | `notifications.test.ts` | E/A/R | Pendente; navegar para mensagem/canal/DM |
 | NT02 | Menção/resposta/amizade/DM, sons/tipos/DND/mute sala — notifications/profile | `notifications.test.ts`, `systemFeatures.e2e.ts` | E/A/R | Pendente; contadores sem alertar em busy/DND |
 | WI01 | Notificação Windows — main | `systemFeatures.e2e.ts` | E/R | Pendente; clicar reabre destino |
-| WI02 | Bandeja/abrir/mute/deafen/sair/fechar no X — main | `systemFeatures.e2e.ts` | E/R | Pendente; chamada preservada sem UI |
+| WI02 | Bandeja/abrir/mute/deafen/sair/fechar no X — main | `systemFeatures.e2e.ts` | E/R | Parcial — Sessão continua sem UI e reanexa ao reabrir; bandeja/menu completos pendentes |
 | WI03 | Login automático/início minimizado/manual visível — `desktopIdentity`, main | `desktopIdentity.test.ts`, `systemFeatures.e2e.ts` | E/A/R | Pendente; não capturar mic por abrir UI |
-| WI04 | Barra integrada/tema/minimizar/maximizar/fullscreen — main | `desktop.e2e.ts`, `redesign.e2e.ts` | E/R | Pendente; controles nativos e DPI |
+| WI04 | Barra integrada/tema/minimizar/maximizar/fullscreen — main | `desktop.e2e.ts`, `redesign.e2e.ts` | E/R | Parcial — Caption vetorial integrado com comandos reais, estado maximizado e double click; DPI/fullscreen completo pendente |
 | WI05 | Nome/appId/ícone/atalhos e desenvolvimento isolado — `desktopIdentity.ts`, installer | `desktopIdentity.test.ts`, `packaged.e2e.ts` | E/A/R | Pendente; final sem duplicar instalação estável |
 | UP01 | Updates automáticos download/reinício explícito — `remoteUpdates.ts` | `remoteUpdates.test.ts`, `updater.runtime.ts` | E/R | Pendente; executor Rust e recuperação |
 | UP02 | Ed25519/hashes/tamanho/allowlist/anti-downgrade — `updateTrust`, transport | `remoteUpdates.test.ts`, `updates.test.ts` | E/A/R | Pendente; tamper e pacote trocado rejeitados |

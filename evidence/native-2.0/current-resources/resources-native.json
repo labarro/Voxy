@@ -1,0 +1,170 @@
+{
+    "measuredAt":  "2026-11-17T02:09:13.7215688Z",
+    "version":  "2.0.0",
+    "build":  "release",
+    "logicalCpus":  12,
+    "method":  "Six samples, full process tree; CPU normalized to machine capacity. UI startup ends after renderer screenshot readiness. Core startup is a fixed 300ms wait, not a readiness metric.",
+    "scope":  "Idle core and Home only; no call, microphone, peer, media, world, emulator or installer. Compare features only when parity is achieved.",
+    "runs":  [
+                 {
+                     "scenario":  "core-idle",
+                     "startupMs":  381.0756,
+                     "readiness":  null,
+                     "samples":  [
+                                     {
+                                         "workingSetMiB":  21.2890625,
+                                         "privateMiB":  4.01171875,
+                                         "cpuMachinePercent":  0,
+                                         "processes":  2,
+                                         "handles":  279
+                                     },
+                                     {
+                                         "workingSetMiB":  21.2890625,
+                                         "privateMiB":  4.01171875,
+                                         "cpuMachinePercent":  0,
+                                         "processes":  2,
+                                         "handles":  279
+                                     },
+                                     {
+                                         "workingSetMiB":  21.2890625,
+                                         "privateMiB":  4.01171875,
+                                         "cpuMachinePercent":  0,
+                                         "processes":  2,
+                                         "handles":  279
+                                     },
+                                     {
+                                         "workingSetMiB":  21.2890625,
+                                         "privateMiB":  4.01171875,
+                                         "cpuMachinePercent":  0,
+                                         "processes":  2,
+                                         "handles":  279
+                                     },
+                                     {
+                                         "workingSetMiB":  21.2890625,
+                                         "privateMiB":  4.01171875,
+                                         "cpuMachinePercent":  0,
+                                         "processes":  2,
+                                         "handles":  279
+                                     },
+                                     {
+                                         "workingSetMiB":  21.2890625,
+                                         "privateMiB":  4.01171875,
+                                         "cpuMachinePercent":  0,
+                                         "processes":  2,
+                                         "handles":  279
+                                     }
+                                 ],
+                     "binaryBytes":  14171648
+                 },
+                 {
+                     "scenario":  "home",
+                     "startupMs":  167.0564,
+                     "readiness":  {
+                                       "backdropAccepted":  true,
+                                       "height":  820,
+                                       "rendered":  true,
+                                       "width":  1240
+                                   },
+                     "samples":  [
+                                     {
+                                         "workingSetMiB":  45.53125,
+                                         "privateMiB":  13.51953125,
+                                         "cpuMachinePercent":  0,
+                                         "processes":  3,
+                                         "handles":  536
+                                     },
+                                     {
+                                         "workingSetMiB":  45.53125,
+                                         "privateMiB":  13.51953125,
+                                         "cpuMachinePercent":  0,
+                                         "processes":  3,
+                                         "handles":  536
+                                     },
+                                     {
+                                         "workingSetMiB":  45.53125,
+                                         "privateMiB":  13.51953125,
+                                         "cpuMachinePercent":  0,
+                                         "processes":  3,
+                                         "handles":  536
+                                     },
+                                     {
+                                         "workingSetMiB":  45.53125,
+                                         "privateMiB":  13.51953125,
+                                         "cpuMachinePercent":  0,
+                                         "processes":  3,
+                                         "handles":  536
+                                     },
+                                     {
+                                         "workingSetMiB":  45.53125,
+                                         "privateMiB":  13.51953125,
+                                         "cpuMachinePercent":  0,
+                                         "processes":  3,
+                                         "handles":  536
+                                     },
+                                     {
+                                         "workingSetMiB":  45.53125,
+                                         "privateMiB":  13.51953125,
+                                         "cpuMachinePercent":  0,
+                                         "processes":  3,
+                                         "handles":  536
+                                     }
+                                 ],
+                     "binaryBytes":  7694336
+                 },
+                 {
+                     "scenario":  "home-minimized",
+                     "startupMs":  171.0009,
+                     "readiness":  {
+                                       "backdropAccepted":  true,
+                                       "height":  820,
+                                       "rendered":  true,
+                                       "width":  1240
+                                   },
+                     "samples":  [
+                                     {
+                                         "workingSetMiB":  40.3515625,
+                                         "privateMiB":  8.65625,
+                                         "cpuMachinePercent":  0,
+                                         "processes":  3,
+                                         "handles":  542
+                                     },
+                                     {
+                                         "workingSetMiB":  40.3515625,
+                                         "privateMiB":  8.65625,
+                                         "cpuMachinePercent":  0,
+                                         "processes":  3,
+                                         "handles":  542
+                                     },
+                                     {
+                                         "workingSetMiB":  40.3515625,
+                                         "privateMiB":  8.65625,
+                                         "cpuMachinePercent":  0,
+                                         "processes":  3,
+                                         "handles":  542
+                                     },
+                                     {
+                                         "workingSetMiB":  40.3515625,
+                                         "privateMiB":  8.65625,
+                                         "cpuMachinePercent":  0,
+                                         "processes":  3,
+                                         "handles":  542
+                                     },
+                                     {
+                                         "workingSetMiB":  40.3515625,
+                                         "privateMiB":  8.65625,
+                                         "cpuMachinePercent":  0,
+                                         "processes":  3,
+                                         "handles":  542
+                                     },
+                                     {
+                                         "workingSetMiB":  40.3515625,
+                                         "privateMiB":  8.65625,
+                                         "cpuMachinePercent":  0,
+                                         "processes":  3,
+                                         "handles":  542
+                                     }
+                                 ],
+                     "binaryBytes":  7694336
+                 }
+             ]
+}

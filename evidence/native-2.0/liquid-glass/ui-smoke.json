@@ -1,0 +1,27 @@
+{
+  "actions": "internal application messages, seeded production domain commands, no Windows input automation",
+  "fixtureMembers": 5,
+  "messages": 30,
+  "microphoneOpened": false,
+  "nativeRenderer": "Iced/tiny-skia",
+  "publicNetwork": false,
+  "releaseAcknowledged": true,
+  "screenshots": [
+    "home",
+    "create-space",
+    "chat",
+    "profile",
+    "audio",
+    "appearance",
+    "kuromi",
+    "news",
+    "home-900",
+    "chat-menu",
+    "server-settings",
+    "direct"
+  ],
+  "spaces": 4,
+  "syntheticFixtures": true,
+  "version": "2.0.0",
+  "windowsBackdropAccepted": true
+}

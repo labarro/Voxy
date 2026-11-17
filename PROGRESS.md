@@ -1,58 +1,39 @@
 # Progresso — Voxy 2.0.0 nativo
 
-Atualizado em **2026-11-16**. Código **2.0.0 experimental**, última distribuição **1.4.1**. Trabalho isolado na branch `migration/2.0-native-audit`; main, releases e dados pessoais preservados. Nenhum deploy, plano pago, push, tag ou release nesta execução.
+Estado em 16/11/2026: **2.0.0 em preparação**, última publicação **1.4.1**, branch migration/2.0-native-audit. Sem push, deploy, plano pago, tag ou release. Main e dados estáveis preservados. O redesign permanece **não aprovado**.
 
-## Validação manual recebida
+## Implementado neste incremento
 
-O usuário informou: **“Os testes físicos da versão atual foram satisfatórios.”** Registro: [evidência](evidence/native-2.0-manual-validation.json). Aplica-se à **1.4.1**, sem inventar aparelhos, redes, duração ou métricas. Não homologa a implementação Rust.
+- [x] Processo de sessão Rust independente do desktop; UI conecta por TCP somente loopback com desafio Ed25519 mútuo, tamanho/tempo/fila limitados e nenhuma credencial no arquivo de descoberta.
+- [x] UI hospeda e entra com convite, recebe snapshots reais, envia chat, edita/exclui mensagens e espera confirmação antes de descartar o rascunho. Criar, renomear e excluir servidor local; canais criados/excluídos na UI e renomeados pela API autoritativa.
+- [x] Malha Opus/SRTP nativa entre participantes autenticados, separada dos dados autoritativos do host. A associação ao canal e mute/deafen controlam o envio/recebimento. Uma trilha de áudio por peer, payload e taxa limitados.
+- [x] Captura/DSP/codec/mixer integrados à sessão, dispositivos, PTT global incluindo Mouse 4/5, mute/deafen, volume 0–200% persistido por identidade e remoção de buffers ao desconectar.
+- [x] Entrada exibe etapas; prontidão exige frame codificado, abertura tem timeout externo de 12 s e geração para descartar resultado tardio. Falha de dispositivo/DSP aparece na UI. Reconexão com backoff e limite de oito tentativas; credencial expirada exige novo convite.
+- [x] Fechar a UI mantém rede e chamada. Reabrir anexa ao processo existente. Sem sessão ativa, o serviço encerra após desconectar a última UI autenticada. Bandeja ainda pendente.
+- [x] Amigos por ID conhecido pelo host: solicitar/aceitar/recusar/remover, persistência por servidor, estado online derivado da conexão. DMs de texto persistidas e snapshots filtrados por participante, com teste de consentimento/privacidade. Não há diretório global.
+- [x] Até 40 recentes; convite salvo protegido por DPAPI e reconexão pela Home.
+- [x] Home social; sidebar de 64 px com ícones centralizados/tooltips; caption de 36 px, botões vetoriais 46×36; chat com avatares fixos, três colunas e ações no hover/menu contextual; configurações e admin com rolagem e estilos próprios.
+- [x] Revisão de telas preenchidas em 1240×820 e 900×640; fixture isolada com dez participantes, mensagens, amizades e DMs. Consulta real de bounds dos widgets durante QA. Sem inferir cliques humanos, DPI real ou aprovação visual.
+- [x] Legado, updater e assets 3D preservados; publicação/empacotamento Electron da 2.0 continuam bloqueados.
 
-## Implementado e verificado
+## Validação e evidências
 
-- [x] Auditoria de 234 arquivos e matriz de paridade; implementação Electron preservada.
-- [x] Rust 1.100.0/MSVC x64, Visual Studio C++ Build Tools/SDK e CMake instalados; workspace, lockfile, rustfmt e Clippy.
-- [x] Cinco crates: core, rede, voz, CLI e desktop. Executáveis nativos sem navegador ou Node.
-- [x] SQLite WAL/transações, perfil/configurações, espaços/canais/mensagens locais, identidade Ed25519 protegida por DPAPI.
-- [x] Sessões com geração/cancelamento, comandos autoritativos com autoria e idempotência, limite de participantes e tamanhos de mensagens.
-- [x] Convites assinados/expiráveis, prova de posse, sinalização assinada vinculada ao nonce da admissão, filas limitadas, framing com integridade.
-- [x] ICE/DTLS/SCTP e Opus/SRTP nativos; teste de dados e mídia sintética por UDP entre peers locais.
-- [x] Worker/Durable Objects com WebSocket hibernável, quotas de admissões/salas, proteção contra replay e implantação desativada. Dois processos Rust trocaram mensagem autoritativa usando o emulador local.
-- [x] CPAL/WASAPI, seleção de dispositivos, Opus 48 kHz/20 ms, gate/limiter, mute/deafen, PTT global incluindo Mouse 4/5, mixer por participante e jitter buffer limitados.
-- [x] Adaptador AEC3/NS/AGC experimental, referência da saída real e DSP fora do callback. Qualidade física ainda pendente.
-- [x] Sondagem real de APIs de áudio: 150 frames em 3 s, captura/saída abertas, mute antes do encoder, sem gravação ou rede. Corrigido erro que tornava um underrun inicial fatal; teste de regressão incluído.
-- [x] Iced/tiny-skia: nova Home editorial, navegação, chat local, criação de espaço, perfil/configurações, novidades e quatro paletas. Materiais glass escuros, reflexos, bordas, estados de foco/hover, Acrylic por janela e efeitos reduzidos. [Design](native/DESIGN.md).
-- [x] Nove capturas produzidas pelo próprio renderer, incluindo 900×640 e Kuromi; [relatório](evidence/native-2.0/ui/ui-smoke.json). Automação externa da janela foi recusada pela ferramenta; não são testes de cliques humanos/acessibilidade.
-- [x] Importador inicial em cópia: backup com hashes por streaming, destino vazio/isolado, perfil e campos desconhecidos preservados. Outros formatos ainda arquivados sem conversão.
-- [x] Medição release de core/Home/Home minimizada com árvore de processos e dados brutos; não são benchmarks de chamada ou de paridade integral.
-- [x] README, notas experimentais e versões sincronizados em 2.0.0. Empacotamento/publicação Electron 2.0 bloqueados por `nativeReady=false`.
-- [x] Workflow nativo sem publicação/deploy criado; ainda não executado no GitHub.
+- Rust: **21 testes** unitários/integração local passaram. Os três testes que requerem emulador/dispositivos são explicitamente ignorados na execução comum e executados separadamente.
+- Emulador: sessão entre processos, IPC com identidade estrangeira negada, chat persistente e reanexação da UI; malha com três peers e isolamento de canais; teste duplex de APIs de áudio, codificação/transmissão/decodificação/saída, volume de reprodução zero e chamada continuando após descarregar ambos os clientes UI.
+- Qualidade acústica, redes de provedores diferentes, PTT com jogo em foco, hotplug e soak **não homologados**.
+- [Sessões](evidence/native-2.0/session-integration.json), [duplex de dispositivos](evidence/native-2.0/session-integration-device-api.json), [QA visual](evidence/native-2.0/liquid-glass-reviewed/ui-smoke.json), [benchmarks](BENCHMARKS.md).
+- A declaração manual “Os testes físicos da versão atual foram satisfatórios” continua registrada exclusivamente para **1.4.1** em evidence/native-2.0-manual-validation.json.
 
-## Estado das fases e bloqueadores reais
+## Gates e funcionalidades pendentes
 
-| Fase | Estado / pendências para aceite |
-| --- | --- |
-| 0 — Auditoria | Inventário e baseline exploratória feitos; confirmação manual 1.4.1 registrada. Comparações empacotadas equivalentes e medições completas de chamadas continuam pendentes. |
-| 1 — Nativo/voz | Código e testes locais implementados. Faltam chamada entre usuários, avaliação acústica, hotplug, latência real e PTT com jogos em foco. |
-| 2 — Sem VPN | Transporte nativo e host/chat por convite verificados localmente. **Não aprovada:** implantação/domínio/conta, internet entre provedores, CGNAT/NAT simétrico/IPv6/firewall, TURN seguro financeiramente e reconexão completa. |
-| 3 — Comunicação | Autoridade/persistência e fluxo de mensagem nativo implementados parcialmente. UI ainda usa chat local; faltam integração de sessão remota, DMs/amigos/cargos/reação/anexos e paridade. |
-| 4 — UI/Windows | Nova direção visual implementada nas telas existentes. Faltam mini perfis, menus/notificações, tray, autostart, IME/DPI/acessibilidade e encerramento da UI com chamada preservada. |
-| 5 — Multimídia | Pendente: WGC, áudio por processo isolado, webcam, codecs de hardware, grade/PiP. |
-| 6 — Mundo | Pendente: salas completas, avatares procedurais, animações/IK, interação, TV, lifecycle GPU. Assets e fontes 1.x preservados. |
-| 7 — Jogos | Pendente: sinuca/Truco/xadrez completos no cenário e sincronização autoritativa. |
-| 8 — Migração/qualidade | Perfil inicial e backups testados; formatos restantes, segurança/CVEs/licenças, fuzzing, soak e paridade completos pendentes. |
-| 9 — Distribuição | Instalador/updater assinado Rust, transição/rollback e homologação pendentes. Publicação exige autorização explícita. |
+Fases 1–4 avançaram no código integrado, mas a **Fase 2 pública ainda não está aprovada**. Faltam conta/domínio/deploy seguro, CGNAT/NAT simétrico/IPv6/firewalls entre redes reais e TURN financeiramente limitado. Limites locais não substituem teto de cobrança do provedor; relay segue desabilitado.
 
-Não se consideram as fases posteriores aprovadas: tarefas locais independentes avançaram enquanto os gates físicos/externos permanecem abertos. TURN está efetivamente bloqueado; STUN/P2P direto não garantem a experiência em todas as redes. Sem corte financeiro verificável, não habilitar relay nem prometer custo zero universal.
+Áudio ainda requer homologação acústica do AEC3 experimental, recuperação/hotplug, sons, atalhos combinados e mudo/ensurdecer globais completos. A UI tem funcionalidades utilizáveis, mas não paridade: imagens, respostas, reações, busca/paginação remotas completas, perfis com foto/capa, cargos, chamadas privadas reservadas, não lidas, DND e notificações ainda pendentes.
 
-## Verificações
+Fases 5–9 continuam pendentes: vídeo/WGC/áudio por processo/webcam/PiP, salas procedurais completas, avatares/animações, três jogos com testes diferenciais, importação integral e distribuição assinada/rollback. Não foram substituídos por telas estáticas ou experiências simplificadas. Critérios originais de aceite permanecem em PLAN.md.
 
-- Legado: `npm test` **83/83** e `npm run build` passaram; aviso existente de chunk grande no Vite.
-- Rust: **19/19 testes passaram**, incluindo identidade/DPAPI, dados, migração, autorização/idempotência, convites/replay, framing, gate/resampling/Opus/DSP e transporte SRTP. `cargo fmt`, Clippy com `-D warnings` e build release passaram.
-- Infra local: TypeScript, **3/3 testes** de admissão/quotas/replay/nonce de sessão e integrações nativo + host passaram. Auditoria npm da infraestrutura sem vulnerabilidades conhecidas na execução.
-- Binário release: [sondagem de áudio](evidence/native-2.0/audio-probe.json) com 150 frames em 3 s, sem falha de dispositivo; a inicialização do duplex só confirma prontidão após produzir o primeiro frame. Um evento recuperável foi observado e não interrompeu o fluxo.
-- Os bloqueios de empacotamento Electron e publicação estável foram exercitados e recusaram a distribuição experimental antes de gerar artefatos.
-- [Verificação consolidada e hashes dos binários](evidence/native-2.0/verification.json); [inspeção do processo nativo](evidence/native-2.0/runtime-boundary.json) confirmou renderer pronto, nenhum processo filho e nenhum módulo de Electron/Chromium/WebView/Node na execução observada.
-- Memória em repouso: Home **29,6 MiB**, Home minimizada **23,6 MiB** de working set médio; escopo e private bytes em [BENCHMARKS.md](BENCHMARKS.md). Não equivale à meta de chamada 30–80 MB.
+## Revisão visual solicitada durante a execução
 
-## Próximos gates
+Os primeiros prints tinham erros reais: avatars com Fill no lugar de dimensão fixa, sidebar sem centralização, botões de caption genéricos, ações cobertas pela scrollbar e listas sem área rolável. Foram corrigidos; o relatório de revisão registra o que foi conferido. Novos prints são evidência de renderização e correção geométrica, **não aprovação artística ou teste humano**.
 
-Integrar a sessão remota e o duplex de voz à UI com cancelamento/timeout; revisar identidade/permissões e reconexão; habilitar teste público somente com conta/domínio seguros e custo fechado; validar redes e áudio fisicamente. Não reduzir o escopo 3D/jogos para alegar paridade.
+[Revisão visual antes/depois](evidence/native-2.0/visual-review.md): 15 capturas atuais, 227 bounds verificados e nenhuma falha nas invariantes consultadas. [Conferência consolidada](evidence/native-2.0/verification.json): 21 testes Rust comuns e três integrações explícitas passaram; fmt e Clippy com warnings negados passaram. npm test: 83 testes; npm run build passou com aviso já existente de chunk Vite. Versão 2.0.0 em preparação, catálogo e pasta de saída coerentes, sem publicação.

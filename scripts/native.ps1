@@ -10,7 +10,7 @@ $nativeRoot=Join-Path $PSScriptRoot '../native'
 Push-Location $nativeRoot
 try {
     switch ($Action) {
-        'dev' { & $nativeCargo run --locked -p voxy-desktop -- @NativeArgs }
+        'dev' { & $nativeCargo build --locked --workspace; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; & (Join-Path $nativeRoot 'target/debug/voxy-desktop.exe') @NativeArgs }
         'build' { & $nativeCargo build --locked --release --workspace @NativeArgs }
         'test' { & $nativeCargo test --locked --workspace @NativeArgs }
         'check' { & $nativeCargo clippy --locked --workspace --all-targets -- -D warnings }

@@ -1,5 +1,10 @@
 # Voxy 2.0.0 — plano de migração nativa
 
+## Continuidade executada
+
+O incremento atual integrou sessão persistente, malha de voz e UI, em vez de repetir a prova de conceito. A stack permanece Rust/Iced/CPAL/Opus/webrtc-rs/SQLite; voxy-session isola o ciclo de vida da chamada. Amizades/DMs mantêm o escopo do host, e a Home passou a ser social e predominantemente monocromática. O redesign não foi aprovado pelo usuário. Os critérios das fases permanecem válidos; a Fase 2 pública e a homologação acústica continuam abertas. Estado verificável em PROGRESS.md.
+
+
 ## Stack implementada neste incremento
 
 Rust **1.100.0**, Iced **0.14.0/tiny-skia**, Tokio, Serde, SQLite/rusqlite **0.37**, Ed25519/DPAPI, CPAL **0.18.2**, Opus **0.4.0**, webrtc-rs/rtc **0.21.1** e AEC3 **0.4.0**. Versões transitivas fixadas em Cargo.lock. A escolha Rust para transporte evita embutir navegador e evolui diretamente o código existente; o processamento de voz permanece substituível atrás do adaptador, pois a porta AEC3 é experimental e exige homologação acústica. libwebrtc continua alternativa se os gates de áudio/mídia falharem; não há alegação de qualidade equivalente já aprovada.

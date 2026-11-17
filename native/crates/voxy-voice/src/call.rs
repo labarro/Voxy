@@ -28,12 +28,20 @@ pub struct EncodedVoice {
     pub payload: Vec<u8>,
 }
 enum Input {
+    Clear,
+    Remove(u64),
     Packet(IncomingVoice),
     Mix { peer: u64, volume: f32, muted: bool },
 }
 #[derive(Clone)]
 pub struct VoiceInput(SyncSender<Input>);
 impl VoiceInput {
+    pub fn clear(&self) {
+        let _ = self.0.try_send(Input::Clear);
+    }
+    pub fn remove(&self, peer: u64) {
+        let _ = self.0.try_send(Input::Remove(peer));
+    }
     pub fn packet(&self, packet: IncomingVoice) -> Result<()> {
         ensure!(packet.payload.len() <= 1275, "Pacote de voz inválido");
         self.0
@@ -107,6 +115,14 @@ pub struct CallAudio {
     worker: Option<JoinHandle<Result<()>>>,
 }
 impl CallAudio {
+    pub fn is_finished(&self) -> bool {
+        self.worker
+            .as_ref()
+            .is_none_or(|worker| worker.is_finished())
+    }
+    pub fn take_encoded(&mut self) -> Receiver<EncodedVoice> {
+        std::mem::replace(&mut self.encoded, mpsc::channel().1)
+    }
     pub fn start(config: CallConfig, control: Arc<VoiceControl>) -> Result<Self> {
         ensure!(
             config.threshold.is_finite() && (-100.0..=0.0).contains(&config.threshold),
@@ -147,6 +163,7 @@ impl CallAudio {
                     };
                 let mut ready = Some(ready_tx);
                 let mut remotes: BTreeMap<u64, Remote> = BTreeMap::new();
+                let mut mixes: BTreeMap<u64, (f32, bool)> = BTreeMap::new();
                 let mut capture_block = [0.0; BLOCK];
                 let mut capture_count = 0;
                 let mut render = [0.0; BLOCK];
@@ -161,6 +178,13 @@ impl CallAudio {
                 {
                     for _ in 0..64 {
                         match in_rx.try_recv() {
+                            Ok(Input::Clear) => {
+                                remotes.clear();
+                                mixes.clear();
+                            }
+                            Ok(Input::Remove(peer)) => {
+                                remotes.remove(&peer);
+                            }
                             Ok(Input::Packet(frame)) => {
                                 if !remotes.contains_key(&frame.peer) && remotes.len() >= 9 {
                                     continue;
@@ -168,7 +192,12 @@ impl CallAudio {
                                 let remote = match remotes.entry(frame.peer) {
                                     std::collections::btree_map::Entry::Occupied(e) => e.into_mut(),
                                     std::collections::btree_map::Entry::Vacant(e) => {
-                                        e.insert(Remote::new()?)
+                                        let mut remote = Remote::new()?;
+                                        if let Some((volume, muted)) = mixes.get(&frame.peer) {
+                                            remote.volume = *volume;
+                                            remote.muted = *muted;
+                                        }
+                                        e.insert(remote)
                                     }
                                 };
                                 remote.last = Instant::now();
@@ -195,6 +224,9 @@ impl CallAudio {
                                 volume,
                                 muted,
                             }) => {
+                                if mixes.contains_key(&peer) || mixes.len() < 9 {
+                                    mixes.insert(peer, (volume, muted));
+                                }
                                 if let Some(remote) = remotes.get_mut(&peer) {
                                     remote.volume = volume;
                                     remote.muted = muted;
@@ -219,6 +251,11 @@ impl CallAudio {
                                 .decoder
                                 .decode(data.as_deref().unwrap_or_default(), &mut decoded)
                                 .unwrap_or(0);
+                            if data.is_some() && count > 0 {
+                                worker_control
+                                    .decoded_frames
+                                    .fetch_add(1, Ordering::Relaxed);
+                            }
                             if !remote.muted {
                                 for (i, sample) in decoded[..count].iter().enumerate() {
                                     mixed[i] += sample * remote.volume;

@@ -1,0 +1,109 @@
+{
+  "acousticLatencyMeasured": false,
+  "build": "release override",
+  "featureEquivalentToElectron": false,
+  "gpuAndVramMeasured": false,
+  "includedVoxyProcesses": 2,
+  "logicalCpus": 12,
+  "measuredAtMs": 1794881250000,
+  "samples": [
+    {
+      "processes": [
+        {
+          "cpuMachinePercent": 0.0,
+          "participant": 0,
+          "privateMiB": 6.32421875,
+          "workingSetMiB": 24.2421875
+        },
+        {
+          "cpuMachinePercent": 0.25249973933946906,
+          "participant": 1,
+          "privateMiB": 6.33984375,
+          "workingSetMiB": 24.16796875
+        }
+      ]
+    },
+    {
+      "processes": [
+        {
+          "cpuMachinePercent": 0.0,
+          "participant": 0,
+          "privateMiB": 6.32421875,
+          "workingSetMiB": 24.2421875
+        },
+        {
+          "cpuMachinePercent": 0.25232637652153206,
+          "participant": 1,
+          "privateMiB": 6.33984375,
+          "workingSetMiB": 24.16796875
+        }
+      ]
+    },
+    {
+      "processes": [
+        {
+          "cpuMachinePercent": 1.0156931580893735,
+          "participant": 0,
+          "privateMiB": 6.32421875,
+          "workingSetMiB": 24.24609375
+        },
+        {
+          "cpuMachinePercent": 0.7617698685670301,
+          "participant": 1,
+          "privateMiB": 6.33984375,
+          "workingSetMiB": 24.171875
+        }
+      ]
+    },
+    {
+      "processes": [
+        {
+          "cpuMachinePercent": 0.2530550424274109,
+          "participant": 0,
+          "privateMiB": 6.32421875,
+          "workingSetMiB": 24.24609375
+        },
+        {
+          "cpuMachinePercent": 0.5061100848548218,
+          "participant": 1,
+          "privateMiB": 6.33984375,
+          "workingSetMiB": 24.171875
+        }
+      ]
+    },
+    {
+      "processes": [
+        {
+          "cpuMachinePercent": 0.2534656253568796,
+          "participant": 0,
+          "privateMiB": 6.32421875,
+          "workingSetMiB": 24.24609375
+        },
+        {
+          "cpuMachinePercent": 0.5069312507137592,
+          "participant": 1,
+          "privateMiB": 6.33984375,
+          "workingSetMiB": 24.171875
+        }
+      ]
+    },
+    {
+      "processes": [
+        {
+          "cpuMachinePercent": 0.25316205482364046,
+          "participant": 0,
+          "privateMiB": 6.32421875,
+          "workingSetMiB": 24.24609375
+        },
+        {
+          "cpuMachinePercent": 0.5063241096472809,
+          "participant": 1,
+          "privateMiB": 6.33984375,
+          "workingSetMiB": 24.171875
+        }
+      ]
+    }
+  ],
+  "scenario": "Two native session processes, one peer per participant, both UI clients unloaded, physical default device APIs, remote playback volume zero, local Worker emulator, no recording",
+  "testControllerAndRemoteInfrastructureEmulatorExcluded": true
+}

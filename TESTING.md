@@ -1,5 +1,10 @@
 # Validação do Voxy
 
+## Sessões nativas e revisão visual
+
+npm run test:session --prefix infra/signaling executa os dois testes explícitos que exigem Worker local. VOXY_TEST_PHYSICAL_AUDIO=1 habilita adicionalmente o duplex de APIs de dispositivos; ele usa volume remoto zero, não grava áudio e não certifica qualidade acústica. Testes comuns Rust marcam esses casos como ignorados; não contá-los como executados sem rodar o emulador. A UI possui smoke renderer isolado com fixtures e bounds reais; detalhes em native/README.md e DESIGN-SYSTEM.md.
+
+
 ## Verificação nativa experimental
 
 Ver [native/README.md](native/README.md) para executar testes Rust, emulador de sinalização e dois processos nativos. Screenshots são produzidas pelo próprio Iced (nove estados), sem navegador e sem cliques humanos. Sondagem de dispositivos/frames não é homologação acústica. Resultados e bloqueadores em [PROGRESS.md](PROGRESS.md); métricas em [BENCHMARKS.md](BENCHMARKS.md).

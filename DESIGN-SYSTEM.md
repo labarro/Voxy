@@ -1,4 +1,20 @@
-# Interface do Voxy · 1.3.0
+# Interface do Voxy · 2.0 em preparação e histórico 1.x
+
+## Voxy 2.0 nativo — revisão atual, ainda não aprovada
+
+Esta seção substitui a direção anterior para o desktop Rust. Base Voxy: grafite #111214, carvão #1c1e21, superfície elevada #32353b, prata #dedfe3 e texto #e9e9ec. Oceano/Bosque/Kuromi alteram fundo, materiais, reflexos e acentos; a arte temática licenciada completa ainda não foi migrada.
+
+Home é uma central social, sem hero publicitário. Sidebar: 64 px; itens: 44×44, ícone vetorial 22 px; servidores: 38×38. Caption: 36 px; cada controle: 46×36, glifo vetorial de 12 px, close com hover vermelho e restaurar com estado real da janela. Avatar é sempre quadrado com alinhamento central, sem centralização que transforme largura/altura em Fill. Chat: canais 210 px, conversa flexível, participantes 172 px; rolagem independente e espaço reservado para scrollbar. Ações de mensagem aparecem no hover ou menu contextual.
+
+Tipografia Segoe UI: corpo 13–14 px, auxiliares 11–12 px, títulos 20–25 px. Campos e toggles/sliders/selects/menus/scrollbars têm estilos próprios. Reservar separação entre estrutura de navegação, superfícies de conteúdo e controles; não usar botões primários como seleção de canal. Evitar banners, áreas de marketing e painéis elevados vazios.
+
+Material implementado: composição Acrylic do Windows por janela + superfícies localizadas no renderer, com fallback opaco se DWM não aceitar e opção de redução de efeitos. Não equivale a refração óptica do Liquid Glass da Apple. [APIs documentadas da Microsoft](https://learn.microsoft.com/en-us/windows/apps/develop/ui/system-backdrops) foram usadas; não há API privada de composição, WebView nem shader animado permanente. Um render pass wgpu com refração/blur próprio ainda precisaria ser prototipado/medido, especialmente pela integração futura do vídeo/3D; não está anunciado como entregue.
+
+QA usa fixtures explícitas e pasta experimental vazia, dez participantes e histórico. Capturas em evidence/native-2.0/liquid-glass-reviewed; geometria real via Operation do Iced verifica avatares, itens de navegação e caption. Não são cliques humanos ou homologação de DPI/acessibilidade. Erros dos primeiros prints foram reconhecidos e corrigidos; a aprovação artística permanece pendente.
+
+## Histórico visual 1.x
+
+
 
 A direção é um espaço de comunicação entre amigos: discreto na estrutura e reconhecível na assinatura de frequência. O launcher oferece dois caminhos claros, entrar e hospedar. Ardósia e azul mineral substituem a base roxa; âmbar identifica acolhimento e conexão, verde indica presença e vermelho sinaliza ações destrutivas. Temas pessoais continuam disponíveis, sem copiar a composição de outro aplicativo.
 

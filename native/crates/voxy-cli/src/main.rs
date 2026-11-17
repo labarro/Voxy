@@ -4,6 +4,11 @@ use voxy_core::{identity::Identity, store::Store};
 async fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.first().map(String::as_str).unwrap_or("status") {
+        "serve" => {
+            tokio::task::LocalSet::new()
+                .run_until(voxy_session::serve())
+                .await?;
+        }
         "status" => {
             let directory = voxy_core::data_directory()?;
             let store = Store::open(&directory.join("voxy.sqlite"))?;

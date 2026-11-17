@@ -1,7 +1,7 @@
 //! Cached vector art. No network assets or animation timer.
 use crate::design::{Materials, alpha};
 use iced::widget::canvas::{self, Cache, Canvas, Frame, Geometry, Path, Stroke};
-use iced::{Color, Point, Rectangle, Renderer, Size, Theme};
+use iced::{Color, Point, Rectangle, Renderer, Theme};
 
 #[derive(Clone, Copy)]
 pub enum NavIcon {
@@ -11,6 +11,64 @@ pub enum NavIcon {
     Settings,
 }
 pub struct Icon(pub NavIcon, pub Color);
+#[derive(Clone, Copy)]
+pub enum CaptionKind {
+    Minimize,
+    Maximize,
+    Restore,
+    Close,
+}
+pub struct Caption(pub CaptionKind, pub Color);
+impl<Message> canvas::Program<Message> for Caption {
+    type State = ();
+    fn draw(
+        &self,
+        _: &(),
+        renderer: &Renderer,
+        _: &Theme,
+        bounds: Rectangle,
+        _: iced::mouse::Cursor,
+    ) -> Vec<Geometry> {
+        let mut frame = Frame::new(renderer, bounds.size());
+        let stroke = Stroke::default().with_width(1.).with_color(self.1);
+        match self.0 {
+            CaptionKind::Minimize => {
+                frame.stroke(&Path::line(Point::new(1., 7.), Point::new(11., 7.)), stroke)
+            }
+            CaptionKind::Maximize => frame.stroke(
+                &Path::rectangle(Point::new(1.5, 1.5), iced::Size::new(9., 9.)),
+                stroke,
+            ),
+            CaptionKind::Restore => {
+                frame.stroke(
+                    &Path::new(|p| {
+                        p.move_to(Point::new(3.5, 3.5));
+                        p.line_to(Point::new(3.5, 1.5));
+                        p.line_to(Point::new(10.5, 1.5));
+                        p.line_to(Point::new(10.5, 8.5));
+                        p.line_to(Point::new(8.5, 8.5));
+                    }),
+                    stroke,
+                );
+                frame.stroke(
+                    &Path::rectangle(Point::new(1.5, 3.5), iced::Size::new(7., 7.)),
+                    stroke,
+                );
+            }
+            CaptionKind::Close => {
+                frame.stroke(
+                    &Path::line(Point::new(2., 2.), Point::new(10., 10.)),
+                    stroke,
+                );
+                frame.stroke(
+                    &Path::line(Point::new(2., 10.), Point::new(10., 2.)),
+                    stroke,
+                );
+            }
+        };
+        vec![frame.into_geometry()]
+    }
+}
 impl<Message> canvas::Program<Message> for Icon {
     type State = ();
     fn draw(
@@ -125,78 +183,9 @@ impl<Message> canvas::Program<Message> for Backdrop<'_> {
                 bounds.size(),
                 alpha(
                     self.materials.base,
-                    if self.materials.reduced { 1.0 } else { 0.78 },
+                    if self.materials.reduced { 1.0 } else { 0.12 },
                 ),
             );
-            if self.materials.reduced {
-                return;
-            }
-            for (center, color, radius) in [
-                (
-                    Point::new(bounds.width * 0.87, bounds.height * 0.13),
-                    self.materials.accent,
-                    410.0,
-                ),
-                (
-                    Point::new(bounds.width * 0.28, bounds.height * 0.85),
-                    self.materials.secondary,
-                    380.0,
-                ),
-            ] {
-                for i in (1..=60).rev() {
-                    let fraction = i as f32 / 60.0;
-                    frame.fill(
-                        &Path::circle(center, radius * fraction),
-                        alpha(color, 0.012 * (1.0 - fraction)),
-                    );
-                }
-            }
         })]
-    }
-}
-pub struct Frequency(pub Materials);
-impl<Message> canvas::Program<Message> for Frequency {
-    type State = ();
-    fn draw(
-        &self,
-        _: &(),
-        renderer: &Renderer,
-        _: &Theme,
-        bounds: Rectangle,
-        _: iced::mouse::Cursor,
-    ) -> Vec<Geometry> {
-        let mut frame = Frame::new(renderer, Size::new(bounds.width, bounds.height));
-        let center = Point::new(bounds.width * 0.53, bounds.height * 0.5);
-        for i in (1..36).rev() {
-            frame.stroke(
-                &Path::circle(center, 110.0 + i as f32 * 2.0),
-                Stroke::default()
-                    .with_color(alpha(self.0.secondary, 0.005))
-                    .with_width(3.0),
-            );
-        }
-        for i in 0..45 {
-            let t = i as f32 / 44.0;
-            let height =
-                10.0 + (t * std::f32::consts::PI).sin() * (40.0 + (t * 26.0).sin().abs() * 65.0);
-            let x = center.x - 140.0 + i as f32 * 6.4;
-            frame.stroke(
-                &Path::line(
-                    Point::new(x, center.y - height),
-                    Point::new(x, center.y + height),
-                ),
-                Stroke::default()
-                    .with_color(alpha(
-                        if i % 3 == 0 {
-                            self.0.secondary
-                        } else {
-                            self.0.accent
-                        },
-                        0.30 + (t * std::f32::consts::PI).sin() * 0.5,
-                    ))
-                    .with_width(2.0),
-            );
-        }
-        vec![frame.into_geometry()]
     }
 }

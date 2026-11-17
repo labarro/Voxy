@@ -1,5 +1,16 @@
 # Infraestrutura proposta — Voxy 2.0
 
+## Conectar a implementação atual
+
+O desktop configura VOXY_SIGNAL_URL (WSS público, sem /v3) e VOXY_STUN_URLS, ou usa Configurações → Rede e privacidade. O convidado só cola o convite; endpoint/chave do host/capacidade/expiração já estão assinados nele. STUN padrão: stun:stun.cloudflare.com:3478, confirmado na [documentação oficial](https://developers.cloudflare.com/realtime/turn/). Nenhum segredo Cloudflare é enviado ao desktop.
+
+Para a futura implantação são necessários **o account ID real da conta Free**, **o domínio/subdomínio escolhido** e autenticação Wrangler local via login ou CLOUDFLARE_API_TOKEN escopado para publicar Workers/Durable Objects e configurar a rota/domínio correspondente. Esses valores não foram fornecidos nem inventados. Não colocar token em Git, binário, convite ou variáveis públicas do Worker. O administrador configura a rota do subdomínio, confere a conta/plano e somente então altera VOXY_DEPLOYMENT_ENABLED no ambiente remoto. Não executamos deploy.
+
+Para desenvolver/testar sem a conta: npm ci --prefix infra/signaling --ignore-scripts; npm run test:session --prefix infra/signaling. O emulador usa somente 127.0.0.1:8787. Microfone não abre nos testes padrão; o teste de APIs locais exige VOXY_TEST_PHYSICAL_AUDIO=1 explicitamente e mantém a reprodução remota em volume zero.
+
+TURN permanece bloqueado. A [página oficial de preços](https://developers.cloudflare.com/realtime/sfu/platform/pricing/) informa franquia compartilhada de 1.000 GB/mês e US$ 0,05/GB de saída excedente; isso não comprova um teto financeiro. A documentação consultada não forneceu um hard cap de cobrança que permitisse habilitar relay com a garantia pedida. Rate limiting, quotas de admissão e backoff evitam abuso comum, mas não substituem o corte do provedor e ainda exigem revisão anti-Sybil antes de uso público.
+
+
 ## Implementação local e barreiras de custo — 16/11/2026
 
 Código em [infra/signaling](infra/signaling): Worker e Durable Objects SQLite **SignalRoom** (WebSocket hibernável) e **AdmissionBudget** (admissões globais/salas/nonce replay). Desenvolvimento com Wrangler 4.163.0/Miniflare 4.20260730.0; testes locais não acessam conta Cloudflare. Valores padrão: 1.000 admissões/dia, dez salas registradas por orçamento diário e dez participantes/sala. Esses limites internos são conservadores, não representam todas as cotas faturáveis da plataforma.

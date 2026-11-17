@@ -41,6 +41,8 @@ jobs:
           npm run test:native --prefix infra/signaling
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm run test:host --prefix infra/signaling
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:session --prefix infra/signaling
       - name: Compilar os executáveis nativos otimizados
         working-directory: native
         run: cargo build --locked --release --workspace

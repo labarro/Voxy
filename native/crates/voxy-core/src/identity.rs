@@ -9,6 +9,14 @@ use std::{
 /// Persistent signing identity. Debug intentionally exposes no secret material.
 pub struct Identity(SigningKey);
 impl Identity {
+    pub fn seal_local(bytes: &[u8]) -> Result<Vec<u8>> {
+        ensure!(bytes.len() <= 131072, "Segredo local excede o limite");
+        protect(bytes)
+    }
+    pub fn open_local(bytes: &[u8]) -> Result<Vec<u8>> {
+        ensure!(bytes.len() <= 147456, "Segredo local excede o limite");
+        unprotect(bytes)
+    }
     pub fn generate() -> Self {
         Self(SigningKey::generate(&mut rand::rngs::OsRng))
     }

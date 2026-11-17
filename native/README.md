@@ -1,74 +1,52 @@
-# Voxy nativo 2.0.0 — desenvolvimento experimental
+# Voxy nativo 2.0.0 — desenvolvimento
 
-Executáveis Windows x64 compilados em Rust/MSVC. UI Iced/tiny-skia, áudio WASAPI via CPAL, Opus nativo, protocolo webrtc-rs, SQLite nativo e identidade Ed25519/DPAPI. Nenhum navegador, WebView, Electron ou processo Node integra estes executáveis. A versão estável continua sendo **1.4.1**; este incremento ainda não a substitui.
+Desktop Rust/Iced e processo Rust de sessão. Sem Electron, Chromium, WebView, Tauri ou Node no aplicativo nativo. A 1.4.1 continua estável/publicada; esta versão não foi distribuída e ainda não possui paridade integral.
 
 ## Executar
 
-Ferramentas necessárias: Rust **1.100.0** com alvo `x86_64-pc-windows-msvc`, Visual Studio C++ Build Tools 2022/Windows SDK e CMake. Foram instaladas nesta máquina durante o desenvolvimento. O script PowerShell atualiza o PATH da execução para encontrar as ferramentas sem depender de reiniciar o terminal.
+Rust 1.100.0 MSVC x64, Build Tools C++/Windows SDK e CMake foram instalados nesta máquina. Na raiz: npm run native:dev. O script compila o workspace e executa o desktop; voxy-core.exe serve é iniciado sem janela quando necessário. npm run native:test e npm run native:check validam testes/Clippy; npm run native:build compila release. Binários em native/target/release.
 
-Na raiz do repositório:
+Dados em %APPDATA%/voxy-native-experimental ou VOXY_NATIVE_DATA_DIR explicitamente isolado. Nunca usar diretórios da instalação Electron. O empacotador Electron e a publicação estável 2.0 permanecem bloqueados.
 
-```powershell
-npm run native:dev
-npm run native:test
-npm run native:check
-npm run native:build
-npm run native:core -- status
-```
+## Fluxo utilizável
 
-Ou dentro de `native/`: `cargo run -p voxy-desktop`, `cargo test --locked --workspace` e `cargo build --locked --release --workspace`. Não utilizar o empacotador Electron para gerar um instalador da 2.0; o caminho foi bloqueado até existir instalador nativo homologado.
+1. Criar um servidor na Home.
+2. Configurar sinalização WSS em Configurações → Rede e privacidade, ou definir VOXY_SIGNAL_URL antes de iniciar. VOXY_STUN_URLS permite separar URLs STUN por vírgula; padrão stun:stun.cloudflare.com:3478.
+3. Abrir o servidor e escolher Hospedar servidor. Copiar o convite para os participantes.
+4. O convidado usa Entrar por convite. Não precisa digitar endereço IP ou endpoint.
+5. Mensagens, edição/exclusão próprias, canais, solicitações de amizade e DMs são comandos reais do host. Amigos e histórico privado estão vinculados ao servidor/host, não a um diretório global.
+6. Selecionar um canal de voz abre captura/saída, DSP e Opus; a confirmação do servidor libera mídia com participantes do mesmo canal. PTT, mute/deafen e volume individual operam no processo de sessão.
+7. Fechar a janela preserva a sessão e a chamada. Abrir o executável novamente reanexa a UI. Para sair, usar Sair da chamada/Desconectar. A bandeja ainda não foi migrada.
 
-Binários: `native/target/release/voxy-desktop.exe` e `voxy-core.exe`. Dados próprios em `%APPDATA%/voxy-native-experimental`. Para testes, definir `VOXY_NATIVE_DATA_DIR` para uma pasta descartável. Não apontar para dados da 1.x. Não há migração automática de dados existentes nem alteração de inicialização automática do Windows.
+Sem um serviço WSS implantado pelo administrador, o fluxo completo pode ser exercitado usando o Worker local: iniciar Wrangler local com VOXY_DEPLOYMENT_ENABLED=true no ambiente de emulação, mantendo relay false. A configuração versionada vem desabilitada para implantação. Não usar serviços pagos. [Requisitos externos](../INFRASTRUCTURE.md).
 
-## O que já funciona
+## Testes
 
-- Home, navegação, criação de espaços, canais padrão, chat local persistente e exclusão das próprias mensagens.
-- Perfil com rascunho/salvar/desfazer, quatro paletas, vidro escuro em camadas, Acrylic opcional do Windows e modo de efeitos reduzidos.
-- Seleção de dispositivos e teste privado de microfone, iniciado somente por ação explícita. Ao parar/sair das configurações, libera captura e saída.
-- Núcleo sem GUI com SQLite, chave Ed25519 protegida por DPAPI, sessões canceláveis e host autoritativo para comandos de mensagens/canais/presença de voz.
-- Convites assinados com expiração, admissão com prova de posse, SDP/ICE assinados e vinculados à sessão, framing limitado, backpressure, autoria e comandos idempotentes.
-- Pipeline de voz independente da UI: captura/reprodução, Opus, gate, PTT global/Mouse 4/5, AEC3/NS/AGC em worker próprio, mixer e buffer de jitter. A integração de chamada completa na UI e a qualidade acústica continuam pendentes.
-
-O teste privado da UI utiliza monitoramento direto e **ainda não usa o novo AEC3**: requer fones e informa isso na tela. O processamento duplex é uma API separada em `voxy-voice::call::CallAudio`. A porta Rust do AEC3 é experimental; os testes sintéticos não autorizam distribuir áudio como equivalente à 1.4.1.
-
-## Testar conectividade sem serviço externo
-
-O serviço em `infra/signaling` é apenas infraestrutura remota de sinalização, não backend Node do desktop. Nenhuma conta Cloudflare ou cartão é necessário para os testes locais:
-
-```powershell
+~~~powershell
 npm ci --prefix infra/signaling --ignore-scripts
 npm run check --prefix infra/signaling
 npm test --prefix infra/signaling
-# Compilar também o core em debug para os testes de dois processos:
-cargo build --manifest-path native/Cargo.toml -p voxy-cli
 npm run test:native --prefix infra/signaling
 npm run test:host --prefix infra/signaling
-```
+npm run test:session --prefix infra/signaling
+~~~
 
-`test:native` troca SDP/ICE assinados pelo emulador e confirma DataChannel nativo. `test:host` inicia dois executáveis Rust com perfis temporários, gera convite, admite o participante, envia mensagem e recebe confirmação do host. O Node/Miniflare existe somente no computador de desenvolvimento para emular a infraestrutura que será remota. Não confundir isso com teste entre provedores ou CGNAT.
+Os testes de sessão iniciam emulador e processos Rust isolados, verificam IPC autenticado, host/chat, reanexação da UI e malha Opus com isolamento de canais. São marcados como ignorados nos testes Cargo comuns e executados explicitamente pelo script do emulador. Node existe somente nas ferramentas de desenvolvimento e no emulador, não no desktop ou núcleo distribuído.
 
-O Worker vem com implantação desativada. Para uma execução manual **apenas local**, habilitar `VOXY_DEPLOYMENT_ENABLED` no emulador, mantendo `VOXY_RELAY_ENABLED=false`; nunca mudar a conta para Paid. O CLI aceita:
+O teste adicional de dispositivos requer **VOXY_TEST_PHYSICAL_AUDIO=1**. Abre as APIs de entrada/saída padrão e troca Opus/SRTP entre dois processos na mesma máquina, com volume de reprodução remoto zero para evitar retorno; confirma codificação, decodificação, callbacks de saída e continuidade após descarregar os clientes UI. Não grava áudio, não usa rede pública e não certifica eco/inteligibilidade/volume/latência acústica. VOXY_TEST_CORE_BINARY aponta opcionalmente para o executável release ao medir recursos. VOXY_TEST_ONLY_AUDIO=1 isola esse cenário.
 
-```text
-voxy-core status
-voxy-core network-check
-voxy-core signaling-check ws://127.0.0.1:8787
-voxy-core host ws://127.0.0.1:8787 "Meus amigos" 3600
-voxy-core join <convite-gerado-pelo-host> "Mensagem de teste"
-voxy-core ptt-check Mouse4
-voxy-core audio-probe 5
-```
+## Revisão visual
 
-`audio-probe` abre entrada e saída, executa o pipeline e codifica com mute antes do encoder; não grava áudio nem transmite pela rede. Ele verifica acesso às APIs/dispositivos, não qualidade acústica. `ptt-check` não abre o microfone. Convites no CLI ficam visíveis no terminal e nos argumentos do processo convidado; esse caminho é de desenvolvimento, não o fluxo final da GUI. Não copiar convites para relatórios, logs ou issues.
+O renderer possui --smoke-dir <pasta-evidências>, somente com VOXY_NATIVE_DATA_DIR explícito e vazio. Esse modo semeia fixtures claramente identificadas e desativa o bridge de sessão; **não abre microfone nem rede**. Consulta bounds reais de avatares/sidebar/caption e gera capturas de Home, chat, participantes, configurações, temas, administração, DM e modais em 1240×820 e 900×640. A execução normal nunca semeia esses dados.
 
-A sondagem release produziu 150 frames em três segundos ([evidência](../evidence/native-2.0/audio-probe.json)). A inicialização de `CallAudio` só retorna sucesso após produzir o primeiro frame; apenas abrir o dispositivo não comprova captura. Underrun/aviso de prioridade recuperáveis não encerram a sessão; invalidação permanente fecha o envio. Não há homologação física de eco, volume, inteligibilidade ou latência.
+O redesign não foi aprovado pelo usuário. [Design system](../DESIGN-SYSTEM.md) e [evidências atuais](../evidence/native-2.0/liquid-glass-reviewed/ui-smoke.json). Captura interna não é teste de cliques humanos, de acessibilidade ou de DPI físico.
 
-## Dados legados
+## Limitações abertas
 
-`voxy-core import-legacy <origem-1.x-fechada> <destino-nativo-vazio>` faz backup verificado dos arquivos conhecidos e importa inicialmente o perfil, preservando campos desconhecidos. Recusa destino já preenchido. Não converte ainda histórico, cargos, amigos, DMs, credenciais Electron ou seis visuais do Local Storage; o relatório lista essas pendências. Dados originais não são alterados. Use primeiro cópias de teste, nunca a instalação pessoal como laboratório.
+Rede pública/CGNAT/NAT simétrico/IPv6/firewall e fallback TURN seguro financeiramente ainda não foram homologados. TURN é bloqueado no código e a implantação permanece desativada. Reconexão tem oito tentativas e recria peers; ICE restart e conexões de sinalização presas ainda exigem testes reais/revisão. Ao esgotar a sessão, o áudio é liberado e a UI mostra o erro. A associação inicial UUID↔chave é TOFU e precisa da revisão/migração de identidade planejada.
 
-## Limites do incremento
+AEC3 é uma porta Rust experimental; libwebrtc segue alternativa se não passar na homologação. Teste privado local continua sem AEC, requer fones e não pode rodar junto da chamada. Hotplug, sons/atalhos completos, chamada privada reservada, cargos, imagens, respostas/reações, paginação/busca remotas completas, status/perfis completos, não lidas/notificações/DND, tray/autostart, vídeo/PiP, salas 3D, jogos, instalador/updater e migração integral ainda pendentes.
 
-Rede pública, CGNAT/NAT simétrico, fallback TURN com corte financeiro, reconexão completa, UI conectada ao host, amigos/DMs/cargos/reação/anexos completos, notificações/tray, vídeo/PiP, salas 3D, jogos e atualização/instalador nativos ainda não estão homologados ou implementados integralmente. `RoomHost` permite presença em canal de voz, mas essa confirmação não comprova recepção de áudio. O host continua confiável e pode ler mensagens; não há alegação de E2EE contra ele.
+Importador: voxy-core import-legacy <origem-fechada> <destino-vazio>. Executar somente sobre cópias. Faz backup com hashes e converte inicialmente o perfil, preservando campos desconhecidos; não converte ainda todo o SQLite, envelopes Electron e presets LevelDB. A origem e dados estáveis não são alterados.
 
-CI experimental em `.github/workflows/native.yml` testa e compila sem deploy, release ou segredos. Nesta sessão o workflow foi criado, mas não executado no GitHub. [Progresso](../PROGRESS.md), [paridade](../FEATURE_PARITY.md), [infraestrutura](../INFRASTRUCTURE.md) e [benchmarks](../BENCHMARKS.md) distinguem implementação, teste local e homologação.
+[Progresso](../PROGRESS.md) · [Paridade](../FEATURE_PARITY.md) · [Arquitetura](../ARCHITECTURE.md) · [Benchmarks](../BENCHMARKS.md). Nenhum deploy/release/assinatura do instalador foi executado.

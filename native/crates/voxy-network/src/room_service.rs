@@ -83,7 +83,7 @@ async fn send_signal(
     socket.send(serde_json::to_string(&signal)?.into()).await?;
     Ok(())
 }
-async fn send_packet(channel: &Arc<dyn DataChannel>, packet: &impl Serialize) -> Result<()> {
+pub async fn send_packet(channel: &Arc<dyn DataChannel>, packet: &impl Serialize) -> Result<()> {
     let bytes = serde_json::to_vec(packet)?;
     let frames = framing::encode(&bytes)?;
     tokio::time::timeout(Duration::from_secs(3), async {
@@ -124,14 +124,17 @@ fn add_link(
     }
 }
 async fn broadcast(room: &RoomHost, links: &mut HashMap<String, Link>) -> Result<()> {
-    let packet = ServerPacket::State {
-        snapshot: room.snapshot()?,
-    };
-    for link in links.values() {
+    for (key, link) in links.iter() {
         if link.admitted
             && let Some(channel) = &link.channel
         {
-            let _ = send_packet(channel, &packet).await;
+            let _ = send_packet(
+                channel,
+                &ServerPacket::State {
+                    snapshot: room.snapshot_for(key)?,
+                },
+            )
+            .await;
         }
     }
     Ok(())

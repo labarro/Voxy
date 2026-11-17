@@ -41,3 +41,27 @@ pub fn set_backdrop(window: &dyn iced::window::Window, reduced: bool) -> bool {
         false
     }
 }
+pub fn time_label(milliseconds: i64) -> String {
+    #[cfg(windows)]
+    {
+        use windows_sys::Win32::{
+            Foundation::{FILETIME, SYSTEMTIME},
+            System::Time::{FileTimeToSystemTime, SystemTimeToTzSpecificLocalTime},
+        };
+        let ticks = (milliseconds.max(0) as u64)
+            .saturating_mul(10000)
+            .saturating_add(116444736000000000);
+        let time = FILETIME {
+            dwLowDateTime: ticks as u32,
+            dwHighDateTime: (ticks >> 32) as u32,
+        };
+        let mut utc: SYSTEMTIME = unsafe { std::mem::zeroed() };
+        let mut local: SYSTEMTIME = unsafe { std::mem::zeroed() };
+        if unsafe { FileTimeToSystemTime(&time, &mut utc) } != 0
+            && unsafe { SystemTimeToTzSpecificLocalTime(std::ptr::null(), &utc, &mut local) } != 0
+        {
+            return format!("{:02}:{:02}", local.wHour, local.wMinute);
+        }
+    }
+    "--:--".into()
+}

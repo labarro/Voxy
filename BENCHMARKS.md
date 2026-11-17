@@ -1,5 +1,26 @@
 # Benchmarks — baseline Electron e futuro Rust
 
+## Continuidade: novo processo de sessão
+
+As medições anteriores de Home pertencem ao incremento anterior, antes do serviço de sessão integrado. Não as reutilizar como medição atual. A nova coleta considera o desktop e o processo Rust filho; em chamada sem UI, o teste registra separadamente os dois processos de sessão (um peer por participante), sem esconder auxiliares do produto. Emulador e controlador de teste são identificados como infraestrutura de teste.
+
+A comparação direta com os 572,3 MiB Electron ainda não é homologada: a baseline usava mídia sintética e não tinha o mesmo peer/caminho de dispositivo; paridade funcional também não foi alcançada. GPU/VRAM, latência acústica, jogos externos, hotplug e sessão prolongada seguem pendentes. Os resultados da coleta atual estão registrados abaixo.
+
+
+## Coleta atual: sessão persistente e desktop integrado
+
+Coleta em 2026-11-17T02:09:13.7215688Z, build release. Seis amostras por cenário, CPU normalizada para 12 CPUs lógicas. [Home e árvore de processos](evidence/native-2.0/current-resources/resources-native.json); [chamadas e processos de sessão](evidence/native-2.0/call-process-resources.json).
+
+| Cenário | Working set médio | Private bytes médio | CPU média amostrada |
+| --- | --- | --- | --- |
+| core-idle | 21,29 MiB | 4,01 MiB | 0,00% |
+| home | 45,53 MiB | 13,52 MiB | 0,00% |
+| home-minimized | 40,35 MiB | 8,66 MiB | 0,00% |
+| Chamada sem UI, participante 1 | 24,24 MiB | 6,32 MiB | 0,30% |
+| Chamada sem UI, participante 2 | 24,17 MiB | 6,34 MiB | 0,46% |
+
+Home soma desktop e filho Rust; core-idle inclui toda a árvore enumerada. Nas chamadas, cada participante tem um processo de sessão, e os dois estão incluídos na evidência; ambas as interfaces foram descarregadas. Controlador de teste e emulador local são explicitamente identificados como infraestrutura de teste e excluídos. Fluxo pelas APIs físicas padrão, Opus/SRTP local e reprodução com volume remoto zero; sem gravação ou certificação acústica. Seis amostras curtas não comprovam estabilidade prolongada. GPU/VRAM e latência acústica não medidas. Zero de CPU amostrado significa limite de resolução. Não há equivalência funcional com Electron nem redução percentual homologada.
+
 ## Medições nativas release — 16/11/2026
 
 [Dados brutos](evidence/native-2.0/resources-native.json), gerados por [benchmark-native.ps1](scripts/benchmark-native.ps1). Seis amostras com intervalo de um segundo por cenário; soma de working sets/private bytes de toda a árvore de processos. CPU normalizada pela capacidade da máquina (12 CPUs lógicas). Zero amostrado significa abaixo da resolução da coleta, não consumo físico absoluto zero.
@@ -16,7 +37,7 @@ Não houve chamada, microfone, peer remoto, vídeo ou mundo nesses cenários. A 
 
 Sondagem adicional de áudio nativo: 3 s de CPAL/WASAPI → DSP → Opus, mute antes de codificar, sem gravação/transmissão. 150 frames produzidos após corrigir underrun inicial tratado como fatal. É validação do fluxo de APIs, sem medição de latência/eco/inteligibilidade e sem equivalência acústica declarada.
 
-Data das novas medições: **2026-11-16**. Código: **1.4.1**, commit `7df27bc684c0743fa52e12bfe6aae5073dd02371`. Rust: **nenhum binário implementado ou medido**. Meta 30–80 MB: aspiracional, sem resultado confirmado. Não comparar esses dados com estimativas de bibliotecas.
+Data das novas medições: **2026-11-16**. Código: **1.4.1**, commit `7df27bc684c0743fa52e12bfe6aae5073dd02371`. Estado na coleta Electron original: **nenhum binário Rust implementado ou medido naquele momento**. As medições nativas posteriores estão acima. Meta 30–80 MB: aspiracional, sem resultado confirmado. Não comparar esses dados com estimativas de bibliotecas.
 
 ## Ambiente e reprodução
 

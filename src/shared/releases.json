@@ -1,25 +1,31 @@
 {
   "2.0.0": {
     "date": "2026-11-16",
-    "title": "Desenvolvimento nativo 2.0 — incremento experimental, não publicado",
+    "title": "Voxy nativo em desenvolvimento — sessões persistentes e central social",
     "items": [
-      "Workspace Rust nativo independente da implementação Electron preservada.",
-      "Interface nativa com nova direção visual, Home, configurações, temas e chat local.",
-      "Identidade Ed25519/DPAPI, SQLite nativo e transporte WebRTC testado localmente."
+      "Sessão Rust separada da interface, com voz Opus/SRTP e chat integrados aos canais.",
+      "Home social compacta, navegação e barra de título reconstruídas em grafite e prata.",
+      "Amizades e mensagens privadas persistidas pelo host, com snapshots privados por participante."
     ],
     "features": [
-      "Desktop Rust/Iced com superfícies em camadas, Acrylic opcional do Windows e modo de efeitos reduzidos.",
-      "Espaços, canais de texto e voz cadastrados localmente, mensagens persistentes e proteção de autoria.",
-      "Teste privado nativo de microfone e núcleo de áudio independente da GUI.",
-      "Convites e sinalização assinados, Worker/DO experimental e host de mensagens por DataChannel nativo."
+      "Hospedar e entrar por convite pela interface, com sinalização assinada, ICE/STUN configuráveis e malha de voz nativa.",
+      "Entrada e saída de voz, dispositivos, PTT global/Mouse 4 e 5, mute/deafen e volume individual até 200%.",
+      "Chamada preservada ao encerrar a janela; abrir o aplicativo novamente reconecta a interface à sessão local autenticada.",
+      "Chat em tempo real, edição/exclusão com autoria, confirmação de comandos e preservação do rascunho até confirmação.",
+      "Solicitar, aceitar, recusar e remover amizades; DMs privadas com persistência no servidor hospedado pelo usuário.",
+      "Administração inicial de servidores/canais, recentes com convites protegidos por DPAPI e reconexão limitada."
     ],
     "improvements": [
-      "Dados experimentais isolados da 1.4.1 e importação inicial de perfil com backup verificável.",
-      "Filas e framing de rede limitados, credenciais de sessão com expiração, rate limiting e bloqueio de relay faturável.",
-      "Toolchain, testes Rust, integrações locais e workflow de validação sem publicação automática."
+      "Controles e ícones vetoriais com dimensões fixas, avatares corrigidos, ações contextuais e rolagem sem encobrir conteúdo.",
+      "Estilos próprios para campos, seleção, sliders, toggles e scrollbars; Acrylic opcional com fallback opaco e modo reduzido.",
+      "Testes entre processos de sessão, malha com três participantes, isolamento de canais e fluxo duplex pelas APIs locais de áudio.",
+      "Validação visual com fixtures isoladas, dez participantes e consulta dos limites reais dos widgets no renderer."
     ],
     "fixes": [
-      "Pipeline de áudio nativo mantém os streams durante a sessão e não trata underrun inicial recuperável como falha permanente."
+      "Avatares deixam de se expandir e deslocar mensagens, nomes e participantes.",
+      "Barra lateral e controles de minimizar/maximizar/fechar usam alinhamento e dimensões próprios.",
+      "Captura só confirma prontidão após codificar um frame; underrun recuperável não encerra a voz.",
+      "Mídia depende de associação autoritativa ao canal; snapshots de amizade e DM são filtrados por destinatário."
     ]
   },
   "1.4.1": {

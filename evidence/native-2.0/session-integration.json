@@ -1,0 +1,8 @@
+{
+  "checkedAt": "2026-11-17T00:23:05.608Z",
+  "workerEmulator": true,
+  "publicInternet": false,
+  "physicalMicrophone": false,
+  "syntheticVoice": true,
+  "output": "\nrunning 2 tests\nsession-processes: authenticated IPC, authoritative chat, UI detach/re-attach, foreign identity denied; no microphone\ntest independent_session_processes_deliver_chat_survive_ui_detach_and_reject_foreign_identity ... ok\nmesh: 12 native Opus/SRTP frames, 3 authenticated peers, channel isolation; synthetic audio, no physical microphone\ntest authenticated_mesh_transmits_opus_and_isolates_other_voice_channels ... ok\n\ntest result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.19s\n\n"
+}

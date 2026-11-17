@@ -14,11 +14,12 @@ pub enum PeerEvent {
     State(RTCPeerConnectionState),
     DataOpen(Arc<dyn DataChannel>),
     Data(Vec<u8>),
-    Audio(Vec<u8>),
+    Audio { sequence: u16, payload: Vec<u8> },
     Closed,
 }
 struct Handler {
     events: mpsc::Sender<PeerEvent>,
+    audio_claimed: std::sync::atomic::AtomicBool,
 }
 #[async_trait::async_trait]
 impl PeerConnectionEventHandler for Handler {
@@ -34,15 +35,41 @@ impl PeerConnectionEventHandler for Handler {
         spawn_channel(channel, self.events.clone());
     }
     async fn on_track(&self, track: Arc<dyn TrackRemote>) {
+        if track.kind().await != rtc::rtp_transceiver::rtp_sender::RtpCodecKind::Audio
+            || self
+                .audio_claimed
+                .swap(true, std::sync::atomic::Ordering::AcqRel)
+        {
+            track.stop().await;
+            return;
+        }
         let events = self.events.clone();
         tokio::spawn(async move {
+            let mut rate = crate::policy::RateLimit::new(60, 100);
             while let Some(event) = track.poll().await {
+                if matches!(
+                    event,
+                    TrackRemoteEvent::OnEnded
+                        | TrackRemoteEvent::OnEnding
+                        | TrackRemoteEvent::OnError
+                ) {
+                    break;
+                }
                 if let TrackRemoteEvent::OnRtpPacket(packet) = event
                     && packet.payload.len() <= 1275
                 {
-                    let _ = events.try_send(PeerEvent::Audio(packet.payload.to_vec()));
+                    if !rate.allow() {
+                        // Scheduler stalls may deliver a burst: drop excess frames,
+                        // never permanently silence an otherwise healthy track.
+                        continue;
+                    }
+                    let _ = events.try_send(PeerEvent::Audio {
+                        sequence: packet.header.sequence_number,
+                        payload: packet.payload.to_vec(),
+                    });
                 }
             }
+            track.stop().await;
         });
     }
 }
@@ -105,6 +132,7 @@ impl Peer {
                 .with_configuration(config)
                 .with_handler(Arc::new(Handler {
                     events: events.clone(),
+                    audio_claimed: std::sync::atomic::AtomicBool::new(false),
                 }))
                 .with_udp_addrs(vec!["0.0.0.0:0", "[::]:0"])
                 .with_data_channel_send_buffer_limit(256 * 1024)
@@ -254,7 +282,7 @@ pub async fn local_media_check(packets: &[Vec<u8>]) -> Result<serde_json::Value>
             tokio::select! {
                 _=tick.tick(),if ready&&sent<packets.len()=>{track.send(&packets[sent]).await?;sent+=1;},
                 event=left.events.recv()=>match event{Some(PeerEvent::Ice(candidate))=>right.connection.add_ice_candidate(candidate).await?,Some(PeerEvent::DataOpen(_))=>ready=true,None=>anyhow::bail!("Peer fechado"),_=>{}},
-                event=right.events.recv()=>match event{Some(PeerEvent::Ice(candidate))=>left.connection.add_ice_candidate(candidate).await?,Some(PeerEvent::Audio(packet))=>{ensure!(packet==packets[received],"Payload Opus recebido divergiu");received+=1;},None=>anyhow::bail!("Peer fechado"),_=>{}}
+                event=right.events.recv()=>match event{Some(PeerEvent::Ice(candidate))=>left.connection.add_ice_candidate(candidate).await?,Some(PeerEvent::Audio{payload,..})=>{ensure!(payload==packets[received],"Payload Opus recebido divergiu");received+=1;},None=>anyhow::bail!("Peer fechado"),_=>{}}
             }
         }
         Ok::<_, anyhow::Error>(

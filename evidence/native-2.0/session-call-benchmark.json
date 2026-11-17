@@ -1,0 +1,10 @@
+{
+  "checkedAt": "2026-11-17T02:07:31.305Z",
+  "workerEmulator": true,
+  "publicInternet": false,
+  "physicalDeviceApi": true,
+  "playbackMutedForDeviceTest": true,
+  "acousticQualityValidated": false,
+  "syntheticMeshVoice": false,
+  "output": "\nrunning 1 test\ndevice-api-duplex: local microphone -> DSP -> Opus/SRTP -> decoder/playback mixer; remote playback volume zero; call kept running after both UI clients unloaded; mute/deafen and leave acknowledged; no audio file, no public network, no acoustic quality certification\ntest native_duplex_call_uses_devices_and_survives_ui_unload ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 6.46s\n\n"
+}

@@ -1,5 +1,26 @@
 # Arquitetura do Voxy — proposta 2.0 e base 1.x
 
+## Estado atual: UI e chamada independentes
+
+voxy-desktop usa Iced/tiny-skia e não carrega o transporte WebRTC. voxy-core.exe serve executa voxy-session (sem janela), que coordena voxy-core, voxy-network e voxy-voice. Ao iniciar, a UI encontra session.json na pasta experimental e autentica ambos os lados com a identidade Ed25519 protegida por DPAPI. O arquivo expõe somente protocolo/porta/PID. Se necessário, a UI inicia o binário Rust irmão com CREATE_NO_WINDOW. O serviço aceita somente loopback, oito conexões locais e frames limitados. Fechar a janela não fecha uma sessão conectada; sem rede ativa, o último detach autenticado encerra o serviço.
+
+~~~mermaid
+flowchart LR
+ UI[Desktop Iced] <-->|IPC autenticado / eventos| SESSION[Processo Rust de sessão]
+ SESSION --> VOICE[CPAL / DSP / Opus / mixer]
+ SESSION --> STORE[SQLite / DPAPI]
+ SESSION <-->|WSS: sinais assinados| CF[Worker / Durable Objects]
+ SESSION <-->|SCTP: dados autoritativos| HOST[Host do usuário]
+ SESSION <-->|SRTP: voz direta por participante| PEERS[Malha de voz]
+~~~
+
+O host inicia seus links; entre convidados, a ordem das chaves públicas elege o offerer. Os sinais permanecem vinculados ao nonce da admissão. Todos adicionam Opus antes da negociação. O receptor usa sequência RTP e só entrega frames ao mixer se o snapshot autoritativo confirmar ambos no mesmo canal; deafen/mute têm prioridade. Sem relay/SFU ou tráfego de mensagens no plano central. Reconexão recria a sessão/peers com backoff, no máximo oito tentativas. Não há ICE restart no mesmo PeerConnection ainda.
+
+O serviço abre áudio apenas por comando de entrada no canal. A abertura roda fora do executor/UI, tem geração e timeout; resultados tardios são descartados. Saída/entrada e jitter/Opus são independentes do renderer. Dados de fala não são gravados. Mensagens/amizades/DMs ficam no SQLite do host; snapshots privados usam snapshot_for(chave), sem enviar DMs de terceiros. O host permanece confiável e lê o banco. Identidade UUID↔chave ainda tem associação inicial TOFU; revisão de segurança e migração autenticada da identidade legada permanecem gates.
+
+Os blocos anteriores abaixo são histórico do incremento anterior quando divergirem deste estado.
+
+
 ## Arquitetura efetivamente implementada — 16/11/2026
 
 Workspace em `native/`: `voxy-core` (identidade/dados/autoridade/sessões), `voxy-network` (convites/sinalização/ICE/DTLS/SCTP/SRTP/framing), `voxy-voice` (dispositivos/DSP/codec/PTT/mix), `voxy-cli` (host e verificações headless) e `voxy-desktop` (Iced/tiny-skia/Win32). O código Rust é permanente e evolutivo, com gates antes da homologação.

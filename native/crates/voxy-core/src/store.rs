@@ -24,6 +24,7 @@ impl Store {
         let db = Connection::open(path)?;
         db.busy_timeout(std::time::Duration::from_secs(3))?;
         db.execute_batch("PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;
+            CREATE TABLE IF NOT EXISTS native_recent(id TEXT PRIMARY KEY,server TEXT NOT NULL,invite BLOB NOT NULL,seen INTEGER NOT NULL);
             CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS communities(id TEXT PRIMARY KEY, name TEXT NOT NULL, owner TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS native_channels(id TEXT PRIMARY KEY, server_id TEXT NOT NULL REFERENCES communities(id) ON DELETE CASCADE, name TEXT NOT NULL, kind TEXT NOT NULL CHECK(kind IN ('text','voice')));
@@ -106,6 +107,70 @@ impl Store {
             })
         })
         .collect()
+    }
+    pub fn rename_community(&self, actor: Uuid, server: Uuid, name: &str) -> Result<()> {
+        self.require_owner(actor, server)?;
+        validate_text(name, 60)?;
+        self.db.execute(
+            "UPDATE communities SET name=?1 WHERE id=?2",
+            params![name.trim(), server.to_string()],
+        )?;
+        Ok(())
+    }
+    pub fn save_recent(&self, server: &Community, invite: &str) -> Result<()> {
+        ensure!(invite.len() <= 8192, "Convite excede o limite");
+        let sealed = crate::identity::Identity::seal_local(invite.as_bytes())?;
+        self.db.execute("INSERT INTO native_recent VALUES(?1,?2,?3,?4) ON CONFLICT(id) DO UPDATE SET server=excluded.server,invite=excluded.invite,seen=excluded.seen",params![server.id.to_string(),serde_json::to_string(server)?,sealed,now_ms()])?;
+        self.db.execute("DELETE FROM native_recent WHERE id IN (SELECT id FROM native_recent ORDER BY seen DESC LIMIT -1 OFFSET 40)",[])?;
+        Ok(())
+    }
+    pub fn recent_servers(&self) -> Result<Vec<Community>> {
+        let mut query = self
+            .db
+            .prepare("SELECT server FROM native_recent ORDER BY seen DESC LIMIT 40")?;
+        query
+            .query_map([], |r| r.get::<_, String>(0))?
+            .map(|r| Ok(serde_json::from_str(&r?)?))
+            .collect()
+    }
+    pub fn recent_invite(&self, id: Uuid) -> Result<String> {
+        let sealed: Vec<u8> = self.db.query_row(
+            "SELECT invite FROM native_recent WHERE id=?1",
+            [id.to_string()],
+            |r| r.get(0),
+        )?;
+        Ok(String::from_utf8(crate::identity::Identity::open_local(
+            &sealed,
+        )?)?)
+    }
+    pub fn delete_community(&self, actor: Uuid, server: Uuid) -> Result<()> {
+        self.require_owner(actor, server)?;
+        self.db
+            .execute("DELETE FROM communities WHERE id=?1", [server.to_string()])?;
+        Ok(())
+    }
+    pub fn rename_channel(&self, actor: Uuid, server: Uuid, id: Uuid, name: &str) -> Result<()> {
+        self.require_owner(actor, server)?;
+        validate_text(name, 60)?;
+        ensure!(
+            self.db.execute(
+                "UPDATE native_channels SET name=?1 WHERE id=?2 AND server_id=?3",
+                params![name.trim(), id.to_string(), server.to_string()]
+            )? == 1,
+            "Canal não pertence ao servidor"
+        );
+        Ok(())
+    }
+    pub fn delete_channel(&self, actor: Uuid, server: Uuid, id: Uuid) -> Result<()> {
+        self.require_owner(actor, server)?;
+        ensure!(
+            self.db.execute(
+                "DELETE FROM native_channels WHERE id=?1 AND server_id=?2",
+                params![id.to_string(), server.to_string()]
+            )? == 1,
+            "Canal não pertence ao servidor"
+        );
+        Ok(())
     }
     pub fn channels(&self, server: Uuid) -> Result<Vec<Channel>> {
         let mut stmt = self.db.prepare(

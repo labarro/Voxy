@@ -20,9 +20,12 @@
     { "suite": "voxy-e2e/bin", "reason": "test-only multi-instance E2E driver; exercised by scripts/native.ps1 e2e-app" },
     { "suite": "voxy-cli/tests/session_live", "reason": "all tests are opt-in; covered by optIn" },
     { "suite": "voxy-media/tests/capture_windows", "reason": "all tests are opt-in; covered by optIn" },
-    { "suite": "voxy-media/tests/video_transport", "reason": "all tests are opt-in; covered by optIn" }
+    { "suite": "voxy-media/tests/video_transport", "reason": "all tests are opt-in; covered by optIn" },
+    { "suite": "voxy-media/tests/app_audio_windows", "reason": "all tests are opt-in; covered by optIn" }
   ],
   "optIn": [
+    { "package": "voxy-media", "target": "app_audio_windows", "name": "process_loopback_activates_without_rendering_audio", "requiredEnv": [], "description": "WASAPI process loopback activation on the test process; nothing rendered" },
+    { "package": "voxy-media", "target": "app_audio_windows", "name": "include_tree_captures_only_the_app_and_exclude_tree_removes_it", "requiredEnv": ["VOXY_TEST_PHYSICAL_AUDIO"], "description": "Isolation with tones A (shared app) and C (other app) on the default output" },
     { "package": "voxy-media", "target": "capture_windows", "name": "wgc_captures_owned_window_and_releases_session", "requiredEnv": [], "description": "Real Windows Graphics Capture/D3D11 on an owned test window" },
     { "package": "voxy-media", "target": "codec_windows", "name": "software_h264_roundtrip_and_malformed_limits", "requiredEnv": [], "description": "Windows software H.264 MFT roundtrip on synthetic pixels" },
     { "package": "voxy-media", "target": "video_transport", "name": "h264_software_frames_cross_native_srtp_and_decode", "requiredEnv": [], "description": "H.264 frames over real local ICE/SRTP" },

@@ -119,6 +119,8 @@ mod windows_capture;
 #[cfg(windows)]
 pub use windows_capture::*;
 #[cfg(windows)]
+pub mod app_audio;
+#[cfg(windows)]
 pub mod camera;
 #[cfg(windows)]
 pub mod codec;

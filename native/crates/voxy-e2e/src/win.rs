@@ -116,15 +116,18 @@ pub fn click(hwnd: HWND, x: f32, y: f32) -> Result<()> {
         ClientToScreen(hwnd, &mut point);
         let mut previous = POINT { x: 0, y: 0 };
         GetCursorPos(&mut previous);
-        SetWindowPos(
-            hwnd,
-            HWND_TOPMOST,
-            0,
-            0,
-            0,
-            0,
-            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE,
-        );
+        let was_topmost = is_topmost(hwnd);
+        if !was_topmost {
+            SetWindowPos(
+                hwnd,
+                HWND_TOPMOST,
+                0,
+                0,
+                0,
+                0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE,
+            );
+        }
         std::thread::sleep(std::time::Duration::from_millis(60));
         // Absolute move + press + release in one SendInput call: inserted into the
         // input stream contiguously, so concurrent human mouse motion cannot split it.
@@ -164,15 +167,17 @@ pub fn click(hwnd: HWND, x: f32, y: f32) -> Result<()> {
         ];
         let sent = SendInput(3, inputs.as_ptr(), std::mem::size_of::<INPUT>() as i32) - 1;
         std::thread::sleep(std::time::Duration::from_millis(120));
-        SetWindowPos(
-            hwnd,
-            HWND_NOTOPMOST,
-            0,
-            0,
-            0,
-            0,
-            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE,
-        );
+        if !was_topmost {
+            SetWindowPos(
+                hwnd,
+                HWND_NOTOPMOST,
+                0,
+                0,
+                0,
+                0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE,
+            );
+        }
         SetCursorPos(previous.x, previous.y);
         if sent != 2 {
             bail!("SendInput bloqueado (sessão bloqueada ou UIPI)");
@@ -295,4 +300,8 @@ pub fn hover(hwnd: HWND, x: f32, y: f32) -> Result<()> {
         SetCursorPos(point.x + 3, point.y + 2);
     }
     Ok(())
+}
+pub fn is_topmost(hwnd: HWND) -> bool {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{GWL_EXSTYLE, GetWindowLongW, WS_EX_TOPMOST};
+    unsafe { (GetWindowLongW(hwnd, GWL_EXSTYLE) as u32) & WS_EX_TOPMOST != 0 }
 }

@@ -298,6 +298,7 @@ pub(super) fn stage(app: &App) -> Option<Element<'_, Msg>> {
     let header = row![
         text("Transmissões").font(bold()).size(16),
         space::horizontal(),
+        app.action("Picture-in-Picture", Msg::StreamPip, false),
         app.action(
             if app.stream_fullscreen {
                 "Sair da tela cheia"
@@ -490,4 +491,44 @@ pub(super) fn camera_dialog(app: &App) -> Element<'_, Msg> {
         ..Default::default()
     })
     .into()
+}
+
+/// Compact always-on-top view: one stream, a drag area and a way back.
+pub(super) fn pip(app: &App) -> Element<'_, Msg> {
+    let m = app.palette();
+    let keys = watched(app);
+    let key = app
+        .stream_focus
+        .filter(|f| keys.contains(f))
+        .or_else(|| keys.first().copied());
+    let picture: Element<'_, Msg> = match key.and_then(|k| app.streams.get(&k)) {
+        Some(frame) => iced::widget::image(frame.handle.clone())
+            .width(Fill)
+            .height(Fill)
+            .content_fit(iced::ContentFit::Contain)
+            .into(),
+        None => container(
+            text("Nenhuma transmissão sendo assistida")
+                .size(12)
+                .color(m.muted),
+        )
+        .center(Fill)
+        .into(),
+    };
+    let bar = row![
+        mouse_area(container(text("Voxy · PiP").size(11).color(m.muted)).padding([4, 6]))
+            .on_press(Msg::Drag),
+        space::horizontal(),
+        app.action("Voltar à janela", Msg::StreamPip, false)
+    ]
+    .align_y(iced::Center);
+    container(column![bar, mouse_area(picture).on_press(Msg::Drag)].spacing(4))
+        .padding(4)
+        .width(Fill)
+        .height(Fill)
+        .style(|_| container::Style {
+            background: Some(Color::BLACK.into()),
+            ..Default::default()
+        })
+        .into()
 }

@@ -911,6 +911,38 @@ fn screen_steps(people: &mut [Participant], run: &mut Run) -> Result<()> {
     people[1].wait("saída da tela cheia", 10, |ui| {
         ui["streamFullscreen"] == false
     })?;
+    people[1].click("Picture-in-Picture")?;
+    people[1].wait("Picture-in-Picture ativo", 10, |ui| ui["streamPip"] == true)?;
+    std::thread::sleep(Duration::from_millis(800));
+    let hwnd = people[1].hwnd()?;
+    let (pw, ph) = win::client_size(hwnd);
+    let before = stream_of(&people[1].ui(), &ana)
+        .and_then(|s| s["decoded"].as_u64())
+        .unwrap_or(0);
+    std::thread::sleep(Duration::from_millis(1200));
+    let after = stream_of(&people[1].ui(), &ana)
+        .and_then(|s| s["decoded"].as_u64())
+        .unwrap_or(0);
+    people[1].screenshot(&run.evidence, "pip")?;
+    run.check(
+        "Bruno: Picture-in-Picture compacto, sempre no topo e recebendo quadros",
+        (pw - 480.0).abs() < 4.0
+            && (ph - 300.0).abs() < 4.0
+            && win::is_topmost(hwnd)
+            && after > before,
+        json!({"size":[pw,ph],"topmost":win::is_topmost(hwnd),"decodedIn1200ms":after - before}),
+    )?;
+    people[1].click("Voltar à janela")?;
+    people[1].wait("retorno à janela principal", 10, |ui| {
+        ui["streamPip"] == false
+    })?;
+    std::thread::sleep(Duration::from_millis(600));
+    let hwnd = people[1].hwnd()?;
+    run.check(
+        "Bruno: retorno do PiP restaura a janela normal",
+        !win::is_topmost(hwnd) && win::client_size(hwnd).0 > 1000.0,
+        json!({}),
+    )?;
     people[1].click("Parar de assistir")?;
     people[0].wait("Ana sem espectadores", 10, |ui| {
         ui["screen"]["watchers"] == 0

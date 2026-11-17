@@ -187,6 +187,7 @@ enum Msg {
     CameraStop,
     StreamFullscreen,
     StreamHud,
+    StreamPip,
     AutomationTick,
     AutomationEvent(String),
     AutomationTexts(Vec<automation::Label>),
@@ -267,6 +268,7 @@ struct App {
     camera_preset: String,
     camera_preview: Option<iced::widget::image::Handle>,
     stream_fullscreen: bool,
+    stream_pip: bool,
     hud_until: std::time::Instant,
     automation: Option<std::path::PathBuf>,
     automation_seq: u64,
@@ -438,6 +440,7 @@ impl App {
                 camera_preset: "720p30".into(),
                 camera_preview: None,
                 stream_fullscreen: false,
+                stream_pip: false,
                 hud_until: std::time::Instant::now(),
                 automation: automation::directory(),
                 automation_seq: 0,
@@ -1725,6 +1728,9 @@ impl App {
                 if self.stream_fullscreen {
                     return self.update(Msg::StreamFullscreen);
                 }
+                if self.stream_pip {
+                    return self.update(Msg::StreamPip);
+                }
                 if self.share_dialog {
                     self.share_dialog = false;
                     self.share_preview = None;
@@ -2112,6 +2118,29 @@ impl App {
                 };
                 return iced::window::latest().and_then(move |id| iced::window::set_mode(id, mode));
             }
+            Msg::StreamPip => {
+                // Picture-in-Picture: the window itself becomes a small always-on-top,
+                // resizable, draggable stream view; leaving restores size and level.
+                self.stream_pip = !self.stream_pip;
+                if self.stream_pip && self.stream_fullscreen {
+                    self.stream_fullscreen = false;
+                }
+                let (level, size) = if self.stream_pip {
+                    (
+                        iced::window::Level::AlwaysOnTop,
+                        iced::Size::new(480.0, 300.0),
+                    )
+                } else {
+                    (iced::window::Level::Normal, iced::Size::new(1180.0, 760.0))
+                };
+                return iced::window::latest().and_then(move |id| {
+                    Task::batch([
+                        iced::window::set_mode(id, iced::window::Mode::Windowed),
+                        iced::window::set_level(id, level),
+                        iced::window::resize(id, size),
+                    ])
+                });
+            }
             Msg::StreamHud => {
                 self.hud_until = std::time::Instant::now() + std::time::Duration::from_secs(3);
             }
@@ -2380,6 +2409,7 @@ impl App {
                 "streams": self.streams.values().map(|f| serde_json::json!({"member":f.member,"camera":f.camera,"width":f.width,"height":f.height,"decoded":f.decoded,"dropped":f.dropped,"signature":f.signature})).collect::<Vec<_>>(),
                 "streamFocus": self.stream_focus,
                 "streamFullscreen": self.stream_fullscreen,
+                "streamPip": self.stream_pip,
                 "shareDialog": self.share_dialog,
                 "screen": self.remote.screen,
                 "camera": self.remote.camera,
@@ -2496,6 +2526,9 @@ impl App {
     }
     fn view(&self) -> Element<'_, Msg> {
         let m = self.palette();
+        if self.stream_pip {
+            return streams::pip(self);
+        }
         let titlebar = chrome::titlebar(self);
         if self.stream_fullscreen
             && let Some(stage) = streams::stage(self)

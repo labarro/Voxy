@@ -8,7 +8,20 @@ Commits locais: `f0a989b` (runner de testes, E2E real, estados confirmados, leas
 - **E2E real aprovado** (`evidence/native-2.0/e2e/`): voz 3 participantes, release, sinalização pública (28 verificações); compartilhamento de tela release + público (14 verificações: imagem decodificada igual ao padrão da janela de origem, movimento contínuo, tela cheia/HUD, envio cessa sem espectadores).
 - **Infra**: lease de sala de 15 min no Worker (implantado, versão `6c7fb64f`), 8/8 testes do Worker. DNS normal resolve `voxy.devbarros.com`.
 - **Interface**: falando/mudo/ensurdecido/mídia por participante, resumo da chamada e diagnóstico copiável vêm da sessão.
-- **Pendências imediatas**: repetir regressão `voice-3` release após a última mudança (bloqueada por um diálogo "Segurança do Windows" aberto fora do teste, que impede entrada injetada); áudio isolado por processo (WASAPI process loopback), webcam (requer segunda trilha de vídeo por link), PiP, encoder por hardware, sociais restantes, Windows, benchmarks, migração/atualizador, instalador.
+- Commits seguintes: `883e88a` câmera, `0e1ae5d` captura de áudio por processo, `ac86c76`/`a13e5fc` testes sem prompts de firewall, `7c790c5` áudio no compartilhamento, `456f545` mídia encerrada ao fechar a UI, `66e51d5` PiP.
+- **Bloqueio de ambiente**: prompts "Segurança do Windows" (Firewall) abertos por executáveis de teste antigos (corrigido: testes usam loopback) impedem entrada injetada até serem fechados pelo usuário. Pendentes por isso: regressão `voice-3` após as trilhas de vídeo, `screen-2` com PiP, `camera-2`.
+
+| Funcionalidade | Implementada | Integrada (UI+sessão) | E2E aprovado | Homologação física | Evidência |
+| --- | --- | --- | --- | --- | --- |
+| Sinalização pública sem VPN, convite, entrada | sim | sim | sim (release, público) | não (só esta máquina) | `e2e/voice-3-release-public-20261117-165715` |
+| Voz bidirecional, 3 participantes, isolamento por fonte | sim | sim | sim | não (fonte sintética) | idem |
+| Mute, ensurdecer, UI fechada com chamada viva, reabertura, saída | sim | sim | sim | não | idem |
+| Estados confirmados (falando, mudo, mídia/RTT) e diagnóstico | sim | sim | sim | — | idem |
+| Compartilhamento de tela (seletor, prévia, presets, grade, ampliar, tela cheia/HUD) | sim | sim | sim (release, público) | não | `e2e/screen-2-release-public-20261117-171624` |
+| PiP | sim | sim | pendente (bloqueio de ambiente) | não | — |
+| Câmera (seletor, prévia privada, publicar, assistir, desligar) | sim | sim | pendente (bloqueio de ambiente) | não (sem câmera física autorizada) | — |
+| Áudio de aplicativo isolado / sistema sem Voxy | sim | sim | ativação validada; isolamento opt-in não executado | não (exige tocar tons no dispositivo) | teste `app_audio_windows` |
+| Encoder por hardware, adaptação por feedback de rede | não (só software; adaptação por pressão local) | — | — | — | — |
 - **Limites**: todos os participantes nesta máquina; sem NAT entre redes; codificação só por software; cliques físicos exigem não usar o mouse durante `e2e-app`.
 
 Estado em 17/11/2026: **2.0.0 em preparação; última distribuição 1.4.1**. Branch migration/2.0-native-audit. Continuidade dos checkpoints 264f0d7 e 74a6847. Subagentes interrompidos a pedido do usuário; implementação e revisão seguintes realizadas pelo agente principal. Sem push, tag, release do aplicativo, alteração da main ou dados estáveis. Design & Release Polish congelado.

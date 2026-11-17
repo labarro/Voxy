@@ -183,7 +183,7 @@ if (!$SkipInstaller) {
     # Windows numeric version: x.y.z plus the prerelease number (2.0.0-beta.1 -> 2.0.0.1).
     $core,$pre=$version.Split('-',2); $build=if ($pre -match '(\d+)$') { $Matches[1] } else { '0' }
     $icon=Join-Path $nativePackageRoot 'native/crates/voxy-desktop/assets/voxy.ico'
-    & $NsisPath '/V2' "/DVOXY_VERSION=$version" "/DVOXY_NUMERIC_VERSION=$core.$build" "/DVOXY_ICON=$icon" "/DVOXY_PAYLOAD=$stage" "/DVOXY_OUTPUT=$installer" (Join-Path $nativePackageRoot 'native/installer.nsi')
+    & $NsisPath '/V2' '/INPUTCHARSET' 'UTF8' "/DVOXY_VERSION=$version" "/DVOXY_NUMERIC_VERSION=$core.$build" "/DVOXY_ICON=$icon" "/DVOXY_PAYLOAD=$stage" "/DVOXY_OUTPUT=$installer" (Join-Path $nativePackageRoot 'native/installer.nsi')
     if ($LASTEXITCODE -ne 0) { throw 'NSIS experimental não compilou.' }
     $artifacts+=[ordered]@{file=[IO.Path]::GetFileName($installer);bytes=(Get-Item -LiteralPath $installer).Length;sha256=(Get-FileHash -LiteralPath $installer).Hash.ToLowerInvariant()}
 }

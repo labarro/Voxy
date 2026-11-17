@@ -13,7 +13,15 @@ Unicode true
 !error "VOXY_OUTPUT is required"
 !endif
 !define APP_ID "dev.voxy.native.experimental"
+; Test builds (only with /DVOXY_TEST_INSTALL_ROOT) install into a disposable
+; folder with a separate uninstall key; release builds always use the per-user path.
+!ifdef VOXY_TEST_INSTALL_ROOT
+!define INSTALL_ROOT "${VOXY_TEST_INSTALL_ROOT}"
+!define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\VoxyNativeInstallerTest"
+!else
+!define INSTALL_ROOT "$LOCALAPPDATA\Programs\VoxyNativeExperimental"
 !define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\VoxyNativeExperimental"
+!endif
 Name "Voxy 2.0 Beta ${VOXY_VERSION}"
 !ifndef VOXY_NUMERIC_VERSION
 !error "VOXY_NUMERIC_VERSION is required (x.y.z.w)"
@@ -31,7 +39,7 @@ VIAddVersionKey "FileVersion" "${VOXY_VERSION}"
 VIAddVersionKey "CompanyName" "Voxy"
 VIAddVersionKey "LegalCopyright" "Voxy · MIT"
 OutFile "${VOXY_OUTPUT}"
-InstallDir "$LOCALAPPDATA\Programs\VoxyNativeExperimental"
+InstallDir "${INSTALL_ROOT}"
 RequestExecutionLevel user
 SetCompressor /SOLID lzma
 ManifestDPIAware true
@@ -57,7 +65,7 @@ Var OwnerPath
   ${If} $0 != -1
     IntOp $0 $0 & 0x400
     ${If} $0 != 0
-      MessageBox MB_ICONSTOP "Caminho redirecionado recusado. Conteudo preservado."
+      MessageBox MB_ICONSTOP "Caminho redirecionado recusado. Nada foi alterado." /SD IDOK
       Abort
     ${EndIf}
   ${EndIf}
@@ -66,11 +74,21 @@ Var OwnerPath
 !macro ValidateDestination PREFIX
 Function ${PREFIX}ValidateDestination
   SetShellVarContext current
-  GetFullPathName $Expected "$LOCALAPPDATA\Programs\VoxyNativeExperimental"
-  GetFullPathName $INSTDIR "$INSTDIR"
-  StrCmp $INSTDIR $Expected +3
-    MessageBox MB_ICONSTOP "Destino recusado. Este instalador usa somente a pasta experimental paralela."
+  ; Root cause of the 2.0.0-beta.1 failure: GetFullPathName returns an EMPTY
+  ; string for a path that does not exist yet. On a clean install both sides
+  ; became "", the check passed and "$INSTDIR\*.*" scanned the drive root,
+  ; which was then reported as a foreign folder. Compare the literal paths
+  ; (case-insensitive StrCmp, trailing backslash removed) and refuse empty ones.
+  StrCpy $Expected "${INSTALL_ROOT}"
+  StrCpy $0 $INSTDIR 1 -1
+  StrCmp $0 "\" 0 +2
+    StrCpy $INSTDIR $INSTDIR -1
+  StrCmp $INSTDIR "" destination_refused_${PREFIX}
+  StrCmp $INSTDIR $Expected destination_ok_${PREFIX}
+  destination_refused_${PREFIX}:
+    MessageBox MB_ICONSTOP "Destino recusado. Este instalador usa somente a pasta paralela do Voxy 2.0 Beta." /SD IDOK
     Abort
+  destination_ok_${PREFIX}:
   ; Reject junctions/symlinks in the mutable installation path and its parent.
   !insertmacro AssertPlainPath "$LOCALAPPDATA"
   !insertmacro AssertPlainPath "$LOCALAPPDATA\Programs"
@@ -96,7 +114,7 @@ Function ${PREFIX}ValidateDestination
     FindClose $Handle
     Goto validate_empty_${PREFIX}
   validate_foreign_${PREFIX}:
-    MessageBox MB_ICONSTOP "A pasta não pertence a esta instalação experimental. Conteúdo preservado."
+    MessageBox MB_ICONSTOP "A pasta de instalação contém arquivos que não são do Voxy 2.0 Beta. Nada foi alterado." /SD IDOK
     Abort
   validate_empty_${PREFIX}:
 FunctionEnd
@@ -113,7 +131,7 @@ Function ${PREFIX}CheckExecutableUnlocked
   System::Call 'kernel32::CloseHandle(p r1)'
   Goto unlocked_${PREFIX}
   locked_${PREFIX}:
-    MessageBox MB_ICONSTOP "Feche o Voxy 2.0 Beta, a sessão e as prévias 3D antes de continuar. Nenhum processo será encerrado pelo instalador."
+    MessageBox MB_ICONSTOP "Feche o Voxy 2.0 Beta, a sessão e as prévias 3D antes de continuar. Nenhum processo será encerrado pelo instalador." /SD IDOK
     Abort
   unlocked_${PREFIX}:
   Pop $0
@@ -124,7 +142,7 @@ FunctionEnd
 
 Function .onInit
   ${IfNot} ${RunningX64}
-    MessageBox MB_ICONSTOP "Este pacote experimental exige Windows x64."
+    MessageBox MB_ICONSTOP "O Voxy 2.0 Beta exige Windows 10 ou 11 de 64 bits." /SD IDOK
     Abort
   ${EndIf}
   Call ValidateDestination
@@ -133,7 +151,7 @@ Function un.onInit
   Call un.ValidateDestination
   ReadINIStr $Owner "$INSTDIR\.voxy-native-install.ini" "Voxy" "Owner"
   StrCmp $Owner "${APP_ID}" +3
-    MessageBox MB_ICONSTOP "Marcador de propriedade ausente. Desinstalação interrompida."
+    MessageBox MB_ICONSTOP "Marcador de propriedade ausente. Desinstalação interrompida." /SD IDOK
     Abort
 FunctionEnd
 
@@ -146,10 +164,11 @@ Section "Voxy 2.0 Beta" Main
   Push "voxy-world.exe"
   Call CheckExecutableUnlocked
   SetOutPath "$INSTDIR"
-  ; Exact generated file list. No wildcard source or unrelated directory deletion.
-  !include "${VOXY_PAYLOAD}\install-files.nsh"
+  ; Ownership marker first: an interrupted install stays recognizable as ours.
   WriteINIStr "$INSTDIR\.voxy-native-install.ini" "Voxy" "Owner" "${APP_ID}"
   WriteINIStr "$INSTDIR\.voxy-native-install.ini" "Voxy" "Path" "$INSTDIR"
+  ; Exact generated file list. No wildcard source or unrelated directory deletion.
+  !include "${VOXY_PAYLOAD}\install-files.nsh"
   WriteINIStr "$INSTDIR\.voxy-native-install.ini" "Voxy" "Version" "${VOXY_VERSION}"
   WriteUninstaller "$INSTDIR\Uninstall.exe"
   ; Earlier experimental builds used another Start menu folder: remove only our own links.

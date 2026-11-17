@@ -4562,7 +4562,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "voxy-cli"
-version = "2.0.0-beta.1"
+version = "2.0.0-beta.2"
 dependencies = [
  "anyhow",
  "serde_json",
@@ -4579,7 +4579,7 @@ dependencies = [
 
 [[package]]
 name = "voxy-core"
-version = "2.0.0-beta.1"
+version = "2.0.0-beta.2"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -4600,7 +4600,7 @@ dependencies = [
 
 [[package]]
 name = "voxy-desktop"
-version = "2.0.0-beta.1"
+version = "2.0.0-beta.2"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -4622,7 +4622,7 @@ dependencies = [
 
 [[package]]
 name = "voxy-e2e"
-version = "2.0.0-beta.1"
+version = "2.0.0-beta.2"
 dependencies = [
  "anyhow",
  "cpal",
@@ -4633,7 +4633,7 @@ dependencies = [
 
 [[package]]
 name = "voxy-games"
-version = "2.0.0-beta.1"
+version = "2.0.0-beta.2"
 dependencies = [
  "anyhow",
  "cozy-chess",
@@ -4644,7 +4644,7 @@ dependencies = [
 
 [[package]]
 name = "voxy-media"
-version = "2.0.0-beta.1"
+version = "2.0.0-beta.2"
 dependencies = [
  "anyhow",
  "cpal",
@@ -4656,7 +4656,7 @@ dependencies = [
 
 [[package]]
 name = "voxy-network"
-version = "2.0.0-beta.1"
+version = "2.0.0-beta.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4679,7 +4679,7 @@ dependencies = [
 
 [[package]]
 name = "voxy-session"
-version = "2.0.0-beta.1"
+version = "2.0.0-beta.2"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -4697,7 +4697,7 @@ dependencies = [
 
 [[package]]
 name = "voxy-voice"
-version = "2.0.0-beta.1"
+version = "2.0.0-beta.2"
 dependencies = [
  "aec3",
  "anyhow",
@@ -4711,7 +4711,7 @@ dependencies = [
 
 [[package]]
 name = "voxy-world"
-version = "2.0.0-beta.1"
+version = "2.0.0-beta.2"
 dependencies = [
  "anyhow",
  "bytemuck",

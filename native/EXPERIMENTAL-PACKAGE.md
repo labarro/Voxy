@@ -1,4 +1,4 @@
-# Voxy 2.0 Beta 1 (2.0.0-beta.1)
+# Voxy 2.0 Beta 2 (2.0.0-beta.2)
 
 Beta para homologação, sem assinatura Authenticode (o Windows pode exibir o SmartScreen: "Mais informações" › "Executar assim mesmo"). A versão estável continua sendo a 1.4.1, instalada separadamente; esta beta não a substitui nem altera seus dados. Confira o SHA-256 em SHA256SUMS.txt da página da release.
 

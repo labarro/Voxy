@@ -42,7 +42,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm run test:host --prefix infra/signaling
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          # Compile first: the session harness gives the running tests 90 s, and a cold
+          # Compile first: the session harness gives the running tests 180 s, and a cold
           # runner needs longer than that just to build this test binary.
           Push-Location native
           cargo test --locked -p voxy-cli --test session_live --no-run

@@ -2,7 +2,7 @@
 
 ## Checkpoint 18/11/2026 — Beta 3 (2.0.0-beta.3): correções da primeira homologação real
 
-Versão em preparação, **não publicada**; última beta publicada 2.0.0-beta.2, estável 1.4.1. Artefatos locais em `release/2.0.0-beta.3/native-experimental/`. Somente o agente principal, sem subagentes. Notas completas: [release-notes/v2.0.0-beta.3.md](release-notes/v2.0.0-beta.3.md).
+**Publicada como pre-release** em 18/11/2026: tag `v2.0.0-beta.3` em `57b236d` (CI native.yml verde, run 44316121254), [release](https://github.com/labarro/Voxy/releases/tag/v2.0.0-beta.3) com instalador, ZIP e SHA256SUMS conferidos após download; latest continua 1.4.1 e o pipeline estável não foi acionado. CI expôs três problemas do próprio pipeline, corrigidos: compilação dentro do limite de 90 s do teste de sessão, hash das fixtures sensível a CRLF e testes de integração concorrentes no runner. Somente o agente principal, sem subagentes. Notas completas: [release-notes/v2.0.0-beta.3.md](release-notes/v2.0.0-beta.3.md).
 
 **Causas raiz encontradas com evidência**
 - **Servidor salvo exigia novo convite:** cada `Request::Host` criava convite com segredo novo e 24 h de validade.

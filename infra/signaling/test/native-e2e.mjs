@@ -5,7 +5,7 @@ import { spawn } from 'node:child_process';
 import { resolve } from 'node:path';
 import { mkdir,writeFile } from 'node:fs/promises';
 const result = await build({ entryPoints:['src/worker.ts'],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022' });
-const emulator = new Miniflare({port:8787,host:'127.0.0.1',modules:true,script:result.outputFiles[0].text,compatibilityDate:'2026-07-30',durableObjects:{ROOMS:{className:'SignalRoom',useSQLite:true},ADMISSION:{className:'AdmissionBudget',useSQLite:true}},bindings:{VOXY_DEPLOYMENT_ENABLED:'true',VOXY_RELAY_ENABLED:'false',VOXY_DAILY_ADMISSIONS:'1000',VOXY_MAX_ROOMS:'10'}});
+const emulator = new Miniflare({port:8787,host:'127.0.0.1',modules:true,script:result.outputFiles[0].text,compatibilityDate:'2026-07-30',durableObjects:{ROOMS:{className:'SignalRoom',useSQLite:true},ADMISSION:{className:'AdmissionBudget',useSQLite:true},CODES:{className:'InviteCodes',useSQLite:true}},bindings:{VOXY_DEPLOYMENT_ENABLED:'true',VOXY_RELAY_ENABLED:'false',VOXY_DAILY_ADMISSIONS:'1000',VOXY_MAX_ROOMS:'10'}});
 try {
   await emulator.ready;
   const binary=resolve('../../native/target/debug/voxy-core.exe');

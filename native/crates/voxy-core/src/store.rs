@@ -51,6 +51,10 @@ impl Store {
             PRAGMA user_version=1;")?;
         db.execute_batch("CREATE TABLE IF NOT EXISTS native_replies(message TEXT PRIMARY KEY REFERENCES native_messages(id) ON DELETE CASCADE,target TEXT REFERENCES native_messages(id) ON DELETE SET NULL);
             CREATE TABLE IF NOT EXISTS native_reactions(message TEXT NOT NULL REFERENCES native_messages(id) ON DELETE CASCADE,actor TEXT NOT NULL,emoji TEXT NOT NULL,PRIMARY KEY(message,actor,emoji));")?;
+        // Server identity across hosting sessions: the host's current invite and the
+        // member-pass epoch; a member's saved access next to its saved server.
+        db.execute_batch("CREATE TABLE IF NOT EXISTS native_hosted(server TEXT PRIMARY KEY,invite BLOB NOT NULL,epoch INTEGER NOT NULL);
+            CREATE TABLE IF NOT EXISTS native_member_pass(server TEXT PRIMARY KEY,pass BLOB NOT NULL);")?;
         let store = Self { db };
         crate::images::initialize(&store)?;
         Ok(store)
@@ -156,6 +160,58 @@ impl Store {
     pub fn forget_recent(&self, id: Uuid) -> Result<()> {
         self.db
             .execute("DELETE FROM native_recent WHERE id=?1", [id.to_string()])?;
+        self.db.execute(
+            "DELETE FROM native_member_pass WHERE server=?1",
+            [id.to_string()],
+        )?;
+        Ok(())
+    }
+    /// Saved access (member pass) for a server this profile joined; DPAPI sealed.
+    pub fn save_member_pass(&self, server: Uuid, pass: &str) -> Result<()> {
+        ensure!(pass.len() <= 4096, "Acesso salvo excede o limite");
+        let sealed = crate::identity::Identity::seal_local(pass.as_bytes())?;
+        self.db.execute("INSERT INTO native_member_pass VALUES(?1,?2) ON CONFLICT(server) DO UPDATE SET pass=excluded.pass",params![server.to_string(),sealed])?;
+        Ok(())
+    }
+    pub fn member_pass(&self, server: Uuid) -> Result<Option<String>> {
+        let sealed: Option<Vec<u8>> = self
+            .db
+            .query_row(
+                "SELECT pass FROM native_member_pass WHERE server=?1",
+                [server.to_string()],
+                |r| r.get(0),
+            )
+            .optional()?;
+        sealed
+            .map(|s| {
+                Ok(String::from_utf8(crate::identity::Identity::open_local(
+                    &s,
+                )?)?)
+            })
+            .transpose()
+    }
+    /// The host's persisted invite and member-pass epoch for one of its servers.
+    pub fn hosted_invite(&self, server: Uuid) -> Result<Option<(String, u64)>> {
+        let row: Option<(Vec<u8>, i64)> = self
+            .db
+            .query_row(
+                "SELECT invite,epoch FROM native_hosted WHERE server=?1",
+                [server.to_string()],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .optional()?;
+        row.map(|(sealed, epoch)| {
+            Ok((
+                String::from_utf8(crate::identity::Identity::open_local(&sealed)?)?,
+                u64::try_from(epoch)?,
+            ))
+        })
+        .transpose()
+    }
+    pub fn save_hosted_invite(&self, server: Uuid, invite: &str, epoch: u64) -> Result<()> {
+        ensure!(invite.len() <= 8192, "Convite excede o limite");
+        let sealed = crate::identity::Identity::seal_local(invite.as_bytes())?;
+        self.db.execute("INSERT INTO native_hosted VALUES(?1,?2,?3) ON CONFLICT(server) DO UPDATE SET invite=excluded.invite,epoch=excluded.epoch",params![server.to_string(),sealed,i64::try_from(epoch)?])?;
         Ok(())
     }
     pub fn recent_invite(&self, id: Uuid) -> Result<String> {

@@ -1,0 +1,274 @@
+{
+  "binaries": "native/target/release",
+  "checks": [
+    {
+      "atSeconds": 21.887460708618164,
+      "check": "instâncias reais independentes",
+      "detail": {
+        "instances": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 25.89361572265625,
+      "check": "host registrado na sinalização pública",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 26.519712448120117,
+      "check": "link curto copiado pela interface",
+      "detail": {
+        "code": "F4D9-CNHQ",
+        "link": "https://voxy.devbarros.com/join/F4D9-CNHQ"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 29.399553298950195,
+      "check": "código inválido recusado",
+      "detail": {
+        "status": "Código de convite inválido, expirado ou revogado. Confira o código com o host"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 32.982547760009766,
+      "check": "Bruno entrou com o link",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 37.19229507446289,
+      "check": "Clara entrou com o código digitado",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 39.27104568481445,
+      "check": "Ana vê a foto de perfil de Bruno",
+      "detail": {
+        "memberMedia": [
+          {
+            "avatar": null,
+            "avatarShown": false,
+            "banner": null,
+            "name": "Clara"
+          },
+          {
+            "avatar": null,
+            "avatarShown": false,
+            "banner": null,
+            "name": "Ana"
+          },
+          {
+            "avatar": "153cf3f99f4c67e8b5a06895a1922d67152efcf80eca18788d0e98db79dac5a2",
+            "avatarShown": true,
+            "banner": null,
+            "name": "Bruno"
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 39.27126693725586,
+      "check": "Clara vê a foto de perfil de Bruno",
+      "detail": {
+        "memberMedia": [
+          {
+            "avatar": null,
+            "avatarShown": false,
+            "banner": null,
+            "name": "Clara"
+          },
+          {
+            "avatar": null,
+            "avatarShown": false,
+            "banner": null,
+            "name": "Ana"
+          },
+          {
+            "avatar": "153cf3f99f4c67e8b5a06895a1922d67152efcf80eca18788d0e98db79dac5a2",
+            "avatarShown": true,
+            "banner": null,
+            "name": "Bruno"
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 41.552894592285156,
+      "check": "Ana recebe a imagem inline no chat",
+      "detail": {
+        "mediaReady": [
+          "d3d9f543581f09341395c8ae332c6b15b6d498b0fc57bb21d300305653749bcd"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 41.553001403808594,
+      "check": "Clara recebe a imagem inline no chat",
+      "detail": {
+        "mediaReady": [
+          "d3d9f543581f09341395c8ae332c6b15b6d498b0fc57bb21d300305653749bcd"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 44.69239044189453,
+      "check": "Bruno vê o servidor offline e mantém o salvo",
+      "detail": {
+        "communities": [
+          "E2E Amigos"
+        ],
+        "phase": "Servidor offline — aguardando o host voltar"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 44.692508697509766,
+      "check": "Clara vê o servidor offline e mantém o salvo",
+      "detail": {
+        "communities": [
+          "E2E Amigos"
+        ],
+        "phase": "Servidor offline — aguardando o host voltar"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 45.51869201660156,
+      "check": "re-hospedar: mesmo código",
+      "detail": {
+        "code": "F4D9-CNHQ"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 65.98446655273438,
+      "check": "re-hospedar: Bruno voltou sem novo convite",
+      "detail": {
+        "communities": [
+          "E2E Amigos"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 65.98458099365234,
+      "check": "re-hospedar: Clara voltou sem novo convite",
+      "detail": {
+        "communities": [
+          "E2E Amigos"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 71.77401733398438,
+      "check": "após reiniciar o host: mesmo código",
+      "detail": {
+        "code": "F4D9-CNHQ"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 88.03112030029297,
+      "check": "após reiniciar o host: Bruno voltou sem novo convite",
+      "detail": {
+        "communities": [
+          "E2E Amigos"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 88.03123474121094,
+      "check": "após reiniciar o host: Clara voltou sem novo convite",
+      "detail": {
+        "communities": [
+          "E2E Amigos"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 94.18495178222656,
+      "check": "Clara reconecta pelo servidor salvo após reiniciar o app",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 95.53688049316406,
+      "check": "revogação gera outro código",
+      "detail": {
+        "code": "J0X8-S9GA"
+      },
+      "passed": true
+    }
+  ],
+  "durationSeconds": 188.74600219726562,
+  "error": "Bruno: tempo esgotado aguardando membro volta após revogação. phase=\"Sessão encerrada\" error=\"Sinalização recusou o convite: expirado, revogado ou inválido. Peça um novo convite ao host\" status=\"Sinalização recusou o convite: expirado, revogado ou inválido. Peça um novo convite ao host\" labels=[\"Voxy\", \"2.0 Beta 3\", \"·\", \"E2E Amigos\", \"#Id(Custom(\\\"caption-Minimizar\\\"))\", \"#Id(Custom(\\\"caption-Maximizar ou restaurar\\\"))\", \"#Id(Custom(\\\"caption-Fechar janela · a chamada continua\\\"))\", \"#Id(Custom(\\\"nav-item-Início\\\"))\", \"#Id(Custom(\\\"rail-server-E2E Amigos\\\"))\", \"EA\", \"#Id(Custom(\\\"rail-Criar servidor\\\"))\", \"#Id(Custom(\\\"rail-Entrar por convite\\\"))\", \"#Id(Custom(\\\"nav-item-Novidades\\\"))\", \"E2E Amigos\", \"Desconectado\", \"Canais de texto\", \"conversa\", \"Canais de voz\", \"Sala dos amigos\", \"Reconectar\", \"Sinalização recusou o convite: expirado, revogado ou inválido. Peça um novo convite ao host\", \"#Id(Custom(\\\"profile-panel\\\"))\", \"#Id(Custom(\\\"avatar-32\\\"))\", \"Bruno\", \"Online\", \"#Id(Custom(\\\"btn-Silenciar microfone\\\"))\", \"#Id(Custom(\\\"btn-Ensurdecer\\\"))\", \"#Id(Custom(\\\"btn-Configurações\\\"))\", \"conversa\", \"#Id(Custom(\\\"btn-Buscar\\\"))\", \"#Id(Custom(\\\"btn-Anteriores\\\"))\", \"#Id(Custom(\\\"btn-Ocultar membros\\\"))\", \"#Id(Custom(\\\"avatar-36\\\"))\", \"Bruno\", \"09:25\", \"#Id(Custom(\\\"btn-Ampliar\\\"))\", \"#Id(Custom(\\\"btn-Baixar imagem\\\"))\", \"#Id(Custom(\\\"btn-Copiar imagem\\\"))\", \"pick.png\", \"#Id(Custom(\\\"btn-Enviar imagem (PNG/JPEG até 3 MiB)\\\"))\", \"#Id(Custom(\\\"btn-Enviar\\\"))\", \"Hospede ou conecte o servidor para ver quem está online.\"]",
+  "method": "independent voxy-desktop processes with own data dirs/identities/session processes; clicks are physical SendInput mouse input on visible labels, verified by the app's received-click position; text fields and pick-list choices applied as their widget messages; invite read from the clipboard written by the app's copy button; audio source/sink are the synthetic device boundary (VOXY_TEST_SYNTHETIC_AUDIO) feeding the unchanged DSP/Opus/SRTP/jitter/mixer pipeline",
+  "passed": false,
+  "physicalDevices": false,
+  "resourcesAtEnd": [
+    {
+      "cpuSeconds": 1.921875,
+      "participant": "Ana",
+      "pid": 13164,
+      "privateMiB": 11.66015625,
+      "workingSetMiB": 32.03125
+    },
+    {
+      "cpuSeconds": 0.46875,
+      "participant": "Ana",
+      "pid": 9140,
+      "privateMiB": 7.7109375,
+      "workingSetMiB": 24.96484375
+    },
+    {
+      "cpuSeconds": 3.46875,
+      "participant": "Bruno",
+      "pid": 22760,
+      "privateMiB": 13.26171875,
+      "workingSetMiB": 33.875
+    },
+    {
+      "cpuSeconds": 0.65625,
+      "participant": "Bruno",
+      "pid": 17264,
+      "privateMiB": 5.34375,
+      "workingSetMiB": 23.07421875
+    },
+    {
+      "cpuSeconds": 1.578125,
+      "participant": "Clara",
+      "pid": 26388,
+      "privateMiB": 11.23828125,
+      "workingSetMiB": 31.91796875
+    },
+    {
+      "cpuSeconds": 0.390625,
+      "participant": "Clara",
+      "pid": 13540,
+      "privateMiB": 7.34765625,
+      "workingSetMiB": 24.625
+    }
+  ],
+  "sameMachine": true,
+  "scenario": "persist-3",
+  "signal": "wss://voxy.devbarros.com"
+}

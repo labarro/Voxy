@@ -1,0 +1,98 @@
+{
+  "binaries": "native/target/release",
+  "checks": [
+    {
+      "atSeconds": 22.445068359375,
+      "check": "instâncias reais independentes",
+      "detail": {
+        "instances": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 25.851146697998047,
+      "check": "host registrado na sinalização pública",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 26.579439163208008,
+      "check": "link curto copiado pela interface",
+      "detail": {
+        "code": "0J1M-5YQ7",
+        "link": "http://127.0.0.1:8787/join/0J1M-5YQ7"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 29.26028823852539,
+      "check": "código inválido recusado",
+      "detail": {
+        "status": "Código de convite inválido, expirado ou revogado. Confira o código com o host"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 32.040496826171875,
+      "check": "Bruno entrou com o link",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    }
+  ],
+  "durationSeconds": 95.9384765625,
+  "error": "Clara: tempo esgotado aguardando entrou pelo convite curto. phase=\"Desconectado\" error=null status=\"Código de convite inválido, expirado ou revogado. Confira o código com o host\" labels=[\"Voxy\", \"2.0 Beta 1\", \"·\", \"Início\", \"#Id(Custom(\\\"caption-Minimizar\\\"))\", \"#Id(Custom(\\\"caption-Maximizar ou restaurar\\\"))\", \"#Id(Custom(\\\"caption-Fechar janela · a chamada continua\\\"))\", \"#Id(Custom(\\\"nav-item-Início\\\"))\", \"#Id(Custom(\\\"rail-Criar servidor\\\"))\", \"#Id(Custom(\\\"rail-Entrar por convite\\\"))\", \"#Id(Custom(\\\"nav-item-Novidades\\\"))\", \"Início\", \"Mensagens privadas\", \"Conecte-se a um servidor para ver amigos e mensagens privadas.\", \"Código de convite inválido, expirado ou revogado. Confira o código com o host\", \"#Id(Custom(\\\"profile-panel\\\"))\", \"#Id(Custom(\\\"avatar-32\\\"))\", \"C\", \"Clara\", \"Online\", \"#Id(Custom(\\\"btn-Silenciar microfone\\\"))\", \"#Id(Custom(\\\"btn-Ensurdecer\\\"))\", \"#Id(Custom(\\\"btn-Configurações\\\"))\", \"Bom dia, Clara\", \"Nenhum servidor conectado\", \"Entrar por convite\", \"Criar servidor\", \"Nenhum servidor conectado\", \"Hospede um servidor seu ou reconecte um servidor salvo para ver quem está em chamada.\", \"Servidores\", \"0\", \"Você ainda não tem servidores\", \"Crie um espaço para o seu grupo ou cole o convite que recebeu.\", \"Criar servidor\", \"Entrar por convite\", \"Amigos\", \"#Id(Custom(\\\"btn-Enviar solicitação\\\"))\", \"Amigos e mensagens privadas ficam disponíveis com um servidor conectado.\", \"Entrar em servidor\", \"#Id(Custom(\\\"btn-Fechar\\\"))\", \"Digite o código (ex.: K7FX-M9PQ) ou cole o link enviado pelo dono do servidor.\", \"Conexões diretas compartilham seu IP com os participantes. O host armazena as mensagens. TURN está desativado.\", \"Cancelar\", \"Entrar\"]",
+  "method": "independent voxy-desktop processes with own data dirs/identities/session processes; clicks are physical SendInput mouse input on visible labels, verified by the app's received-click position; text fields and pick-list choices applied as their widget messages; invite read from the clipboard written by the app's copy button; audio source/sink are the synthetic device boundary (VOXY_TEST_SYNTHETIC_AUDIO) feeding the unchanged DSP/Opus/SRTP/jitter/mixer pipeline",
+  "passed": false,
+  "physicalDevices": false,
+  "resourcesAtEnd": [
+    {
+      "cpuSeconds": 1.8125,
+      "participant": "Ana",
+      "pid": 21776,
+      "privateMiB": 11.82421875,
+      "workingSetMiB": 40.76171875
+    },
+    {
+      "cpuSeconds": 0.296875,
+      "participant": "Ana",
+      "pid": 22420,
+      "privateMiB": 6.1875,
+      "workingSetMiB": 33.453125
+    },
+    {
+      "cpuSeconds": 1.6875,
+      "participant": "Bruno",
+      "pid": 21076,
+      "privateMiB": 11.92578125,
+      "workingSetMiB": 40.84375
+    },
+    {
+      "cpuSeconds": 0.1875,
+      "participant": "Bruno",
+      "pid": 2400,
+      "privateMiB": 5.98828125,
+      "workingSetMiB": 33.23046875
+    },
+    {
+      "cpuSeconds": 1.609375,
+      "participant": "Clara",
+      "pid": 13412,
+      "privateMiB": 11.84765625,
+      "workingSetMiB": 40.984375
+    },
+    {
+      "cpuSeconds": 0.109375,
+      "participant": "Clara",
+      "pid": 22836,
+      "privateMiB": 3.43359375,
+      "workingSetMiB": 29.38671875
+    }
+  ],
+  "sameMachine": true,
+  "scenario": "persist-3",
+  "signal": "ws://127.0.0.1:8787"
+}

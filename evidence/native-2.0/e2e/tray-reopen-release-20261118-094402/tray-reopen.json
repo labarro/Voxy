@@ -1,0 +1,132 @@
+﻿{
+    "scenario":  "tray-reopen",
+    "binaries":  "C:\\Users\\luisa\\AppData\\Local\\Temp\\claude\\d7a7335ca77c74b8\\da22fea3-f26d-40da-b532-87fecb7d80b9\\scratchpad\\trayfresh",
+    "foreignCore":  "C:\\Users\\luisa\\AppData\\Local\\Programs\\VoxyNativeExperimental\\voxy-core.exe",
+    "passed":  true,
+    "checks":  [
+                   {
+                       "name":  "núcleo de outra instalação ativo na pasta de dados",
+                       "passed":  true,
+                       "detail":  {
+                                      "pid":  7672,
+                                      "exe":  "C:\\Users\\luisa\\AppData\\Local\\Programs\\VoxyNativeExperimental\\voxy-core.exe",
+                                      "version":  null
+                                  }
+                   },
+                   {
+                       "name":  "interface usa o núcleo da mesma instalação e versão",
+                       "passed":  true,
+                       "detail":  {
+                                      "executable":  "C:\\Users\\luisa\\AppData\\Local\\Temp\\claude\\d7a7335ca77c74b8\\da22fea3-f26d-40da-b532-87fecb7d80b9\\scratchpad\\trayfresh\\voxy-core.exe",
+                                      "version":  "2.0.0-beta.3"
+                                  }
+                   },
+                   {
+                       "name":  "núcleo antigo encerrado de forma coordenada",
+                       "passed":  true,
+                       "detail":  {
+                                      "pid":  7672
+                                  }
+                   },
+                   {
+                       "name":  "bandeja criada pelo núcleo desta instalação",
+                       "passed":  true,
+                       "detail":  {
+                                      "corePid":  24068
+                                  }
+                   },
+                   {
+                       "name":  "ícone adicionado à área de notificação (log do núcleo)",
+                       "passed":  true,
+                       "detail":  {
+                                      "log":  "C:\\Users\\luisa\\AppData\\Local\\Temp\\voxy-tray-test-93aa89a1cbc94ab0abb308f85dfb4c63\\logs\\core.log"
+                                  }
+                   },
+                   {
+                       "name":  "ciclo 1: fechar pelo X mantém o núcleo na bandeja",
+                       "passed":  true,
+                       "detail":  {
+                                      "corePid":  24068
+                                  }
+                   },
+                   {
+                       "name":  "ciclo 1: reabrir pela bandeja abre esta versão, sem duplicar",
+                       "passed":  true,
+                       "detail":  {
+                                      "path":  "C:\\Users\\luisa\\AppData\\Local\\Temp\\claude\\d7a7335ca77c74b8\\da22fea3-f26d-40da-b532-87fecb7d80b9\\scratchpad\\trayfresh\\voxy-desktop.exe",
+                                      "core":  1,
+                                      "ui":  1,
+                                      "version":  "2.0.0-beta.3"
+                                  }
+                   },
+                   {
+                       "name":  "ciclo 2: fechar pelo X mantém o núcleo na bandeja",
+                       "passed":  true,
+                       "detail":  {
+                                      "corePid":  24068
+                                  }
+                   },
+                   {
+                       "name":  "ciclo 2: reabrir pela bandeja abre esta versão, sem duplicar",
+                       "passed":  true,
+                       "detail":  {
+                                      "path":  "C:\\Users\\luisa\\AppData\\Local\\Temp\\claude\\d7a7335ca77c74b8\\da22fea3-f26d-40da-b532-87fecb7d80b9\\scratchpad\\trayfresh\\voxy-desktop.exe",
+                                      "core":  1,
+                                      "ui":  1,
+                                      "version":  "2.0.0-beta.3"
+                                  }
+                   },
+                   {
+                       "name":  "ciclo 3: fechar pelo X mantém o núcleo na bandeja",
+                       "passed":  true,
+                       "detail":  {
+                                      "corePid":  24068
+                                  }
+                   },
+                   {
+                       "name":  "ciclo 3: reabrir pela bandeja abre esta versão, sem duplicar",
+                       "passed":  true,
+                       "detail":  {
+                                      "path":  "C:\\Users\\luisa\\AppData\\Local\\Temp\\claude\\d7a7335ca77c74b8\\da22fea3-f26d-40da-b532-87fecb7d80b9\\scratchpad\\trayfresh\\voxy-desktop.exe",
+                                      "core":  1,
+                                      "ui":  1,
+                                      "version":  "2.0.0-beta.3"
+                                  }
+                   },
+                   {
+                       "name":  "ciclo 4: fechar pelo X mantém o núcleo na bandeja",
+                       "passed":  true,
+                       "detail":  {
+                                      "corePid":  24068
+                                  }
+                   },
+                   {
+                       "name":  "ciclo 4: reabrir pela bandeja abre esta versão, sem duplicar",
+                       "passed":  true,
+                       "detail":  {
+                                      "path":  "C:\\Users\\luisa\\AppData\\Local\\Temp\\claude\\d7a7335ca77c74b8\\da22fea3-f26d-40da-b532-87fecb7d80b9\\scratchpad\\trayfresh\\voxy-desktop.exe",
+                                      "core":  1,
+                                      "ui":  1,
+                                      "version":  "2.0.0-beta.3"
+                                  }
+                   },
+                   {
+                       "name":  "ciclo 5: fechar pelo X mantém o núcleo na bandeja",
+                       "passed":  true,
+                       "detail":  {
+                                      "corePid":  24068
+                                  }
+                   },
+                   {
+                       "name":  "ciclo 5: reabrir pela bandeja abre esta versão, sem duplicar",
+                       "passed":  true,
+                       "detail":  {
+                                      "path":  "C:\\Users\\luisa\\AppData\\Local\\Temp\\claude\\d7a7335ca77c74b8\\da22fea3-f26d-40da-b532-87fecb7d80b9\\scratchpad\\trayfresh\\voxy-desktop.exe",
+                                      "core":  1,
+                                      "ui":  1,
+                                      "version":  "2.0.0-beta.3"
+                                  }
+                   }
+               ],
+    "dataFolder":  "temporária, removida"
+}

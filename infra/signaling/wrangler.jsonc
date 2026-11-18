@@ -14,9 +14,11 @@
   "durable_objects": {
     "bindings": [
       { "name": "ROOMS", "class_name": "SignalRoom" },
-      { "name": "ADMISSION", "class_name": "AdmissionBudget" }
+      { "name": "ADMISSION", "class_name": "AdmissionBudget" },
+      { "name": "CODES", "class_name": "InviteCodes" }
     ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SignalRoom", "AdmissionBudget"] }],
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SignalRoom", "AdmissionBudget"] },
+    { "tag": "v2", "new_sqlite_classes": ["InviteCodes"] }],
   "observability": { "enabled": false }
 }

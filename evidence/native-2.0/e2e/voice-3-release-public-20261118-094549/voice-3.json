@@ -1,0 +1,142 @@
+{
+  "binaries": "native/target/release",
+  "checks": [
+    {
+      "atSeconds": 22.147626876831055,
+      "check": "instâncias reais independentes",
+      "detail": {
+        "instances": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 25.75201416015625,
+      "check": "host registrado na sinalização pública",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 26.477638244628906,
+      "check": "convite copiado pela interface",
+      "detail": {
+        "length": 41,
+        "short": true
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 29.660778045654297,
+      "check": "Bruno entrou por convite",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 32.83929443359375,
+      "check": "Clara entrou por convite",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 34.91819763183594,
+      "check": "Ana em chamada confirmada pelo host",
+      "detail": {
+        "members": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 34.9183464050293,
+      "check": "Bruno em chamada confirmada pelo host",
+      "detail": {
+        "members": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 34.91845703125,
+      "check": "Clara em chamada confirmada pelo host",
+      "detail": {
+        "members": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 39.42848587036133,
+      "check": "Ana ouve o som de entrada na chamada",
+      "detail": {
+        "join520Fraction": 0.159
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 43.4296760559082,
+      "check": "Ana: recebe todos os outros, não a própria voz",
+      "detail": {
+        "140Hz": 0.0125,
+        "210Hz": 0.0445,
+        "330Hz": 0.0534,
+        "rms": 0.0945,
+        "windows": 7
+      },
+      "passed": false
+    }
+  ],
+  "durationSeconds": 46.364501953125,
+  "error": "Falhou: Ana: recebe todos os outros, não a própria voz {\"140Hz\":0.0125,\"210Hz\":0.0445,\"330Hz\":0.0534,\"rms\":0.0945,\"windows\":7}",
+  "method": "independent voxy-desktop processes with own data dirs/identities/session processes; clicks are physical SendInput mouse input on visible labels, verified by the app's received-click position; text fields and pick-list choices applied as their widget messages; invite read from the clipboard written by the app's copy button; audio source/sink are the synthetic device boundary (VOXY_TEST_SYNTHETIC_AUDIO) feeding the unchanged DSP/Opus/SRTP/jitter/mixer pipeline",
+  "passed": false,
+  "physicalDevices": false,
+  "resourcesAtEnd": [
+    {
+      "cpuSeconds": 1.328125,
+      "participant": "Ana",
+      "pid": 16500,
+      "privateMiB": 11.2421875,
+      "workingSetMiB": 30.62890625
+    },
+    {
+      "cpuSeconds": 0.859375,
+      "participant": "Ana",
+      "pid": 8040,
+      "privateMiB": 9.4921875,
+      "workingSetMiB": 28.51171875
+    },
+    {
+      "cpuSeconds": 0.890625,
+      "participant": "Bruno",
+      "pid": 12408,
+      "privateMiB": 12.21875,
+      "workingSetMiB": 32.8359375
+    },
+    {
+      "cpuSeconds": 0.71875,
+      "participant": "Bruno",
+      "pid": 7820,
+      "privateMiB": 9.22265625,
+      "workingSetMiB": 28.0625
+    },
+    {
+      "cpuSeconds": 0.84375,
+      "participant": "Clara",
+      "pid": 8912,
+      "privateMiB": 11.6953125,
+      "workingSetMiB": 32.8515625
+    },
+    {
+      "cpuSeconds": 0.625,
+      "participant": "Clara",
+      "pid": 2732,
+      "privateMiB": 9.234375,
+      "workingSetMiB": 28.1015625
+    }
+  ],
+  "sameMachine": true,
+  "scenario": "voice-3",
+  "signal": "wss://voxy.devbarros.com"
+}

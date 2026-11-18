@@ -134,27 +134,43 @@ pub struct Ring {
     pub muted: bool,
     pub deafened: bool,
 }
+thread_local! {
+    /// Display name -> decoded profile photo, refreshed by the app when media changes.
+    static FACES: std::cell::RefCell<std::collections::HashMap<String, iced::widget::image::Handle>> = Default::default();
+}
+pub fn set_faces(faces: std::collections::HashMap<String, iced::widget::image::Handle>) {
+    FACES.with(|f| *f.borrow_mut() = faces);
+}
 pub fn avatar<'a>(m: Materials, name: &str, px: f32, ring: Ring) -> Element<'a, Msg> {
     let tint = person_color(name);
-    let face = container(
-        text(initials(name))
+    let photo = FACES.with(|f| f.borrow().get(name).cloned());
+    let inner: Element<'a, Msg> = match photo {
+        Some(handle) => iced::widget::image(handle)
+            .width(px)
+            .height(px)
+            .content_fit(iced::ContentFit::Cover)
+            .border_radius(px / 2.0)
+            .into(),
+        None => text(initials(name))
             .size((px * 0.38).max(10.0))
             .font(bold())
-            .color(Color::WHITE),
-    )
-    .id(format!("avatar-{}", px as u32))
-    .width(px)
-    .height(px)
-    .center(px)
-    .style(move |_| container::Style {
-        background: Some(mix(tint, m.canvas, 0.25).into()),
-        border: Border {
-            radius: radius::PILL.into(),
-            width: 1.0,
-            color: alpha(Color::WHITE, 0.08),
-        },
-        ..Default::default()
-    });
+            .color(Color::WHITE)
+            .into(),
+    };
+    let face = container(inner)
+        .id(format!("avatar-{}", px as u32))
+        .width(px)
+        .height(px)
+        .center(px)
+        .style(move |_| container::Style {
+            background: Some(mix(tint, m.canvas, 0.25).into()),
+            border: Border {
+                radius: radius::PILL.into(),
+                width: 1.0,
+                color: alpha(Color::WHITE, 0.08),
+            },
+            ..Default::default()
+        });
     let gap = (px * 0.07).clamp(2.0, 4.0);
     let width = (px * 0.07).clamp(2.0, 3.5);
     let outer = px + 2.0 * (gap + width);

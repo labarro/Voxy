@@ -10,6 +10,10 @@ pub fn stream() -> impl Stream<Item = Msg> {
         };
         let mut spawned = false;
         let mut attempts = 0;
+        let mut handoffs = 0;
+        let own_core = std::env::current_exe()
+            .ok()
+            .and_then(|p| p.parent().map(|p| p.join("voxy-core.exe")));
         loop {
             let connection = ipc::connect(&directory).await;
             let (mut reader, mut writer, state) = match connection {
@@ -21,10 +25,7 @@ pub fn stream() -> impl Stream<Item = Msg> {
                         return;
                     }
                     if !spawned {
-                        let executable = std::env::current_exe()
-                            .ok()
-                            .and_then(|p| p.parent().map(|p| p.join("voxy-core.exe")));
-                        if let Some(executable) = executable {
+                        if let Some(executable) = own_core.clone() {
                             let mut command = std::process::Command::new(executable);
                             command
                                 .arg("serve")
@@ -48,6 +49,50 @@ pub fn stream() -> impl Stream<Item = Msg> {
                 }
             };
             attempts = 0;
+            // A core from another installation or version (an old ZIP, a previous
+            // beta still in the tray) must never serve this UI: its tray would reopen
+            // its own old interface. Ask it to shut down and start our own core.
+            let endpoint = ipc::read_endpoint(&directory).ok();
+            if let (Some(endpoint), Some(own)) = (&endpoint, &own_core)
+                && !ipc::is_own_core(endpoint, own)
+            {
+                let mut writer = writer;
+                let _ = ipc::write_frame(&mut writer, &Request::Shutdown).await;
+                drop((reader, writer, state));
+                handoffs += 1;
+                voxy_core::log::event(
+                    "core-handoff",
+                    &format!(
+                        "foreign core pid={} version={:?} exe={}",
+                        endpoint.pid, endpoint.version, endpoint.executable
+                    ),
+                );
+                let label = if endpoint.version.is_empty() {
+                    "anterior".to_owned()
+                } else {
+                    endpoint.version.clone()
+                };
+                let _ = output
+                    .send(Msg::ServiceError(format!(
+                        "Encerrando um núcleo do Voxy de outra instalação ou versão ({label}) para usar esta versão…"
+                    )))
+                    .await;
+                for _ in 0..40 {
+                    if !directory.join("session.json").exists() {
+                        break;
+                    }
+                    tokio::time::sleep(std::time::Duration::from_millis(150)).await;
+                }
+                wait_for_exit(endpoint.pid, std::time::Duration::from_secs(6));
+                if handoffs > 2 {
+                    let _ = output.send(Msg::ServiceError(format!(
+                        "Outro Voxy ({label}) continua em execução. Encerre-o pela bandeja (Encerrar Voxy e chamada) e abra esta versão novamente."
+                    ))).await;
+                    return;
+                }
+                spawned = false;
+                continue;
+            }
             let (sender, mut requests) = tokio::sync::mpsc::channel::<Request>(32);
             if output.send(Msg::ServiceConnected(sender)).await.is_err() {
                 return;
@@ -127,4 +172,23 @@ pub fn stream() -> impl Stream<Item = Msg> {
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         }
     })
+}
+
+/// Waits (bounded) for the previous core process to exit so its single-instance
+/// mutex is released before this UI starts its own core.
+fn wait_for_exit(pid: u32, timeout: std::time::Duration) {
+    #[cfg(windows)]
+    unsafe {
+        use windows_sys::Win32::{
+            Foundation::CloseHandle,
+            System::Threading::{OpenProcess, PROCESS_SYNCHRONIZE, WaitForSingleObject},
+        };
+        let handle = OpenProcess(PROCESS_SYNCHRONIZE, 0, pid);
+        if !handle.is_null() {
+            WaitForSingleObject(handle, timeout.as_millis() as u32);
+            CloseHandle(handle);
+        }
+    }
+    #[cfg(not(windows))]
+    let _ = (pid, timeout);
 }

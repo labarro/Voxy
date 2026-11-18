@@ -1,4 +1,42 @@
 {
+  "2.0.0-beta.3": {
+    "date": "2026-11-18",
+    "title": "Voxy 2.0 Beta 3 — Correções da primeira homologação real",
+    "items": [
+      "Servidores salvos voltam a funcionar quando o dono hospeda de novo: o convite e o código são os mesmos, e quem já entrou reconecta sem novo convite.",
+      "Convites curtos: código como K7FX-M9PQ e link https://voxy.devbarros.com/join/K7FX-M9PQ, digitáveis ou coláveis em Entrar por convite.",
+      "Servidor offline aparece como offline e continua salvo; o Voxy tenta de novo sozinho a cada 20 segundos até o host voltar.",
+      "Imagens aparecem dentro da conversa (canais e mensagens privadas), com ampliar, baixar e copiar.",
+      "Foto de perfil e banner voltaram, com sincronização para os outros participantes pelo servidor.",
+      "Ícone original do Voxy 1.4.1, com fundo laranja indicando a versão Beta.",
+      "Fechar pelo X e reabrir pela bandeja usa sempre esta instalação: um Voxy antigo ainda aberto é encerrado em vez de ser reaberto.",
+      "O Voxy não pede mais permissão de administrador ao conectar: a causa era o aviso do Firewall do Windows disparado pela descoberta mDNS, agora desligada."
+    ],
+    "features": [
+      "Identidade persistente do servidor: o host reutiliza o mesmo convite assinado entre hospedagens (até 7 dias), e cada membro recebe do host um acesso salvo, assinado e vinculado à sua chave, que permite reconectar mesmo depois que o convite expira ou é revogado.",
+      "Códigos de convite de 8 caracteres (Crockford, sem letras ambíguas) gerados pela sinalização somente para o host autenticado, com limite de tentativas por endereço e revogação junto com o convite.",
+      "Revogar e gerar novo invalida o convite, o código e o link anteriores sem expulsar quem já é membro; Revogar acessos salvos invalida também os acessos dos membros.",
+      "Imagens incorporadas no chat e nas DMs: prévia com proporção preservada, progresso durante a transferência, atualização automática, ampliação, salvar como e copiar para a área de transferência.",
+      "Cache local de imagens por hash, miniaturas decodificadas uma vez e limites contra imagens malformadas ou com descompressão excessiva.",
+      "Foto de perfil e banner em Configurações › Perfil, exibidos no mini perfil, na lista de membros, nas chamadas, no chat e nas DMs dos outros participantes.",
+      "Registro local de diagnóstico (pasta de dados › logs) com início, encerramento, falhas de compartilhamento e panes, sem conteúdo de mensagens, convites ou chaves.",
+      "O instalador identifica processos da própria instalação e oferece encerramento coordenado (interface, sessão e chamada) antes de atualizar; o Voxy 1.4.1 e outras pastas não são afetados."
+    ],
+    "improvements": [
+      "Voz priorizada durante tela e câmera: cada participante tem sua própria fila de vídeo, e um vídeo lento passa a pular para o próximo quadro-chave em vez de atrasar ou descartar o áudio.",
+      "Compartilhar uma janela minimizada pausa no último quadro em vez de encerrar; falhas internas de captura ou decodificação encerram só aquele vídeo, nunca a chamada.",
+      "Executáveis com manifesto asInvoker e compatibilidade declarada com Windows 10/11.",
+      "Reconexão substitui uma conexão antiga da mesma identidade em vez de recusar por \"identidade já conectada\".",
+      "Tentativas de reconexão enquanto o host está offline não consomem a cota diária gratuita de admissões."
+    ],
+    "fixes": [
+      "Reabrir pela bandeja abria uma interface antiga: uma sessão de outra versão (por exemplo, um ZIP antigo em Downloads) atendia a nova interface e reabria a sua própria. Agora a interface só usa o núcleo da mesma instalação e versão.",
+      "Ícone invisível ou genérico na bandeja, causado pelo mesmo núcleo antigo sem ícone.",
+      "Solicitação de administrador (UAC) ao conectar, causada pelo aviso do Firewall do Windows para a porta fixa de mDNS em redes públicas.",
+      "Convidados precisavam de um novo convite sempre que o host hospedava de novo.",
+      "Rótulo da versão no título indicava Beta 1."
+    ]
+  },
   "2.0.0-beta.2": {
     "date": "2026-11-17",
     "title": "Voxy 2.0 Beta 2 — Uma nova geração do Voxy",

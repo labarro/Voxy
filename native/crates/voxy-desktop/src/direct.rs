@@ -151,19 +151,7 @@ pub(super) fn view(app: &App) -> Element<'_, Msg> {
         }
         content = content.push(body);
         for attachment in &message.attachments {
-            content = content.push(
-                ui::action(
-                    m,
-                    Some(Icon::Image),
-                    &format!(
-                        "{} · {}×{}",
-                        attachment.name, attachment.width, attachment.height
-                    ),
-                    Some(Msg::OpenImage(attachment.clone())),
-                    Tone::Secondary,
-                )
-                .padding([6, 10]),
-            );
+            content = content.push(crate::media::attachment(app, attachment));
         }
         let gutter: Element<'_, Msg> = if grouped {
             Space::new().width(46).into()

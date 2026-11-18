@@ -1,0 +1,290 @@
+{
+  "binaries": "native/target/release",
+  "checks": [
+    {
+      "atSeconds": 22.98289680480957,
+      "check": "instâncias reais independentes",
+      "detail": {
+        "instances": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 27.098508834838867,
+      "check": "host registrado na sinalização pública",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 27.82742691040039,
+      "check": "link curto copiado pela interface",
+      "detail": {
+        "code": "M32R-BMS8",
+        "link": "https://voxy.devbarros.com/join/M32R-BMS8"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 30.510318756103516,
+      "check": "código inválido recusado",
+      "detail": {
+        "status": "Código de convite inválido, expirado ou revogado. Confira o código com o host"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 34.59629821777344,
+      "check": "Bruno entrou com o link",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 38.4027214050293,
+      "check": "Clara entrou com o código digitado",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 40.494327545166016,
+      "check": "Ana vê a foto de perfil de Bruno",
+      "detail": {
+        "memberMedia": [
+          {
+            "avatar": null,
+            "avatarShown": false,
+            "banner": null,
+            "name": "Clara"
+          },
+          {
+            "avatar": "153cf3f99f4c67e8b5a06895a1922d67152efcf80eca18788d0e98db79dac5a2",
+            "avatarShown": true,
+            "banner": null,
+            "name": "Bruno"
+          },
+          {
+            "avatar": null,
+            "avatarShown": false,
+            "banner": null,
+            "name": "Ana"
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 40.49454116821289,
+      "check": "Clara vê a foto de perfil de Bruno",
+      "detail": {
+        "memberMedia": [
+          {
+            "avatar": null,
+            "avatarShown": false,
+            "banner": null,
+            "name": "Clara"
+          },
+          {
+            "avatar": "153cf3f99f4c67e8b5a06895a1922d67152efcf80eca18788d0e98db79dac5a2",
+            "avatarShown": true,
+            "banner": null,
+            "name": "Bruno"
+          },
+          {
+            "avatar": null,
+            "avatarShown": false,
+            "banner": null,
+            "name": "Ana"
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 42.77662658691406,
+      "check": "Ana recebe a imagem inline no chat",
+      "detail": {
+        "mediaReady": [
+          "d3d9f543581f09341395c8ae332c6b15b6d498b0fc57bb21d300305653749bcd"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 42.7767448425293,
+      "check": "Clara recebe a imagem inline no chat",
+      "detail": {
+        "mediaReady": [
+          "d3d9f543581f09341395c8ae332c6b15b6d498b0fc57bb21d300305653749bcd"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 45.92057800292969,
+      "check": "Bruno vê o servidor offline e mantém o salvo",
+      "detail": {
+        "communities": [
+          "E2E Amigos"
+        ],
+        "phase": "Servidor offline — aguardando o host voltar"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 45.92082214355469,
+      "check": "Clara vê o servidor offline e mantém o salvo",
+      "detail": {
+        "communities": [
+          "E2E Amigos"
+        ],
+        "phase": "Servidor offline — aguardando o host voltar"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 46.746803283691406,
+      "check": "re-hospedar: mesmo código",
+      "detail": {
+        "code": "M32R-BMS8"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 67.42250061035156,
+      "check": "re-hospedar: Bruno voltou sem novo convite",
+      "detail": {
+        "communities": [
+          "E2E Amigos"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 67.42263793945312,
+      "check": "re-hospedar: Clara voltou sem novo convite",
+      "detail": {
+        "communities": [
+          "E2E Amigos"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 72.80509948730469,
+      "check": "após reiniciar o host: mesmo código",
+      "detail": {
+        "code": "M32R-BMS8"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 88.65947723388672,
+      "check": "após reiniciar o host: Bruno voltou sem novo convite",
+      "detail": {
+        "communities": [
+          "E2E Amigos"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 89.46681213378906,
+      "check": "após reiniciar o host: Clara voltou sem novo convite",
+      "detail": {
+        "communities": [
+          "E2E Amigos"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 94.8003921508789,
+      "check": "Clara reconecta pelo servidor salvo após reiniciar o app",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 96.45414733886719,
+      "check": "revogação gera outro código",
+      "detail": {
+        "code": "75J0-FREZ"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 97.45819091796875,
+      "check": "Bruno mantém acesso salvo após revogar o convite",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 97.45840454101562,
+      "check": "Clara mantém acesso salvo após revogar o convite",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    }
+  ],
+  "durationSeconds": 97.99302673339844,
+  "error": null,
+  "method": "independent voxy-desktop processes with own data dirs/identities/session processes; clicks are physical SendInput mouse input on visible labels, verified by the app's received-click position; text fields and pick-list choices applied as their widget messages; invite read from the clipboard written by the app's copy button; audio source/sink are the synthetic device boundary (VOXY_TEST_SYNTHETIC_AUDIO) feeding the unchanged DSP/Opus/SRTP/jitter/mixer pipeline",
+  "passed": true,
+  "physicalDevices": false,
+  "resourcesAtEnd": [
+    {
+      "cpuSeconds": 0.796875,
+      "participant": "Ana",
+      "pid": 10060,
+      "privateMiB": 12.046875,
+      "workingSetMiB": 32.3828125
+    },
+    {
+      "cpuSeconds": 0.21875,
+      "participant": "Ana",
+      "pid": 19788,
+      "privateMiB": 8.0546875,
+      "workingSetMiB": 26.16796875
+    },
+    {
+      "cpuSeconds": 2.21875,
+      "participant": "Bruno",
+      "pid": 24484,
+      "privateMiB": 12.4921875,
+      "workingSetMiB": 33.7109375
+    },
+    {
+      "cpuSeconds": 0.59375,
+      "participant": "Bruno",
+      "pid": 19820,
+      "privateMiB": 8.1328125,
+      "workingSetMiB": 25.8203125
+    },
+    {
+      "cpuSeconds": 0.375,
+      "participant": "Clara",
+      "pid": 25152,
+      "privateMiB": 11.93359375,
+      "workingSetMiB": 32.17578125
+    },
+    {
+      "cpuSeconds": 0.109375,
+      "participant": "Clara",
+      "pid": 2284,
+      "privateMiB": 7.82421875,
+      "workingSetMiB": 25.79296875
+    }
+  ],
+  "sameMachine": true,
+  "scenario": "persist-3",
+  "signal": "wss://voxy.devbarros.com"
+}

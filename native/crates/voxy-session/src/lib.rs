@@ -22,7 +22,7 @@ use voxy_core::{
     store::{Store, now_ms},
 };
 use voxy_network::{
-    invite::Invite,
+    invite::{Invite, MAX_INVITE_LIFETIME_MS, MemberPass},
     live::{self, Config, Event, Input},
     policy::{NetworkPolicy, reconnect_delay},
 };
@@ -62,8 +62,19 @@ pub(crate) async fn run(
     let control = Arc::new(VoiceControl::default());
     control.prepare_audio_generation(0, false);
     let mut tray = match tray::Tray::start(control.clone()) {
-        Ok(tray) => tray,
+        Ok(tray) => {
+            voxy_core::log::event(
+                "tray",
+                if tray.is_some() {
+                    "icon added"
+                } else {
+                    "unavailable"
+                },
+            );
+            tray
+        }
         Err(error) => {
+            voxy_core::log::event("tray-error", &error.to_string());
             state.error = Some(format!("Bandeja indisponível: {error}"));
             None
         }
@@ -115,6 +126,7 @@ pub(crate) async fn run(
                 match tray_action {
                     Some(tray::TrayAction::Open)|Some(tray::TrayAction::OpenNotification(_))=>{
                         if let Some(tray::TrayAction::OpenNotification(id))=tray_action {state.notification_open=Some(id);}
+                        voxy_core::log::event("tray-open", if ui_detached { "spawning sibling interface" } else { "focusing attached interface" });
                         if ui_detached {
                             match std::env::current_exe().and_then(|exe| {
                                 std::process::Command::new(exe.with_file_name("voxy-desktop.exe"))
@@ -143,7 +155,9 @@ pub(crate) async fn run(
                 let Some(request)=request else{break};
                 state.error=None;
                 let shutdown=matches!(request,Request::Shutdown);
-                if matches!(request,Request::Detached) && network.is_none(){break}
+                // Closing the window keeps the tray (and the session) unless the user turned
+                // "close to tray" off, matching 1.4.1. Exit is explicit from the tray menu.
+                if matches!(request,Request::Detached) && network.is_none() && !close_to_tray(&path) {voxy_core::log::event("exit","interface closed, close-to-tray disabled");break}
                 if matches!(request,Request::Detached){ui_detached=true;detached_flag.store(true,Ordering::Release);}
                 let result=async {match request {
                     Request::Detached=>{
@@ -160,12 +174,12 @@ pub(crate) async fn run(
                         let store=Store::open(&path.join("voxy.sqlite"))?;let profile=store.profile()?;
                         let community=store.communities()?.into_iter().find(|s|s.id==server).context("Servidor não encontrado")?;
                         ensure!(community.owner==profile.id,"Somente o dono pode hospedar este servidor");
-                        let invite=Invite::create(&identity,server,&format!("{}/v3/{server}",endpoint.trim_end_matches('/')),now_ms()+86_400_000)?;
-                        state.invite=Some(invite.encode()?);
+                        let (invite,epoch)=hosted_invite(&store,&identity,server,&format!("{}/v3/{server}",endpoint.trim_end_matches('/')))?;
+                        state.invite=Some(invite.encode()?);state.invite_code=None;state.waiting_host=None;
                         let policy=NetworkPolicy{stun_urls:stun,relay_enabled:false,loopback_only:false};policy.validate()?;
                         let gate=control.clone();
                         let (video_sender,video_queue)=mpsc::channel(16);video_out=Some(video_sender);
-                        let config=Config{invite,host:Some(community),database:path.join("voxy.sqlite"),policy,microphone_allowed:Some(Arc::new(move||gate.may_transmit())),video:Some(Arc::new(tokio::sync::Mutex::new(video_queue)))};
+                        let config=Config{invite,pass:None,epoch,host:Some(community),database:path.join("voxy.sqlite"),policy,microphone_allowed:Some(Arc::new(move||gate.may_transmit())),video:Some(Arc::new(tokio::sync::Mutex::new(video_queue)))};
                         network_generation+=1;
                         recent_server=None;
                         let (sender,task)=start_network(config,identity.clone(),profile,event_tx.clone(),network_generation);
@@ -174,26 +188,47 @@ pub(crate) async fn run(
                     Request::Join{invite,stun}=>{
                         ensure!(network.is_none(),"Desconecte o servidor atual antes de entrar");
                         let invite=Invite::parse(&invite,now_ms())?;
-                        state.invite=Some(invite.encode()?);
+                        state.invite=Some(invite.encode()?);state.invite_code=None;state.waiting_host=None;
                         let profile=Store::open(&path.join("voxy.sqlite"))?.profile()?;
                         let policy=NetworkPolicy{stun_urls:stun,relay_enabled:false,loopback_only:false};policy.validate()?;
                         let gate=control.clone();
                         let (video_sender,video_queue)=mpsc::channel(16);video_out=Some(video_sender);
-                        let config=Config{invite,host:None,database:path.join("voxy.sqlite"),policy,microphone_allowed:Some(Arc::new(move||gate.may_transmit())),video:Some(Arc::new(tokio::sync::Mutex::new(video_queue)))};
+                        let pass=saved_pass(&path,&identity,&invite);
+                        let config=Config{invite,pass,epoch:0,host:None,database:path.join("voxy.sqlite"),policy,microphone_allowed:Some(Arc::new(move||gate.may_transmit())),video:Some(Arc::new(tokio::sync::Mutex::new(video_queue)))};
                         network_generation+=1;
                         recent_server=None;
                         let (sender,task)=start_network(config,identity.clone(),profile,event_tx.clone(),network_generation);
                         network=Some(sender);network_task=Some(task);state.phase="Validando convite e conectando".into();
                     },
+                    Request::Reconnect{server,stun}=>{
+                        ensure!(network.is_none(),"Desconecte o servidor atual antes de entrar");
+                        let store=Store::open(&path.join("voxy.sqlite"))?;
+                        let saved=store.recent_invite(server).context("Nenhum convite salvo para este servidor. Peça um código ao dono.")?;
+                        let invite=Invite::parse_signed(&saved)?;
+                        ensure!(invite.room==server,"Convite salvo não pertence a este servidor");
+                        let pass=saved_pass(&path,&identity,&invite);
+                        if pass.is_none(){Invite::parse(&saved,now_ms()).context("O convite salvo expirou e este computador ainda não tem acesso salvo. Peça um novo código ao dono")?;}
+                        state.invite=Some(saved);state.invite_code=None;state.waiting_host=None;
+                        let profile=store.profile()?;
+                        let policy=NetworkPolicy{stun_urls:stun,relay_enabled:false,loopback_only:false};policy.validate()?;
+                        let gate=control.clone();
+                        let (video_sender,video_queue)=mpsc::channel(16);video_out=Some(video_sender);
+                        let config=Config{invite,pass,epoch:0,host:None,database:path.join("voxy.sqlite"),policy,microphone_allowed:Some(Arc::new(move||gate.may_transmit())),video:Some(Arc::new(tokio::sync::Mutex::new(video_queue)))};
+                        network_generation+=1;
+                        recent_server=None;
+                        let (sender,task)=start_network(config,identity.clone(),profile,event_tx.clone(),network_generation);
+                        network=Some(sender);network_task=Some(task);state.phase="Reconectando ao servidor salvo".into();
+                    },
                     Request::Command{command}=>send(&network,Input::Command(command)).await?,
-                    Request::RotateInvite{valid_for_seconds}=>{
-                        ensure!((60..=86_400).contains(&valid_for_seconds),"Validade deve ser de 60 segundos a 24 horas");
+                    Request::RotateInvite{valid_for_seconds,revoke_members}=>{
+                        ensure!((60..=604_740).contains(&valid_for_seconds),"Validade deve ser de 1 minuto a 7 dias");
                         let snapshot=state.snapshot.as_ref().context("Aguarde a confirmação do servidor")?;
                         ensure!(snapshot.server.owner==local_id,"Somente o dono pode renovar o convite");
                         let previous=Invite::parse(state.invite.as_deref().context("Convite ativo indisponível")?,now_ms())?;
                         ensure!(previous.host_key==URL_SAFE_NO_PAD.encode(identity.public_key()),"Somente o processo host pode renovar o convite");
                         let replacement=Invite::create(&identity,previous.room,&previous.signal_url,now_ms()+(valid_for_seconds as i64)*1000)?;
-                        send(&network,Input::RotateInvite(replacement)).await?;
+                        let epoch=Store::open(&path.join("voxy.sqlite"))?.hosted_invite(previous.room)?.map(|(_,e)|e).unwrap_or(0)+u64::from(revoke_members);
+                        send(&network,Input::RotateInvite(replacement,epoch)).await?;
                         state.phase="Revogando convite anterior e aguardando confirmação".into();
                     },
                     Request::VoiceEnter{channel,profile}=>{
@@ -264,9 +299,9 @@ pub(crate) async fn run(
                         network_generation+=1;state=State{phase:"Desconectado".into(),muted:state.muted,deafened:state.deafened,..Default::default()};
                     }
                 }Ok::<_,anyhow::Error>(())}.await;
-                if let Err(error)=result {state.error=Some(error.to_string());}
+                if let Err(error)=result {voxy_core::log::event("request-error",&error.to_string());state.error=Some(error.to_string());}
                 states.send_replace(state.clone());
-                if shutdown{break}
+                if shutdown{voxy_core::log::event("shutdown","requested");break}
             },
             result=screen_opened.recv()=>if let Some((camera,generation,result))=result {
                 if generation!=if camera{camera_generation}else{screen_generation}{continue}
@@ -281,6 +316,7 @@ pub(crate) async fn run(
                         }
                     },
                     Err(error)=>{
+                        voxy_core::log::event(if camera{"camera-failed"}else{"share-failed"},&error);
                         if camera{state.camera=None;state.error=Some(format!("Não foi possível ativar a câmera: {error}"));}
                         else{state.screen=None;state.error=Some(format!("Não foi possível compartilhar: {error}"));}
                     }
@@ -330,7 +366,7 @@ pub(crate) async fn run(
             event=events.recv()=>if let Some((generation,event))=event {
                 if generation!=network_generation{continue}
                 match event {
-                    Event::Ended=>{screen_generation+=1;publisher=None;video_out=None;camera_generation+=1;camera_publisher=None;state.camera=None;audio_recovery=None;audio_configured=None;audio_generation+=1;control.prepare_audio_generation(audio_generation,control.ptt.load(Ordering::Acquire));audio=None;state.voice=None;state.microphone_ready=false;state.snapshot=None;state.peers.clear();network=None;network_task=None;state.phase="Sessão encerrada".into();if ui_detached{break}},
+                    Event::Ended=>{screen_generation+=1;publisher=None;video_out=None;camera_generation+=1;camera_publisher=None;state.camera=None;audio_recovery=None;audio_configured=None;audio_generation+=1;control.prepare_audio_generation(audio_generation,control.ptt.load(Ordering::Acquire));audio=None;state.voice=None;state.microphone_ready=false;state.snapshot=None;state.peers.clear();network=None;network_task=None;state.phase="Sessão encerrada".into();if ui_detached && !close_to_tray(&path){break}},
                     Event::Acknowledged(id)=>{state.acknowledged=Some(id);if !state.acknowledgements.contains(&id){state.acknowledgements.push(id);if state.acknowledgements.len()>64{state.acknowledgements.remove(0);}}},
                     Event::Replied(id,value)=>{
                         state.acknowledged=Some(id);
@@ -339,14 +375,33 @@ pub(crate) async fn run(
                         state.command_results.push((id,value));
                         while state.command_results.len()>16 || (state.command_results.len()>1 && serde_json::to_vec(&state.command_results).is_ok_and(|bytes|bytes.len()>512*1024)){state.command_results.remove(0);}
                     },
-                    Event::InviteRotated(invite)=>{
+                    Event::InviteRotated(invite,epoch)=>{
+                        state.invite_code=None;
                         match invite.encode(){Ok(encoded)=>{
+                            if let Err(error)=Store::open(&path.join("voxy.sqlite")).and_then(|s|s.save_hosted_invite(invite.room,&encoded,epoch)){state.error=Some(error.to_string());}
                             if let Some(snapshot)=&state.snapshot {let _=Store::open(&path.join("voxy.sqlite")).and_then(|s|s.save_recent(&snapshot.server,&encoded));}
                             state.invite=Some(encoded);
-                            state.phase="Convite renovado; convidados anteriores devem entrar novamente".into();
+                            state.phase="Convite renovado; o código e o link anteriores deixaram de funcionar".into();
                         },Err(error)=>state.error=Some(error.to_string())}
                     },
                     Event::Peer(id,key)=>{state.peers.push(voxy_core::ipc::Peer{id,key,volume:1.0});},
+                    Event::InviteCode(code,_)=>state.invite_code=Some(code),
+                    Event::MemberPass(pass)=>{
+                        if let Err(error)=pass.encode().and_then(|encoded|Store::open(&path.join("voxy.sqlite"))?.save_member_pass(pass.room,&encoded)){state.error=Some(format!("Acesso salvo não gravado: {error}"));}
+                        continue
+                    },
+                    Event::KeyframeNeeded{camera}=>{
+                        if let Some(active)=if camera{camera_publisher.as_ref()}else{publisher.as_ref()}{active.keyframe.store(true,Ordering::Release);}
+                        continue
+                    },
+                    Event::HostOffline(room)=>{
+                        // The saved server stays; the call ends until the host returns.
+                        screen_generation+=1;publisher=None;state.screen=None;camera_generation+=1;camera_publisher=None;state.camera=None;
+                        audio_recovery=None;audio_configured=None;audio_generation+=1;control.prepare_audio_generation(audio_generation,control.ptt.load(Ordering::Acquire));audio=None;
+                        state.voice=None;state.microphone_ready=false;state.snapshot=None;state.peers.clear();state.links.clear();
+                        state.waiting_host=Some(room);state.error=None;
+                        state.phase="Servidor offline — aguardando o host voltar".into();
+                    },
                     Event::Phase(phase)=>{state.phase=phase.into();if phase=="Conexão interrompida — reconectando"{state.reconnects=state.reconnects.saturating_add(1);}else if phase=="Conectando à sinalização"{state.peers.clear();state.links.clear();if let Some(audio)=&audio{audio.input.clear();}}},
                     Event::Snapshot(snapshot)=>{
                         if let Ok(profile)=Store::open(&path.join("voxy.sqlite")).and_then(|s|s.profile()){
@@ -369,6 +424,7 @@ pub(crate) async fn run(
                             if state.microphone_ready && own.is_some_and(|m|m.voice!=Some(channel)) {let _=send(&network,action(Action::VoiceJoin{channel})).await;}
                             state.phase=if audio_recovery.is_some(){"Recuperando áudio — microfone silenciado"}else if own.is_some_and(|m|m.voice==Some(channel)) && state.microphone_ready {"Em chamada"}else{"Entrando no canal de voz"}.into();
                         }else{state.phase="Conectado".into();}
+                        state.waiting_host=None;
                         state.snapshot=Some(snapshot);
                     },
                     Event::ShareAudio{peer,sequence,payload}=>{
@@ -402,6 +458,7 @@ pub(crate) async fn run(
                     if watchers>screen_watchers {active.keyframe.store(true,Ordering::Release);}
                     screen_watchers=watchers;
                     if active.is_finished() || active.counters.failed.load(Ordering::Acquire) {
+                        voxy_core::log::event("share-ended",&format!("captured={} encoded={} dropped={}",active.counters.captured.load(Ordering::Relaxed),active.counters.encoded.load(Ordering::Relaxed),active.counters.dropped.load(Ordering::Relaxed)));
                         publisher=None;state.screen=None;state.error=Some("Compartilhamento interrompido: a janela ou monitor deixou de estar disponível".into());
                         let _=send(&network,media_action(&state)).await;
                     } else {state.screen=Some(active.refresh(watchers));}
@@ -576,6 +633,57 @@ fn configure_shortcuts(profile: &Profile) -> Result<Option<ShortcutReader>> {
         deafen.as_ref().map(|(chord, _)| chord.as_str()),
     )?))
 }
+fn close_to_tray(path: &std::path::Path) -> bool {
+    Store::open(&path.join("voxy.sqlite"))
+        .and_then(|store| store.profile())
+        .map(|profile| {
+            profile
+                .retained
+                .get("closeToTray")
+                .and_then(|v| v.as_bool())
+                != Some(false)
+        })
+        .unwrap_or(true)
+}
+/// While the host is offline a saved server is retried at this interval.
+const HOST_OFFLINE_RETRY: Duration = Duration::from_secs(20);
+/// A persisted invite is reused while it has at least this long left; hosting
+/// sessions run under the invite's lifetime on the signaling service.
+const HOST_INVITE_MIN_REMAINING_MS: i64 = 24 * 60 * 60 * 1000;
+/// The server's invite survives hosting sessions: the same capability, link and
+/// short code keep working until they expire or the owner revokes them.
+fn hosted_invite(
+    store: &Store,
+    identity: &Identity,
+    server: uuid::Uuid,
+    url: &str,
+) -> Result<(Invite, u64)> {
+    let now = now_ms();
+    let key = URL_SAFE_NO_PAD.encode(identity.public_key());
+    let (saved, epoch) = store.hosted_invite(server)?.unwrap_or_default();
+    if let Ok(invite) = Invite::parse(&saved, now)
+        && invite.room == server
+        && invite.host_key == key
+        && invite.signal_url == url
+        && invite.expires_at - now >= HOST_INVITE_MIN_REMAINING_MS
+    {
+        return Ok((invite, epoch));
+    }
+    let invite = Invite::create(identity, server, url, now + MAX_INVITE_LIFETIME_MS - 60_000)?;
+    store.save_hosted_invite(server, &invite.encode()?, epoch)?;
+    Ok((invite, epoch))
+}
+/// The saved member access for this server, if valid for this identity.
+fn saved_pass(path: &std::path::Path, identity: &Identity, invite: &Invite) -> Option<MemberPass> {
+    let key = URL_SAFE_NO_PAD.encode(identity.public_key());
+    let saved = Store::open(&path.join("voxy.sqlite"))
+        .ok()?
+        .member_pass(invite.room)
+        .ok()??;
+    MemberPass::parse(&saved, now_ms()).ok().filter(|pass| {
+        pass.room == invite.room && pass.host_key == invite.host_key && pass.member_key == key
+    })
+}
 fn start_network(
     mut config: Config,
     identity: Arc<Identity>,
@@ -587,9 +695,15 @@ fn start_network(
     let task = tokio::task::spawn_local(async move {
         let (tx, mut rx) = mpsc::channel(256);
         let (rotated_tx, mut rotated_rx) = watch::channel(None);
+        // The member pass issued during this run replaces the invite as the
+        // credential for every later reconnection (invites can be revoked).
+        let (pass_tx, mut pass_rx) = watch::channel(None);
         let forward = tokio::task::spawn_local(async move {
             while let Some(event) = rx.recv().await {
-                if let Event::InviteRotated(invite) = &event {
+                if let Event::MemberPass(pass) = &event {
+                    pass_tx.send_replace(Some(pass.clone()));
+                }
+                if let Event::InviteRotated(invite, _) = &event {
                     rotated_tx.send_replace(Some(invite.clone()));
                 }
                 if events.send((generation, event)).await.is_err() {
@@ -609,8 +723,27 @@ fn start_network(
             if let Some(invite) = rotated_rx.borrow_and_update().clone() {
                 config.invite = invite;
             }
+            if config.host.is_none()
+                && let Some(pass) = pass_rx.borrow_and_update().clone()
+            {
+                config.pass = Some(pass);
+            }
             if result.is_ok() {
                 break;
+            }
+            let offline = result.as_ref().err().is_some_and(|error| {
+                let text = error.to_string();
+                text.contains("409") || text.contains("Host offline")
+            });
+            if offline && config.host.is_none() {
+                let _ = tx.send(Event::HostOffline(config.invite.room)).await;
+                attempt = 0;
+                // Polling the room costs no admission; the saved server is kept.
+                tokio::select! {
+                    _=tokio::time::sleep(HOST_OFFLINE_RETRY)=>{},
+                    command=receiver.recv()=>{if matches!(command,None|Some(Input::Stop)){break}}
+                }
+                continue;
             }
             if attempt >= 7 {
                 // Keep the last specific cause (quota, revoked invite, NAT) visible as the error.
@@ -621,7 +754,11 @@ fn start_network(
                     .await;
                 break;
             }
-            if now_ms() >= config.invite.expires_at {
+            let credential_expiry = config
+                .pass
+                .as_ref()
+                .map_or(config.invite.expires_at, |pass| pass.expires_at);
+            if now_ms() >= credential_expiry {
                 let _ = tx
                     .send(Event::Error(
                         "Convite expirado. Gere um novo convite para reconectar.",

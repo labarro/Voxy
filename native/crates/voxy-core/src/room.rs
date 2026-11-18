@@ -32,6 +32,11 @@ pub struct Member {
     /// Members whose screen this member subscribed to; senders encode only for watchers.
     #[serde(default)]
     pub watching: Vec<Uuid>,
+    /// Profile photo and banner stored by the host (fetched through ImageRead).
+    #[serde(default)]
+    pub avatar: Option<crate::images::ImageMetadata>,
+    #[serde(default)]
+    pub banner: Option<crate::images::ImageMetadata>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -64,6 +69,10 @@ pub enum Action {
     ImageRead {
         id: Uuid,
         offset: u32,
+    },
+    /// Removes the actor's own profile photo or banner on this server.
+    ProfileImageClear {
+        kind: crate::images::ProfileImage,
     },
     Game {
         channel: Uuid,
@@ -393,6 +402,8 @@ impl RoomHost {
                 watching: vec![],
                 screen_size: None,
                 camera_size: None,
+                avatar: None,
+                banner: None,
             },
         );
         Ok(())
@@ -497,7 +508,18 @@ impl RoomHost {
         Ok(Snapshot {
             server: self.server.clone(),
             channels,
-            members: self.members.values().cloned().collect(),
+            members: {
+                let media = crate::images::profile_media(&self.store, self.server.id)?;
+                self.members
+                    .values()
+                    .cloned()
+                    .map(|mut member| {
+                        member.avatar = media.get(&(member.id, "avatar".into())).cloned();
+                        member.banner = media.get(&(member.id, "banner".into())).cloned();
+                        member
+                    })
+                    .collect()
+            },
             messages,
             friends,
             direct,
@@ -709,6 +731,16 @@ impl RoomHost {
                                 attachments: vec![image.metadata.clone()],
                             })?;
                         }
+                        crate::images::ImageTarget::Profile { media: kind } => {
+                            ensure!(text.trim().is_empty(), "Imagem de perfil não tem legenda");
+                            crate::images::set_profile_media(
+                                &self.store,
+                                self.server.id,
+                                member.id,
+                                kind,
+                                Some(&image),
+                            )?;
+                        }
                         crate::images::ImageTarget::Direct { to } => {
                             self.store.db.execute(
                                 "INSERT INTO native_direct VALUES(?1,?2,?3,?4,?5,?6)",
@@ -733,6 +765,16 @@ impl RoomHost {
                         }
                     }
                     serde_json::json!({"id":id,"image":image.metadata})
+                }
+                Action::ProfileImageClear { kind } => {
+                    crate::images::set_profile_media(
+                        &self.store,
+                        self.server.id,
+                        member.id,
+                        kind,
+                        None,
+                    )?;
+                    serde_json::json!({"cleared":kind})
                 }
                 Action::Game { .. } => {
                     unreachable!("game command handled outside persistent social transaction")
@@ -1188,6 +1230,7 @@ impl RoomHost {
                 self.require_channel(*channel)?.kind == ChannelKind::Text,
                 "Canal não permite imagens"
             ),
+            crate::images::ImageTarget::Profile { .. } => {}
             crate::images::ImageTarget::Direct { to } => {
                 ensure!(*to != actor, "Destinatário inválido");
                 let friends:bool=self.store.db.query_row("SELECT EXISTS(SELECT 1 FROM native_friends WHERE server=?1 AND accepted=1 AND ((requester=?2 AND recipient=?3) OR (requester=?3 AND recipient=?2)))",rusqlite::params![self.server.id.to_string(),actor.to_string(),to.to_string()],|row|row.get(0))?;

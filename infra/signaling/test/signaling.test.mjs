@@ -15,7 +15,7 @@ function headers(invite, peer) {
   const proof=sign(null,Buffer.from(JSON.stringify(['voxy-admission-v3',invite.room,invite.capability,peer.key,nonce,now])),peer.privateKey).toString('base64url');
   return { Upgrade:'websocket','X-Voxy-Invite':`voxy-native://join/${Buffer.from(JSON.stringify(invite)).toString('base64url')}`,'X-Voxy-Peer':peer.key,'X-Voxy-Nonce':nonce,'X-Voxy-Time':String(now),'X-Voxy-Proof':proof };
 }
-function setup(extra={}) { return new Miniflare({ modules:true,script:bundle.outputFiles[0].text,compatibilityDate:'2026-07-30',durableObjects:{ROOMS:{className:'SignalRoom',useSQLite:true},ADMISSION:{className:'AdmissionBudget',useSQLite:true}},bindings:{VOXY_DEPLOYMENT_ENABLED:'true',VOXY_RELAY_ENABLED:'false',VOXY_DAILY_ADMISSIONS:'1000',VOXY_MAX_ROOMS:'10',...extra} }); }
+function setup(extra={}) { return new Miniflare({ modules:true,script:bundle.outputFiles[0].text,compatibilityDate:'2026-07-30',durableObjects:{ROOMS:{className:'SignalRoom',useSQLite:true},ADMISSION:{className:'AdmissionBudget',useSQLite:true},CODES:{className:'InviteCodes',useSQLite:true}},bindings:{VOXY_DEPLOYMENT_ENABLED:'true',VOXY_RELAY_ENABLED:'false',VOXY_DAILY_ADMISSIONS:'1000',VOXY_MAX_ROOMS:'10',...extra} }); }
 const nextMessage = socket => new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('WebSocket timeout')),3000);socket.addEventListener('message',e=>{clearTimeout(timer);resolve(JSON.parse(e.data));},{once:true});});
 
 test('deployment and relay fail closed; invalid invites never admit',async()=>{

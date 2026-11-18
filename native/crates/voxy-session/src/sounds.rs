@@ -294,6 +294,8 @@ mod tests {
             screen_size: None,
             camera_size: None,
             watching: vec![],
+            avatar: None,
+            banner: None,
         }
     }
     fn state(me: Uuid, others: &[Uuid], voice: Option<Uuid>, ready: bool) -> State {

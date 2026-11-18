@@ -43,6 +43,10 @@ pub enum ServerPacket {
     Error {
         message: String,
     },
+    /// Host-signed member pass for the receiving member (encoded, verified on receipt).
+    Pass {
+        pass: String,
+    },
 }
 struct Link {
     connection: Arc<dyn PeerConnection>,
@@ -250,7 +254,7 @@ pub async fn join_and_post(
                                 Some(PeerEvent::DataOpen(dc))=>{send_packet(&dc,&ClientPacket::Hello{id:profile.id,name:profile.name.clone()}).await?;channel=Some(dc);},
                                 Some(PeerEvent::Data(bytes))=>{if let Some(payload)=assembler.push(&bytes)?{match serde_json::from_slice::<ServerPacket>(&payload)?{
                                     ServerPacket::State{snapshot}=>{if requested.is_none(){let text_channel=snapshot.channels.iter().find(|c|c.kind==voxy_core::model::ChannelKind::Text).context("Nenhum canal de texto")?;let command=Command{id:uuid::Uuid::new_v4(),action:voxy_core::room::Action::Message{channel:text_channel.id,text:text.into()}};requested=Some(command.id);send_packet(channel.as_ref().context("Canal indisponível")?,&ClientPacket::Command{command}).await?;}},
-                                    ServerPacket::Reply{id,value}=>{ensure!(Some(id)==requested,"Resposta fora da sessão");return Ok::<_,anyhow::Error>(serde_json::json!({"messagePosted":true,"messageId":value["id"],"transport":"native DTLS/SCTP","publicInternet":false}));},ServerPacket::Error{message}=>anyhow::bail!("{message}")
+                                    ServerPacket::Reply{id,value}=>{ensure!(Some(id)==requested,"Resposta fora da sessão");return Ok::<_,anyhow::Error>(serde_json::json!({"messagePosted":true,"messageId":value["id"],"transport":"native DTLS/SCTP","publicInternet":false}));},ServerPacket::Error{message}=>anyhow::bail!("{message}"),ServerPacket::Pass{..}=>{}
                                 }}},None|Some(PeerEvent::Closed)=>anyhow::bail!("Peer desconectado"),_=>{}
                             }
                         }

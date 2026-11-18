@@ -1,0 +1,160 @@
+{
+  "binaries": "native/target/release",
+  "checks": [
+    {
+      "atSeconds": 22.642908096313477,
+      "check": "instâncias reais independentes",
+      "detail": {
+        "instances": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 26.052377700805664,
+      "check": "host registrado na sinalização pública",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 26.779003143310547,
+      "check": "link curto copiado pela interface",
+      "detail": {
+        "code": "QT4D-4XFZ",
+        "link": "http://127.0.0.1:8787/join/QT4D-4XFZ"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 29.461069107055664,
+      "check": "código inválido recusado",
+      "detail": {
+        "status": "Código de convite inválido, expirado ou revogado. Confira o código com o host"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 32.244136810302734,
+      "check": "Bruno entrou com o link",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 37.06126022338867,
+      "check": "Clara entrou com o código digitado",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 39.242340087890625,
+      "check": "Ana vê a foto de perfil de Bruno",
+      "detail": {
+        "memberMedia": [
+          {
+            "avatar": "153cf3f99f4c67e8b5a06895a1922d67152efcf80eca18788d0e98db79dac5a2",
+            "avatarShown": true,
+            "banner": null,
+            "name": "Bruno"
+          },
+          {
+            "avatar": null,
+            "avatarShown": false,
+            "banner": null,
+            "name": "Clara"
+          },
+          {
+            "avatar": null,
+            "avatarShown": false,
+            "banner": null,
+            "name": "Ana"
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 39.2425651550293,
+      "check": "Clara vê a foto de perfil de Bruno",
+      "detail": {
+        "memberMedia": [
+          {
+            "avatar": "153cf3f99f4c67e8b5a06895a1922d67152efcf80eca18788d0e98db79dac5a2",
+            "avatarShown": true,
+            "banner": null,
+            "name": "Bruno"
+          },
+          {
+            "avatar": null,
+            "avatarShown": false,
+            "banner": null,
+            "name": "Clara"
+          },
+          {
+            "avatar": null,
+            "avatarShown": false,
+            "banner": null,
+            "name": "Ana"
+          }
+        ]
+      },
+      "passed": true
+    }
+  ],
+  "durationSeconds": 56.993125915527344,
+  "error": "Bruno: tempo esgotado aguardando rótulo 'E2E Amigos'. phase=\"Conectado\" error=null status=\"Conectado\" labels=[\"Voxy\", \"2.0 Beta 3\", \"·\", \"Configurações\", \"#Id(Custom(\\\"caption-Minimizar\\\"))\", \"#Id(Custom(\\\"caption-Maximizar ou restaurar\\\"))\", \"#Id(Custom(\\\"caption-Fechar janela · a chamada continua\\\"))\", \"#Id(Custom(\\\"nav-item-Início\\\"))\", \"#Id(Custom(\\\"rail-server-E2E Amigos\\\"))\", \"EA\", \"#Id(Custom(\\\"rail-Criar servidor\\\"))\", \"#Id(Custom(\\\"rail-Entrar por convite\\\"))\", \"#Id(Custom(\\\"nav-item-Novidades\\\"))\", \"Configurações\", \"Áudio e voz\", \"Vídeo e transmissão\", \"Perfil\", \"Aparência\", \"Notificações e sons\", \"Rede e privacidade\", \"Windows\", \"#Id(Custom(\\\"profile-panel\\\"))\", \"#Id(Custom(\\\"avatar-32\\\"))\", \"Bruno\", \"Online\", \"#Id(Custom(\\\"btn-Silenciar microfone\\\"))\", \"#Id(Custom(\\\"btn-Ensurdecer\\\"))\", \"#Id(Custom(\\\"btn-Configurações\\\"))\", \"Perfil\", \"#Id(Custom(\\\"avatar-60\\\"))\", \"B\", \"Nome de exibição\", \"#Id(Custom(\\\"avatar-64\\\"))\", \"Trocar foto\", \"Remover foto\", \"Escolher banner\", \"Remover banner\", \"PNG ou JPEG até 3 MiB e 4096 px. A alteração aparece aqui na hora e é enviada ao servidor ao conectar; os outros participantes recebem pelo host.\", \"Presença\", \"ID do perfil\", \"54bf0278-0d6d-42fc-8ed1-1324d09a95b5\", \"Use este ID para adicionar amigos no servidor conectado.\", \"Preferências locais\", \"Desfazer\", \"Salvar\"]",
+  "method": "independent voxy-desktop processes with own data dirs/identities/session processes; clicks are physical SendInput mouse input on visible labels, verified by the app's received-click position; text fields and pick-list choices applied as their widget messages; invite read from the clipboard written by the app's copy button; audio source/sink are the synthetic device boundary (VOXY_TEST_SYNTHETIC_AUDIO) feeding the unchanged DSP/Opus/SRTP/jitter/mixer pipeline",
+  "passed": false,
+  "physicalDevices": false,
+  "resourcesAtEnd": [
+    {
+      "cpuSeconds": 1.421875,
+      "participant": "Ana",
+      "pid": 7376,
+      "privateMiB": 11.61328125,
+      "workingSetMiB": 30.4921875
+    },
+    {
+      "cpuSeconds": 0.3125,
+      "participant": "Ana",
+      "pid": 5784,
+      "privateMiB": 8.3671875,
+      "workingSetMiB": 25.4375
+    },
+    {
+      "cpuSeconds": 1.328125,
+      "participant": "Bruno",
+      "pid": 11364,
+      "privateMiB": 11.921875,
+      "workingSetMiB": 31.40234375
+    },
+    {
+      "cpuSeconds": 0.375,
+      "participant": "Bruno",
+      "pid": 15780,
+      "privateMiB": 7.58203125,
+      "workingSetMiB": 24.6328125
+    },
+    {
+      "cpuSeconds": 1.578125,
+      "participant": "Clara",
+      "pid": 6856,
+      "privateMiB": 11.5703125,
+      "workingSetMiB": 31.2265625
+    },
+    {
+      "cpuSeconds": 0.3125,
+      "participant": "Clara",
+      "pid": 26012,
+      "privateMiB": 8.625,
+      "workingSetMiB": 25.29296875
+    }
+  ],
+  "sameMachine": true,
+  "scenario": "persist-3",
+  "signal": "ws://127.0.0.1:8787"
+}

@@ -183,6 +183,12 @@ pub fn protocol_invite_from_args(args: &[String]) -> Result<Option<String>> {
         args.len() == 2 && args[0] == "--protocol",
         "Argumentos do protocolo inválidos"
     );
+    // Short-code links open the join dialog with the normalized code.
+    if let Some(code) = args[1].strip_prefix("voxy-native://code/") {
+        let code = voxy_network::invite::normalize_code(code.trim_end_matches('/'))
+            .context("Código de convite inválido")?;
+        return Ok(Some(code));
+    }
     let payload = args[1]
         .strip_prefix("voxy-native://join/")
         .context("Protocolo experimental inválido")?;

@@ -3,6 +3,7 @@ pub mod identity;
 pub mod images;
 pub mod ipc;
 pub mod links;
+pub mod log;
 pub mod migration;
 pub mod model;
 pub mod room;

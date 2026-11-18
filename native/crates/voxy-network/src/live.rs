@@ -2,7 +2,7 @@
 //! Media flows directly to each admitted participant, never through signaling.
 use crate::{
     framing::Assembler,
-    invite::{Invite, SignedSignal},
+    invite::{Invite, MemberPass, PASS_LIFETIME_MS, SignedSignal},
     peer::{H264Track, OpusTrack, Peer, PeerEvent},
     policy::{NetworkPolicy, RateLimit},
     rendezvous,
@@ -13,7 +13,10 @@ use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use futures_util::{SinkExt, StreamExt};
 use std::{
     collections::HashMap,
-    sync::Arc,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, AtomicU64, Ordering},
+    },
     time::{Duration, Instant},
 };
 use tokio::sync::mpsc;
@@ -30,7 +33,8 @@ use webrtc::{
 
 pub enum Input {
     Command(Command),
-    RotateInvite(Invite),
+    /// Replacement invite and the member-pass epoch (raised to revoke saved access).
+    RotateInvite(Invite, u64),
     Audio(Vec<u8>),
     Stop,
 }
@@ -41,7 +45,17 @@ pub enum Event {
     Snapshot(Snapshot),
     Acknowledged(uuid::Uuid),
     Replied(uuid::Uuid, serde_json::Value),
-    InviteRotated(Invite),
+    InviteRotated(Invite, u64),
+    /// Short code of the current invite, confirmed by the signaling service.
+    InviteCode(String, i64),
+    /// Host-signed access for this member; lets the saved server reconnect later.
+    MemberPass(MemberPass),
+    /// A watcher fell behind and skipped frames: the publisher should send a keyframe.
+    KeyframeNeeded {
+        camera: bool,
+    },
+    /// The saved server's host is not hosting now (guests keep retrying).
+    HostOffline(uuid::Uuid),
     Audio {
         peer: u64,
         sequence: u16,
@@ -67,6 +81,11 @@ pub enum Event {
 }
 pub struct Config {
     pub invite: Invite,
+    /// Reconnection credential of a saved server (guests). Admission uses it
+    /// instead of the invite, which may have expired or been rotated.
+    pub pass: Option<MemberPass>,
+    /// Host: epoch written into issued member passes.
+    pub epoch: u64,
     pub host: Option<Community>,
     pub database: std::path::PathBuf,
     pub policy: NetworkPolicy,
@@ -85,14 +104,74 @@ pub struct VideoOut {
     pub camera: bool,
     /// Opus packet of the shared application's audio (sent with the screen).
     pub share_audio: bool,
+    /// IDR access unit: a watcher that skipped frames resumes here.
+    pub keyframe: bool,
+}
+/// Outgoing media for one link, sent by its own task so a slow or large video
+/// write can never hold the loop that forwards voice and commands.
+struct MediaJob {
+    frame: Arc<[u8]>,
+    duration: Duration,
+    kind: MediaKind,
+    keyframe: bool,
+}
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum MediaKind {
+    Screen,
+    Camera,
+    ShareAudio,
+}
+/// Per link and per stream: queue capacity in frames. Small on purpose; a
+/// watcher that cannot keep up skips to the next keyframe instead of buffering.
+const MEDIA_QUEUE: usize = 6;
+struct MediaPump {
+    queue: mpsc::Sender<MediaJob>,
+    /// Set by the loop when a frame was dropped for this link: [screen, camera].
+    gap: Arc<[AtomicBool; 2]>,
+    sent: Arc<AtomicU64>,
+    task: tokio::task::JoinHandle<()>,
+}
+fn media_pump(video: H264Track, camera: H264Track, share_audio: OpusTrack) -> MediaPump {
+    let (queue, mut jobs) = mpsc::channel::<MediaJob>(MEDIA_QUEUE * 2);
+    let gap = Arc::new([AtomicBool::new(false), AtomicBool::new(false)]);
+    let sent = Arc::new(AtomicU64::new(0));
+    let (task_gap, task_sent) = (gap.clone(), sent.clone());
+    let task = tokio::spawn(async move {
+        let mut awaiting = [false, false];
+        while let Some(job) = jobs.recv().await {
+            let index = match job.kind {
+                MediaKind::ShareAudio => {
+                    let _ = share_audio.send(&job.frame).await;
+                    continue;
+                }
+                MediaKind::Screen => 0,
+                MediaKind::Camera => 1,
+            };
+            if task_gap[index].swap(false, Ordering::AcqRel) {
+                awaiting[index] = true;
+            }
+            // A P-frame after a gap would decode against a missing reference.
+            if awaiting[index] && !job.keyframe {
+                continue;
+            }
+            awaiting[index] = false;
+            let track = if index == 0 { &video } else { &camera };
+            if track.send(&job.frame, job.duration).await.is_ok() {
+                task_sent.fetch_add(1, Ordering::Relaxed);
+            }
+        }
+    });
+    MediaPump {
+        queue,
+        gap,
+        sent,
+        task,
+    }
 }
 struct Link {
     connection: Arc<dyn PeerConnection>,
     track: OpusTrack,
-    share_audio: OpusTrack,
-    video: H264Track,
-    camera: H264Track,
-    video_sent: u64,
+    media: MediaPump,
     video_received: u64,
     channel: Option<Arc<dyn DataChannel>>,
     nonce: String,
@@ -112,6 +191,7 @@ struct Link {
 impl Link {
     async fn close(self) {
         let _ = self.connection.close().await;
+        self.media.task.abort();
         self.task.abort();
         let _ = self.task.await;
     }
@@ -161,10 +241,7 @@ async fn create_link(
     Ok(Link {
         connection,
         track,
-        share_audio,
-        video,
-        camera,
-        video_sent: 0,
+        media: media_pump(video, camera, share_audio),
         video_received: 0,
         channel: None,
         nonce,
@@ -236,14 +313,18 @@ pub async fn run(
         .send(Event::Phase("Conectando à sinalização"))
         .await
         .ok();
-    let mut socket = match rendezvous::connect(&config.invite, identity).await {
-        Ok(socket) => socket,
-        Err(error) => {
-            let _ = output.send(Event::Error(signaling_failure(&error))).await;
-            return Err(error);
-        }
-    };
+    let mut socket =
+        match rendezvous::connect_with(&config.invite, config.pass.as_ref(), identity).await {
+            Ok(socket) => socket,
+            Err(error) => {
+                let _ = output.send(Event::Error(signaling_failure(&error))).await;
+                return Err(error);
+            }
+        };
     let signer = socket.signer();
+    if is_host {
+        socket.request_code().await?;
+    }
     let (tx, mut rx) = mpsc::channel(256);
     let mut links: HashMap<String, Link> = HashMap::new();
     let mut snapshot = room.as_ref().map(RoomHost::snapshot).transpose()?;
@@ -252,7 +333,10 @@ pub async fn run(
     maintenance.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     let mut ready = is_host;
     let started = Instant::now();
-    let mut rotation: Option<(Invite, Instant)> = None;
+    let mut rotation: Option<(Invite, u64, Instant)> = None;
+    let mut epoch = config.epoch;
+    // The host's current invite: rotations replace it for passes issued afterwards.
+    let mut current_invite = config.invite.clone();
     let mut game_deadline: Option<tokio::time::Instant> = None;
     let mut stats_tick = 0_u32;
     let mut video_guard = match &config.video {
@@ -275,12 +359,12 @@ pub async fn run(
                 },
                 command=input.recv()=>match command {
                     None|Some(Input::Stop)=>break,
-                    Some(Input::RotateInvite(replacement))=>{
-                        if !is_host || rotation.is_some() || replacement.room!=config.invite.room || replacement.host_key!=local || replacement.signal_url!=config.invite.signal_url {
+                    Some(Input::RotateInvite(replacement,next_epoch))=>{
+                        if !is_host || rotation.is_some() || replacement.room!=config.invite.room || replacement.host_key!=local || replacement.signal_url!=config.invite.signal_url || next_epoch<epoch {
                             output.send(Event::Error("Renovação de convite recusada: operação inválida ou já pendente")).await.ok();
                         } else {
-                            socket.rotate_invite(&replacement,identity).await?;
-                            rotation=Some((replacement,Instant::now()));
+                            socket.rotate_invite(&replacement,next_epoch,identity).await?;
+                            rotation=Some((replacement,next_epoch,Instant::now()));
                         }
                     },
                     Some(Input::Command(command))=>{
@@ -302,7 +386,7 @@ pub async fn run(
                     }
                 },
                 video=async {match video_queue.as_mut() {Some(queue)=>queue.recv().await,None=>std::future::pending().await}}=>{
-                    let Some(VideoOut{frame,duration,camera,share_audio})=video else {video_queue=None;continue};
+                    let Some(VideoOut{frame,duration,camera,share_audio,keyframe})=video else {video_queue=None;continue};
                     {
                         // Encode once, send only to links whose member subscribed to this
                         // publisher in the same voice channel (host-confirmed snapshot).
@@ -311,7 +395,7 @@ pub async fn run(
                             if let Some(me)=&me {
                                 for (key,link) in links.iter_mut() {
                                     let watching=snapshot.as_ref().and_then(|s|s.members.iter().find(|m|&m.public_key==key)).is_some_and(|m|m.voice==me.voice&&m.watching.contains(&me.id));
-                                    if watching {let _=link.share_audio.send(&frame).await;}
+                                    if watching {let _=link.media.queue.try_send(MediaJob{frame:frame.clone(),duration,kind:MediaKind::ShareAudio,keyframe:false});}
                                 }
                             }
                             continue;
@@ -319,8 +403,12 @@ pub async fn run(
                         if let Some(me)=me {
                             for (key,link) in links.iter_mut() {
                                 let watching=snapshot.as_ref().and_then(|s|s.members.iter().find(|m|&m.public_key==key)).is_some_and(|m|m.voice==me.voice&&m.watching.contains(&me.id));
-                                let track=if camera{&link.camera}else{&link.video};
-                                if watching && track.send(&frame,duration).await.is_ok(){link.video_sent+=1;}
+                                if !watching {continue}
+                                let kind=if camera{MediaKind::Camera}else{MediaKind::Screen};
+                                if let Err(mpsc::error::TrySendError::Full(_))=link.media.queue.try_send(MediaJob{frame:frame.clone(),duration,kind,keyframe}) {
+                                    link.media.gap[usize::from(camera)].store(true,Ordering::Release);
+                                    let _=output.try_send(Event::KeyframeNeeded{camera});
+                                }
                             }
                         }
                     }
@@ -330,9 +418,15 @@ pub async fn run(
                     if !message.is_text(){continue}
                     let value:serde_json::Value=serde_json::from_str(message.to_text()?)?;
                     let kind=value["type"].as_str();
-                    if kind==Some("invite-revoked"){anyhow::bail!("Convite revogado pelo host; solicite um novo convite");}
+                    if kind==Some("invite-revoked"){anyhow::bail!("Convite revogado pelo host; reconectando com o acesso salvo");}
+                    if kind==Some("replaced"){anyhow::bail!("Sessão substituída por uma nova conexão desta identidade");}
+                    if kind==Some("invite-code"){
+                        if is_host && let (Some(code),Some(expires))=(value["code"].as_str(),value["expires_at"].as_i64()) && crate::invite::normalize_code(code).as_deref()==Some(code) {output.send(Event::InviteCode(code.into(),expires)).await.ok();}
+                        continue;
+                    }
+                    if kind==Some("invite-code-error"){output.send(Event::Error("Não foi possível gerar o código curto agora; o convite completo continua válido")).await.ok();continue;}
                     if kind==Some("invite-rotated") {
-                        let (replacement,_)=rotation.take().context("Confirmação de convite sem solicitação pendente")?;
+                        let (replacement,next_epoch,_)=rotation.take().context("Confirmação de convite sem solicitação pendente")?;
                         ensure!(value["expires_at"].as_i64()==Some(replacement.expires_at),"Confirmação de convite divergente");
                         // Cut the authoritative P2P links too; a revoked guest must not
                         // retain commands or media by ignoring the WebSocket close frame.
@@ -342,7 +436,10 @@ pub async fn run(
                             if let Some(room)=room.as_mut(){room.remove(&key);}
                         }
                         if let Some(room)=room.as_ref(){snapshot=Some(publish(room,&links,output).await?);}
-                        output.send(Event::InviteRotated(replacement)).await.ok();
+                        epoch=next_epoch;current_invite=replacement.clone();
+                        output.send(Event::InviteRotated(replacement,next_epoch)).await.ok();
+                        // The previous short code died with the old invite.
+                        socket.request_code().await?;
                     }
                     let mut discovered=vec![];
                     if kind==Some("welcome") {
@@ -424,9 +521,13 @@ if let Some(room)=room.as_mut(){room.remove(&signal.from);snapshot=Some(publish(
                                 let mut changes=false;
                                 let result=(||->Result<Option<ServerPacket>> {
                                     match serde_json::from_slice::<ClientPacket>(&payload)? {
-                                        ClientPacket::Hello{id,name}=>{ensure!(!link.admitted,"Já autenticado");room.admit(key.clone(),id,name)?;link.admitted=true;changes=true;},
-                                        ClientPacket::Command{command}=>{ensure!(link.admitted,"Perfil não admitido");let id=command.id;let changed=command.action.changes_snapshot();let value=room.handle(&key,command)?;changes=changed;return Ok(Some(ServerPacket::Reply{id,value}));}
-                                    };Ok(None)
+                                        ClientPacket::Hello{id,name}=>{
+                                            ensure!(!link.admitted,"Já autenticado");room.admit(key.clone(),id,name)?;link.admitted=true;changes=true;
+                                            let pass=MemberPass::create(identity,&current_invite,&key,epoch,now_ms()+PASS_LIFETIME_MS)?;
+                                            Ok(Some(ServerPacket::Pass{pass:pass.encode()?}))
+                                        },
+                                        ClientPacket::Command{command}=>{ensure!(link.admitted,"Perfil não admitido");let id=command.id;let changed=command.action.changes_snapshot();let value=room.handle(&key,command)?;changes=changed;Ok(Some(ServerPacket::Reply{id,value}))}
+                                    }
                                 })();
                                 if let Some(channel)=&link.channel {match result {Ok(Some(reply))=>{let _=send_packet(channel,&reply).await;},Ok(None)=>{},Err(_)=>{let _=send_packet(channel,&ServerPacket::Error{message:"Comando recusado: verifique autoria e permissões".into()}).await;}}}
                                 if changes{snapshot=Some(publish(room,&links,output).await?);}
@@ -434,6 +535,10 @@ if let Some(room)=room.as_mut(){room.remove(&signal.from);snapshot=Some(publish(
                                 match serde_json::from_slice::<ServerPacket>(&payload)? {
                                     ServerPacket::State{snapshot:state}=>{ensure!(state.server.id==config.invite.room && state.members.len()<=10,"Snapshot fora da sessão");ready=true;snapshot=Some(*state.clone());output.send(Event::Snapshot(*state)).await.ok();},
                                     ServerPacket::Error{..}=>{output.send(Event::Error("Comando recusado pelo host")).await.ok();},
+                                    ServerPacket::Pass{pass}=>{
+                                        // An invalid pass is ignored: the session keeps working with the invite.
+                                        if let Ok(pass)=MemberPass::parse(&pass,now_ms()) && pass.room==config.invite.room && pass.host_key==config.invite.host_key && pass.member_key==local {output.send(Event::MemberPass(pass)).await.ok();}
+                                    },
                                     ServerPacket::Reply{id,value}=>{output.send(Event::Replied(id,value)).await.ok();output.send(Event::Acknowledged(id)).await.ok();}
                                 }
                             }
@@ -473,7 +578,7 @@ if let Some(room)=room.as_mut(){room.remove(&signal.from);snapshot=Some(publish(
                     stats_tick=stats_tick.wrapping_add(1);
                     if stats_tick.is_multiple_of(2) {let _=output.try_send(Event::Links(link_statuses(&links).await));}
                     if let Some(room)=room.as_mut() && room.has_games() && !room.games_need_fast_tick() && room.advance_games(now_ms())?{snapshot=Some(publish(room,&links,output).await?);}
-                    if rotation.as_ref().is_some_and(|(_,started)|started.elapsed()>Duration::from_secs(8)) {anyhow::bail!("Renovação de convite sem confirmação; reconecte antes de compartilhar");}
+                    if rotation.as_ref().is_some_and(|(_,_,started)|started.elapsed()>Duration::from_secs(8)) {anyhow::bail!("Renovação de convite sem confirmação; reconecte antes de compartilhar");}
                     let stale:Vec<_>=links.iter().filter(|(_,l)|l.channel.is_none()&&l.created.elapsed()>Duration::from_secs(20)).map(|(key,_)|key.clone()).collect();
                     for key in stale{if let Some(link)=links.remove(&key){link.close().await;}
 if key==config.invite.host_key{output.send(Event::Error("A sinalização conectou, mas a rota P2P não abriu em 20 s. NAT/CGNAT ou firewall podem bloquear a conexão direta; TURN está desativado")).await.ok();anyhow::bail!("Tempo de conexão P2P esgotado");}
@@ -538,7 +643,7 @@ async fn link_statuses(links: &HashMap<String, Link>) -> Vec<voxy_core::ipc::Lin
                 .map(|pair| (pair.current_round_trip_time * 1000.0).round() as u32),
             audio_sent: link.audio_sent,
             audio_received: link.audio_received,
-            video_sent: link.video_sent,
+            video_sent: link.media.sent.load(Ordering::Relaxed),
             video_received: link.video_received,
             bytes_sent: pair.map_or(0, |pair| pair.bytes_sent),
             bytes_received: pair.map_or(0, |pair| pair.bytes_received),
@@ -603,6 +708,8 @@ mod tests {
             },
             microphone_allowed: None,
             video: None,
+            pass: None,
+            epoch: 0,
         };
         let (_sender, mut input) = mpsc::channel(8);
         let (output, mut events) = mpsc::channel(8);
@@ -669,6 +776,8 @@ mod tests {
                 screen: false,
                 camera: false,
                 watching: vec![],
+                avatar: None,
+                banner: None,
                 screen_size: None,
                 camera_size: None,
             });

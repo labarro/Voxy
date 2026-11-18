@@ -240,6 +240,15 @@ impl Peer {
         let registry = register_default_interceptors(Registry::new(), &mut media_engine)?;
         let connection: Arc<dyn PeerConnection> = Arc::new(
             PeerConnectionBuilder::new()
+                // mDNS (QueryOnly by default) binds the fixed port UDP 5353 for every
+                // connection. A fixed-port bind is what makes Windows show the Firewall
+                // "allow access" dialog, which needs administrator consent on public
+                // networks. Native peers exchange IP candidates; mDNS is not needed.
+                .with_setting_engine(
+                    webrtc::peer_connection::SettingEngineBuilder::new()
+                        .with_multicast_dns_mode(rtc::ice::mdns::MulticastDnsMode::Disabled)
+                        .build(),
+                )
                 .with_media_engine(media_engine)
                 .with_interceptor_registry(registry)
                 .with_configuration(config)
@@ -384,6 +393,7 @@ impl Peer {
     }
 }
 
+#[derive(Clone)]
 pub struct H264Track {
     track: Arc<webrtc::media_stream::track_local::static_sample::TrackLocalStaticSample>,
     ssrc: u32,
@@ -414,6 +424,7 @@ impl H264Track {
     }
 }
 
+#[derive(Clone)]
 pub struct OpusTrack {
     track: Arc<webrtc::media_stream::track_local::static_sample::TrackLocalStaticSample>,
     ssrc: u32,

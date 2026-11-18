@@ -1,0 +1,85 @@
+﻿{
+    "scenario":  "tray-reopen",
+    "binaries":  "C:\\Users\\luisa\\AppData\\Local\\Temp\\claude\\d7a7335ca77c74b8\\da22fea3-f26d-40da-b532-87fecb7d80b9\\scratchpad\\trayfresh",
+    "foreignCore":  "C:\\Users\\luisa\\AppData\\Local\\Programs\\VoxyNativeExperimental\\voxy-core.exe",
+    "passed":  false,
+    "checks":  [
+                   {
+                       "name":  "núcleo de outra instalação ativo na pasta de dados",
+                       "passed":  true,
+                       "detail":  {
+                                      "pid":  10300,
+                                      "exe":  "C:\\Users\\luisa\\AppData\\Local\\Programs\\VoxyNativeExperimental\\voxy-core.exe",
+                                      "version":  null
+                                  }
+                   },
+                   {
+                       "name":  "interface usa o núcleo da mesma instalação e versão",
+                       "passed":  true,
+                       "detail":  {
+                                      "executable":  "C:\\Users\\luisa\\AppData\\Local\\Temp\\claude\\d7a7335ca77c74b8\\da22fea3-f26d-40da-b532-87fecb7d80b9\\scratchpad\\trayfresh\\voxy-core.exe",
+                                      "version":  "2.0.0-beta.3"
+                                  }
+                   },
+                   {
+                       "name":  "núcleo antigo encerrado de forma coordenada",
+                       "passed":  true,
+                       "detail":  {
+                                      "pid":  10300
+                                  }
+                   },
+                   {
+                       "name":  "bandeja criada pelo núcleo desta instalação",
+                       "passed":  true,
+                       "detail":  {
+                                      "corePid":  22448
+                                  }
+                   },
+                   {
+                       "name":  "ícone adicionado à área de notificação (log do núcleo)",
+                       "passed":  true,
+                       "detail":  {
+                                      "log":  "C:\\Users\\luisa\\AppData\\Local\\Temp\\voxy-tray-test-eafdb72ce96a45d18fb74c8c35e8c2db\\logs\\core.log"
+                                  }
+                   },
+                   {
+                       "name":  "ciclo 1: fechar pelo X mantém o núcleo na bandeja",
+                       "passed":  false,
+                       "detail":  {
+                                      "corePid":  22448
+                                  }
+                   },
+                   {
+                       "name":  "ciclo 1: reabrir pela bandeja abre esta versão, sem duplicar",
+                       "passed":  true,
+                       "detail":  {
+                                      "path":  "C:\\Users\\luisa\\AppData\\Local\\Temp\\claude\\d7a7335ca77c74b8\\da22fea3-f26d-40da-b532-87fecb7d80b9\\scratchpad\\trayfresh\\voxy-desktop.exe",
+                                      "core":  1,
+                                      "ui":  1,
+                                      "version":  "2.0.0-beta.3"
+                                  }
+                   },
+                   {
+                       "name":  "ciclo 2: fechar pelo X mantém o núcleo na bandeja",
+                       "passed":  false,
+                       "detail":  {
+                                      "corePid":  22448
+                                  }
+                   },
+                   {
+                       "name":  "ciclo 2: reabrir pela bandeja abre esta versão, sem duplicar",
+                       "passed":  false,
+                       "detail":  {
+                                      "path":  {
+
+                                               },
+                                      "core":  0,
+                                      "ui":  0,
+                                      "version":  {
+
+                                                  }
+                                  }
+                   }
+               ],
+    "dataFolder":  "temporária, removida"
+}

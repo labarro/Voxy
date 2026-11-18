@@ -18,6 +18,8 @@ voxy-core.workspace = true
 voxy-voice.workspace = true
 voxy-network.workspace = true
 voxy-session = { path = "../voxy-session" }
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Threading", "Win32_System_Diagnostics_ToolHelp"] }
 [dev-dependencies]
 tempfile.workspace = true
 uuid.workspace = true

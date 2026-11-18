@@ -61,6 +61,15 @@ test("versões de atualização não permitem downgrade ou reinstalar a mesma ve
   assert(!newerVersion("0.2.0", "0.2.0"));
   assert(!newerVersion("0.1.9", "0.2.0"));
   assert.throws(() => newerVersion("x;command", "0.2.0"));
+  // SemVer pre-releases: betas sort above the previous stable and below the final release.
+  assert(newerVersion("2.0.0-beta.3", "2.0.0-beta.2"));
+  assert(newerVersion("2.0.0-beta.10", "2.0.0-beta.9"));
+  assert(newerVersion("2.0.0-beta.1", "1.4.1"));
+  assert(newerVersion("2.0.0", "2.0.0-beta.3"));
+  assert(!newerVersion("2.0.0-beta.3", "2.0.0"));
+  assert(!newerVersion("2.0.0-beta.3", "2.0.0-beta.3"));
+  assert.throws(() => newerVersion("2.0.0-beta..1", "2.0.0"));
+  assert.throws(() => newerVersion("2.0.0-01", "2.0.0"));
 });
 test("atualizador confere pacote, hash, alteração posterior e backup sem modificar os dados", async () => {
   const dir = await mkdtemp(join(tmpdir(), "voxy-update-"));

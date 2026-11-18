@@ -1,0 +1,11 @@
+Voxy 2.0.0-beta.3 · diagnóstico de chamada
+Sinalização/sessão: Em chamada
+Servidor conectado: true
+Canal de voz ativo: true
+Microfone pronto: true · mudo: false · ensurdecido: false · transmitindo: true
+Frames: codificados 920 · enviados 1735 · recebidos 1734 · decodificados 1728 · amostras reproduzidas 883680
+Reconexões: 0
+Erro: nenhum
+TURN/relay: desativado
+Participante Bruno: estado connected · canal de dados aberto · rota direto-stun · RTT 0 ms · voz enviada 821 · voz recebida 820 · bytes 113857/91009 · nível 0.129
+Participante Clara: estado connected · canal de dados aberto · rota direto-stun · RTT 0 ms · voz enviada 790 · voz recebida 789 · bytes 108621/80053 · nível 0.097

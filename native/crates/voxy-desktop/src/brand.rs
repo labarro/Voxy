@@ -1,4 +1,5 @@
-//! Voxy brand icon (assets/voxy-*.png, generated from the approved artwork).
+//! Voxy brand icon: the original 1.4.1 artwork (build/icon.ico) with only the
+//! background recoloured for the Beta channel (assets/voxy-*.png, voxy.ico).
 use std::sync::OnceLock;
 
 fn decode(bytes: &[u8]) -> Option<(u32, u32, Vec<u8>)> {
@@ -10,7 +11,9 @@ fn decode(bytes: &[u8]) -> Option<(u32, u32, Vec<u8>)> {
     let rgba = match info.color_type {
         png::ColorType::Rgba => buffer[..info.buffer_size()].to_vec(),
         png::ColorType::Rgb => buffer[..info.buffer_size()]
-            .chunks_exact(3)
+            .as_chunks::<3>()
+            .0
+            .iter()
             .flat_map(|p| [p[0], p[1], p[2], 255])
             .collect(),
         _ => return None,

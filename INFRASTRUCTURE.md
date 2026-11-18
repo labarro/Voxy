@@ -1,5 +1,23 @@
 # Infraestrutura experimental — Voxy 2.0
 
+## Atualização implantada em 18/11/2026 (Beta 3)
+
+Versão do Worker `9c6ca307-714e-4e78-a875-ef19645ea49b`, implantada com `wrangler deploy --config .local/signaling/wrangler.json` (`routes: []`; o Custom Domain existente não foi alterado). Health: `{"protocol":3,"relay":false,"codes":true,"passes":true}`. Autorização do usuário: alterações estritamente necessárias para os convites, sem custo e sem afetar outros serviços.
+
+- **Nova classe `InviteCodes`** (Durable Object SQLite, migration `v2`, disponível no plano Free). Instância global única com códigos de 8 caracteres → convite atual da sala. Entradas expiram com o convite e são apagadas na rotação; há limpeza oportunista.
+- **Rotas novas:**
+  - `GET /join/CODE`: página HTML estática sem consulta ao armazenamento e sem o segredo, logo não permite enumerar códigos.
+  - `GET /v3/code/CODE` (WebSocket): resolve o código, com 10 consultas/minuto por endereço e 600 falhas globais por 10 minutos.
+- **Acesso salvo** (`X-Voxy-Pass`): assinado pela chave do host registrada para a sala, vinculado à chave do membro (prova de posse obrigatória), com validade máxima de 180 dias e época mínima armazenada na sala. O `rotate-invite` pode elevar a época, nunca reduzir.
+- **Admissão consumida só depois** de a sala confirmar o host online: tentativas com o servidor offline e recusas não gastam a cota diária de 1.000.
+- **Reconexão da mesma identidade** substitui o socket antigo (mensagem `replaced`) em vez de recusar.
+
+Impacto nos limites gratuitos (estimativa, não medição de faturamento):
+- Cada convidado aguardando um host offline faz 1 requisição de Worker + 1 de Durable Object a cada 20 s, enquanto o aplicativo estiver aguardando. Três convidados por 1 hora somam cerca de 1.080 + 1.080, ante o limite diário de 100.000 de cada.
+- Registrar código: 1 mensagem por hospedagem ou rotação. Resolver código: 1 requisição + 1 DO.
+- Armazenamento: algumas centenas de bytes por sala ativa (no máximo dez salas).
+- Sem D1/R2/TURN/SFU; relay continua desligado.
+
 ## Estado implantado em 17/11/2026
 
 Endpoint **wss://voxy.devbarros.com**, health [HTTPS](https://voxy.devbarros.com/health). Worker voxy-native-signaling-experimental, classes SignalRoom e AdmissionBudget com SQLite migration v1 e WebSocket Hibernation. VOXY_DEPLOYMENT_ENABLED=true, VOXY_RELAY_ENABLED=false, 1.000 admissões/dia, dez salas e dez participantes/sala. Não há D1, R2, SFU ou TURN, nem transporte de chat/imagem/voz/jogo pelo Worker.

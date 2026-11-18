@@ -1,0 +1,290 @@
+{
+  "binaries": "native/target/release",
+  "checks": [
+    {
+      "atSeconds": 21.889110565185547,
+      "check": "instâncias reais independentes",
+      "detail": {
+        "instances": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 25.294445037841797,
+      "check": "host registrado na sinalização pública",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 26.02189064025879,
+      "check": "link curto copiado pela interface",
+      "detail": {
+        "code": "CDAN-MFFR",
+        "link": "http://127.0.0.1:8787/join/CDAN-MFFR"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 28.60502052307129,
+      "check": "código inválido recusado",
+      "detail": {
+        "status": "Código de convite inválido, expirado ou revogado. Confira o código com o host"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 31.18451499938965,
+      "check": "Bruno entrou com o link",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 35.79792404174805,
+      "check": "Clara entrou com o código digitado",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 37.981910705566406,
+      "check": "Ana vê a foto de perfil de Bruno",
+      "detail": {
+        "memberMedia": [
+          {
+            "avatar": null,
+            "avatarShown": false,
+            "banner": null,
+            "name": "Clara"
+          },
+          {
+            "avatar": null,
+            "avatarShown": false,
+            "banner": null,
+            "name": "Ana"
+          },
+          {
+            "avatar": "153cf3f99f4c67e8b5a06895a1922d67152efcf80eca18788d0e98db79dac5a2",
+            "avatarShown": true,
+            "banner": null,
+            "name": "Bruno"
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 37.982147216796875,
+      "check": "Clara vê a foto de perfil de Bruno",
+      "detail": {
+        "memberMedia": [
+          {
+            "avatar": null,
+            "avatarShown": false,
+            "banner": null,
+            "name": "Clara"
+          },
+          {
+            "avatar": null,
+            "avatarShown": false,
+            "banner": null,
+            "name": "Ana"
+          },
+          {
+            "avatar": "153cf3f99f4c67e8b5a06895a1922d67152efcf80eca18788d0e98db79dac5a2",
+            "avatarShown": true,
+            "banner": null,
+            "name": "Bruno"
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 40.16337203979492,
+      "check": "Ana recebe a imagem inline no chat",
+      "detail": {
+        "mediaReady": [
+          "d3d9f543581f09341395c8ae332c6b15b6d498b0fc57bb21d300305653749bcd"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 40.163482666015625,
+      "check": "Clara recebe a imagem inline no chat",
+      "detail": {
+        "mediaReady": [
+          "d3d9f543581f09341395c8ae332c6b15b6d498b0fc57bb21d300305653749bcd"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 43.70248794555664,
+      "check": "Bruno vê o servidor offline e mantém o salvo",
+      "detail": {
+        "communities": [
+          "E2E Amigos"
+        ],
+        "phase": "Servidor offline — aguardando o host voltar"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 43.70268249511719,
+      "check": "Clara vê o servidor offline e mantém o salvo",
+      "detail": {
+        "communities": [
+          "E2E Amigos"
+        ],
+        "phase": "Servidor offline — aguardando o host voltar"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 44.32809829711914,
+      "check": "re-hospedar: mesmo código",
+      "detail": {
+        "code": "CDAN-MFFR"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 63.995296478271484,
+      "check": "re-hospedar: Bruno voltou sem novo convite",
+      "detail": {
+        "communities": [
+          "E2E Amigos"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 65.39923095703125,
+      "check": "re-hospedar: Clara voltou sem novo convite",
+      "detail": {
+        "communities": [
+          "E2E Amigos"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 70.75821685791016,
+      "check": "após reiniciar o host: mesmo código",
+      "detail": {
+        "code": "CDAN-MFFR"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 86.20956420898438,
+      "check": "após reiniciar o host: Bruno voltou sem novo convite",
+      "detail": {
+        "communities": [
+          "E2E Amigos"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 86.4103012084961,
+      "check": "após reiniciar o host: Clara voltou sem novo convite",
+      "detail": {
+        "communities": [
+          "E2E Amigos"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 92.9831771850586,
+      "check": "Clara reconecta pelo servidor salvo após reiniciar o app",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 94.44022369384766,
+      "check": "revogação gera outro código",
+      "detail": {
+        "code": "EJDD-8APR"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 94.44039154052734,
+      "check": "Bruno mantém acesso salvo após revogar o convite",
+      "detail": {
+        "phase": "Conexão interrompida — reconectando"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 94.4405288696289,
+      "check": "Clara mantém acesso salvo após revogar o convite",
+      "detail": {
+        "phase": "Conectando à sinalização"
+      },
+      "passed": true
+    }
+  ],
+  "durationSeconds": 94.99652099609375,
+  "error": null,
+  "method": "independent voxy-desktop processes with own data dirs/identities/session processes; clicks are physical SendInput mouse input on visible labels, verified by the app's received-click position; text fields and pick-list choices applied as their widget messages; invite read from the clipboard written by the app's copy button; audio source/sink are the synthetic device boundary (VOXY_TEST_SYNTHETIC_AUDIO) feeding the unchanged DSP/Opus/SRTP/jitter/mixer pipeline",
+  "passed": true,
+  "physicalDevices": false,
+  "resourcesAtEnd": [
+    {
+      "cpuSeconds": 0.84375,
+      "participant": "Ana",
+      "pid": 18008,
+      "privateMiB": 11.43359375,
+      "workingSetMiB": 31.3046875
+    },
+    {
+      "cpuSeconds": 0.34375,
+      "participant": "Ana",
+      "pid": 9088,
+      "privateMiB": 7.3125,
+      "workingSetMiB": 24.30078125
+    },
+    {
+      "cpuSeconds": 2.375,
+      "participant": "Bruno",
+      "pid": 26068,
+      "privateMiB": 12.33984375,
+      "workingSetMiB": 32.12890625
+    },
+    {
+      "cpuSeconds": 0.53125,
+      "participant": "Bruno",
+      "pid": 26584,
+      "privateMiB": 5.50390625,
+      "workingSetMiB": 22.58203125
+    },
+    {
+      "cpuSeconds": 0.421875,
+      "participant": "Clara",
+      "pid": 22084,
+      "privateMiB": 11.92578125,
+      "workingSetMiB": 31.59765625
+    },
+    {
+      "cpuSeconds": 0.109375,
+      "participant": "Clara",
+      "pid": 19492,
+      "privateMiB": 6.53515625,
+      "workingSetMiB": 23.76953125
+    }
+  ],
+  "sameMachine": true,
+  "scenario": "persist-3",
+  "signal": "ws://127.0.0.1:8787"
+}

@@ -1,5 +1,5 @@
 //! Authenticated outbound WSS rendezvous. No bearer secrets in URLs or logs.
-use crate::invite::Invite;
+use crate::invite::{Invite, MemberPass};
 use anyhow::{Context, Result, ensure};
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use rand::RngCore;
@@ -46,7 +46,12 @@ impl SignalSocket {
     /// Revoke the previous capability without disconnecting the host signaling socket.
     /// The Worker validates the replacement host signature and acknowledges rotation.
     /// Existing guests are disconnected and must receive the replacement invitation.
-    pub async fn rotate_invite(&mut self, replacement: &Invite, identity: &Identity) -> Result<()> {
+    pub async fn rotate_invite(
+        &mut self,
+        replacement: &Invite,
+        epoch: u64,
+        identity: &Identity,
+    ) -> Result<()> {
         use futures_util::SinkExt;
         Invite::parse(&replacement.encode()?, now_ms())?;
         ensure!(
@@ -59,9 +64,22 @@ impl SignalSocket {
                     "type": "rotate-invite",
                     "session_nonce": self.session_nonce,
                     "invite": replacement.encode()?,
+                    "epoch": epoch,
                 })
                 .to_string()
                 .into(),
+            ))
+            .await?;
+        Ok(())
+    }
+    /// Asks the service for the short code of the current invite (host only).
+    pub async fn request_code(&mut self) -> Result<()> {
+        use futures_util::SinkExt;
+        self.inner
+            .send(tokio_tungstenite::tungstenite::Message::Text(
+                serde_json::json!({"type": "register-code", "session_nonce": self.session_nonce})
+                    .to_string()
+                    .into(),
             ))
             .await?;
         Ok(())
@@ -85,24 +103,57 @@ impl SignalSocket {
     }
 }
 pub async fn connect(invite: &Invite, identity: &Identity) -> Result<SignalSocket> {
-    // Revalidate even programmatically constructed invites before any network I/O.
-    Invite::parse(&invite.encode()?, now_ms())?;
-    let mut request = invite.signal_url.as_str().into_client_request()?;
-    let timestamp = now_ms();
+    connect_with(invite, None, identity).await
+}
+/// Opens the authenticated signaling session for the invite room. With a member
+/// pass, the pass (not the possibly expired invite) is the admission credential.
+pub async fn connect_with(
+    invite: &Invite,
+    pass: Option<&MemberPass>,
+    identity: &Identity,
+) -> Result<SignalSocket> {
     let key = URL_SAFE_NO_PAD.encode(identity.public_key());
+    let (url, credential_header, secret) = match pass {
+        Some(pass) => {
+            // Revalidate before any network I/O; the pass must be ours and for this server.
+            let checked = MemberPass::parse(&pass.encode()?, now_ms())?;
+            ensure!(
+                checked.room == invite.room
+                    && checked.host_key == invite.host_key
+                    && checked.member_key == key,
+                "Acesso salvo não corresponde a este servidor"
+            );
+            (
+                checked.signal_url.clone(),
+                ("X-Voxy-Pass", checked.encode()?),
+                checked.signature.clone(),
+            )
+        }
+        None => {
+            // Revalidate even programmatically constructed invites before any network I/O.
+            Invite::parse(&invite.encode()?, now_ms())?;
+            (
+                invite.signal_url.clone(),
+                ("X-Voxy-Invite", invite.encode()?),
+                invite.capability.clone(),
+            )
+        }
+    };
+    let mut request = url.as_str().into_client_request()?;
+    let timestamp = now_ms();
     let mut nonce = [0_u8; 16];
     rand::rngs::OsRng.fill_bytes(&mut nonce);
     let nonce = URL_SAFE_NO_PAD.encode(nonce);
     let transcript = serde_json::to_vec(&(
         "voxy-admission-v3",
         invite.room,
-        &invite.capability,
+        &secret,
         &key,
         &nonce,
         timestamp,
     ))?;
     for (name, value) in [
-        ("X-Voxy-Invite", invite.encode()?),
+        credential_header,
         ("X-Voxy-Peer", key),
         ("X-Voxy-Nonce", nonce.clone()),
         ("X-Voxy-Time", timestamp.to_string()),
@@ -115,17 +166,31 @@ pub async fn connect(invite: &Invite, identity: &Identity) -> Result<SignalSocke
             .headers_mut()
             .insert(name, HeaderValue::from_str(&value)?);
     }
+    let (socket, response) = open(request, &url).await?;
+    ensure!(response.status() == 101, "A sinalização recusou a sessão");
+    Ok(SignalSocket {
+        inner: socket,
+        session_nonce: nonce,
+    })
+}
+async fn open(
+    request: tokio_tungstenite::tungstenite::handshake::client::Request,
+    url: &str,
+) -> Result<(
+    WebSocketStream<MaybeTlsStream<TcpStream>>,
+    tokio_tungstenite::tungstenite::handshake::client::Response,
+)> {
     let config = WebSocketConfig::default()
         .max_message_size(Some(65_536))
         .max_frame_size(Some(65_536));
-    let (socket, response) = tokio::time::timeout(std::time::Duration::from_secs(8), async {
+    tokio::time::timeout(std::time::Duration::from_secs(8), async {
         // Test-only DNS bypass: TLS still authenticates the original hostname.
         // Release builds cannot read this override or pin public service IPs.
         #[cfg(debug_assertions)]
         if let Ok(address) = std::env::var("VOXY_TEST_SIGNAL_ADDRESS") {
-            let url = url::Url::parse(&invite.signal_url)?;
+            let parsed = url::Url::parse(url)?;
             ensure!(
-                url.scheme() == "wss" && url.host_str() == Some("voxy.devbarros.com"),
+                parsed.scheme() == "wss" && parsed.host_str() == Some("voxy.devbarros.com"),
                 "DNS test override is restricted to the experimental endpoint"
             );
             let ip: std::net::IpAddr = address.parse()?;
@@ -140,17 +205,57 @@ pub async fn connect(invite: &Invite, identity: &Identity) -> Result<SignalSocke
             .await
             .map_err(anyhow::Error::from);
         }
+        #[cfg(not(debug_assertions))]
+        let _ = url;
         connect_async_with_config(request, Some(config), true)
             .await
             .map_err(anyhow::Error::from)
     })
     .await
-    .context("A sinalização não respondeu em 8 s. Confira a conexão e tente novamente")??;
-    ensure!(response.status() == 101, "A sinalização recusou a sessão");
-    Ok(SignalSocket {
-        inner: socket,
-        session_nonce: nonce,
-    })
+    .context("A sinalização não respondeu em 8 s. Confira a conexão e tente novamente")?
+}
+/// Resolves a short invite code through the trusted signaling endpoint and
+/// returns the full signed invite. The caller still verifies its signature.
+pub async fn resolve_code(endpoint: &str, code: &str) -> Result<String> {
+    use futures_util::StreamExt;
+    let code = crate::invite::normalize_code(code).context("Código de convite inválido")?;
+    let base = url::Url::parse(endpoint)?;
+    let local = matches!(base.host_str(), Some("localhost" | "127.0.0.1" | "[::1]"));
+    ensure!(
+        base.scheme() == "wss" || (base.scheme() == "ws" && local),
+        "Sinalização pública exige WSS"
+    );
+    let url = format!("{}/v3/code/{code}", endpoint.trim_end_matches('/'));
+    let request = url.as_str().into_client_request()?;
+    let (mut socket, _) = open(request, &url).await.map_err(|error| {
+        let text = error.to_string();
+        if text.contains("404") || text.contains("400") {
+            anyhow::anyhow!(
+                "Código de convite inválido, expirado ou revogado. Confira o código com o host"
+            )
+        } else if text.contains("429") {
+            anyhow::anyhow!("Muitas tentativas de código. Aguarde um minuto e tente novamente")
+        } else {
+            error
+        }
+    })?;
+    let message = tokio::time::timeout(std::time::Duration::from_secs(8), socket.next())
+        .await
+        .context("A sinalização não enviou o convite")?
+        .context("A sinalização encerrou sem enviar o convite")??;
+    let _ = socket.close(None).await;
+    let value: serde_json::Value = serde_json::from_str(message.to_text()?)?;
+    ensure!(value["type"] == "invite", "Resposta de código inválida");
+    let invite = value["invite"]
+        .as_str()
+        .context("Resposta de código inválida")?;
+    // Authenticity and freshness are verified locally, never trusted from the service.
+    let parsed = Invite::parse(invite, now_ms())?;
+    ensure!(
+        url::Url::parse(&parsed.signal_url)?.host_str() == base.host_str(),
+        "Convite de outro serviço de sinalização"
+    );
+    Ok(invite.to_owned())
 }
 
 /// Integration against local Worker emulator. Owns both peers and closes all paths.

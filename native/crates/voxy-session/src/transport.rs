@@ -129,6 +129,10 @@ pub async fn serve() -> Result<()> {
         protocol: ipc::PROTOCOL,
         port,
         pid: std::process::id(),
+        version: voxy_core::VERSION.into(),
+        executable: std::env::current_exe()
+            .map(|p| p.to_string_lossy().into_owned())
+            .unwrap_or_default(),
     };
     std::fs::write(path.join("session.json"), serde_json::to_vec(&endpoint)?)?;
     let (requests, receiver) = mpsc::channel(64);

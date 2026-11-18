@@ -3,16 +3,34 @@ import { createReadStream, existsSync, copyFileSync, mkdirSync } from "node:fs";
 import { open, stat, readFile, copyFile, mkdir } from "node:fs/promises";
 import { join, basename, dirname } from "node:path";
 import type { UpdatePackage } from "../shared/types";
+/** SemVer precedence, including pre-releases (1.4.1 < 2.0.0-beta.2 < 2.0.0-beta.10 < 2.0.0). */
 export function newerVersion(next: string, current: string) {
   const parse = (s: string) => {
-    if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(s))
-      throw Error("Versão inválida.");
-    return s.split(".").map(Number);
+    const match =
+      /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?$/.exec(
+        s,
+      );
+    if (!match) throw Error("Versão inválida.");
+    return {
+      core: match.slice(1, 4).map(Number),
+      pre: match[4] ? match[4].split(".") : [],
+    };
   };
   const a = parse(next),
     b = parse(current);
-  for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] > b[i];
-  return false;
+  for (let i = 0; i < 3; i++) if (a.core[i] !== b.core[i]) return a.core[i] > b.core[i];
+  if (!a.pre.length || !b.pre.length) return !a.pre.length && b.pre.length > 0;
+  for (let i = 0; i < Math.min(a.pre.length, b.pre.length); i++) {
+    const x = a.pre[i],
+      y = b.pre[i];
+    if (x === y) continue;
+    const nx = /^\d+$/.test(x),
+      ny = /^\d+$/.test(y);
+    if (nx && ny) return Number(x) > Number(y);
+    if (nx !== ny) return ny;
+    return x > y;
+  }
+  return a.pre.length > b.pre.length;
 }
 export async function fileHash(path: string) {
   const hash = createHash("sha256");

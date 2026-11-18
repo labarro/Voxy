@@ -29,6 +29,14 @@ pub enum Request {
     VoiceLeave,
     RotateInvite {
         valid_for_seconds: u64,
+        /// Also revoke every saved member access (raises the pass epoch).
+        #[serde(default)]
+        revoke_members: bool,
+    },
+    /// Reconnect to a saved server with its stored access; waits while the host is offline.
+    Reconnect {
+        server: Uuid,
+        stun: Vec<String>,
     },
     Controls {
         muted: bool,
@@ -106,6 +114,12 @@ pub struct State {
     pub screen: Option<ScreenStatus>,
     #[serde(default)]
     pub camera: Option<ScreenStatus>,
+    /// Short code of the hosted invite (XXXX-XXXX), confirmed by the signaling service.
+    #[serde(default)]
+    pub invite_code: Option<String>,
+    /// Saved server whose host is offline; the session retries until cancelled.
+    #[serde(default)]
+    pub waiting_host: Option<Uuid>,
 }
 /// A capture source picked in the UI. Handles are re-validated by the session.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -214,6 +228,29 @@ pub struct Endpoint {
     pub protocol: u8,
     pub port: u16,
     pub pid: u32,
+    /// Version and executable of the core owning this data folder. A UI attaches only
+    /// to its own sibling core; older cores write neither field.
+    #[serde(default)]
+    pub version: String,
+    #[serde(default)]
+    pub executable: String,
+}
+pub fn read_endpoint(directory: &std::path::Path) -> anyhow::Result<Endpoint> {
+    Ok(serde_json::from_slice(&std::fs::read(
+        directory.join("session.json"),
+    )?)?)
+}
+/// True when the endpoint was written by `expected` (same file, case-insensitive) at this version.
+pub fn is_own_core(endpoint: &Endpoint, expected: &std::path::Path) -> bool {
+    let normalize = |p: &std::path::Path| {
+        std::fs::canonicalize(p)
+            .unwrap_or_else(|_| p.to_path_buf())
+            .to_string_lossy()
+            .to_lowercase()
+    };
+    endpoint.version == crate::VERSION
+        && !endpoint.executable.is_empty()
+        && normalize(std::path::Path::new(&endpoint.executable)) == normalize(expected)
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Peer {

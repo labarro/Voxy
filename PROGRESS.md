@@ -1,5 +1,47 @@
 # Progresso — Voxy 2.0.0 nativo
 
+## Checkpoint 18/11/2026 — Beta 3 (2.0.0-beta.3): correções da primeira homologação real
+
+Versão em preparação, **não publicada**; última beta publicada 2.0.0-beta.2, estável 1.4.1. Artefatos locais em `release/2.0.0-beta.3/native-experimental/`. Somente o agente principal, sem subagentes. Notas completas: [release-notes/v2.0.0-beta.3.md](release-notes/v2.0.0-beta.3.md).
+
+**Causas raiz encontradas com evidência**
+- **Servidor salvo exigia novo convite:** cada `Request::Host` criava convite com segredo novo e 24 h de validade.
+  - Agora: convite do servidor persistido (DPAPI) e reutilizado.
+  - **Acesso salvo** de membro, assinado pelo host, vinculado à chave do membro, com época de revogação.
+  - Worker aceita o acesso, só consome admissão com o host online e substitui conexão antiga da mesma identidade.
+- **"Alerta do antivírus" e UAC:** sem detecção do Defender e sem crash WER do Voxy.
+  - O Firewall do Windows registrou prompts às 20:58:39 (`Downloads\voxy-native-experimental-2.0.0-win-x64\voxy-core.exe`, ZIP pré-redesign) e às 21:05:24 (Beta 2 instalada), liberados via `dllhost.exe`.
+  - Causa reproduzida: mDNS (QueryOnly, padrão do webrtc-rs) liga a porta fixa UDP 5353. Porta fixa dispara o aviso; efêmera não. Em rede Pública, liberar exige administrador.
+  - mDNS desligado; manifesto `asInvoker` nos três executáveis (antes não tinham manifesto).
+- **Reabertura de versão antiga e ícone ausente:** a interface aceitava qualquer núcleo da pasta de dados (protocolo IPC 1, sem versão/caminho).
+  - O núcleo do ZIP antigo atendia a Beta 2 e a bandeja dele (sem recurso de ícone) abria a interface irmã antiga.
+  - Pedidos novos desconhecidos derrubavam o IPC.
+  - Agora `session.json` traz versão e executável; a interface encerra núcleos de outra instalação/versão.
+- **Fechar pelo X sem servidor encerrava o núcleo e o ícone**, por `Detached && network.is_none() → break`. Agora respeita "fechar para a bandeja".
+- **multi-3 (voz muda e memória):** o envio de vídeo bloqueava o laço que encaminha a voz (`try_send` descartava áudio). Agora há fila de mídia por link, pulo até keyframe e pedido de keyframe ao publicador.
+- **Guest perdia acesso após revogação** (achado pelo E2E): o laço de reconexão continuava com o convite. Agora adota o acesso salvo recebido.
+
+**Funcionalidades recuperadas**
+- Imagens inline em canais/DMs: cache por SHA-256, miniatura única, progresso, ampliar/salvar/copiar.
+- Foto de perfil e banner sincronizados pelo host: `ImageTarget::Profile`, ACL de leitura para membros do servidor, avatar redondo com máscara aplicada à miniatura.
+- Ícone original da 1.4.1 com fundo laranja (`#8f3b14`) para a Beta.
+- Códigos curtos e links `/join/CODE`.
+- Logs locais com panic hook; instalador com encerramento coordenado apenas da própria instalação.
+
+| Verificação | Resultado | Evidência |
+| --- | --- | --- |
+| persist-3 (pública) | 23/23 | `evidence/native-2.0/e2e/persist-3-release-public-20261118-092941` |
+| screen-2 de pasta nova, sem evento de Firewall/Defender | 16/16 | `…/screen-2-release-public-freshpath-20261118-093150` |
+| multi-3 (pública; antes falhava) | 15/15; núcleo de Ana 314,9 → 33,0 MiB privados | `…/multi-3-release-public-20261118-093304` |
+| Bandeja/handoff (núcleo da Beta 2 instalada, 5 ciclos) | 15/15 | `…/tray-reopen-release-20261118-094402` |
+| voice-3 | não aprovado nesta sessão: sondas de áudio intermitentes com Roblox aberto; baseline da Beta 2 também falhou | `…/voice-3-*-20261118-*` |
+| Instalador (limpo, atualização, reinstalação, desinstalação, pasta alheia, interrompido, **atualização com processo aberto**) | aprovado | `scripts/test-native-installer.ps1` |
+| Worker 13/13; Rust workspace + Clippy; npm test 83/83; npm run build | aprovado | — |
+
+Worker implantado (versão `9c6ca307-714e-4e78-a875-ef19645ea49b`), com DO `InviteCodes` (migration v2, SQLite, plano Free).
+
+Pendências: homologação física entre computadores e redes; voice-3 limpo com a máquina ociosa; DMs com imagem no E2E (a renderização é a mesma dos canais, mas não foi exercitada por instância real); avatares associados por nome; codificação por hardware; TURN desativado.
+
 ## Checkpoint 17/11/2026 (noite) — Experience & Design Polish + núcleo de comunicação
 
 Commits locais: `38bf0e5` (design system, tela de chamada, sons, correções de renderização), `2bd7e63` (decoder de câmera, E2E de mídia), `5c2ca3a` (E2E de áudio compartilhado) e o commit de documentação/telas deste checkpoint. Sem push, tag ou publicação.

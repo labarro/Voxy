@@ -12,6 +12,7 @@ mod fixtures;
 mod home;
 mod icons;
 mod image_transfer;
+mod media;
 mod platform;
 mod preferences;
 mod qa;
@@ -76,8 +77,11 @@ enum Msg {
     Disconnect,
     LeaveVoice,
     CopyInvite,
+    CopyInviteCode,
     CopyDiagnostics,
     RotateInvite,
+    RevokeMemberAccess,
+    InviteResolved(Result<String, String>),
     RoleName(String),
     RoleColor(String),
     RoleEdit(uuid::Uuid),
@@ -173,6 +177,18 @@ enum Msg {
     CloseWorld,
     PickImage,
     ImagePicked(Result<Option<image_transfer::Picked>, String>),
+    MediaLoaded(String, Result<media::Loaded, String>),
+    SaveImage(voxy_core::images::ImageMetadata),
+    CopyImage(voxy_core::images::ImageMetadata),
+    RetryImage(voxy_core::images::ImageMetadata),
+    MediaAction(Result<String, String>),
+    PickProfileMedia(voxy_core::images::ProfileImage),
+    ProfileMediaPicked(
+        voxy_core::images::ProfileImage,
+        Result<Option<image_transfer::Picked>, String>,
+    ),
+    ClearProfileMedia(voxy_core::images::ProfileImage),
+    OwnMediaLoaded(voxy_core::images::ProfileImage, Option<media::Loaded>),
     OpenImage(voxy_core::images::ImageMetadata),
     CancelImage,
     CloseImage,
@@ -284,6 +300,11 @@ struct App {
     world_generation: u64,
     image_transfer: Option<image_transfer::Transfer>,
     image_preview: Option<image_transfer::Preview>,
+    media: media::MediaCache,
+    own_media: std::collections::HashMap<voxy_core::images::ProfileImage, media::Loaded>,
+    /// (server, kind, sha) profile uploads that failed; not retried in this session.
+    profile_sync_failed:
+        std::collections::HashSet<(uuid::Uuid, voxy_core::images::ProfileImage, String)>,
     pending_image_target: Option<(uuid::Uuid, voxy_core::images::ImageTarget, String)>,
     shutdown_sent: bool,
     geometry_failures: usize,
@@ -337,7 +358,44 @@ impl App {
                 Msg::SmokeStep,
             )
         } else {
-            Task::none()
+            // Own photo/banner thumbnails and cache housekeeping, off the UI thread.
+            let mut boot = vec![Task::perform(
+                async {
+                    let _ = tokio::task::spawn_blocking(media::prune_cache).await;
+                },
+                |_| Msg::MediaAction(Ok(String::new())),
+            )];
+            for kind in [
+                voxy_core::images::ProfileImage::Avatar,
+                voxy_core::images::ProfileImage::Banner,
+            ] {
+                boot.push(Task::perform(
+                    async move {
+                        tokio::task::spawn_blocking(move || {
+                            let bytes = std::fs::read(media::own_media_path(kind)?).ok()?;
+                            voxy_core::images::thumbnail(&bytes, 640).ok()
+                        })
+                        .await
+                        .ok()
+                        .flatten()
+                    },
+                    move |thumb| {
+                        Msg::OwnMediaLoaded(
+                            kind,
+                            thumb.map(|(width, height, rgba)| {
+                                let round = media::round_avatar(width, height, &rgba);
+                                media::Loaded {
+                                    thumb: iced::widget::image::Handle::from_rgba(
+                                        width, height, rgba,
+                                    ),
+                                    round,
+                                }
+                            }),
+                        )
+                    },
+                ));
+            }
+            Task::batch(boot)
         };
         let path = voxy_core::data_directory().expect("Pasta experimental indisponível");
         if smoke_dir.is_some() {
@@ -459,6 +517,9 @@ impl App {
                 world_generation: 0,
                 image_transfer: None,
                 image_preview: None,
+                media: Default::default(),
+                own_media: Default::default(),
+                profile_sync_failed: Default::default(),
                 pending_image_target: None,
                 shutdown_sent: false,
                 geometry_failures: 0,
@@ -692,6 +753,151 @@ impl App {
         ])
     }
     fn update(&mut self, msg: Msg) -> Task<Msg> {
+        let tick = matches!(
+            msg,
+            Msg::ServiceState(_) | Msg::MediaLoaded(..) | Msg::Navigate(_) | Msg::RetryImage(_)
+        );
+        let task = self.update_inner(msg);
+        if tick {
+            Task::batch([task, self.media_tick()])
+        } else {
+            task
+        }
+    }
+    /// Requests every image visible to this profile (chat, DMs, member media),
+    /// starts the next download when the transfer slot is free, refreshes the
+    /// avatar registry and keeps this profile's photo/banner synced to the host.
+    fn media_tick(&mut self) -> Task<Msg> {
+        use voxy_core::images::{ImageTarget, ProfileImage};
+        let mut tasks = Vec::new();
+        let mut wanted: Vec<voxy_core::images::ImageMetadata> = Vec::new();
+        for message in &self.messages {
+            wanted.extend(message.attachments.iter().cloned());
+        }
+        if let Some(snapshot) = &self.remote.snapshot {
+            for message in &snapshot.messages {
+                wanted.extend(message.attachments.iter().cloned());
+            }
+            for message in &snapshot.direct {
+                wanted.extend(message.attachments.iter().cloned());
+            }
+            for member in &snapshot.members {
+                wanted.extend(member.avatar.iter().cloned());
+                wanted.extend(member.banner.iter().cloned());
+            }
+        }
+        if let Some(page) = &self.direct_page {
+            for message in page {
+                wanted.extend(message.attachments.iter().cloned());
+            }
+        }
+        for meta in &wanted {
+            if let Some(task) = self.media.request(meta) {
+                tasks.push(task);
+            }
+        }
+        if self.image_transfer.is_none() && self.is_connected() {
+            // This profile's photo/banner must match the host copy.
+            if let Some(snapshot) = &self.remote.snapshot
+                && let Some(own) = snapshot.members.iter().find(|m| m.id == self.profile.id)
+            {
+                let server = snapshot.server.id;
+                for kind in [ProfileImage::Avatar, ProfileImage::Banner] {
+                    let local = self
+                        .profile
+                        .retained
+                        .get("profileMedia")
+                        .and_then(|v| v.get(kind.as_str()))
+                        .and_then(|v| v.as_str())
+                        .map(str::to_owned);
+                    let remote = match kind {
+                        ProfileImage::Avatar => own.avatar.as_ref(),
+                        ProfileImage::Banner => own.banner.as_ref(),
+                    }
+                    .map(|m| m.sha256.clone());
+                    if local == remote {
+                        continue;
+                    }
+                    let key = (server, kind, local.clone().unwrap_or_default());
+                    if self.profile_sync_failed.contains(&key) {
+                        continue;
+                    }
+                    match local
+                        .and_then(|_| media::own_media_path(kind))
+                        .and_then(|p| std::fs::read(p).ok())
+                    {
+                        Some(bytes) => {
+                            let sha = voxy_core::images::sha256(&bytes);
+                            match voxy_core::images::validate_image(
+                                &format!("{}.png", kind.as_str()),
+                                bytes.clone(),
+                                &sha,
+                            )
+                            .or_else(|_| {
+                                voxy_core::images::validate_image(
+                                    &format!("{}.jpg", kind.as_str()),
+                                    bytes,
+                                    &sha,
+                                )
+                            }) {
+                                Ok(valid) => {
+                                    self.profile_sync_failed.insert(key);
+                                    let picked = image_transfer::Picked {
+                                        name: valid.metadata.name.clone(),
+                                        bytes: valid.bytes.into(),
+                                    };
+                                    let (transfer, action) = image_transfer::Transfer::upload(
+                                        picked,
+                                        ImageTarget::Profile { media: kind },
+                                        String::new(),
+                                    );
+                                    self.image_transfer = Some(transfer);
+                                    self.send_image_action(action);
+                                }
+                                Err(_) => {
+                                    self.profile_sync_failed.insert(key);
+                                }
+                            }
+                        }
+                        None => {
+                            self.profile_sync_failed.insert(key);
+                            self.send_action(voxy_core::room::Action::ProfileImageClear { kind });
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        if self.image_transfer.is_none()
+            && self.is_connected()
+            && let Some(meta) = self.media.next_download()
+        {
+            let transfer = image_transfer::Transfer::read(meta);
+            let action = transfer.command.action.clone();
+            self.image_transfer = Some(transfer);
+            self.send_image_action(action);
+        }
+        // Avatars are looked up by display name in every list and tile.
+        let mut faces = std::collections::HashMap::new();
+        if let Some(snapshot) = &self.remote.snapshot {
+            for member in &snapshot.members {
+                if let Some(meta) = &member.avatar
+                    && let Some(loaded) = self.media.get(&meta.sha256)
+                {
+                    faces.insert(member.name.clone(), loaded.round.clone());
+                }
+            }
+        }
+        if let Some(own) = self.own_media.get(&ProfileImage::Avatar) {
+            faces.insert(self.profile.name.clone(), own.round.clone());
+        }
+        ui::set_faces(faces);
+        Task::batch(tasks)
+    }
+    fn is_connected(&self) -> bool {
+        self.service.is_some() && self.remote.snapshot.is_some()
+    }
+    fn update_inner(&mut self, msg: Msg) -> Task<Msg> {
         match msg {
             Msg::ServiceConnected(sender) => self.service = Some(sender),
             Msg::PeerVolume(peer, volume) => {
@@ -873,20 +1079,63 @@ impl App {
                 {
                     match self.image_transfer.as_mut().unwrap().reply(&value) {
                         Ok(image_transfer::Step::Next(action)) => self.send_image_action(action),
-                        Ok(image_transfer::Step::Uploaded(text)) => {
-                            if self.draft == text {
+                        Ok(image_transfer::Step::Uploaded(text, sha, bytes)) => {
+                            let profile = self
+                                .image_transfer
+                                .as_ref()
+                                .is_some_and(|t| t.is_profile_upload());
+                            if !profile && self.draft == text {
                                 self.draft.clear();
                             }
                             self.image_transfer = None;
-                            self.status = "Imagem confirmada pelo host.".into();
+                            self.status = if profile {
+                                "Perfil sincronizado com o servidor."
+                            } else {
+                                "Imagem confirmada pelo host."
+                            }
+                            .into();
+                            // The sender sees the image inline without downloading it back.
+                            let task = self.media.store(sha, bytes);
+                            return Task::batch([task, self.media_tick()]);
                         }
-                        Ok(image_transfer::Step::Downloaded(preview)) => {
-                            self.image_preview = Some(preview);
+                        Ok(image_transfer::Step::Downloaded(meta, bytes)) => {
                             self.image_transfer = None;
+                            if self.media.open_after.as_deref() == Some(meta.sha256.as_str()) {
+                                self.media.open_after = None;
+                                self.image_preview = Some(image_transfer::Preview {
+                                    name: meta.name.clone(),
+                                    handle: iced::widget::image::Handle::from_bytes(bytes.to_vec()),
+                                });
+                            }
+                            let task = self.media.store(meta.sha256.clone(), bytes);
+                            return Task::batch([task, self.media_tick()]);
                         }
                         Err(error) => {
+                            if let Some((id, _, _)) = self
+                                .image_transfer
+                                .as_ref()
+                                .and_then(|t| t.download_progress())
+                            {
+                                let sha = self.remote.snapshot.as_ref().and_then(|s| {
+                                    s.messages
+                                        .iter()
+                                        .flat_map(|m| m.attachments.iter())
+                                        .chain(s.direct.iter().flat_map(|m| m.attachments.iter()))
+                                        .chain(
+                                            s.members.iter().flat_map(|m| {
+                                                m.avatar.iter().chain(m.banner.iter())
+                                            }),
+                                        )
+                                        .find(|a| a.id == id)
+                                        .map(|a| a.sha256.clone())
+                                });
+                                if let Some(sha) = sha {
+                                    self.media.download_failed(&sha, error.to_string());
+                                }
+                            } else {
+                                self.status = error.to_string();
+                            }
                             self.image_transfer = None;
-                            self.status = error.to_string();
                         }
                     }
                 }
@@ -922,10 +1171,28 @@ impl App {
                 self.join_dialog = true;
                 self.invite_text.clear();
             }
-            Msg::InviteText(value) => self.invite_text = value,
+            Msg::InviteText(value) => {
+                self.invite_text = value;
+                self.status.clear();
+            }
             Msg::EndpointText(value) => self.endpoint = value,
             Msg::StunText(value) => self.stun_text = value,
             Msg::JoinRemote => {
+                // A short code or share link is resolved first; the session then
+                // receives the full signed invite, verified again before joining.
+                if let Some((endpoint, code)) =
+                    voxy_network::invite::code_from_input(&self.invite_text, self.signal_endpoint())
+                {
+                    self.status = format!("Buscando o convite {code}…");
+                    return Task::perform(
+                        async move {
+                            voxy_network::rendezvous::resolve_code(&endpoint, &code)
+                                .await
+                                .map_err(|error| error.to_string())
+                        },
+                        Msg::InviteResolved,
+                    );
+                }
                 if self.send_service(voxy_core::ipc::Request::Join {
                     invite: self.invite_text.trim().into(),
                     stun: self.stun_urls(),
@@ -934,6 +1201,19 @@ impl App {
                     self.invite_text.clear();
                 }
             }
+            Msg::InviteResolved(result) => match result {
+                Ok(invite) => {
+                    self.status.clear();
+                    if self.send_service(voxy_core::ipc::Request::Join {
+                        invite,
+                        stun: self.stun_urls(),
+                    }) {
+                        self.join_dialog = false;
+                        self.invite_text.clear();
+                    }
+                }
+                Err(error) => self.status = error,
+            },
             Msg::HostRemote => {
                 if self.endpoint.trim().is_empty() {
                     self.page = Page::Settings;
@@ -958,13 +1238,26 @@ impl App {
                 self.send_service(voxy_core::ipc::Request::VoiceLeave);
             }
             Msg::CopyInvite => {
+                // Short link when the service confirmed a code; the full invite otherwise.
+                if let Some(link) = self.invite_link() {
+                    self.status = "Link de convite copiado".into();
+                    return iced::clipboard::write(link);
+                }
                 if let Some(invite) = &self.remote.invite {
+                    self.status = "Convite copiado".into();
                     return iced::clipboard::write(invite.clone());
                 }
             }
-            Msg::RotateInvite => {
+            Msg::CopyInviteCode => {
+                if let Some(code) = &self.remote.invite_code {
+                    self.status = "Código de convite copiado".into();
+                    return iced::clipboard::write(code.clone());
+                }
+            }
+            ref rotation @ (Msg::RotateInvite | Msg::RevokeMemberAccess) => {
                 self.send_service(voxy_core::ipc::Request::RotateInvite {
-                    valid_for_seconds: 86400,
+                    valid_for_seconds: 604_740,
+                    revoke_members: matches!(rotation, Msg::RevokeMemberAccess),
                 });
             }
             Msg::RoleName(value) => self.role_name = value,
@@ -1061,6 +1354,7 @@ impl App {
                                 voxy_core::images::ImageTarget::Direct { to } => {
                                     self.page == Page::Direct && self.direct_peer == Some(*to)
                                 }
+                                voxy_core::images::ImageTarget::Profile { .. } => false,
                             };
                             if !same_target
                                 || self
@@ -1083,13 +1377,179 @@ impl App {
                 }
             }
             Msg::OpenImage(metadata) => {
-                if self.image_transfer.is_some() {
+                if let Some(path) = media::cache_path(&metadata.sha256).filter(|p| p.is_file()) {
+                    self.image_preview = Some(image_transfer::Preview {
+                        name: metadata.name.clone(),
+                        handle: iced::widget::image::Handle::from_path(path),
+                    });
                     return Task::none();
                 }
-                let transfer = image_transfer::Transfer::read(metadata);
-                let action = transfer.command.action.clone();
-                self.image_transfer = Some(transfer);
-                self.send_image_action(action);
+                // Not cached yet: download next and open when it arrives.
+                self.media.open_after = Some(metadata.sha256.clone());
+                self.media.prioritize(&metadata);
+                return self.media_tick();
+            }
+            Msg::MediaLoaded(sha, result) => self.media.loaded(sha, result),
+            Msg::RetryImage(metadata) => {
+                self.media.retry(&metadata);
+                self.media.prioritize(&metadata);
+            }
+            Msg::SaveImage(metadata) => {
+                let Some(path) = media::cache_path(&metadata.sha256) else {
+                    return Task::none();
+                };
+                let name = metadata.name.clone();
+                return Task::perform(
+                    async move {
+                        tokio::task::spawn_blocking(move || -> Result<String, String> {
+                            let Some(target) =
+                                media::save_dialog(&name).map_err(|e| e.to_string())?
+                            else {
+                                return Ok(String::new());
+                            };
+                            std::fs::copy(&path, &target).map_err(|e| e.to_string())?;
+                            Ok("Imagem salva".into())
+                        })
+                        .await
+                        .map_err(|e| e.to_string())?
+                    },
+                    Msg::MediaAction,
+                );
+            }
+            Msg::CopyImage(metadata) => {
+                let Some(path) = media::cache_path(&metadata.sha256) else {
+                    return Task::none();
+                };
+                return Task::perform(
+                    async move {
+                        tokio::task::spawn_blocking(move || -> Result<String, String> {
+                            let bytes = std::fs::read(&path).map_err(|e| e.to_string())?;
+                            media::copy_to_clipboard(&bytes).map_err(|e| e.to_string())?;
+                            Ok("Imagem copiada".into())
+                        })
+                        .await
+                        .map_err(|e| e.to_string())?
+                    },
+                    Msg::MediaAction,
+                );
+            }
+            Msg::MediaAction(result) => match result {
+                Ok(message) if message.is_empty() => {}
+                Ok(message) => self.status = message,
+                Err(error) => self.status = error,
+            },
+            Msg::PickProfileMedia(kind) => {
+                return Task::perform(
+                    async {
+                        tokio::task::spawn_blocking(image_transfer::pick)
+                            .await
+                            .map_err(|error| error.to_string())
+                            .and_then(|value| value.map_err(|error| error.to_string()))
+                    },
+                    move |result| Msg::ProfileMediaPicked(kind, result),
+                );
+            }
+            Msg::ProfileMediaPicked(kind, result) => match result {
+                Ok(Some(picked)) => {
+                    let sha = voxy_core::images::sha256(&picked.bytes);
+                    let saved = (|| -> anyhow::Result<()> {
+                        let (width, height, _) = voxy_core::images::thumbnail(&picked.bytes, 64)?;
+                        anyhow::ensure!(width > 0 && height > 0, "Imagem inválida");
+                        let path = media::own_media_path(kind)
+                            .ok_or_else(|| anyhow::anyhow!("Pasta de dados indisponível"))?;
+                        std::fs::create_dir_all(path.parent().unwrap())?;
+                        std::fs::write(&path, &picked.bytes)?;
+                        let mut profile = self.store.profile()?;
+                        let entry = profile
+                            .retained
+                            .entry("profileMedia".into())
+                            .or_insert_with(|| serde_json::json!({}));
+                        if let Some(map) = entry.as_object_mut() {
+                            map.insert(kind.as_str().into(), serde_json::json!(sha));
+                        }
+                        self.store.save_profile(&profile)?;
+                        self.profile.retained = profile.retained.clone();
+                        self.editing.retained.insert(
+                            "profileMedia".into(),
+                            profile.retained["profileMedia"].clone(),
+                        );
+                        Ok(())
+                    })();
+                    match saved {
+                        Ok(()) => {
+                            self.status = match kind {
+                                voxy_core::images::ProfileImage::Avatar => {
+                                    "Foto de perfil atualizada"
+                                }
+                                voxy_core::images::ProfileImage::Banner => "Banner atualizado",
+                            }
+                            .into();
+                            let bytes = picked.bytes.clone();
+                            return Task::batch([
+                                Task::perform(
+                                    async move {
+                                        tokio::task::spawn_blocking(move || {
+                                            voxy_core::images::thumbnail(&bytes, 640).ok()
+                                        })
+                                        .await
+                                        .ok()
+                                        .flatten()
+                                    },
+                                    move |thumb| {
+                                        Msg::OwnMediaLoaded(
+                                            kind,
+                                            thumb.map(|(width, height, rgba)| {
+                                                let round =
+                                                    media::round_avatar(width, height, &rgba);
+                                                media::Loaded {
+                                                    thumb: iced::widget::image::Handle::from_rgba(
+                                                        width, height, rgba,
+                                                    ),
+                                                    round,
+                                                }
+                                            }),
+                                        )
+                                    },
+                                ),
+                                self.media.store(sha, picked.bytes),
+                            ]);
+                        }
+                        Err(error) => self.status = error.to_string(),
+                    }
+                }
+                Ok(None) => {}
+                Err(error) => self.status = error,
+            },
+            Msg::ClearProfileMedia(kind) => {
+                if let Some(path) = media::own_media_path(kind) {
+                    let _ = std::fs::remove_file(path);
+                }
+                if let Ok(mut profile) = self.store.profile() {
+                    if let Some(map) = profile
+                        .retained
+                        .get_mut("profileMedia")
+                        .and_then(|v| v.as_object_mut())
+                    {
+                        map.remove(kind.as_str());
+                    }
+                    if self.store.save_profile(&profile).is_ok() {
+                        self.profile.retained = profile.retained.clone();
+                        if let Some(value) = profile.retained.get("profileMedia") {
+                            self.editing
+                                .retained
+                                .insert("profileMedia".into(), value.clone());
+                        }
+                    }
+                }
+                self.own_media.remove(&kind);
+                self.status = "Imagem removida do perfil".into();
+                return self.media_tick();
+            }
+            Msg::OwnMediaLoaded(kind, loaded) => {
+                if let Some(loaded) = loaded {
+                    self.own_media.insert(kind, loaded);
+                }
+                return self.media_tick();
             }
             Msg::CancelImage => {
                 if let Some(transfer) = self.image_transfer.take()
@@ -1579,19 +2039,14 @@ impl App {
                     }
                 }
             }
-            Msg::Reconnect(id) => match self.store.recent_invite(id) {
-                Ok(invite) => {
-                    self.send_service(voxy_core::ipc::Request::Join {
-                        invite,
-                        stun: self.stun_urls(),
-                    });
-                }
-                Err(_) => {
-                    self.status =
-                        "Nenhum convite salvo para este servidor. Peça um novo convite ao dono."
-                            .into()
-                }
-            },
+            Msg::Reconnect(id) => {
+                // The session picks the saved access (member pass) or the saved invite
+                // and keeps retrying while the host is offline.
+                self.send_service(voxy_core::ipc::Request::Reconnect {
+                    server: id,
+                    stun: self.stun_urls(),
+                });
+            }
             Msg::Navigate(page) => {
                 self.mic_test = None;
                 if page == Page::Settings {
@@ -2668,7 +3123,13 @@ impl App {
                     "encodedFrames": r.encoded_frames, "decodedFrames": r.decoded_frames,
                     "playbackSamples": r.playback_samples, "inputLevel": r.input_level, "transmitting": r.transmitting, "reconnects": r.reconnects,
                     "links": r.links,
+                    "inviteCode": r.invite_code, "waitingHost": r.waiting_host,
                 },
+                "inviteLink": self.invite_link(),
+                "communities": self.communities.iter().map(|c| c.name.clone()).collect::<Vec<_>>(),
+                "mediaReady": self.remote.snapshot.as_ref().map(|s| s.messages.iter().flat_map(|m| m.attachments.iter()).chain(s.direct.iter().flat_map(|m| m.attachments.iter())).filter(|a| self.media.get(&a.sha256).is_some()).map(|a| a.sha256.clone()).collect::<Vec<_>>()),
+                "memberMedia": self.remote.snapshot.as_ref().map(|s| s.members.iter().map(|m| serde_json::json!({"name":m.name,"avatar":m.avatar.as_ref().map(|a| a.sha256.clone()),"banner":m.banner.as_ref().map(|a| a.sha256.clone()),"avatarShown":m.avatar.as_ref().is_some_and(|a| self.media.get(&a.sha256).is_some())})).collect::<Vec<_>>()),
+                "ownMedia": self.own_media.keys().map(|k| k.as_str()).collect::<Vec<_>>(),
                 "snapshot": snapshot,
                 "labels": labels,
                 "mouseEvents": self.automation_events,
@@ -2723,6 +3184,30 @@ impl App {
                 .cloned()
                 .collect();
         }
+    }
+    /// Short share link for the hosted invite, from the signaling host.
+    fn invite_link(&self) -> Option<String> {
+        let code = self.remote.invite_code.as_ref()?;
+        let endpoint = self.signal_endpoint();
+        let host = url_host(endpoint)?;
+        let scheme = if endpoint.starts_with("ws://") {
+            "http"
+        } else {
+            "https"
+        };
+        Some(format!("{scheme}://{host}/join/{code}"))
+    }
+    /// The configured signaling endpoint (default public service).
+    fn signal_endpoint(&self) -> &str {
+        let endpoint = self.endpoint.trim();
+        if endpoint.is_empty() {
+            voxy_core::links::DEFAULT_SIGNAL_ENDPOINT
+        } else {
+            endpoint
+        }
+    }
+    pub(crate) fn invite_link_text(&self) -> String {
+        self.invite_link().unwrap_or_default()
     }
     fn is_remote(&self) -> bool {
         self.remote
@@ -2890,11 +3375,11 @@ impl App {
             ]
             .into()
         } else if self.join_dialog {
-            stack![content,container(container(column![row![text("Entrar em servidor").font(bold()).size(20),space::horizontal(),ui::icon_button(m,icons::Icon::X,"Fechar",Some(Msg::Cancel),design::Tone::Ghost,32.0)],text("Cole o convite enviado pelo dono do servidor.").size(13).color(m.muted),text_input("voxy-native://join/…",&self.invite_text).on_input(Msg::InviteText).on_submit(Msg::JoinRemote).padding(12).style(m.input()),text("Conexões diretas compartilham seu IP com os participantes. O host armazena as mensagens. TURN está desativado.").size(12).color(m.muted),row![space::horizontal(),self.action("Cancelar",Msg::Cancel,false),self.action("Entrar",Msg::JoinRemote,true)].spacing(8)].spacing(16)).padding(24).width(470).style(move |_|m.dialog())).center(Fill).style(move |_| m.scrim())].into()
+            stack![content,container(container(column![row![text("Entrar em servidor").font(bold()).size(20),space::horizontal(),ui::icon_button(m,icons::Icon::X,"Fechar",Some(Msg::Cancel),design::Tone::Ghost,32.0)],text("Digite o código (ex.: K7FX-M9PQ) ou cole o link enviado pelo dono do servidor.").size(13).color(m.muted),text_input("K7FX-M9PQ ou https://voxy.devbarros.com/join/…",&self.invite_text).on_input(Msg::InviteText).on_submit(Msg::JoinRemote).padding(12).style(m.input()),text("Conexões diretas compartilham seu IP com os participantes. O host armazena as mensagens. TURN está desativado.").size(12).color(m.muted),row![space::horizontal(),self.action("Cancelar",Msg::Cancel,false),self.action("Entrar",Msg::JoinRemote,true)].spacing(8)].spacing(16)).padding(24).width(470).style(move |_|m.dialog())).center(Fill).style(move |_| m.scrim())].into()
         } else if self.modal {
             stack![content,container(container(column![row![text("Criar servidor").font(bold()).size(20),space::horizontal(),ui::icon_button(m,icons::Icon::X,"Fechar",Some(Msg::Cancel),design::Tone::Ghost,32.0)],text("Um lugar para o seu grupo, com canais de texto e voz.").size(14).color(m.muted),text_input("Nome do servidor",&self.server_name).on_input(Msg::ServerName).on_submit(Msg::CreateServer).padding(15).style(m.input()),text("Depois de criar, hospede o servidor e copie o convite para seu grupo.").color(m.muted).size(12),row![space::horizontal(),self.action("Cancelar",Msg::Cancel,false),self.action("Criar servidor",Msg::CreateServer,true)].spacing(10)].spacing(22)).padding(32).width(530).style(move|_|m.dialog())).center(Fill).width(Fill).height(Fill).style(move |_| m.scrim())].into()
         } else if self.notes_pending && self.page != Page::News && self.smoke_dir.is_none() {
-            stack![content,container(container(column![text("Novidades do Voxy 2.0 Beta 1").size(21).font(bold()),text("Beta para homologação, instalada em paralelo à 1.4.1 estável. Consulte as novidades e os problemas conhecidos antes de testar.").size(14),text("Nova interface e tela de chamada, voz, tela com áudio do aplicativo, webcam, PiP e sons. Algumas redes podem não conectar (TURN desativado).").size(13).color(m.muted),row![self.action("Ver novidades",Msg::Navigate(Page::News),false),self.action("Entendi",Msg::MarkNotes,true)].spacing(10)].spacing(18)).padding(26).width(540).style(move |_|m.dialog())).center(Fill).style(move |_| m.scrim())].into()
+            stack![content,container(container(column![text(format!("Novidades do Voxy {}", release_label())).size(21).font(bold()),text("Beta para homologação, instalada em paralelo à 1.4.1 estável. Consulte as novidades e os problemas conhecidos antes de testar.").size(14),text("Servidores salvos voltam sem novo convite, códigos curtos (K7FX-M9PQ), imagens no chat, foto e banner de perfil, ícone original e correções de compartilhamento, bandeja e permissões do Windows.").size(13).color(m.muted),row![self.action("Ver novidades",Msg::Navigate(Page::News),false),self.action("Entendi",Msg::MarkNotes,true)].spacing(10)].spacing(18)).padding(26).width(540).style(move |_|m.dialog())).center(Fill).style(move |_| m.scrim())].into()
         } else {
             content
         }
@@ -2907,6 +3392,7 @@ fn bold() -> Font {
     }
 }
 fn main() -> iced::Result {
+    voxy_core::log::init("ui");
     if windows_integration::protocol_invite_from_args(&std::env::args().skip(1).collect::<Vec<_>>())
         .is_err()
     {
@@ -2933,4 +3419,22 @@ fn main() -> iced::Result {
         })
         .centered()
         .run()
+}
+
+/// Host part of a ws/wss endpoint, used to build https share links.
+fn url_host(endpoint: &str) -> Option<String> {
+    let rest = endpoint.split_once("://")?.1;
+    let host = rest.split('/').next()?;
+    (!host.is_empty()).then(|| host.to_owned())
+}
+
+/// "2.0.0-beta.3" -> "2.0 Beta 3" (shown in the title bar and the news dialog).
+pub(crate) fn release_label() -> String {
+    let version = voxy_core::VERSION;
+    let (core, pre) = version.split_once('-').unwrap_or((version, ""));
+    let short = core.rsplit_once('.').map_or(core, |(head, _)| head);
+    match pre.strip_prefix("beta.") {
+        Some(n) => format!("{short} Beta {n}"),
+        None => short.to_owned(),
+    }
 }

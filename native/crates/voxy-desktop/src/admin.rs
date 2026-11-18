@@ -251,45 +251,75 @@ pub(super) fn view(app: &App) -> Element<'_, Msg> {
         None,
         roles.into(),
     );
+    let code_line = match (&app.remote.invite_code, app.is_remote()) {
+        (Some(code), true) => format!(
+            "Código {code} · {} · válido até a revogação ou por até 7 dias. Quem entrou uma vez reconecta pelo servidor salvo.",
+            app.invite_link_text()
+        ),
+        (None, true) => "Gerando código curto…".into(),
+        _ => "Hospede o servidor para gerar o código. O mesmo código volta a valer quando você hospedar de novo.".into(),
+    };
     let invites = section(
         m,
         "Convites",
-        "Quem recebe o convite entra pelo host. TURN desativado: algumas redes podem não conectar.",
+        "Quem recebe o código entra pelo host. TURN desativado: algumas redes podem não conectar.",
         None,
-        row![
-            if app.is_remote() {
+        column![
+            text(code_line).size(size::SMALL).color(m.muted),
+            row![
+                if app.is_remote() {
+                    ui::action(
+                        m,
+                        Some(Icon::Copy),
+                        "Copiar link",
+                        Some(Msg::CopyInvite),
+                        Tone::Primary,
+                    )
+                } else {
+                    ui::action(
+                        m,
+                        Some(Icon::Radio),
+                        "Hospedar servidor",
+                        Some(Msg::HostRemote),
+                        Tone::Primary,
+                    )
+                },
                 ui::action(
                     m,
                     Some(Icon::Copy),
-                    "Copiar convite",
-                    Some(Msg::CopyInvite),
-                    Tone::Primary,
-                )
-            } else {
+                    "Copiar código",
+                    app.remote
+                        .invite_code
+                        .as_ref()
+                        .and(app.is_remote().then_some(Msg::CopyInviteCode)),
+                    Tone::Secondary
+                ),
                 ui::action(
                     m,
-                    Some(Icon::Radio),
-                    "Hospedar servidor",
-                    Some(Msg::HostRemote),
-                    Tone::Primary,
-                )
-            },
-            ui::action(
-                m,
-                Some(Icon::RefreshCw),
-                "Revogar e gerar novo",
-                app.is_remote().then_some(Msg::RotateInvite),
-                Tone::Secondary
-            ),
-            ui::action(
-                m,
-                Some(Icon::Shield),
-                "Rede e privacidade",
-                Some(Msg::Section(Section::Privacy)),
-                Tone::Ghost
-            ),
+                    Some(Icon::RefreshCw),
+                    "Revogar e gerar novo",
+                    app.is_remote().then_some(Msg::RotateInvite),
+                    Tone::Secondary
+                ),
+                ui::action(
+                    m,
+                    Some(Icon::Shield),
+                    "Revogar acessos salvos",
+                    app.is_remote().then_some(Msg::RevokeMemberAccess),
+                    Tone::Ghost
+                ),
+                ui::action(
+                    m,
+                    Some(Icon::Shield),
+                    "Rede e privacidade",
+                    Some(Msg::Section(Section::Privacy)),
+                    Tone::Ghost
+                ),
+            ]
+            .spacing(8)
+            .wrap(),
         ]
-        .spacing(8)
+        .spacing(10)
         .into(),
     );
     let danger =

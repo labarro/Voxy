@@ -90,7 +90,16 @@ fn spawn(
     let thread_dropped = dropped.clone();
     let _ = std::thread::Builder::new()
         .name("voxy-video-decode".into())
-        .spawn(move || decode_loop(member, camera, frames, output, thread_dropped));
+        .spawn(move || {
+            // A malformed stream or decoder fault drops this stream, never the window.
+            if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                decode_loop(member, camera, frames, output, thread_dropped)
+            }))
+            .is_err()
+            {
+                voxy_core::log::event("video-decoder", "panic contained; stream dropped");
+            }
+        });
     Stream {
         queue,
         last: Instant::now(),

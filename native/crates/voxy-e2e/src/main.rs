@@ -6,6 +6,7 @@
 //! copied, and verifies session-confirmed state plus objective audio metrics
 //! from the synthetic playback analyzer. Only the device boundary is synthetic.
 mod pattern;
+mod persist;
 mod tone;
 mod visual;
 #[cfg(windows)]
@@ -46,6 +47,7 @@ impl Participant {
             )
             .env("VOXY_SIGNAL_URL", &self.signal)
             .env("VOXY_TEST_SOURCE_FILTER", pattern::TITLE)
+            .env("VOXY_E2E_PICK_IMAGE", self.auto.join("pick.png"))
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
             .spawn()
@@ -491,7 +493,9 @@ fn voice_scenario(
         }
         host.click("Hospedar servidor")?;
         let ui = host.wait("servidor hospedado", 40, |ui| {
-            ui["session"]["invitePresent"] == true && !ui["snapshot"].is_null()
+            ui["session"]["invitePresent"] == true
+                && !ui["snapshot"].is_null()
+                && (kind != "persist" || ui["session"]["inviteCode"].is_string())
         })?;
         run.check(
             "host registrado na sinalização pública",
@@ -501,12 +505,15 @@ fn voice_scenario(
         win::set_clipboard_text("")?;
         host.click("Copiar convite")?;
         let invite = win::clipboard_text()?
-            .filter(|t| t.starts_with("voxy-native://"))
+            .filter(|t| t.starts_with("voxy-native://") || t.contains("/join/"))
             .context("convite não copiado pela interface")?;
+        if kind == "persist" {
+            return persist::steps(&mut people, &mut run, &invite);
+        }
         run.check(
             "convite copiado pela interface",
             true,
-            json!({"scheme":"voxy-native://","length":invite.len()}),
+            json!({"short":invite.contains("/join/"),"length":invite.len()}),
         )?;
         for p in people.iter_mut().skip(1) {
             p.nav("Início")?;
@@ -896,6 +903,7 @@ fn main() -> Result<()> {
         "tour-3" => voice_scenario(&bin, &signal, &evidence, 3, "tour"),
         "share-audio-3" => voice_scenario(&bin, &signal, &evidence, 3, "share-audio"),
         "multi-3" => voice_scenario(&bin, &signal, &evidence, 3, "multi"),
+        "persist-3" => voice_scenario(&bin, &signal, &evidence, 3, "persist"),
         other => bail!("Cenário desconhecido: {other}"),
     }?;
     println!(

@@ -18,9 +18,12 @@ Unicode true
 !ifdef VOXY_TEST_INSTALL_ROOT
 !define INSTALL_ROOT "${VOXY_TEST_INSTALL_ROOT}"
 !define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\VoxyNativeInstallerTest"
+; Test builds never touch the real Start menu folder.
+!define SM_FOLDER "Voxy Installer Test"
 !else
 !define INSTALL_ROOT "$LOCALAPPDATA\Programs\VoxyNativeExperimental"
 !define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\VoxyNativeExperimental"
+!define SM_FOLDER "Voxy 2.0 Beta"
 !endif
 Name "Voxy 2.0 Beta ${VOXY_VERSION}"
 !ifndef VOXY_NUMERIC_VERSION
@@ -131,7 +134,7 @@ Function ${PREFIX}CheckExecutableUnlocked
   System::Call 'kernel32::CloseHandle(p r1)'
   Goto unlocked_${PREFIX}
   locked_${PREFIX}:
-    MessageBox MB_ICONSTOP "Feche o Voxy 2.0 Beta, a sessão e as prévias 3D antes de continuar. Nenhum processo será encerrado pelo instalador." /SD IDOK
+    MessageBox MB_ICONSTOP "Um arquivo do Voxy 2.0 Beta continua em uso. Use Encerrar Voxy e chamada na bandeja e tente novamente. Nada foi alterado." /SD IDOK
     Abort
   unlocked_${PREFIX}:
   Pop $0
@@ -139,6 +142,34 @@ FunctionEnd
 !macroend
 !insertmacro CheckExecutableUnlocked ""
 !insertmacro CheckExecutableUnlocked "un."
+
+; Coordinated shutdown of THIS installation only. The helper lists voxy-*.exe
+; processes whose image is directly inside $INSTDIR (never the stable 1.4.1,
+; other folders or other users), asks the user, then closes the interface,
+; sends the core an authenticated shutdown and only then ends leftovers.
+!macro StopInstallation PREFIX
+Function ${PREFIX}StopInstallation
+  IfFileExists "$PLUGINSDIR\voxy-stop\voxy-core.exe" 0 stop_done_${PREFIX}
+  nsExec::ExecToStack '"$PLUGINSDIR\voxy-stop\voxy-core.exe" installation-processes "$INSTDIR"'
+  Pop $0
+  Pop $1
+  StrCmp $0 "0" stop_done_${PREFIX}
+  StrCmp $0 "10" 0 stop_done_${PREFIX}
+  MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "O Voxy 2.0 Beta desta instalação está aberto (interface, bandeja ou chamada).$\r$\n$\r$\nEle será encerrado de forma coordenada para continuar. Uma chamada em andamento será finalizada. O Voxy 1.4.1 e outras pastas não são afetados." /SD IDOK IDOK stop_now_${PREFIX}
+    Abort
+  stop_now_${PREFIX}:
+  DetailPrint "Encerrando o Voxy 2.0 Beta desta instalação…"
+  nsExec::ExecToStack '"$PLUGINSDIR\voxy-stop\voxy-core.exe" installation-processes "$INSTDIR" --stop'
+  Pop $0
+  Pop $1
+  StrCmp $0 "0" stop_done_${PREFIX}
+    MessageBox MB_ICONSTOP "Não foi possível encerrar o Voxy 2.0 Beta desta instalação. Use Encerrar Voxy e chamada na bandeja e tente novamente. Nada foi alterado." /SD IDOK
+    Abort
+  stop_done_${PREFIX}:
+FunctionEnd
+!macroend
+!insertmacro StopInstallation ""
+!insertmacro StopInstallation "un."
 
 Function .onInit
   ${IfNot} ${RunningX64}
@@ -157,6 +188,12 @@ FunctionEnd
 
 Section "Voxy 2.0 Beta" Main
   Call ValidateDestination
+  ; The new helper (not the possibly older installed core) decides what belongs here.
+  InitPluginsDir
+  SetOutPath "$PLUGINSDIR\voxy-stop"
+  File "/oname=$PLUGINSDIR\voxy-stop\voxy-core.exe" "${VOXY_PAYLOAD}\portable\voxy-core.exe"
+  File "/oname=$PLUGINSDIR\voxy-stop\vcruntime140.dll" "${VOXY_PAYLOAD}\portable\vcruntime140.dll"
+  Call StopInstallation
   Push "voxy-desktop.exe"
   Call CheckExecutableUnlocked
   Push "voxy-core.exe"
@@ -175,9 +212,9 @@ Section "Voxy 2.0 Beta" Main
   Delete "$SMPROGRAMS\Voxy Native Experimental\Voxy Native Experimental.lnk"
   Delete "$SMPROGRAMS\Voxy Native Experimental\Desinstalar.lnk"
   RMDir "$SMPROGRAMS\Voxy Native Experimental"
-  CreateDirectory "$SMPROGRAMS\Voxy 2.0 Beta"
-  CreateShortcut "$SMPROGRAMS\Voxy 2.0 Beta\Voxy 2.0 Beta.lnk" "$INSTDIR\voxy-desktop.exe" "" "$INSTDIR\voxy-desktop.exe" 0
-  CreateShortcut "$SMPROGRAMS\Voxy 2.0 Beta\Desinstalar.lnk" "$INSTDIR\Uninstall.exe"
+  CreateDirectory "$SMPROGRAMS\${SM_FOLDER}"
+  CreateShortcut "$SMPROGRAMS\${SM_FOLDER}\Voxy 2.0 Beta.lnk" "$INSTDIR\voxy-desktop.exe" "" "$INSTDIR\voxy-desktop.exe" 0
+  CreateShortcut "$SMPROGRAMS\${SM_FOLDER}\Desinstalar.lnk" "$INSTDIR\Uninstall.exe"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayName" "Voxy 2.0 Beta"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayIcon" "$INSTDIR\voxy-desktop.exe,0"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayVersion" "${VOXY_VERSION}"
@@ -192,6 +229,12 @@ SectionEnd
 
 Section "Uninstall"
   Call un.ValidateDestination
+  ; Run a copy so the installed core file itself is never held open.
+  InitPluginsDir
+  CreateDirectory "$PLUGINSDIR\voxy-stop"
+  CopyFiles /SILENT "$INSTDIR\voxy-core.exe" "$PLUGINSDIR\voxy-stop"
+  CopyFiles /SILENT "$INSTDIR\vcruntime140.dll" "$PLUGINSDIR\voxy-stop"
+  Call un.StopInstallation
   Push "voxy-desktop.exe"
   Call un.CheckExecutableUnlocked
   Push "voxy-core.exe"
@@ -204,9 +247,9 @@ Section "Uninstall"
   Delete "$INSTDIR\Uninstall.exe"
   RMDir "$INSTDIR\world-assets"
   RMDir "$INSTDIR"
-  Delete "$SMPROGRAMS\Voxy 2.0 Beta\Voxy 2.0 Beta.lnk"
-  Delete "$SMPROGRAMS\Voxy 2.0 Beta\Desinstalar.lnk"
-  RMDir "$SMPROGRAMS\Voxy 2.0 Beta"
+  Delete "$SMPROGRAMS\${SM_FOLDER}\Voxy 2.0 Beta.lnk"
+  Delete "$SMPROGRAMS\${SM_FOLDER}\Desinstalar.lnk"
+  RMDir "$SMPROGRAMS\${SM_FOLDER}"
   Delete "$SMPROGRAMS\Voxy Native Experimental\Voxy Native Experimental.lnk"
   Delete "$SMPROGRAMS\Voxy Native Experimental\Desinstalar.lnk"
   RMDir "$SMPROGRAMS\Voxy Native Experimental"

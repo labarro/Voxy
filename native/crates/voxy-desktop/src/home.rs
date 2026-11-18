@@ -266,8 +266,11 @@ fn servers(app: &App, columns: usize) -> Element<'_, Msg> {
             .as_ref()
             .is_some_and(|s| s.server.id == server.id);
         let owner = server.owner == app.profile.id;
+        let waiting = app.remote.waiting_host == Some(server.id);
         let tint = ui::person_color(&server.name);
-        let status = if connected {
+        let status = if waiting {
+            "Offline · o host não está hospedando; tentando a cada 20 s".into()
+        } else if connected {
             format!(
                 "Conectado · {} online",
                 app.remote
@@ -279,12 +282,23 @@ fn servers(app: &App, columns: usize) -> Element<'_, Msg> {
         } else if owner {
             "Seu servidor · não hospedado".into()
         } else {
-            "Salvo · reconecte com o convite guardado".into()
+            "Salvo · entre sem novo convite".into()
         };
         let mut actions = row![Space::new().width(Fill)]
             .spacing(4)
             .align_y(iced::Center);
-        if !connected && !owner {
+        if waiting {
+            actions = actions.push(
+                ui::action(
+                    m,
+                    Some(Icon::X),
+                    "Parar de aguardar",
+                    Some(Msg::Disconnect),
+                    Tone::Secondary,
+                )
+                .padding([6, 10]),
+            );
+        } else if !connected && !owner {
             actions = actions
                 .push(ui::icon_button(
                     m,

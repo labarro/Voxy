@@ -35,15 +35,19 @@ pub struct Transfer {
     pub command: voxy_core::room::Command,
     pub sent: Instant,
     mode: Mode,
+    profile: bool,
 }
 pub enum Step {
     Next(Action),
-    Uploaded(String),
-    Downloaded(Preview),
+    /// Caption and the uploaded (already validated) bytes with their SHA-256.
+    Uploaded(String, String, Arc<[u8]>),
+    /// Verified bytes of a downloaded image.
+    Downloaded(ImageMetadata, Arc<[u8]>),
 }
 impl Transfer {
     pub fn upload(picked: Picked, target: ImageTarget, text: String) -> (Self, Action) {
         let upload = Uuid::new_v4();
+        let target_kind = matches!(target, ImageTarget::Profile { .. }).then_some(());
         let action = Action::ImageBegin {
             upload,
             target,
@@ -58,6 +62,7 @@ impl Transfer {
                     action: action.clone(),
                 },
                 sent: Instant::now(),
+                profile: matches!(target_kind, Some(())),
                 mode: Mode::Upload {
                     upload,
                     bytes: picked.bytes,
@@ -79,6 +84,7 @@ impl Transfer {
                 action,
             },
             sent: Instant::now(),
+            profile: false,
             mode: Mode::Read {
                 metadata,
                 bytes: vec![],
@@ -100,7 +106,7 @@ impl Transfer {
                             && metadata.sha256 == voxy_core::images::sha256(bytes),
                         "Confirmação da imagem divergiu do arquivo enviado"
                     );
-                    return Ok(Step::Uploaded(text.clone()));
+                    return Ok(Step::Uploaded(text.clone(), metadata.sha256, bytes.clone()));
                 }
                 let offset = value["received"]
                     .as_u64()
@@ -155,10 +161,7 @@ impl Transfer {
                         std::mem::take(bytes),
                         &metadata.sha256,
                     )?;
-                    return Ok(Step::Downloaded(Preview {
-                        name: metadata.name.clone(),
-                        handle: iced::widget::image::Handle::from_bytes(validated.bytes),
-                    }));
+                    return Ok(Step::Downloaded(metadata.clone(), validated.bytes.into()));
                 }
                 ensure!(
                     value["next"].as_u64() == Some(bytes.len() as u64),
@@ -171,6 +174,17 @@ impl Transfer {
             }
         }
     }
+    /// Image being downloaded and its progress (received, total), if a read.
+    pub fn download_progress(&self) -> Option<(uuid::Uuid, usize, u32)> {
+        match &self.mode {
+            Mode::Read { metadata, bytes } => Some((metadata.id, bytes.len(), metadata.size)),
+            Mode::Upload { .. } => None,
+        }
+    }
+    /// Profile media uploads run in the background without a chat caption.
+    pub fn is_profile_upload(&self) -> bool {
+        self.profile
+    }
     pub fn cancel(&self) -> Option<Action> {
         match self.mode {
             Mode::Upload { upload, .. } => Some(Action::ImageCancel { upload }),
@@ -179,6 +193,24 @@ impl Transfer {
     }
 }
 pub fn pick() -> Result<Option<Picked>> {
+    // Real-instance E2E: the harness names the file instead of driving the
+    // Windows dialog. Same size/content validation as a picked file.
+    if let Ok(path) = std::env::var("VOXY_E2E_PICK_IMAGE") {
+        let path = std::path::PathBuf::from(path);
+        let name = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .context("Nome inválido")?
+            .to_string();
+        let bytes = std::fs::read(&path)?;
+        ensure!(bytes.len() <= MAX_IMAGE_BYTES, "Imagem excede 3 MiB");
+        let hash = voxy_core::images::sha256(&bytes);
+        let validated = voxy_core::images::validate_image(&name, bytes, &hash)?;
+        return Ok(Some(Picked {
+            name,
+            bytes: validated.bytes.into(),
+        }));
+    }
     #[cfg(windows)]
     {
         use windows_sys::Win32::UI::Controls::Dialogs::*;

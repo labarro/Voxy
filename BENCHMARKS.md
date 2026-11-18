@@ -1,5 +1,17 @@
 # Benchmarks — baseline Electron e futuro Rust
 
+## Beta 3 — multimídia simultânea (multi-3), 18/11/2026
+
+Mesmo cenário real do 17/11: Ana compartilha tela com áudio do aplicativo e Bruno publica a câmera; Clara assiste; os três estão na chamada. Sinalização pública, build release, fim do cenário. Os três participantes estão nesta máquina; amostra pontual, sem soak.
+
+| Processo | 17/11 (Beta 2, antes) | 18/11 (Beta 3) |
+| --- | --- | --- |
+| Sessão de Ana (tela + áudio do app) | 314,9 MiB privados | 33,0 MiB privados |
+| Sessão de Bruno (câmera) | 97,6 MiB | 12,9 MiB |
+| Interface de Clara (decodifica tela e câmera) | 40,5 MiB | 20,0 MiB |
+
+Causa da diferença: o vídeo era enviado dentro do laço que também encaminha a voz; filas internas cresciam e pacotes de voz eram descartados. A Beta 3 usa uma fila limitada por participante. O CPU acumulado é maior porque o vídeo agora chega de fato aos espectadores. Evidência: [antes](evidence/native-2.0/e2e/multi-3-release-public-20261117-201129/multi-3.json), [depois](evidence/native-2.0/e2e/multi-3-release-public-20261118-093304/multi-3.json).
+
 ## Continuidade: novo processo de sessão
 
 As medições anteriores de Home pertencem ao incremento anterior, antes do serviço de sessão integrado. Não as reutilizar como medição atual. A nova coleta considera o desktop e o processo Rust filho; em chamada sem UI, o teste registra separadamente os dois processos de sessão (um peer por participante), sem esconder auxiliares do produto. Emulador e controlador de teste são identificados como infraestrutura de teste.

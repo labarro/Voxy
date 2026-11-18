@@ -169,28 +169,7 @@ fn message_row<'a>(
     }
     content = content.push(body);
     for attachment in &message.attachments {
-        content = content.push(
-            button(
-                row![
-                    ui::icon(Icon::Image, 18.0, m.accent),
-                    column![
-                        text(attachment.name.clone()).size(size::SMALL).font(bold()),
-                        text(format!(
-                            "{}×{} · abrir imagem",
-                            attachment.width, attachment.height
-                        ))
-                        .size(size::MICRO)
-                        .color(m.muted)
-                    ]
-                    .spacing(1)
-                ]
-                .spacing(10)
-                .align_y(iced::Center),
-            )
-            .padding([8, 12])
-            .style(m.tone(Tone::Secondary))
-            .on_press(Msg::OpenImage(attachment.clone())),
-        );
+        content = content.push(crate::media::attachment(app, attachment));
     }
     if !message.reactions.is_empty() {
         let mut reactions = row![].spacing(4);
@@ -432,26 +411,37 @@ pub(super) fn mini_profile<'a>(
         .map(|p| p.presence);
     let color = name_color(app, member.id).unwrap_or(m.ink);
     let tint = ui::person_color(&member.name);
-    let banner = container(Space::new().height(56))
-        .width(Fill)
-        .style(move |_| container::Style {
-            background: Some(iced::Background::Gradient(
-                iced::gradient::Linear::new(iced::Radians(1.2))
-                    .add_stop(0.0, mix(tint, m.elevated, 0.2))
-                    .add_stop(1.0, mix(m.accent, m.elevated, 0.55))
-                    .into(),
-            )),
-            border: Border {
-                radius: iced::border::Radius {
-                    top_left: 14.0,
-                    top_right: 14.0,
-                    bottom_right: 0.0,
-                    bottom_left: 0.0,
-                },
-                ..Default::default()
+    let custom_banner =
+        crate::media::member_media(app, member.id, voxy_core::images::ProfileImage::Banner);
+    let banner = container(match custom_banner {
+        Some(handle) => Element::from(
+            iced::widget::image(handle)
+                .width(Fill)
+                .height(72)
+                .content_fit(iced::ContentFit::Cover),
+        ),
+        None => Space::new().height(56).into(),
+    })
+    .width(Fill)
+    .clip(true)
+    .style(move |_| container::Style {
+        background: Some(iced::Background::Gradient(
+            iced::gradient::Linear::new(iced::Radians(1.2))
+                .add_stop(0.0, mix(tint, m.elevated, 0.2))
+                .add_stop(1.0, mix(m.accent, m.elevated, 0.55))
+                .into(),
+        )),
+        border: Border {
+            radius: iced::border::Radius {
+                top_left: 14.0,
+                top_right: 14.0,
+                bottom_right: 0.0,
+                bottom_left: 0.0,
             },
             ..Default::default()
-        });
+        },
+        ..Default::default()
+    });
     let mut roles = row![].spacing(4);
     if let Some(s) = snapshot {
         for role in s

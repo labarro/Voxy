@@ -1,0 +1,308 @@
+{
+  "binaries": "native/target/release",
+  "checks": [
+    {
+      "atSeconds": 22.56334114074707,
+      "check": "instâncias reais independentes",
+      "detail": {
+        "instances": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 26.172971725463867,
+      "check": "host registrado na sinalização pública",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 26.79776382446289,
+      "check": "convite copiado pela interface",
+      "detail": {
+        "length": 41,
+        "short": true
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 30.37797737121582,
+      "check": "Bruno entrou por convite",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 33.55739974975586,
+      "check": "Clara entrou por convite",
+      "detail": {
+        "phase": "Conectado"
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 35.635093688964844,
+      "check": "Ana em chamada confirmada pelo host",
+      "detail": {
+        "members": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 35.635292053222656,
+      "check": "Bruno em chamada confirmada pelo host",
+      "detail": {
+        "members": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 35.63544845581055,
+      "check": "Clara em chamada confirmada pelo host",
+      "detail": {
+        "members": 3
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 40.147308349609375,
+      "check": "Ana ouve o som de entrada na chamada",
+      "detail": {
+        "join520Fraction": 0.159
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 44.14816665649414,
+      "check": "Ana: recebe todos os outros, não a própria voz",
+      "detail": {
+        "140Hz": 0.0011,
+        "210Hz": 0.0514,
+        "330Hz": 0.0391,
+        "rms": 0.0923,
+        "windows": 7
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 48.148868560791016,
+      "check": "Bruno: recebe todos os outros, não a própria voz",
+      "detail": {
+        "140Hz": 0.0489,
+        "210Hz": 0.0,
+        "330Hz": 0.0613,
+        "rms": 0.0997,
+        "windows": 7
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 52.14942932128906,
+      "check": "Clara: recebe todos os outros, não a própria voz",
+      "detail": {
+        "140Hz": 0.0376,
+        "210Hz": 0.041,
+        "330Hz": 0.0026,
+        "rms": 0.0742,
+        "windows": 7
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 52.14955139160156,
+      "check": "Ana contadores de mídia",
+      "detail": {
+        "decoded": 1702,
+        "playbackSamples": 871680,
+        "received": 1709,
+        "sent": 1711
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 52.149658203125,
+      "check": "Bruno contadores de mídia",
+      "detail": {
+        "decoded": 1695,
+        "playbackSamples": 833280,
+        "received": 1703,
+        "sent": 1703
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 52.14976119995117,
+      "check": "Clara contadores de mídia",
+      "detail": {
+        "decoded": 1660,
+        "playbackSamples": 802080,
+        "received": 1680,
+        "sent": 1680
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 52.149879455566406,
+      "check": "Ana: interface mostra fala, mídia e transmissão confirmadas",
+      "detail": [
+        {
+          "audioReceived": 820,
+          "audioSent": 821,
+          "route": "direto-stun",
+          "rttMs": 0,
+          "speaking": true,
+          "state": "connected"
+        },
+        {
+          "audioReceived": 789,
+          "audioSent": 790,
+          "route": "direto-stun",
+          "rttMs": 0,
+          "speaking": true,
+          "state": "connected"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "atSeconds": 52.14998245239258,
+      "check": "Bruno: interface mostra fala, mídia e transmissão confirmadas",
+      "detail": [
+        {
+          "audioReceived": 787,
+          "audioSent": 787,
+          "route": "direto-stun",
+          "rttMs": 0,
+          "speaking": true,
+          "state": "connected"
+        },
+        {
+          "audioReceived": 756,
+          "audioSent": 756,
+          "route": "direto-stun",
+          "rttMs": 0,
+          "speaking": true,
+          "state": "connected"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "atSeconds": 52.15007400512695,
+      "check": "Clara: interface mostra fala, mídia e transmissão confirmadas",
+      "detail": [
+        {
+          "audioReceived": 840,
+          "audioSent": 840,
+          "route": "direto-stun",
+          "rttMs": 0,
+          "speaking": true,
+          "state": "connected"
+        },
+        {
+          "audioReceived": 840,
+          "audioSent": 840,
+          "route": "direto-stun",
+          "rttMs": 0,
+          "speaking": true,
+          "state": "connected"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "atSeconds": 52.77581024169922,
+      "check": "diagnóstico copiável sem convite, chaves ou SDP",
+      "detail": {
+        "lines": 11
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 57.20518112182617,
+      "check": "Bruno: mute de A interrompe a voz de A",
+      "detail": {
+        "140Hz": 0.0,
+        "rms": 0.056,
+        "windows": 5
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 57.906005859375,
+      "check": "Bruno vê Ana com ícone de mudo e sem anel de fala",
+      "detail": {
+        "icons": [
+          "mudo"
+        ],
+        "id": "06ccffbf-4b63-4fad-a1d8-4f5716d5b8ad",
+        "name": "Ana",
+        "speakingRing": false
+      },
+      "passed": true
+    },
+    {
+      "atSeconds": 58.60926055908203,
+      "check": "som de mute toca para Ana e não vaza para a chamada",
+      "detail": {
+        "ana380": 0.00547174834947661,
+        "bruno380": 0.0
+      },
+      "passed": true
+    }
+  ],
+  "durationSeconds": 71.79463195800781,
+  "error": "Ana: tempo esgotado aguardando desmute confirmado. phase=\"Em chamada\" error=null status=\"Em chamada\" labels=[\"Voxy\", \"2.0 Beta 3\", \"·\", \"E2E Amigos\", \"#Id(Custom(\\\"caption-Minimizar\\\"))\", \"#Id(Custom(\\\"caption-Maximizar ou restaurar\\\"))\", \"#Id(Custom(\\\"caption-Fechar janela · a chamada continua\\\"))\", \"#Id(Custom(\\\"nav-item-Início\\\"))\", \"#Id(Custom(\\\"rail-server-E2E Amigos\\\"))\", \"EA\", \"#Id(Custom(\\\"rail-Criar servidor\\\"))\", \"#Id(Custom(\\\"rail-Entrar por convite\\\"))\", \"#Id(Custom(\\\"nav-item-Novidades\\\"))\", \"E2E Amigos\", \"Conectado\", \"#Id(Custom(\\\"btn-Copiar convite\\\"))\", \"#Id(Custom(\\\"btn-Gerenciar servidor\\\"))\", \"#Id(Custom(\\\"btn-Desconectar do servidor\\\"))\", \"Canais de texto\", \"conversa\", \"Canais de voz\", \"Sala dos amigos\", \"3\", \"#Id(Custom(\\\"avatar-22\\\"))\", \"A\", \"Ana\", \"#Id(Custom(\\\"avatar-22\\\"))\", \"B\", \"Bruno\", \"#Id(Custom(\\\"avatar-22\\\"))\", \"C\", \"Clara\", \"Voz conectada\", \"Sala dos amigos · E2E Amigos · 0 ms\", \"#Id(Custom(\\\"btn-Copiar diagnóstico\\\"))\", \"#Id(Custom(\\\"btn-Sair da chamada\\\"))\", \"#Id(Custom(\\\"profile-panel\\\"))\", \"#Id(Custom(\\\"avatar-32\\\"))\", \"A\", \"Ana\", \"Online\", \"#Id(Custom(\\\"btn-Configurações\\\"))\", \"Sala dos amigos\", \"3 participantes\", \"Conectado · 0 ms\", \"#Id(Custom(\\\"btn-Abrir chat do servidor\\\"))\", \"#Id(Custom(\\\"avatar-86\\\"))\", \"A\", \"Ana (você)\", \"#Id(Custom(\\\"avatar-86\\\"))\", \"B\", \"#Id(Custom(\\\"btn-Opções de Bruno\\\"))\", \"Bruno\", \"#Id(Custom(\\\"avatar-86\\\"))\", \"C\", \"#Id(Custom(\\\"btn-Opções de Clara\\\"))\", \"Clara\", \"#Id(Custom(\\\"call-dock\\\"))\", \"#Id(Custom(\\\"btn-Ativar microfone\\\"))\", \"#Id(Custom(\\\"btn-Ensurdecer\\\"))\", \"#Id(Custom(\\\"btn-Ligar câmera\\\"))\", \"#Id(Custom(\\\"btn-Compartilhar tela\\\"))\", \"#Id(Custom(\\\"btn-Dispositivos de áudio\\\"))\", \"#Id(Custom(\\\"btn-Configurações de áudio\\\"))\", \"#Id(Custom(\\\"btn-Sair da chamada\\\"))\"]",
+  "method": "independent voxy-desktop processes with own data dirs/identities/session processes; clicks are physical SendInput mouse input on visible labels, verified by the app's received-click position; text fields and pick-list choices applied as their widget messages; invite read from the clipboard written by the app's copy button; audio source/sink are the synthetic device boundary (VOXY_TEST_SYNTHETIC_AUDIO) feeding the unchanged DSP/Opus/SRTP/jitter/mixer pipeline",
+  "passed": false,
+  "physicalDevices": false,
+  "resourcesAtEnd": [
+    {
+      "cpuSeconds": 1.9375,
+      "participant": "Ana",
+      "pid": 2596,
+      "privateMiB": 11.26171875,
+      "workingSetMiB": 30.52734375
+    },
+    {
+      "cpuSeconds": 2.578125,
+      "participant": "Ana",
+      "pid": 13584,
+      "privateMiB": 9.55859375,
+      "workingSetMiB": 28.69140625
+    },
+    {
+      "cpuSeconds": 1.734375,
+      "participant": "Bruno",
+      "pid": 23868,
+      "privateMiB": 12.1015625,
+      "workingSetMiB": 32.734375
+    },
+    {
+      "cpuSeconds": 2.296875,
+      "participant": "Bruno",
+      "pid": 23912,
+      "privateMiB": 9.23828125,
+      "workingSetMiB": 28.24609375
+    },
+    {
+      "cpuSeconds": 1.421875,
+      "participant": "Clara",
+      "pid": 25756,
+      "privateMiB": 12.1640625,
+      "workingSetMiB": 33.02734375
+    },
+    {
+      "cpuSeconds": 2.15625,
+      "participant": "Clara",
+      "pid": 19368,
+      "privateMiB": 9.45703125,
+      "workingSetMiB": 28.421875
+    }
+  ],
+  "sameMachine": true,
+  "scenario": "voice-3",
+  "signal": "wss://voxy.devbarros.com"
+}

@@ -148,15 +148,22 @@ pub fn start(
         .name("voxy-video-publisher".into())
         .spawn(move || {
             let mut ready = Some(ready_tx);
-            let result = run(
-                &thread_source,
-                (width, height, fps, bitrate),
-                &output,
-                &thread_stop,
-                &thread_keyframe,
-                &thread_counters,
-                &mut ready,
-            );
+            // A panic in capture/encoding ends this share only; voice and the session continue.
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                run(
+                    &thread_source,
+                    (width, height, fps, bitrate),
+                    &output,
+                    &thread_stop,
+                    &thread_keyframe,
+                    &thread_counters,
+                    &mut ready,
+                )
+            }))
+            .unwrap_or_else(|_| Err(anyhow::anyhow!("Falha interna na captura de vídeo")));
+            if let Err(error) = &result {
+                voxy_core::log::event("video-publisher", &error.to_string());
+            }
             if let Err(error) = result {
                 thread_counters.failed.store(true, Ordering::Release);
                 if let Some(ready) = ready.take() {
@@ -191,7 +198,17 @@ pub fn start(
                     std::thread::Builder::new()
                         .name("voxy-share-audio".into())
                         .spawn(move || {
-                            if share_audio(mode, &audio_output, &stop, &counters).is_err() {
+                            let result =
+                                std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                                    share_audio(mode, &audio_output, &stop, &counters)
+                                }))
+                                .unwrap_or_else(|_| {
+                                    Err(anyhow::anyhow!("Falha interna no áudio compartilhado"))
+                                });
+                            if let Err(error) = &result {
+                                voxy_core::log::event("share-audio", &error.to_string());
+                            }
+                            if result.is_err() {
                                 counters.audio_failed.store(true, Ordering::Release);
                             }
                         })?,
@@ -317,6 +334,7 @@ fn run(
                 duration,
                 camera,
                 share_audio: false,
+                keyframe: encoded.keyframe,
             }) {
                 Ok(()) => {
                     counters.bytes.fetch_add(size, Ordering::Relaxed);
@@ -393,6 +411,7 @@ fn share_audio(
                     duration: Duration::from_millis(20),
                     camera: false,
                     share_audio: true,
+                    keyframe: false,
                 })
                 .is_ok()
             {

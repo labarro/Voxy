@@ -1,3 +1,4 @@
+mod installation;
 use anyhow::{Context, Result, bail};
 use voxy_core::{identity::Identity, store::Store};
 #[tokio::main]
@@ -5,9 +6,28 @@ async fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.first().map(String::as_str).unwrap_or("status") {
         "serve" => {
+            voxy_core::log::init("core");
             tokio::task::LocalSet::new()
                 .run_until(voxy_session::serve())
                 .await?;
+        }
+        // Installer helper: exit 0 = nothing running, 10 = running (listed), 11 = still running.
+        "installation-processes" => {
+            let folder = std::path::PathBuf::from(
+                args.get(1)
+                    .context("installation-processes <pasta> [--stop]")?,
+            );
+            let running = if args.get(2).map(String::as_str) == Some("--stop") {
+                installation::stop(&folder).await?
+            } else {
+                installation::running_in(&folder)?
+            };
+            for process in &running {
+                println!("{} {}", process.pid, process.path.display());
+            }
+            if !running.is_empty() {
+                std::process::exit(if args.get(2).is_some() { 11 } else { 10 });
+            }
         }
         "status" => {
             let directory = voxy_core::data_directory()?;

@@ -81,6 +81,17 @@ impl Invite {
         ))
     }
     pub fn parse(value: &str, now: i64) -> Result<Self> {
+        let invite = Self::parse_signed(value)?;
+        ensure!(invite.expires_at > now, "Convite expirado");
+        ensure!(
+            invite.expires_at <= now.saturating_add(MAX_INVITE_LIFETIME_MS),
+            "Validade de convite excede sete dias"
+        );
+        Ok(invite)
+    }
+    /// Authenticity only (host signature, fields), not expiry. A saved server uses
+    /// it to learn room/host/endpoint when a member pass, not the invite, admits it.
+    pub fn parse_signed(value: &str) -> Result<Self> {
         ensure!(value.len() <= 8192, "Convite excede o limite");
         let encoded = value
             .strip_prefix("voxy-native://join/")
@@ -88,11 +99,6 @@ impl Invite {
             .context("Convite nativo inválido")?;
         let invite: Self = serde_json::from_slice(&URL_SAFE_NO_PAD.decode(encoded)?)?;
         invite.validate_fields()?;
-        ensure!(invite.expires_at > now, "Convite expirado");
-        ensure!(
-            invite.expires_at <= now.saturating_add(MAX_INVITE_LIFETIME_MS),
-            "Validade de convite excede sete dias"
-        );
         let key: [u8; 32] = URL_SAFE_NO_PAD
             .decode(&invite.host_key)?
             .try_into()
@@ -105,6 +111,162 @@ impl Invite {
         Ok(invite)
     }
 }
+/// Longest member pass the signaling service accepts, and the lifetime issued.
+/// Every reconnection while the host is online issues a fresh pass.
+pub const MAX_PASS_LIFETIME_MS: i64 = 180 * 24 * 60 * 60 * 1000;
+pub const PASS_LIFETIME_MS: i64 = 150 * 24 * 60 * 60 * 1000;
+/// Host-signed proof that `member_key` was admitted to `room`. It lets a member
+/// reconnect to a saved server after the invite expired or rotated, and only
+/// that member: the admission proof must be signed by `member_key`. Raising the
+/// room's epoch (on the host) revokes every older pass.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MemberPass {
+    pub protocol: u16,
+    pub room: Uuid,
+    pub host_key: String,
+    pub signal_url: String,
+    pub member_key: String,
+    pub epoch: u64,
+    pub expires_at: i64,
+    pub signature: String,
+}
+impl MemberPass {
+    pub fn create(
+        host: &Identity,
+        invite: &Invite,
+        member_key: &str,
+        epoch: u64,
+        expires_at: i64,
+    ) -> Result<Self> {
+        ensure!(
+            invite.host_key == URL_SAFE_NO_PAD.encode(host.public_key()),
+            "Somente o host emite acessos"
+        );
+        let mut pass = Self {
+            protocol: PROTOCOL,
+            room: invite.room,
+            host_key: invite.host_key.clone(),
+            signal_url: invite.signal_url.clone(),
+            member_key: member_key.into(),
+            epoch,
+            expires_at,
+            signature: String::new(),
+        };
+        pass.validate_fields()?;
+        pass.signature = URL_SAFE_NO_PAD.encode(host.sign(&pass.transcript()?));
+        Ok(pass)
+    }
+    fn transcript(&self) -> Result<Vec<u8>> {
+        Ok(serde_json::to_vec(&(
+            "voxy-member-pass-v1",
+            self.protocol,
+            self.room,
+            &self.host_key,
+            &self.signal_url,
+            &self.member_key,
+            self.epoch,
+            self.expires_at,
+        ))?)
+    }
+    fn validate_fields(&self) -> Result<()> {
+        ensure!(
+            self.protocol == PROTOCOL && !self.room.is_nil() && self.epoch <= 1_000_000,
+            "Acesso salvo inválido"
+        );
+        // Same endpoint rules as invites: WSS, bound to this room, no credentials.
+        let probe = Invite {
+            protocol: PROTOCOL,
+            room: self.room,
+            host_key: self.host_key.clone(),
+            signal_url: self.signal_url.clone(),
+            capability: URL_SAFE_NO_PAD.encode([0_u8; 32]),
+            expires_at: self.expires_at,
+            signature: String::new(),
+        };
+        probe.validate_fields()?;
+        ensure!(
+            URL_SAFE_NO_PAD.decode(&self.member_key)?.len() == 32
+                && URL_SAFE_NO_PAD.decode(&self.host_key)?.len() == 32,
+            "Acesso salvo inválido"
+        );
+        Ok(())
+    }
+    pub fn encode(&self) -> Result<String> {
+        Ok(format!(
+            "voxy-pass:{}",
+            URL_SAFE_NO_PAD.encode(serde_json::to_vec(self)?)
+        ))
+    }
+    pub fn parse(value: &str, now: i64) -> Result<Self> {
+        ensure!(value.len() <= 4096, "Acesso salvo excede o limite");
+        let encoded = value
+            .strip_prefix("voxy-pass:")
+            .context("Acesso salvo inválido")?;
+        let pass: Self = serde_json::from_slice(&URL_SAFE_NO_PAD.decode(encoded)?)?;
+        pass.validate_fields()?;
+        ensure!(pass.expires_at > now, "Acesso salvo expirado");
+        ensure!(
+            pass.expires_at <= now.saturating_add(MAX_PASS_LIFETIME_MS),
+            "Validade do acesso salvo excede o limite"
+        );
+        let key: [u8; 32] = URL_SAFE_NO_PAD
+            .decode(&pass.host_key)?
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("Chave inválida"))?;
+        let signature: [u8; 64] = URL_SAFE_NO_PAD
+            .decode(&pass.signature)?
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("Assinatura inválida"))?;
+        Identity::verify(&key, &pass.transcript()?, &signature)?;
+        Ok(pass)
+    }
+}
+
+/// Crockford base32 without I, L, O, U: 8 symbols (40 bits), shown as XXXX-XXXX.
+const CODE_ALPHABET: &str = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+pub fn normalize_code(raw: &str) -> Option<String> {
+    let value: String = raw
+        .chars()
+        .filter(|c| *c != '-' && !c.is_whitespace())
+        .map(|c| match c.to_ascii_uppercase() {
+            'I' | 'L' => '1',
+            'O' => '0',
+            other => other,
+        })
+        .collect();
+    (value.len() == 8 && value.chars().all(|c| CODE_ALPHABET.contains(c)))
+        .then(|| format!("{}-{}", &value[..4], &value[4..]))
+}
+/// A short code typed by hand, a share link (`https://<signal host>/join/CODE`)
+/// or `voxy-native://code/CODE`. Returns the signaling base for the link's own
+/// host only when it is the trusted endpoint; bare codes use `default_endpoint`.
+pub fn code_from_input(input: &str, default_endpoint: &str) -> Option<(String, String)> {
+    let input = input.trim();
+    if input.starts_with("voxy-native://join/") || input.starts_with("voxy://join/") {
+        return None;
+    }
+    if let Some(code) = input.strip_prefix("voxy-native://code/") {
+        return normalize_code(code.trim_end_matches('/')).map(|c| (default_endpoint.into(), c));
+    }
+    if let Ok(url) = url::Url::parse(input)
+        && matches!(url.scheme(), "https" | "http")
+    {
+        let trusted = url::Url::parse(default_endpoint).ok()?;
+        // Plain http links only for a local (ws://) test endpoint.
+        if url.scheme() == "http" && trusted.scheme() != "ws" {
+            return None;
+        }
+        // A link never redirects the client to an arbitrary signaling server.
+        if url.host_str() != trusted.host_str() || url.port() != trusted.port() {
+            return None;
+        }
+        let code = url.path().strip_prefix("/join/")?;
+        return normalize_code(code.trim_end_matches('/')).map(|c| (default_endpoint.into(), c));
+    }
+    normalize_code(input).map(|c| (default_endpoint.into(), c))
+}
+
 /// Sign canonical signaling bytes, binding SDP fingerprint/ICE to room, peer and generation.
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -219,6 +381,75 @@ mod tests {
         modified.signal_url = "wss://attacker.test".into();
         assert!(Invite::parse(&modified.encode().unwrap(), 0).is_err());
         assert!(Invite::create(&key, Uuid::new_v4(), "ws://public.test", 500).is_err());
+    }
+    #[test]
+    fn member_pass_is_host_signed_member_bound_and_survives_invite_expiry() {
+        let host = Identity::generate();
+        let member = Identity::generate();
+        let room = Uuid::new_v4();
+        let invite = Invite::create(
+            &host,
+            room,
+            &format!("wss://signal.example.test/v3/{room}"),
+            1_000,
+        )
+        .unwrap();
+        let member_key = URL_SAFE_NO_PAD.encode(member.public_key());
+        let pass = MemberPass::create(&host, &invite, &member_key, 2, 5_000).unwrap();
+        let encoded = pass.encode().unwrap();
+        // The invite has expired; the saved pass and the signed invite still identify the server.
+        assert!(Invite::parse(&invite.encode().unwrap(), 2_000).is_err());
+        assert_eq!(
+            Invite::parse_signed(&invite.encode().unwrap())
+                .unwrap()
+                .room,
+            room
+        );
+        assert_eq!(MemberPass::parse(&encoded, 2_000).unwrap(), pass);
+        assert!(MemberPass::parse(&encoded, 5_000).is_err(), "expired");
+        // Only the host can issue, and no field can be altered after signing.
+        assert!(MemberPass::create(&member, &invite, &member_key, 0, 5_000).is_err());
+        for tamper in [
+            |p: &mut MemberPass| p.epoch = 3,
+            |p: &mut MemberPass| p.member_key = URL_SAFE_NO_PAD.encode([7u8; 32]),
+            |p: &mut MemberPass| p.expires_at += 1,
+        ] {
+            let mut modified = pass.clone();
+            tamper(&mut modified);
+            assert!(MemberPass::parse(&modified.encode().unwrap(), 2_000).is_err());
+        }
+        // Transcript is the exact JSON array the Worker verifies.
+        assert_eq!(
+            String::from_utf8(pass.transcript().unwrap()).unwrap(),
+            format!(
+                "[\"voxy-member-pass-v1\",3,\"{room}\",\"{}\",\"wss://signal.example.test/v3/{room}\",\"{member_key}\",2,5000]",
+                invite.host_key
+            )
+        );
+    }
+    #[test]
+    fn short_codes_and_links_are_normalized_and_bound_to_the_trusted_host() {
+        let base = "wss://voxy.devbarros.com";
+        assert_eq!(normalize_code("k7fx m9pq").as_deref(), Some("K7FX-M9PQ"));
+        assert_eq!(normalize_code("K7FX-M9PO").as_deref(), Some("K7FX-M9P0"));
+        assert_eq!(normalize_code("K7FX-M9P"), None);
+        assert_eq!(normalize_code("K7FX-M9PU"), None);
+        for input in [
+            "K7FX-M9PQ",
+            "https://voxy.devbarros.com/join/K7FX-M9PQ",
+            "voxy-native://code/k7fxm9pq",
+        ] {
+            assert_eq!(
+                code_from_input(input, base),
+                Some((base.into(), "K7FX-M9PQ".into())),
+                "{input}"
+            );
+        }
+        assert_eq!(
+            code_from_input("https://evil.example/join/K7FX-M9PQ", base),
+            None
+        );
+        assert_eq!(code_from_input("voxy-native://join/abc", base), None);
     }
     #[test]
     fn signal_binds_payload_peer_session_sequence_and_deadline() {

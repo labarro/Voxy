@@ -6,7 +6,38 @@
 
 ### Converse. Mostre. Fique por perto.
 
-## Voxy 2.0 Beta 2 (2.0.0-beta.2) — pre-release para homologação
+## Novidades na versão 2.0.0-beta.3
+
+**Em preparação para homologação manual. Ainda não publicada.** A última beta publicada é a [2.0.0-beta.2](https://github.com/labarro/Voxy/releases/tag/v2.0.0-beta.2). A versão estável continua sendo a **1.4.1**. Artefatos locais para teste: `release/2.0.0-beta.3/native-experimental/` (`Voxy-Setup-2.0.0-beta.3-x64.exe`, `Voxy-Portable-2.0.0-beta.3-x64.zip`, `SHA256SUMS.txt`), sem assinatura Authenticode. Causas, testes e roteiro: [notas da Beta 3](release-notes/v2.0.0-beta.3.md).
+
+Correções da primeira homologação real com amigos:
+
+- **Servidores salvos voltam sem novo convite.**
+  - O host reutiliza o mesmo convite entre hospedagens, inclusive depois de reiniciar o aplicativo.
+  - Cada membro recebe do host um acesso salvo, assinado e vinculado à sua chave, que vale mesmo depois de o convite expirar ou ser revogado.
+  - Com o host fora, o servidor aparece **offline**, continua salvo e o Voxy tenta de novo a cada 20 s.
+- **Convites curtos:** código **K7FX-M9PQ** e link **https://voxy.devbarros.com/join/K7FX-M9PQ**, para digitar ou colar em **Entrar por convite**. O convite longo continua aceito. **Revogar e gerar novo** invalida convite, código e link; **Revogar acessos salvos** invalida também os acessos dos membros.
+- **Alerta "Segurança do Windows" e pedido de administrador:**
+  - Era o aviso do Firewall do Windows, não uma detecção de antivírus.
+  - Causa: a descoberta mDNS da biblioteca WebRTC abria a porta fixa UDP 5353. Em rede pública, liberar o aviso exige administrador.
+  - O mDNS foi desligado e os executáveis agora declaram `asInvoker`.
+  - Verificado: compartilhamento de tela pela sinalização pública a partir de uma pasta nova, sem nenhum evento de Firewall.
+- **Reabrir pela bandeja abria uma versão antiga:**
+  - Um núcleo de um ZIP antigo atendia a nova interface e reabria a sua própria, sem ícone na bandeja.
+  - Agora a interface só usa o núcleo da mesma pasta e versão e encerra os outros.
+  - Fechar pelo X mantém o Voxy na bandeja mesmo sem servidor conectado.
+  - O instalador encerra de forma coordenada só o Voxy 2.0 Beta que está sendo atualizado, depois de perguntar.
+- **Compartilhamento com voz estável:**
+  - O vídeo não atrasa nem descarta mais a voz: cada participante tem sua fila de vídeo.
+  - Com tela e câmera simultâneas, a memória do núcleo caiu de 315 MiB para 33 MiB.
+  - Janela minimizada pausa a transmissão em vez de encerrar.
+  - Falhas de captura encerram só o vídeo, e um registro local de diagnóstico (`%APPDATA%\voxy-native-experimental\logs`) passa a documentar falhas.
+- **Imagens dentro da conversa** (canais e DMs), com ampliar, baixar e copiar; **foto de perfil e banner** recuperados, sincronizados para os outros participantes.
+- **Ícone original da 1.4.1** de volta, idêntico, com fundo laranja para indicar a Beta.
+
+Verificado com instâncias reais nesta máquina: persistência/convites/perfil/imagens 23/23, compartilhamento a partir de pasta nova 16/16, multimídia simultânea 15/15, bandeja 15/15. O cenário de voz voice-3 não fechou limpo nesta sessão: sondas de áudio intermitentes com o Roblox aberto, e a Beta 2 falhou de forma semelhante nas mesmas condições. Não é homologação entre computadores, redes ou microfones físicos.
+
+## Voxy 2.0 Beta 2 (2.0.0-beta.2) — última beta publicada
 
 **Beta: 2.0.0-beta.2 ([página da release](https://github.com/labarro/Voxy/releases/tag/v2.0.0-beta.2)). A Beta 1 tinha um instalador que recusava instalações limpas; use a Beta 2. Versão estável: 1.4.1.** A beta é instalada à parte, com pasta, atalhos e dados próprios, e não substitui nem atualiza a 1.4.1. Instalador `Voxy-Setup-2.0.0-beta.2-x64.exe`, ZIP portátil `Voxy-Portable-2.0.0-beta.2-x64.zip` e `SHA256SUMS.txt` estão na página da release. Sem assinatura Authenticode: o SmartScreen e o navegador podem avisar sobre reputação. O Defender não detecta nada. Novidades e problemas conhecidos: [notas da Beta 2](release-notes/v2.0.0-beta.2.md).
 
@@ -38,7 +69,7 @@ Falhas de captura/saída em chamada ativa agora silenciam o microfone e tentam r
 
 **Ainda faltam:** foto/capa/emoji de perfil, reações e respostas em DMs, chamadas privadas, codificação por hardware e adaptação de bitrate por RTT/perda, migração privada integral, aplicação/rollback de atualizações, homologação entre computadores e redes distintas (TURN desativado: NAT/CGNAT restritivos podem impedir a conexão), DPI diferente de 100 % e acessibilidade. Ambientes 3D, avatares e minijogos seguem congelados. A 2.0.0-beta.2 é uma pre-release para homologação; a 1.4.1 continua sendo a versão estável.
 
-[Progresso](PROGRESS.md) · [Arquitetura](ARCHITECTURE.md) · [Paridade](FEATURE_PARITY.md) · [Benchmarks](BENCHMARKS.md) · [Design system](DESIGN-SYSTEM.md). Os downloads abaixo continuam sendo da **1.4.1 publicada**.
+[Progresso](PROGRESS.md) · [Arquitetura](ARCHITECTURE.md) · [Paridade](FEATURE_PARITY.md) · [Benchmarks](BENCHMARKS.md) · [Design system](DESIGN-SYSTEM.md). A seção acima descreve a Beta 2 publicada; as correções da Beta 3 estão na seção anterior. Os downloads abaixo continuam sendo da **1.4.1 publicada**.
 
 ## Novidades na versão 1.4.1 publicada
 

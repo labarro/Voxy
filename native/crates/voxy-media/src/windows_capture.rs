@@ -343,6 +343,13 @@ impl<'runtime> ScreenCapture<'runtime> {
                 frame = latest;
             }
             let content = frame.ContentSize()?;
+            // Minimized or collapsing windows report an empty surface: pause on the
+            // last frame instead of ending the share.
+            if content.Width <= 0 || content.Height <= 0 {
+                let _ = frame.Close();
+                std::thread::sleep(Duration::from_millis(20));
+                continue;
+            }
             if content != self.size {
                 let _ = frame.Close();
                 frame_bytes(content.Width as u32, content.Height as u32)?;

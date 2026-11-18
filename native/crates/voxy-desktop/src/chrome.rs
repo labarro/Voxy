@@ -32,7 +32,9 @@ pub(super) fn titlebar(app: &App) -> Element<'_, Msg> {
             row![
                 widget::image(crate::brand::mark()).width(20).height(20),
                 text("Voxy").font(bold()).size(size::SMALL),
-                text("2.0 Beta 1").size(size::MICRO).color(m.faint),
+                text(crate::release_label())
+                    .size(size::MICRO)
+                    .color(m.faint),
                 text("·").color(m.faint),
                 text(context).size(size::SMALL).color(m.muted),
                 text(if app.smoke_dir.is_some() {
@@ -510,14 +512,23 @@ fn server_sidebar(app: &App) -> Element<'_, Msg> {
                 Some(if owner { Icon::Radio } else { Icon::RefreshCw }),
                 if owner {
                     "Hospedar servidor"
+                } else if app.remote.waiting_host == app.server {
+                    "Servidor offline · aguardando o host"
                 } else {
                     "Reconectar"
                 },
-                Some(if owner {
-                    Msg::HostRemote
+                if app.remote.waiting_host.is_some()
+                    && app.remote.waiting_host == app.server
+                    && !owner
+                {
+                    None
                 } else {
-                    Msg::Reconnect(app.server.unwrap_or_default())
-                }),
+                    Some(if owner {
+                        Msg::HostRemote
+                    } else {
+                        Msg::Reconnect(app.server.unwrap_or_default())
+                    })
+                },
                 Tone::Primary,
             )
             .width(Fill),

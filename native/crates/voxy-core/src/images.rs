@@ -15,9 +15,33 @@ pub const MAX_TOTAL_IMAGE_BYTES: u64 = 256 * 1024 * 1024;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum ImageTarget {
-    Channel { channel: Uuid },
-    Direct { to: Uuid },
+    Channel {
+        channel: Uuid,
+    },
+    Direct {
+        to: Uuid,
+    },
+    /// The uploader's own profile photo or banner on this server.
+    Profile {
+        media: ProfileImage,
+    },
 }
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[serde(rename_all = "lowercase")]
+pub enum ProfileImage {
+    Avatar,
+    Banner,
+}
+impl ProfileImage {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Avatar => "avatar",
+            Self::Banner => "banner",
+        }
+    }
+}
+/// Profile media must also fit a sane display size (the decoder limit still applies).
+pub const MAX_PROFILE_DIMENSION: u32 = 4096;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ImageMetadata {
     pub id: Uuid,
@@ -35,8 +59,78 @@ pub struct ValidatedImage {
 pub(crate) fn initialize(store: &crate::store::Store) -> Result<()> {
     store.db.execute_batch("CREATE TABLE IF NOT EXISTS native_image_data(id TEXT PRIMARY KEY,server TEXT NOT NULL REFERENCES communities(id) ON DELETE CASCADE,uploader TEXT NOT NULL,name TEXT NOT NULL,mime TEXT NOT NULL,size INTEGER NOT NULL,width INTEGER NOT NULL,height INTEGER NOT NULL,sha256 TEXT NOT NULL,bytes BLOB NOT NULL,created INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS native_message_images(message TEXT PRIMARY KEY REFERENCES native_messages(id) ON DELETE CASCADE,image TEXT UNIQUE NOT NULL REFERENCES native_image_data(id) ON DELETE CASCADE);
-        CREATE TRIGGER IF NOT EXISTS native_message_image_cleanup AFTER DELETE ON native_message_images BEGIN DELETE FROM native_image_data WHERE id=OLD.image; END;")?;
+        CREATE TRIGGER IF NOT EXISTS native_message_image_cleanup AFTER DELETE ON native_message_images BEGIN DELETE FROM native_image_data WHERE id=OLD.image; END;
+        CREATE TABLE IF NOT EXISTS native_profile_media(server TEXT NOT NULL REFERENCES communities(id) ON DELETE CASCADE,member TEXT NOT NULL,kind TEXT NOT NULL CHECK(kind IN ('avatar','banner')),image TEXT UNIQUE NOT NULL REFERENCES native_image_data(id) ON DELETE CASCADE,PRIMARY KEY(server,member,kind));
+        CREATE TRIGGER IF NOT EXISTS native_profile_media_cleanup AFTER DELETE ON native_profile_media BEGIN DELETE FROM native_image_data WHERE id=OLD.image; END;")?;
     Ok(())
+}
+/// Replaces (or with None clears) a member's profile photo/banner on this server.
+pub(crate) fn set_profile_media(
+    store: &crate::store::Store,
+    server: Uuid,
+    member: Uuid,
+    kind: ProfileImage,
+    image: Option<&ValidatedImage>,
+) -> Result<()> {
+    store.db.execute(
+        "DELETE FROM native_profile_media WHERE server=?1 AND member=?2 AND kind=?3",
+        rusqlite::params![server.to_string(), member.to_string(), kind.as_str()],
+    )?;
+    let Some(image) = image else {
+        return Ok(());
+    };
+    ensure!(
+        image.metadata.width <= MAX_PROFILE_DIMENSION
+            && image.metadata.height <= MAX_PROFILE_DIMENSION,
+        "Imagem de perfil excede 4096 px"
+    );
+    insert_data(store, server, member, image)?;
+    store.db.execute(
+        "INSERT INTO native_profile_media VALUES(?1,?2,?3,?4)",
+        rusqlite::params![
+            server.to_string(),
+            member.to_string(),
+            kind.as_str(),
+            image.metadata.id.to_string()
+        ],
+    )?;
+    Ok(())
+}
+pub(crate) fn profile_media(
+    store: &crate::store::Store,
+    server: Uuid,
+) -> Result<std::collections::HashMap<(Uuid, String), ImageMetadata>> {
+    let mut query = store.db.prepare("SELECT p.member,p.kind,i.id,i.name,i.mime,i.size,i.width,i.height,i.sha256 FROM native_profile_media p JOIN native_image_data i ON i.id=p.image WHERE p.server=?1")?;
+    let rows = query.query_map([server.to_string()], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, String>(2)?,
+            row.get::<_, String>(3)?,
+            row.get::<_, String>(4)?,
+            row.get::<_, u32>(5)?,
+            row.get::<_, u32>(6)?,
+            row.get::<_, u32>(7)?,
+            row.get::<_, String>(8)?,
+        ))
+    })?;
+    let mut media = std::collections::HashMap::new();
+    for row in rows {
+        let (member, kind, id, name, mime, size, width, height, sha256) = row?;
+        media.insert(
+            (Uuid::parse_str(&member)?, kind),
+            ImageMetadata {
+                id: Uuid::parse_str(&id)?,
+                name,
+                mime,
+                size,
+                width,
+                height,
+                sha256,
+            },
+        );
+    }
+    Ok(media)
 }
 pub(crate) fn initialize_direct(store: &crate::store::Store) -> Result<()> {
     store.db.execute_batch("CREATE TABLE IF NOT EXISTS native_direct_images(message TEXT PRIMARY KEY REFERENCES native_direct(id) ON DELETE CASCADE,image TEXT UNIQUE NOT NULL REFERENCES native_image_data(id) ON DELETE CASCADE);
@@ -66,6 +160,34 @@ pub(crate) fn persist(
             && total_bytes + u64::from(image.metadata.size) <= MAX_TOTAL_IMAGE_BYTES,
         "Armazenamento de imagens atingiu a cota; exclua anexos antigos antes de enviar"
     );
+    insert_data(store, server, actor, image)?;
+    let m = &image.metadata;
+    let table = if direct {
+        "native_direct_images"
+    } else {
+        "native_message_images"
+    };
+    store.db.execute(
+        &format!("INSERT INTO {table}(message,image) VALUES(?1,?2)"),
+        rusqlite::params![message.to_string(), m.id.to_string()],
+    )?;
+    Ok(())
+}
+fn insert_data(
+    store: &crate::store::Store,
+    server: Uuid,
+    actor: Uuid,
+    image: &ValidatedImage,
+) -> Result<()> {
+    let total_bytes: u64 = store.db.query_row(
+        "SELECT COALESCE(SUM(size),0) FROM native_image_data WHERE server=?1",
+        [server.to_string()],
+        |row| row.get(0),
+    )?;
+    ensure!(
+        total_bytes + u64::from(image.metadata.size) <= MAX_SERVER_IMAGE_BYTES,
+        "Armazenamento de imagens atingiu a cota; exclua anexos antigos antes de enviar"
+    );
     let m = &image.metadata;
     store.db.execute(
         "INSERT INTO native_image_data VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)",
@@ -82,15 +204,6 @@ pub(crate) fn persist(
             image.bytes,
             crate::store::now_ms()
         ],
-    )?;
-    let table = if direct {
-        "native_direct_images"
-    } else {
-        "native_message_images"
-    };
-    store.db.execute(
-        &format!("INSERT INTO {table}(message,image) VALUES(?1,?2)"),
-        rusqlite::params![message.to_string(), m.id.to_string()],
     )?;
     Ok(())
 }
@@ -138,7 +251,7 @@ pub(crate) fn read_chunk(
     id: Uuid,
     offset: u32,
 ) -> Result<serde_json::Value> {
-    let allowed:bool=store.db.query_row("SELECT EXISTS(SELECT 1 FROM native_image_data i WHERE i.id=?1 AND i.server=?2 AND (EXISTS(SELECT 1 FROM native_message_images l JOIN native_messages m ON m.id=l.message JOIN native_channels c ON c.id=m.channel_id WHERE l.image=i.id AND c.server_id=?2) OR EXISTS(SELECT 1 FROM native_direct_images l JOIN native_direct d ON d.id=l.message WHERE l.image=i.id AND d.server=?2 AND (d.sender=?3 OR d.recipient=?3))))",rusqlite::params![id.to_string(),server.to_string(),actor.to_string()],|row|row.get(0))?;
+    let allowed:bool=store.db.query_row("SELECT EXISTS(SELECT 1 FROM native_image_data i WHERE i.id=?1 AND i.server=?2 AND (EXISTS(SELECT 1 FROM native_message_images l JOIN native_messages m ON m.id=l.message JOIN native_channels c ON c.id=m.channel_id WHERE l.image=i.id AND c.server_id=?2) OR EXISTS(SELECT 1 FROM native_direct_images l JOIN native_direct d ON d.id=l.message WHERE l.image=i.id AND d.server=?2 AND (d.sender=?3 OR d.recipient=?3)) OR EXISTS(SELECT 1 FROM native_profile_media p WHERE p.image=i.id AND p.server=?2)))",rusqlite::params![id.to_string(),server.to_string(),actor.to_string()],|row|row.get(0))?;
     ensure!(allowed, "Imagem inexistente ou acesso não autorizado");
     let (name, mime, size, width, height, hash): (String, String, u32, u32, u32, String) =
         store.db.query_row(
@@ -169,6 +282,40 @@ pub(crate) fn read_chunk(
     Ok(
         serde_json::json!({"image":ImageMetadata{id,name,mime,size,width,height,sha256:hash},"offset":offset,"data":STANDARD.encode(bytes),"next":next,"done":next==size}),
     )
+}
+/// Decodes PNG/JPEG under the same limits as validation and returns an RGBA
+/// thumbnail whose longer side is at most `max_side`. Used once per image so
+/// rendering never decodes full-size originals again.
+pub fn thumbnail(bytes: &[u8], max_side: u32) -> Result<(u32, u32, Vec<u8>)> {
+    ensure!(
+        !bytes.is_empty() && bytes.len() <= MAX_IMAGE_BYTES && (16..=4096).contains(&max_side),
+        "Imagem inválida"
+    );
+    let mut reader = image::ImageReader::new(Cursor::new(bytes)).with_guessed_format()?;
+    ensure!(
+        matches!(
+            reader.format(),
+            Some(image::ImageFormat::Png | image::ImageFormat::Jpeg)
+        ),
+        "Somente PNG e JPEG são aceitos"
+    );
+    let mut limits = image::Limits::default();
+    limits.max_image_width = Some(8192);
+    limits.max_image_height = Some(8192);
+    limits.max_alloc = Some(MAX_DECODED_BYTES);
+    reader.limits(limits);
+    let decoded = reader.decode()?;
+    ensure!(
+        u64::from(decoded.width()) * u64::from(decoded.height()) <= 8_388_608,
+        "Imagem excede os limites de pixels"
+    );
+    let scaled = if decoded.width() > max_side || decoded.height() > max_side {
+        decoded.thumbnail(max_side, max_side)
+    } else {
+        decoded
+    };
+    let rgba = scaled.to_rgba8();
+    Ok((rgba.width(), rgba.height(), rgba.into_raw()))
 }
 pub fn sha256(bytes: &[u8]) -> String {
     Sha256::digest(bytes)

@@ -403,7 +403,13 @@ export type PttEvent =
   | { type: "ptt"; pressed: boolean; error?: string }
   | { type: "voice-shortcut"; action: "mute" | "deafen"; error?: string };
 export type HostInfo = { invite: string; address: string; port: number };
-export type Source = { id: string; name: string; thumbnail: string };
+export type Source = {
+  id: string;
+  name: string;
+  thumbnail: string;
+  /** Monitor resolution label, screens only (1.5 picker). */
+  display?: string;
+};
 export type UpdatePackage = {
   id: string;
   version: string;

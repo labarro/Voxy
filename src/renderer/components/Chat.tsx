@@ -298,10 +298,19 @@ function ChatView({
           </h1>
           <p>O começo da conversa de vocês.</p>
         </div>
-        {history.timeline.map((m) => (
+        {history.timeline.map((m, i, all) => (
           <article
             className={
               "message " +
+              (i > 0 &&
+              all[i - 1].author === m.author &&
+              !m.replyTo &&
+              m.time - all[i - 1].time < 5 * 60 * 1000 &&
+              new Date(m.time).toDateString() ===
+                new Date(all[i - 1].time).toDateString()
+                ? "grouped "
+                : "") +
+              (m.author === authorId ? "own " : "") +
               (m.text.includes("@{" + authorId + "}") ? "mentioned " : "") +
               (history.highlight === m.id ? "located" : "")
             }
@@ -309,8 +318,8 @@ function ChatView({
             key={m.id}
           >
             <Avatar avatar={m.avatar} />
-            <div>
-              <div>
+            <div className="message-body">
+              <div className="message-head">
                 <button
                   type="button"
                   className="message-author"
@@ -328,13 +337,21 @@ function ChatView({
                 >
                   <strong>{profiles?.[m.author]?.name || m.name}</strong>
                 </button>
-                <time>
-                  {new Date(m.time).toLocaleString("pt-BR", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    day: "2-digit",
-                    month: "2-digit",
-                  })}
+                <time
+                  dateTime={new Date(m.time).toISOString()}
+                  title={new Date(m.time).toLocaleString("pt-BR")}
+                >
+                  {new Date(m.time).toDateString() === new Date().toDateString()
+                    ? new Date(m.time).toLocaleTimeString("pt-BR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : new Date(m.time).toLocaleString("pt-BR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        day: "2-digit",
+                        month: "2-digit",
+                      })}
                 </time>
                 {!!m.editedAt && (
                   <small className="edited-tag">(editada)</small>

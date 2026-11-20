@@ -1,6 +1,7 @@
+import type React from "react";
 import {
-  AudioLines,
-  Megaphone,
+  House,
+  Sparkles,
   MessageCircle,
   Plus,
   LogIn,
@@ -19,6 +20,12 @@ const labels = {
 };
 export type AppPage =
   "home" | "room" | "news" | "dm" | "friends" | "notifications";
+/** Stable hue per server so initials tiles are recognizable at a glance. */
+function hue(id: string) {
+  let h = 0;
+  for (const c of id) h = (h * 31 + c.charCodeAt(0)) % 360;
+  return String(h);
+}
 export function ServerRail({
   room,
   page,
@@ -64,8 +71,7 @@ export function ServerRail({
         aria-current={page === "home" ? "page" : undefined}
         onClick={() => navigate("home")}
       >
-        <AudioLines size={28} />
-        <span className="rail-caption">Início</span>
+        <House size={20} />
       </button>
       <button
         className={"rail-action " + (page === "dm" ? "selected" : "")}
@@ -74,8 +80,7 @@ export function ServerRail({
         aria-current={page === "dm" ? "page" : undefined}
         onClick={() => navigate("dm")}
       >
-        <MessageCircle />
-        <span className="rail-caption">Conversas</span>
+        <MessageCircle size={20} />
         {unread > 0 && (
           <span
             className="unread-badge rail-unread"
@@ -86,29 +91,17 @@ export function ServerRail({
         )}
       </button>
       <button
-        className={"rail-action " + (page === "news" ? "selected" : "")}
-        title="Novidades do Voxy"
-        aria-label="Novidades do Voxy"
-        aria-current={page === "news" ? "page" : undefined}
-        onClick={() => navigate("news")}
-      >
-        <Megaphone />
-        <span className="rail-caption">Novidades</span>
-      </button>
-      <button
         className={"rail-action " + (page === "friends" ? "selected" : "")}
         title="Amigos"
         aria-label="Amigos"
         aria-current={page === "friends" ? "page" : undefined}
         onClick={() => navigate("friends")}
       >
-        <Users />
-        <span className="rail-caption">Amigos</span>
+        <Users size={20} />
         {(room.friendships || []).some((f) => f.status === "pending") && (
           <i className="status-dot" />
         )}
       </button>
-      <div className="rail-divider" />
       <button
         className={
           "rail-action " + (page === "notifications" ? "selected" : "")
@@ -118,14 +111,14 @@ export function ServerRail({
         aria-current={page === "notifications" ? "page" : undefined}
         onClick={() => navigate("notifications")}
       >
-        <Bell />
-        <span className="rail-caption">Avisos</span>
+        <Bell size={20} />
         {notifications > 0 && (
           <span className="unread-badge rail-unread">
             {notifications > 99 ? "99+" : notifications}
           </span>
         )}
       </button>
+      <div className="rail-divider" />
       <div className="rail-server-list">
         {room.servers.map((s) => (
           <button
@@ -134,6 +127,7 @@ export function ServerRail({
               "server-icon " +
               (page === "room" && s.id === serverId ? "selected" : "")
             }
+            style={{ "--server-hue": hue(s.id) } as React.CSSProperties}
             title={s.name}
             aria-label={s.name}
             aria-current={
@@ -197,17 +191,32 @@ export function ServerRail({
         })}
       </div>
       <button
-        className="rail-action"
+        className="rail-action rail-create"
         title={online ? "Criar servidor" : "Hospedar sala"}
+        aria-label={online ? "Criar servidor" : "Hospedar sala"}
         onClick={create}
         disabled={online && !canCreate}
       >
-        <Plus />
+        <Plus size={20} />
       </button>
-      <button className="rail-action" title="Entrar em sala" onClick={join}>
-        <LogIn />
+      <button
+        className="rail-action rail-create"
+        title="Entrar em sala"
+        aria-label="Entrar em sala"
+        onClick={join}
+      >
+        <LogIn size={20} />
       </button>
-      <span className="rail-label">Voxy</span>
+      <div className="rail-spacer" />
+      <button
+        className={"rail-action rail-news " + (page === "news" ? "selected" : "")}
+        title="Novidades do Voxy"
+        aria-label="Novidades do Voxy"
+        aria-current={page === "news" ? "page" : undefined}
+        onClick={() => navigate("news")}
+      >
+        <Sparkles size={20} />
+      </button>
     </nav>
   );
 }

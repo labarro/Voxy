@@ -34,52 +34,121 @@ function readableAccent(color: string, base: string) {
   return "#ffffff";
 }
 
-export const themes = {
-  voxy: {
-    name: "Voxy",
-    base: "#222c33",
-    surface: "#1b252d",
-    deep: "#141e26",
-    accent: "#8dc7df",
-    warm: "#d9b17c",
-    good: "#8ccbb1",
-    muted: "#96a9b4",
-    description: "Ardósia e azul mineral",
-  },
-  ocean: {
-    name: "Oceano",
-    base: "#20313d",
-    surface: "#192934",
-    deep: "#12202c",
-    accent: "#8ccfe7",
-    warm: "#d3c39d",
-    good: "#8acfc6",
-    muted: "#97adb9",
-    description: "Azul profundo e névoa",
-  },
-  forest: {
-    name: "Bosque",
-    base: "#28352f",
-    surface: "#202c26",
-    deep: "#17231e",
-    accent: "#accdb4",
-    warm: "#d6bd8c",
-    good: "#99cbb4",
-    muted: "#a1b1a4",
-    description: "Verde folha e madeira",
-  },
-  kuromi: {
-    name: "Kuromi",
-    base: "#2b2631",
-    surface: "#221e29",
-    deep: "#18151f",
-    accent: "#ffa4d7",
-    warm: "#d2b2ff",
-    good: "#acd2c5",
-    muted: "#b6a8c2",
-    description: "Rosa luminoso, ameixa e lavanda",
-  },
+// Voxy 1.5 "Nocturne glass": the palette designed for the native 2.0 betas
+// (native/crates/voxy-desktop/src/design.rs), carried to Electron. Surfaces step
+// from the window floor (base) up to floating layers (elevated). Communication
+// colors (speaking, danger, warning, live) are fixed across themes in CSS.
+type Palette = {
+  name: string;
+  description: string;
+  base: string;
+  rail: string;
+  sidebar: string;
+  canvas: string;
+  panel: string;
+  elevated: string;
+  accent: string;
+  onAccent: string;
+  secondary: string;
+  ink: string;
+  soft: string;
+  muted: string;
+  faint: string;
+  line: string;
+  /** Legacy roles kept for the 3D rooms, games and older components. */
+  surface: string;
+  deep: string;
+  warm: string;
+  good: string;
 };
+const ink = {
+  ink: "#eceef3",
+  soft: "#c4c8d3",
+  muted: "#a3a8b6",
+  faint: "#6c7180",
+  line: "#ffffff13",
+};
+export const themes: Record<"voxy" | "ocean" | "forest" | "kuromi", Palette> =
+  {
+    voxy: {
+      name: "Voxy",
+      description: "Noturno com lilás",
+      base: "#0a0c11",
+      rail: "#0b0d12",
+      sidebar: "#10131a",
+      canvas: "#13161e",
+      panel: "#1a1e28",
+      elevated: "#222734",
+      accent: "#9b8cff",
+      onAccent: "#06051a",
+      secondary: "#6fd6c9",
+      ...ink,
+      surface: "#10131a",
+      deep: "#0a0c11",
+      warm: "#f5b94a",
+      good: "#3ddc84",
+    },
+    ocean: {
+      name: "Oceano",
+      description: "Azul profundo e ciano",
+      base: "#07121a",
+      rail: "#08131b",
+      sidebar: "#0c1a23",
+      canvas: "#0f1f29",
+      panel: "#152a36",
+      elevated: "#1c3443",
+      accent: "#5fc8e6",
+      onAccent: "#020c14",
+      secondary: "#7aa7ff",
+      ...ink,
+      muted: "#a2b1bb",
+      surface: "#0c1a23",
+      deep: "#07121a",
+      warm: "#f5b94a",
+      good: "#3ddc84",
+    },
+    forest: {
+      name: "Bosque",
+      description: "Verde folha e madeira",
+      base: "#0b110d",
+      rail: "#0c120e",
+      sidebar: "#111912",
+      canvas: "#141d16",
+      panel: "#1b261d",
+      elevated: "#243127",
+      accent: "#a3cf7e",
+      onAccent: "#081205",
+      secondary: "#d8c08a",
+      ...ink,
+      muted: "#a7b0a5",
+      surface: "#111912",
+      deep: "#0b110d",
+      warm: "#d8c08a",
+      good: "#3ddc84",
+    },
+    kuromi: {
+      name: "Kuromi",
+      description: "Rosa luminoso, ameixa e lavanda",
+      base: "#110c15",
+      rail: "#120d16",
+      sidebar: "#19121e",
+      canvas: "#1d1523",
+      panel: "#271c2f",
+      elevated: "#31243b",
+      accent: "#f39bcb",
+      onAccent: "#1c0814",
+      secondary: "#b89cf2",
+      ink: "#f3eaf5",
+      soft: "#d6c8dc",
+      muted: "#b9a8c4",
+      faint: "#7c6c88",
+      line: "#f0d6ee17",
+      surface: "#19121e",
+      deep: "#110c15",
+      warm: "#b89cf2",
+      good: "#3ddc84",
+    },
+  };
 // The shell and the settings preview consume the same complete semantic palette.
 export function themeVariables(
   profile: Pick<Profile, "theme" | "accentColor">,
@@ -88,19 +157,28 @@ export function themeVariables(
     t = themes[id],
     accent = profile.accentColor || t.accent;
   return {
-    "--base": t.base,
-    "--surface": t.surface,
-    "--deep": t.deep,
+    "--vx-base": t.base,
+    "--vx-rail": t.rail,
+    "--vx-sidebar": t.sidebar,
+    "--vx-canvas": t.canvas,
+    "--vx-panel": t.panel,
+    "--vx-elevated": t.elevated,
+    "--vx-secondary": t.secondary,
+    "--vx-faint": t.faint,
+    // Legacy role names, now mapped onto the Nocturne surfaces.
+    "--base": t.canvas,
+    "--surface": t.sidebar,
+    "--deep": t.base,
     "--accent": accent,
-    "--accent-readable": readableAccent(accent, t.base),
-    "--accent-ink": accentInk(accent),
+    "--accent-readable": readableAccent(accent, t.panel),
+    "--accent-ink": profile.accentColor ? accentInk(accent) : t.onAccent,
     "--signal-warm": t.warm,
     "--signal-good": t.good,
+    "--text-primary": t.ink,
+    "--text-secondary": t.soft,
     "--text-muted": t.muted,
-    "--text-primary": id === "kuromi" ? "#f3eaf5" : "#e9eff1",
-    "--text-secondary": id === "kuromi" ? "#cbbdd2" : "#b1bfc8",
-    "--line": id === "kuromi" ? "#e6cfe516" : "#c6dce013",
-    "--line-strong": id === "kuromi" ? "#e6cfe52c" : "#c6dce027",
+    "--line": t.line,
+    "--line-strong": id === "kuromi" ? "#f0d6ee26" : "#ffffff22",
   } as CSSProperties;
 }
 export function KuromiMark() {
@@ -152,7 +230,13 @@ export function ThemePicker({
           >
             <span
               className="theme-swatch"
-              style={{ background: theme.base, borderColor: theme.deep }}
+              style={
+                {
+                  "--sw-top": theme.elevated,
+                  "--sw-bg": theme.panel,
+                  "--sw-accent": theme.accent,
+                } as CSSProperties
+              }
             >
               <span style={{ background: theme.accent }} />
               {id === "kuromi" && (

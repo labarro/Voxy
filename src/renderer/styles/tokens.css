@@ -1,0 +1,131 @@
+/*
+ * Voxy 1.5 "Nocturne glass" — design tokens.
+ * Ported from the native 2.0 design system (native/crates/voxy-desktop/src/design.rs).
+ * Surfaces step in lightness from the window floor (base) to floating layers
+ * (elevated); theme palettes override the --vx-* surfaces and --accent at runtime
+ * (components/Personalization.tsx → themeVariables). Communication colors stay
+ * fixed in every theme so speaking, muted and live always read the same.
+ * Screens must not define colors, sizes or shadows outside these tokens.
+ */
+:root {
+  /* Surfaces (Voxy theme defaults; replaced per theme) */
+  --vx-base: #0a0c11;
+  --vx-rail: #0b0d12;
+  --vx-sidebar: #10131a;
+  --vx-canvas: #13161e;
+  --vx-panel: #1a1e28;
+  --vx-elevated: #222734;
+  --vx-secondary: #6fd6c9;
+  --vx-faint: #6c7180;
+  --accent: #9b8cff;
+  --accent-ink: #06051a;
+  --accent-readable: #a99cff;
+  --text-primary: #eceef3;
+  --text-secondary: #c4c8d3;
+  --text-muted: #a3a8b6;
+  --line: #ffffff13;
+  --line-strong: #ffffff22;
+
+  /* Communication states — identical in every theme */
+  --vx-speaking: #3ddc84;
+  --vx-danger: #f2555a;
+  --vx-danger-ink: #ffb4b6;
+  --vx-danger-surface: #3b1a20;
+  --vx-warning: #f5b94a;
+  --vx-live: #ff4d5e;
+
+  /* Derived layers */
+  --vx-hover: color-mix(in srgb, var(--text-primary) 5%, transparent);
+  --vx-selected: color-mix(in srgb, var(--text-primary) 8.5%, transparent);
+  --vx-fill: color-mix(in srgb, var(--text-primary) 7%, transparent);
+  --vx-fill-hover: color-mix(in srgb, var(--text-primary) 11%, transparent);
+  --vx-field: color-mix(in srgb, var(--vx-canvas) 82%, black);
+  --vx-accent-soft: color-mix(in srgb, var(--accent) 20%, transparent);
+  --vx-accent-soft-hover: color-mix(in srgb, var(--accent) 28%, transparent);
+  --vx-danger-soft: color-mix(in srgb, var(--vx-danger) 18%, transparent);
+  --vx-speaking-soft: color-mix(in srgb, var(--vx-speaking) 14%, transparent);
+  --vx-hairline: color-mix(in srgb, white 7.5%, transparent);
+  --vx-hairline-float: color-mix(in srgb, white 10%, transparent);
+  /* "Liquid glass" adapted to the desktop: opaque surface + faint top sheen. */
+  --vx-sheen-card: linear-gradient(
+    180deg,
+    color-mix(in srgb, white 3.5%, var(--vx-panel)) 0%,
+    var(--vx-panel) 45%
+  );
+  --vx-sheen-float: linear-gradient(
+    180deg,
+    color-mix(in srgb, white 5%, var(--vx-elevated)) 0%,
+    var(--vx-elevated) 45%
+  );
+
+  /* Type scale (px) — Segoe UI Variable, local only */
+  --font-ui: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --fs-micro: 11px;
+  --fs-caption: 12px;
+  --fs-small: 13px;
+  --fs-body: 14px;
+  --fs-strong: 15px;
+  --fs-heading: 18px;
+  --fs-title: 22px;
+  --fs-display: 28px;
+
+  /* 4-pt spacing */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+
+  /* Radii */
+  --r-s: 6px;
+  --r-m: 10px;
+  --r-l: 14px;
+  --r-xl: 20px;
+  --r-pill: 999px;
+
+  /* Elevation — only floating layers cast shadows */
+  --shadow-float: 0 10px 28px rgb(0 0 0 / 0.45);
+  --shadow-tooltip: 0 4px 12px rgb(0 0 0 / 0.4);
+  --shadow-dock: 0 12px 32px rgb(0 0 0 / 0.5);
+
+  /* Layout */
+  --titlebar-h: 36px;
+  --rail-w: 72px;
+  --sidebar-w: 252px;
+  --hit: 36px;
+
+  /* Motion */
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --t-fast: 120ms;
+  --t-base: 160ms;
+
+  /* Layers */
+  --z-dock: 20;
+  --z-menu: 1000;
+  --z-tooltip: 2000;
+
+  /* Legacy role names used by older stylesheets */
+  --layer-raised: var(--vx-panel);
+  --layer-hover: var(--vx-fill-hover);
+  --selection: var(--vx-selected);
+  --radius-control: var(--r-m);
+  --radius-panel: var(--r-l);
+  --shadow-panel: var(--shadow-float);
+}
+
+/* "Reduzir efeitos": opaque surfaces, no sheen or shadows. */
+:root[data-low-resource="true"] {
+  --vx-sheen-card: var(--vx-panel);
+  --vx-sheen-float: var(--vx-elevated);
+  --shadow-float: none;
+  --shadow-dock: none;
+  --shadow-tooltip: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --t-fast: 0ms;
+    --t-base: 0ms;
+  }
+}

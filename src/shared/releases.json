@@ -1,4 +1,32 @@
 {
+  "1.5.0": {
+    "date": "2026-11-20",
+    "title": "Visual Update — a identidade do Voxy 2.0 no Voxy que você já usa",
+    "items": [
+      "Nova identidade visual em todo o aplicativo, trazida do redesign nativo do Voxy 2.0: superfícies escuras em camadas, brilho sutil e cores de comunicação consistentes.",
+      "Lobby de chamada com grade adaptativa, anel verde de quem fala, sua própria prévia de câmera/tela e um dock flutuante com desconectar em destaque.",
+      "Home reorganizada com a chamada atual, chamadas acontecendo agora, servidores e mensagens recentes.",
+      "Novo seletor de compartilhamento de tela com abas de aplicativos e telas, miniaturas, qualidade e áudio."
+    ],
+    "features": [
+      "Home com saudação, cartão da chamada em andamento (microfone, ensurdecer e abrir chamada), chamadas acontecendo agora, servidores conectados e salvos e mensagens recentes.",
+      "Painel de participantes à direita no chat, separado entre quem está em chamada e quem está online, com abertura e ocultação.",
+      "Seletor de compartilhamento com abas Aplicativos/Telas, nome do aplicativo e título da janela, resolução do monitor, qualidade segmentada e interruptor de áudio.",
+      "Tooltips padronizados em todo o aplicativo."
+    ],
+    "improvements": [
+      "Design system centralizado (tokens de cor, tipografia, espaçamento, raios, sombras, camadas e movimento) aplicado à navegação, chat, DMs, chamadas, perfis, configurações, administração e HUD das salas 3D.",
+      "Temas Voxy, Oceano, Bosque e Kuromi com as paletas do Voxy 2.0; Kuromi mantém as ilustrações e o rosa característico.",
+      "Trilho de servidores com ícones circulares, pílula de seleção e Novidades no rodapé; lateral com status do servidor, cartão de voz com latência e painel de perfil.",
+      "Chat com mensagens agrupadas por autor, ações flutuantes sem deslocar o layout e avatares circulares.",
+      "Mini perfil com capa recortada, avatar sobreposto, ações e volume individual; continua fechando com Esc ou clique fora.",
+      "Barra de título com o ícone original, versão e contexto atual; controles do Windows continuam nativos.",
+      "Desfoque do fundo dos diálogos removido para reduzir custo de GPU durante jogos."
+    ],
+    "fixes": [
+      "Texto “1 fontes ao vivo” corrigido para o singular."
+    ]
+  },
   "1.4.1": {
     "date": "2026-11-14",
     "title": "Estabilidade, correções e redução de trabalho em segundo plano",

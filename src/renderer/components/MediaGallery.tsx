@@ -87,7 +87,9 @@ export function MediaGallery({
   return (
     <section className="media-gallery" aria-label="Transmissões e câmeras">
       <div className="gallery-toolbar">
-        <strong>{sources.length} fontes ao vivo</strong>
+        <strong>
+          {sources.length} {sources.length === 1 ? "fonte" : "fontes"} ao vivo
+        </strong>
         {expanded && (
           <button onClick={() => onFocus(null)}>Voltar à grade</button>
         )}

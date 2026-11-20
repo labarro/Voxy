@@ -90,7 +90,7 @@ small,
 }
 .primary {
   background: var(--accent);
-  color: var(--accent-ink, #172932);
+  color: var(--accent-ink, var(--vx-panel));
   box-shadow:
     0 1px 0 #ffffff24 inset,
     0 2px 5px #0002;
@@ -420,7 +420,7 @@ small,
   overflow: hidden;
   background:
     radial-gradient(ellipse at 23% 65%, #ff8ac944, transparent 64%),
-    linear-gradient(115deg, #472839, #35243f);
+    linear-gradient(115deg, var(--vx-elevated), var(--vx-panel));
   border: 1px solid #ffa4d747;
   border-radius: 14px;
   box-shadow:
@@ -785,7 +785,7 @@ dialog.hub-dialog[open] {
   right: 30px;
   max-width: 60%;
   z-index: 2;
-  background: #532b35;
+  background: var(--vx-danger-surface);
   padding: 10px 16px;
 }
 .settings-form,
@@ -1484,9 +1484,9 @@ dialog.hub-dialog[open] {
 }
 .error-banner,
 .modal-error {
-  border: 1px solid #f0a3aa30;
+  border: 1px solid color-mix(in srgb, var(--vx-danger) 19%, transparent);
   background: #69374240;
-  color: #ffd4d8;
+  color: var(--vx-danger-ink);
 }
 .audio-notice,
 .direct-notice {

@@ -8,7 +8,7 @@
   min-height: 430px;
   border-radius: 20px;
   isolation: isolate;
-  background: #222c35;
+  background: var(--vx-panel);
 }
 .room-social .room3d-canvas {
   opacity: 0;
@@ -42,7 +42,7 @@
 }
 .room-identity {
   padding: 11px 15px;
-  color: #f5eee6;
+  color: var(--text-primary);
   border-radius: 14px;
   background: var(--room-glass);
   border: 1px solid #d9d1c41c;
@@ -57,13 +57,13 @@
 }
 .room-identity span:not(.room-presence-dot) {
   font-size: 11px;
-  color: #b7c5bd;
+  color: var(--text-secondary);
 }
 .room-presence-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #a6d5b7;
+  background: var(--text-secondary);
 }
 .room-hud-actions {
   padding: 5px;
@@ -79,12 +79,12 @@
   gap: 8px;
   min-height: 34px;
   border-radius: 9px;
-  color: #f0eae2;
+  color: var(--text-primary);
   font-size: 12px;
 }
 .room-social button:focus-visible,
 .avatar-creator button:focus-visible {
-  outline: 2px solid var(--accent, #b6adff);
+  outline: 2px solid var(--accent, var(--accent-readable));
   outline-offset: 3px;
 }
 .room-hud-actions > button {
@@ -106,7 +106,7 @@
   background: var(--room-glass);
   border: 1px solid #c4bbc62b;
   padding: 12px;
-  color: #eee9e2;
+  color: var(--text-primary);
   z-index: 7;
   box-shadow: 0 15px 35px #0004;
 }
@@ -123,11 +123,11 @@
   padding: 9px 8px;
 }
 .room-hud-menu button[aria-pressed="true"] {
-  background: color-mix(in srgb, var(--accent, #b6adff) 20%, transparent);
+  background: color-mix(in srgb, var(--accent, var(--accent-readable)) 20%, transparent);
 }
 .room-hud-menu small {
   display: block;
-  color: #b4bbb9;
+  color: var(--text-secondary);
   font-size: 11px;
   line-height: 1.65;
   margin: 9px 4px;
@@ -140,7 +140,7 @@
   padding: 3px 6px;
   border: 1px solid #d4dce21c;
   border-radius: 5px;
-  color: #e7e6df;
+  color: var(--text-primary);
 }
 .room-people {
   display: grid;
@@ -166,7 +166,7 @@
 }
 .room-people .is-speaking {
   background: #74a99120;
-  color: #b7e2cd;
+  color: var(--text-secondary);
 }
 .room-person-avatar {
   width: 30px;
@@ -186,7 +186,7 @@
   left: 50%;
   bottom: 110px;
   transform: translateX(-50%);
-  color: #eee7da;
+  color: var(--text-primary);
   white-space: nowrap;
   text-shadow: 0 1px 4px #000a;
   z-index: 2;
@@ -214,7 +214,7 @@
   gap: 8px;
   border-radius: 14px;
   padding: 12px 14px;
-  color: #f2e8db;
+  color: var(--text-primary);
   background: var(--room-glass);
   border: 1px solid #c3beb525;
   max-width: 300px;
@@ -230,7 +230,7 @@
 .room-tv-card > div > span:not(.room-live-dot) {
   display: block;
   font-size: 11px;
-  color: #a9bbb6;
+  color: var(--text-muted);
 }
 .room-tv-card strong {
   font-size: 12px;
@@ -248,7 +248,7 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #d7a5ac;
+  background: var(--text-secondary);
 }
 .room-tv-card button {
   background: #b9ac8f1c;
@@ -273,7 +273,7 @@
   border: 1px solid #c9c5bd2a;
   background: var(--room-glass);
   box-shadow: 0 8px 28px #0003;
-  color: #eee4d8;
+  color: var(--text-primary);
   z-index: 4;
   max-width: calc(100% - 36px);
 }
@@ -290,7 +290,7 @@
 .room-dock-voice > span {
   font-size: 11px;
   white-space: nowrap;
-  color: #b4c8bd;
+  color: var(--text-secondary);
   margin: 0 5px;
 }
 .room-dock button {
@@ -300,14 +300,14 @@
 }
 .room-dock .is-muted {
   background: #af788633;
-  color: #edc1cb;
+  color: var(--vx-danger-ink);
 }
 .room-dock .is-active {
-  background: color-mix(in srgb, var(--accent, #b6adff) 26%, transparent);
+  background: color-mix(in srgb, var(--accent, var(--accent-readable)) 26%, transparent);
 }
 .room-dock .room-disconnect {
   background: #b05d7133;
-  color: #e8a9b7;
+  color: var(--vx-danger-ink);
   margin-left: 5px;
 }
 .room-social.hud-quiet:not(:focus-within) .room-context > span {
@@ -331,8 +331,8 @@
   justify-content: center;
   flex-direction: column;
   gap: 14px;
-  background: #253234;
-  color: #efdfc8;
+  background: var(--vx-panel);
+  color: var(--text-primary);
 }
 .room-loading {
   position: absolute;
@@ -355,7 +355,7 @@
 }
 .room-loading p {
   font-size: 12px;
-  color: #bdc5b8;
+  color: var(--text-secondary);
   margin: 0 20px;
   text-align: center;
 }
@@ -363,11 +363,11 @@
   width: 190px;
   height: 5px;
   margin: 13px 0 0;
-  accent-color: #d1b48b;
+  accent-color: var(--text-muted);
 }
 .room-loading > span {
   font-size: 11px;
-  color: #c5bcae;
+  color: var(--text-secondary);
 }
 .room-module-loading {
   min-height: 430px;
@@ -375,7 +375,7 @@
 }
 .room-module-loading > span {
   font-size: 12px;
-  color: #bac4bd;
+  color: var(--text-secondary);
 }
 .room-social .room3d-notice {
   top: 89px;
@@ -388,7 +388,7 @@
   position: absolute;
   inset: 0;
   z-index: 8;
-  background: #12161e;
+  background: var(--vx-canvas);
   display: flex;
   flex-direction: column;
   padding: 16px;
@@ -399,7 +399,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  color: #d3d6da;
+  color: var(--text-secondary);
 }
 .room-tv-expanded > header > strong {
   font-size: 12px;
@@ -441,11 +441,11 @@ dialog:has(.avatar-creator) > header {
 }
 dialog:has(.avatar-creator) > header h2 {
   font-size: 12px;
-  color: var(--muted, #acb5c3);
+  color: var(--muted, var(--text-secondary));
   font-weight: 500;
 }
 .avatar-creator {
-  color: var(--text, #edf0f8);
+  color: var(--text, var(--text-primary));
 }
 .creator-intro {
   display: flex;
@@ -462,7 +462,7 @@ dialog:has(.avatar-creator) > header h2 {
 }
 .creator-intro p {
   font-size: 13px;
-  color: #b1bdc7;
+  color: var(--text-secondary);
   margin: 0;
 }
 .creator-intro > span {
@@ -470,7 +470,7 @@ dialog:has(.avatar-creator) > header h2 {
   padding: 7px 10px;
   border-radius: 20px;
   background: #85ab9917;
-  color: #bdcfbc;
+  color: var(--text-secondary);
 }
 .creator-workspace {
   display: grid;
@@ -484,7 +484,7 @@ dialog:has(.avatar-creator) > header h2 {
   border-radius: 20px;
   overflow: hidden;
   background:
-    radial-gradient(ellipse at 50% 55%, #60747638, transparent 66%), #273337;
+    radial-gradient(ellipse at 50% 55%, #60747638, transparent 66%), var(--vx-panel);
 }
 .creator-name {
   position: absolute;
@@ -496,11 +496,11 @@ dialog:has(.avatar-creator) > header h2 {
 }
 .creator-name strong {
   font-size: 15px;
-  color: #eadbc6;
+  color: var(--text-secondary);
 }
 .creator-name span {
   font-size: 11px;
-  color: #acbcb6;
+  color: var(--text-secondary);
 }
 .avatar-studio {
   position: absolute;
@@ -529,7 +529,7 @@ dialog:has(.avatar-creator) > header h2 {
   justify-content: center;
   gap: 16px;
   font-size: 12px;
-  color: #d5ccbc;
+  color: var(--text-secondary);
 }
 .avatar-studio-loading progress {
   width: 150px;
@@ -547,7 +547,7 @@ dialog:has(.avatar-creator) > header h2 {
   inset: 35% 20px auto;
   text-align: center;
   font-size: 12px;
-  color: #e8c4bc;
+  color: var(--vx-danger-ink);
   z-index: 2;
 }
 .avatar-preview-error button {
@@ -563,7 +563,7 @@ dialog:has(.avatar-creator) > header h2 {
   display: flex;
   gap: 8px;
   align-items: center;
-  color: #b7c6c0;
+  color: var(--text-secondary);
   font-size: 10px;
 }
 .creator-preview-tools button {
@@ -593,7 +593,7 @@ dialog:has(.avatar-creator) > header h2 {
 }
 .creator-poses > button[aria-pressed="true"] {
   background: #c8d0c42c;
-  color: #efe3ce;
+  color: var(--text-primary);
 }
 .creator-controls {
   min-width: 0;
@@ -611,13 +611,13 @@ dialog:has(.avatar-creator) > header h2 {
   align-items: center;
   gap: 7px;
   font-size: 10px;
-  color: #aeb8c6;
+  color: var(--text-secondary);
   border-radius: 10px;
   padding: 10px 3px;
 }
 .creator-controls [role="tab"][aria-selected="true"] {
-  color: var(--accent, #b6adff);
-  background: color-mix(in srgb, var(--accent, #b6adff) 12%, transparent);
+  color: var(--accent, var(--accent-readable));
+  background: color-mix(in srgb, var(--accent, var(--accent-readable)) 12%, transparent);
 }
 .creator-panel {
   padding: 17px 0 0;
@@ -637,7 +637,7 @@ dialog:has(.avatar-creator) > header h2 {
   position: relative;
   min-width: 0;
   border: 1px solid #bcc2cf1a;
-  background: var(--deep, #1b2330);
+  background: var(--deep, var(--vx-panel));
   border-radius: 12px;
   padding: 6px 8px 10px;
   display: flex;
@@ -652,14 +652,14 @@ dialog:has(.avatar-creator) > header h2 {
 }
 .creator-options > button > span {
   font-size: 11px;
-  color: #bfc7d0;
+  color: var(--text-secondary);
 }
 .creator-options > button[aria-pressed="true"] {
-  border-color: var(--accent, #b6adff);
+  border-color: var(--accent, var(--accent-readable));
   background: color-mix(
     in srgb,
     var(--accent, #b6adff) 10%,
-    var(--deep, #1b2330)
+    var(--deep, var(--vx-panel))
   );
 }
 .creator-options > button > .creator-chosen {
@@ -677,7 +677,7 @@ dialog:has(.avatar-creator) > header h2 {
 }
 .creator-palette legend {
   font-size: 11px;
-  color: #bac3cd;
+  color: var(--text-secondary);
   margin-bottom: 11px;
 }
 .creator-palette > div {
@@ -694,13 +694,13 @@ dialog:has(.avatar-creator) > header h2 {
   display: grid;
   place-items: center;
   border: 2px solid transparent;
-  color: #fff;
-  text-shadow: 0 1px 3px #000;
+  color: var(--text-primary);
+  text-shadow: 0 1px 3px var(--vx-base);
 }
 .creator-palette button[aria-pressed="true"] {
-  outline: 1px solid #d4d6e8;
+  outline: 1px solid var(--text-primary);
   outline-offset: 3px;
-  border-color: var(--deep, #1b2330);
+  border-color: var(--deep, var(--vx-panel));
 }
 .creator-custom-color {
   margin: 0 !important;
@@ -709,7 +709,7 @@ dialog:has(.avatar-creator) > header h2 {
   height: 28px;
   display: grid !important;
   place-items: center;
-  border: 1px dashed #a9b4c2;
+  border: 1px dashed var(--text-secondary);
   border-radius: 50%;
   overflow: hidden;
 }
@@ -743,10 +743,10 @@ dialog:has(.avatar-creator) > header h2 {
   border-radius: 10px;
 }
 .creator-footer > button {
-  color: #aab8c5;
+  color: var(--text-secondary);
 }
 .creator-error {
-  color: #e6aab5;
+  color: var(--vx-danger-ink);
   font-size: 12px;
 }
 .character-launcher {
@@ -761,7 +761,7 @@ dialog:has(.avatar-creator) > header h2 {
   background: color-mix(
     in srgb,
     var(--accent, #b6adff) 8%,
-    var(--deep, #1b2330)
+    var(--deep, var(--vx-panel))
   );
 }
 .character-launcher-art {
@@ -771,7 +771,7 @@ dialog:has(.avatar-creator) > header h2 {
   height: 90px;
   border-radius: 35px;
   background: #87a79c1b;
-  color: #b6c7bd;
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 .character-launcher > span:last-child {
@@ -783,7 +783,7 @@ dialog:has(.avatar-creator) > header h2 {
 }
 .character-launcher small {
   font-size: 12px;
-  color: #aebbc7;
+  color: var(--text-secondary);
 }
 .character-launcher-action {
   display: flex;
@@ -906,7 +906,7 @@ dialog:has(.avatar-creator) > header h2 {
   gap: 8px;
   align-items: center;
   z-index: 8;
-  background: var(--panel, #252c35);
+  background: var(--panel, var(--vx-panel));
   padding: 8px 12px;
   border-radius: 12px;
   box-shadow: 0 4px 20px #0003;
@@ -929,8 +929,8 @@ dialog:has(.avatar-creator) > header h2 {
   max-height: calc(100% - 180px);
   overflow: auto;
   padding: 16px;
-  background: var(--panel, #252c35);
-  color: var(--text, #eee8dd);
+  background: var(--panel, var(--vx-panel));
+  color: var(--text, var(--text-primary));
   border: 1px solid #bda17a66;
   border-radius: 16px;
   box-shadow: 0 12px 40px #0006;
@@ -972,7 +972,7 @@ dialog:has(.avatar-creator) > header h2 {
   justify-content: space-between;
 }
 .pool-scores b {
-  color: #e6bc56;
+  color: var(--vx-warning);
 }
 .pool-message {
   min-height: 36px;
@@ -996,7 +996,7 @@ dialog:has(.avatar-creator) > header h2 {
   display: flex;
 }
 .creator-options > button[aria-pressed="true"] {
-  border-color: var(--accent, #b6adff);
+  border-color: var(--accent, var(--accent-readable));
 }
 @media (max-width: 700px) {
   .pool-panel {
@@ -1075,14 +1075,14 @@ dialog:has(.avatar-creator) > header h2 {
 .pool-panel header {
   position: sticky;
   top: -12px;
-  background: var(--panel, #252c35);
+  background: var(--panel, var(--vx-panel));
   z-index: 2;
   padding: 5px 0;
 }
 .pool-panel > p[role="status"] {
   position: sticky;
   top: 22px;
-  background: var(--panel, #252c35);
+  background: var(--panel, var(--vx-panel));
   z-index: 2;
   padding: 4px 0;
   font-weight: 600;
@@ -1117,7 +1117,7 @@ dialog:has(.avatar-creator) > header h2 {
   border: 1px solid var(--line-strong, #ffffff22);
   border-radius: 12px;
   box-shadow: 0 12px 35px #0004;
-  color: var(--text-primary, #edf0f8);
+  color: var(--text-primary, var(--text-primary));
   backdrop-filter: blur(12px);
 }
 .game-hud-title {
@@ -1137,7 +1137,7 @@ dialog:has(.avatar-creator) > header h2 {
 }
 .game-hud-title span {
   font-size: 12px;
-  color: var(--text-secondary, #adbbcc);
+  color: var(--text-secondary, var(--text-secondary));
 }
 .game-hud-body {
   display: flex;
@@ -1167,13 +1167,13 @@ dialog:has(.avatar-creator) > header h2 {
 }
 .game-hud-hint {
   font-size: 11px;
-  color: var(--text-muted, #9aaebb);
+  color: var(--text-muted, var(--text-muted));
   flex: 1;
   max-width: 26ch;
 }
 .game-hud-error {
   font-size: 12px;
-  color: #f0a3aa;
+  color: var(--vx-danger-ink);
   margin: 10px 0 0;
 }
 .room-playing .room-identity,
@@ -1211,11 +1211,11 @@ dialog:has(.avatar-creator) > header h2 {
   transform: translateX(-50%);
   width: min(590px, calc(100% - 36px));
   padding: 12px 16px;
-  background: color-mix(in srgb, var(--bg-elevated, #172d31) 94%, transparent);
+  background: color-mix(in srgb, var(--bg-elevated, var(--vx-panel)) 94%, transparent);
   border: 1px solid #a5c0b044;
   border-radius: 12px;
   box-shadow: 0 12px 32px #0005;
-  color: var(--text, #f2efe6);
+  color: var(--text, var(--text-primary));
   pointer-events: auto;
 }
 .table-game-hud header {
@@ -1290,7 +1290,7 @@ dialog:has(.avatar-creator) > header h2 {
   justify-content: center;
   text-align: center;
   gap: 10px;
-  color: var(--text, #f5ece0);
+  color: var(--text, var(--text-primary));
 }
 .emote-wheel-center strong {
   font-size: 14px;
@@ -1313,15 +1313,15 @@ dialog:has(.avatar-creator) > header h2 {
   border: 0;
   border-radius: 9px;
   background: transparent;
-  color: var(--text, #f5ece0);
+  color: var(--text, var(--text-primary));
   font-size: 10px;
   cursor: pointer;
 }
 .emote-wheel button:hover,
 .emote-wheel button.is-selected,
 .emote-wheel button:focus-visible {
-  background: var(--accent, #91d5c1);
-  color: var(--accent-contrast, #142c30);
+  background: var(--accent, var(--text-secondary));
+  color: var(--accent-contrast, var(--vx-canvas));
   outline: 2px solid #fffc;
   outline-offset: 2px;
 }

@@ -73,6 +73,11 @@ import {
   Bell,
   Search,
   X,
+  Activity,
+  SignalHigh,
+  UserPlus,
+  PanelRightOpen,
+  PanelRightClose,
 } from "lucide-react";
 import type {
   RoomState,
@@ -90,6 +95,9 @@ import {
   type Quality,
 } from "../services/webrtc/engine";
 import { Modal } from "./components/Modal";
+import { TooltipLayer } from "./components/Tooltip";
+import { CallDock } from "./components/CallDock";
+import { MembersPanel } from "./components/MembersPanel";
 const empty: RoomState = {
   servers: [],
   channels: [],
@@ -120,6 +128,7 @@ export function App() {
   const notificationConnecting = useRef("");
   const [audioNotice, setAudioNotice] = useState("");
   const [roomMode, setRoomMode] = useState(false);
+  const [membersOpen, setMembersOpen] = useState(true);
   const [channelQuery, setChannelQuery] = useState("");
   const [profileSection, setProfileSection] = useState("Conta");
   const [roomPrompt, setRoomPrompt] = useState(false);
@@ -183,7 +192,7 @@ export function App() {
     for (const [key, value] of Object.entries(themeVariables(profile || {})))
       root.style.setProperty(key, String(value));
     void window.voxy
-      .titlebarTheme(theme.deep, "#e7edf9")
+      .titlebarTheme(theme.base, theme.ink)
       .catch((e) => setError(e.message));
   }, [profile?.theme, profile?.accentColor, profile?.lowResourceMode]);
   useEffect(() => {
@@ -814,6 +823,34 @@ export function App() {
     const timer = setTimeout(clearNotice, 10000);
     return () => clearTimeout(timer);
   }, [notice, inbox, profile?.id, profile?.presence]);
+  const contextLabel =
+    page === "home"
+      ? "Início"
+      : page === "dm"
+        ? "Mensagens privadas"
+        : page === "friends"
+          ? "Amigos"
+          : page === "news"
+            ? "Novidades"
+            : page === "notifications"
+              ? "Notificações"
+              : (server?.name ?? "Voxy");
+  const callView =
+    page === "room" &&
+    channel?.kind === "voice" &&
+    me?.channelId === channel.id;
+  const voiceConnected =
+    !!voice &&
+    media.callStage !== "failed" &&
+    (peers.length < 2 ||
+      (media.diagnostics.length === peers.length - 1 &&
+        media.diagnostics.every((d) => d.connection === "connected")));
+  const rtts = media.diagnostics
+    .map((d) => d.rtt)
+    .filter((v): v is number => typeof v === "number");
+  const latency = rtts.length
+    ? Math.round(rtts.reduce((n, v) => n + v, 0) / rtts.length)
+    : undefined;
   if (!profile)
     return (
       <>
@@ -823,11 +860,17 @@ export function App() {
     );
   return (
     <AvatarImages.Provider value={room.avatars ?? {}}>
+      <TooltipLayer />
       <header className="window-titlebar">
-        <AudioLines size={16} />
-        <span className="titlebar-wordmark">
-          voxy<span className="titlebar-product"> / perto de quem importa</span>
-        </span>
+        <img
+          className="titlebar-icon"
+          src="./assets/brand/voxy.svg"
+          alt=""
+          aria-hidden="true"
+        />
+        <span className="titlebar-wordmark">Voxy</span>
+        <span className="titlebar-version">{appVersion}</span>
+        <span className="titlebar-context">{contextLabel}</span>
         {deafened && <span className="titlebar-call-state">Deafen ativo</span>}
       </header>
       {audioNotice && (
@@ -902,24 +945,36 @@ export function App() {
           <header className="server-header">
             {profile.theme === "kuromi" && <KuromiMark />}
             {page !== "dm" && server?.icon && (
-              <Avatar avatar={server.icon} className="mini-avatar" />
+              <Avatar avatar={server.icon} className="server-header-photo" />
             )}
-            <div>
-              <small>
-                {page === "dm" ? "Só entre vocês" : "Sua sala privada"}
-              </small>
+            <div className="server-header-copy">
               <h2>
                 {page === "dm"
                   ? "Mensagens privadas"
                   : (server?.name ?? "Seu espaço")}
               </h2>
+              <small className={"server-header-status " + status}>
+                {page === "dm" ? (
+                  "Só entre vocês"
+                ) : online ? (
+                  <>
+                    <i className="status-dot" /> Conectado ·{" "}
+                    {room.participants.length}/{MAX_PARTICIPANTS} online
+                  </>
+                ) : status === "reconnecting" ? (
+                  "Reconectando…"
+                ) : (
+                  "Sua sala privada"
+                )}
+              </small>
             </div>
             {server && page !== "dm" && (
               <button
+                className="icon-button"
                 title="Gerenciar servidor e canais"
                 onClick={() => void open("manage")}
               >
-                <MoreHorizontal />
+                <Settings size={17} />
               </button>
             )}
           </header>
@@ -948,15 +1003,11 @@ export function App() {
               />
             ) : online ? (
               <>
-                <div className="room-badge">
-                  <i className="status-dot" /> {room.participants.length}/
-                  {MAX_PARTICIPANTS} amigos conectados
-                </div>
                 {(["text", "voice"] as const).map((type) => (
                   <section className="channel-group" key={type}>
                     <div className="category">
                       <span>
-                        {type === "text" ? "Conversas" : "Salas de voz"}
+                        {type === "text" ? "Canais de texto" : "Canais de voz"}
                       </span>
                       {me?.host && (
                         <button
@@ -1007,11 +1058,26 @@ export function App() {
                             }}
                           >
                             {type === "text" ? (
-                              <Hash size={20} />
+                              <Hash size={18} />
                             ) : (
-                              <Volume2 size={20} />
+                              <Volume2 size={18} />
                             )}
                             <span>{c.name}</span>
+                            {type === "voice" &&
+                              room.participants.some(
+                                (p) => p.channelId === c.id,
+                              ) && (
+                                <span
+                                  className="channel-count"
+                                  aria-hidden="true"
+                                >
+                                  {
+                                    room.participants.filter(
+                                      (p) => p.channelId === c.id,
+                                    ).length
+                                  }
+                                </span>
+                              )}
                             {!!notificationCenter.state.unreadChannels[
                               inbox.activeScope + ":" + c.id
                             ] && (
@@ -1032,7 +1098,12 @@ export function App() {
                               .filter((p) => p.channelId === c.id)
                               .map((p) => (
                                 <div
-                                  className="channel-person"
+                                  className={
+                                    "channel-person " +
+                                    (media.speaking.has(p.id)
+                                      ? "is-speaking"
+                                      : "")
+                                  }
                                   key={p.id}
                                   onContextMenu={(e) => {
                                     if (p.id !== selfId) {
@@ -1093,59 +1164,6 @@ export function App() {
                       ))}
                   </section>
                 ))}
-                <section className="member-section">
-                  <h3>
-                    Participantes <span>{room.participants.length}</span>
-                  </h3>
-                  {room.participants.map((p) => (
-                    <button
-                      key={p.id}
-                      className="member-row"
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        setParticipantAudio({
-                          id: p.id,
-                          x: e.clientX,
-                          y: e.clientY,
-                        });
-                      }}
-                      title={
-                        p.id === selfId
-                          ? "Seu perfil"
-                          : "Conversar em privado com " + p.profile.name
-                      }
-                      onClick={() =>
-                        p.id === selfId
-                          ? void open("profile")
-                          : inbox.activeScope &&
-                            openDirect({
-                              scope: inbox.activeScope,
-                              peer: p.profile.id,
-                            })
-                      }
-                    >
-                      <span className="avatar-with-presence">
-                        <Avatar
-                          avatar={p.profile.avatar}
-                          className="mini-avatar"
-                        />
-                        <Presence value={p.profile.presence} />
-                      </span>
-                      <span
-                        style={{
-                          color: nicknameColor(room, serverId, p.profile),
-                        }}
-                      >
-                        {p.profile.name}
-                        {p.id === selfId ? " (você)" : ""}
-                      </span>
-                      <RoleBadges
-                        roles={memberRoles(room, serverId, p.profile.id)}
-                      />
-                      <Presence value={p.profile.presence} label />
-                    </button>
-                  ))}
-                </section>
               </>
             ) : (
               <div className="sidebar-empty">
@@ -1162,22 +1180,35 @@ export function App() {
             )}
           </div>
           {voice && (
-            <div className="voice-status">
-              <div>
-                <i className="status-dot" />
+            <div
+              className={
+                "voice-status " +
+                (media.callStage === "failed"
+                  ? "failed"
+                  : voiceConnected
+                    ? "connected"
+                    : "pending")
+              }
+            >
+              <div className="voice-status-copy">
                 <strong>
+                  <SignalHigh size={15} aria-hidden="true" />
                   {media.callStage === "failed"
                     ? "Falha na conexão de áudio"
                     : peers.length < 2
                       ? "No canal de voz"
-                      : media.diagnostics.length === peers.length - 1 &&
-                          media.diagnostics.every(
-                            (d) => d.connection === "connected",
-                          )
+                      : voiceConnected
                         ? "Voz conectada"
                         : "Conectando áudio…"}
                 </strong>
-                <small>{voice.name}</small>
+                <small>
+                  {voice.name}
+                  {room.servers.find((s) => s.id === voice.serverId)
+                    ? " · " +
+                      room.servers.find((s) => s.id === voice.serverId)!.name
+                    : ""}
+                  {latency !== undefined ? " · " + latency + " ms" : ""}
+                </small>
                 {profile.pttEnabled && (
                   <small className={media.micOpen ? "ptt-open" : ""}>
                     {media.micOpen
@@ -1190,20 +1221,33 @@ export function App() {
                 )}
               </div>
               <button
+                className="icon-button"
+                title="Ver diagnóstico da chamada"
+                onClick={() => void open("diagnostics")}
+              >
+                <Activity size={17} />
+              </button>
+              <button
+                className="icon-button"
                 title="Sair do canal de voz"
                 onClick={() => void run(leaveVoice)}
               >
-                <PhoneOff size={19} />
+                <PhoneOff size={17} />
               </button>
             </div>
           )}
-          <footer className="profile-bar">
+          <footer className={"profile-bar " + (callView ? "in-call" : "")}>
             <button
               className="profile-identity"
               onClick={() => void open("profile")}
               title="Editar perfil"
             >
-              <span className="avatar-with-presence">
+              <span
+                className={
+                  "avatar-with-presence " +
+                  (media.speaking.has(selfId) ? "is-speaking" : "")
+                }
+              >
                 <Avatar avatar={profile.avatar} />
                 <Presence value={online ? profile.presence : "offline"} />
               </span>
@@ -1223,46 +1267,53 @@ export function App() {
                 </small>
               </span>
             </button>
+            <>
+                <button
+                  className={
+                    "icon-button profile-audio " +
+                    (muted || deafened ? "danger-text" : "")
+                  }
+                  disabled={deafened}
+                  aria-pressed={muted || deafened}
+                  title={muted ? "Ativar microfone" : "Mutar microfone"}
+                  aria-label={muted ? "Ativar microfone" : "Mutar microfone"}
+                  onClick={() => void run(toggleMute)}
+                >
+                  <ParticipantStatus
+                    muted={muted || deafened}
+                    deafened={false}
+                    showMicrophone
+                    microphoneState={engine.microphoneState()}
+                    speaking={media.speaking.has(selfId)}
+                  />
+                </button>
+                <button
+                  className={
+                    "icon-button profile-audio " +
+                    (deafened ? "danger-text" : "")
+                  }
+                  title={deafened ? "Desativar Deafen" : "Silenciar áudio"}
+                  aria-label={
+                    deafened ? "Desativar Deafen" : "Silenciar áudio"
+                  }
+                  aria-pressed={deafened}
+                  onClick={() => void run(toggleDeafen)}
+                >
+                  {deafened ? (
+                    <HeadphoneOff size={18} />
+                  ) : (
+                    <Headphones size={18} />
+                  )}
+                </button>
+            </>
             <button
-              className={muted || deafened ? "danger-text" : ""}
-              disabled={deafened}
-              aria-pressed={muted || deafened}
-              title={muted ? "Ativar microfone" : "Mutar microfone"}
-              aria-label={muted ? "Ativar microfone" : "Mutar microfone"}
-              onClick={() => void run(toggleMute)}
+              className="icon-button"
+              title="Configurações"
+              onClick={() => void open("profile")}
             >
-              <ParticipantStatus
-                muted={muted || deafened}
-                deafened={false}
-                showMicrophone
-                microphoneState={engine.microphoneState()}
-                speaking={media.speaking.has(selfId)}
-              />
-            </button>
-            <button
-              title={deafened ? "Desativar Deafen" : "Silenciar áudio"}
-              aria-label={deafened ? "Desativar Deafen" : "Silenciar áudio"}
-              aria-pressed={deafened}
-              onClick={() => void run(toggleDeafen)}
-            >
-              {deafened ? <HeadphoneOff size={18} /> : <Headphones size={18} />}
-            </button>
-            <button title="Configurações" onClick={() => void open("profile")}>
               <Settings size={18} />
             </button>
           </footer>
-          <a
-            className="creator-credit"
-            href="https://devbarros.com/"
-            onClick={(e) => {
-              e.preventDefault();
-              void window.voxy
-                .openExternal("https://devbarros.com/")
-                .catch((e) => setError(e.message));
-            }}
-          >
-            Criado por devbarros.com
-          </a>
         </aside>
         <main className="workspace">
           <RemoteUpdate compact />
@@ -1276,6 +1327,8 @@ export function App() {
                 <Megaphone />
               ) : page === "home" ? (
                 <AudioLines />
+              ) : page === "friends" ? (
+                <Users />
               ) : channel?.kind === "voice" ? (
                 <Volume2 />
               ) : (
@@ -1292,7 +1345,7 @@ export function App() {
                       : page === "news"
                         ? "Novidades do Voxy"
                         : page === "home"
-                          ? "Home"
+                          ? "Início"
                           : (channel?.name ?? "Bem-vindo ao Voxy")}
               </strong>
               <span className="header-description">
@@ -1302,20 +1355,70 @@ export function App() {
                     ? "Versões e novidades"
                     : page === "home"
                       ? "Seu ponto de encontro"
-                      : channel?.kind === "voice"
-                        ? "Converse. Mostre. Fique por perto."
-                        : "Um lugar só para vocês."}
+                      : page === "friends"
+                        ? "Pedidos, amigos e conversas"
+                        : page === "notifications"
+                          ? "Menções, mensagens e avisos"
+                          : channel?.kind === "voice"
+                            ? (() => {
+                                const n = room.participants.filter(
+                                  (p) => p.channelId === channel.id,
+                                ).length;
+                                return n === 1
+                                  ? "1 participante"
+                                  : n + " participantes";
+                              })()
+                            : "Um lugar só para vocês."}
               </span>
             </div>
-            <div>
+            <div className="workspace-actions">
+              {callView && (
+                <span
+                  className={
+                    "quality-pill " +
+                    (media.callStage === "failed"
+                      ? "failed"
+                      : voiceConnected
+                        ? "connected"
+                        : "pending")
+                  }
+                  role="status"
+                >
+                  <SignalHigh size={14} aria-hidden="true" />
+                  {media.callStage === "failed"
+                    ? "Sem conexão"
+                    : voiceConnected
+                      ? "Conectado" +
+                        (latency !== undefined ? " · " + latency + " ms" : "")
+                      : "Conectando…"}
+                </span>
+              )}
+              {page === "room" && online && channel?.kind === "text" && (
+                <button
+                  className="icon-button"
+                  title={
+                    membersOpen ? "Ocultar participantes" : "Mostrar participantes"
+                  }
+                  aria-pressed={membersOpen}
+                  onClick={() => setMembersOpen(!membersOpen)}
+                >
+                  {membersOpen ? (
+                    <PanelRightClose size={18} />
+                  ) : (
+                    <PanelRightOpen size={18} />
+                  )}
+                </button>
+              )}
               <button
+                className="icon-button"
                 title="Diagnóstico de conexão"
                 onClick={() => void open("diagnostics")}
               >
-                <Network size={19} />
+                <Network size={18} />
               </button>
               {online && (
                 <button
+                  className="icon-button"
                   title="Desconectar da sala"
                   onClick={() =>
                     void run(async () => {
@@ -1325,7 +1428,7 @@ export function App() {
                     })
                   }
                 >
-                  <LogOut size={19} />
+                  <LogOut size={18} />
                 </button>
               )}
             </div>
@@ -1496,14 +1599,51 @@ export function App() {
             <ReleaseChannel />
           ) : page === "home" || !online ? (
             <Home
+              name={profile.name}
               theme={profile.theme}
               saved={saved}
               busy={busy}
               host={() => void open("host")}
               join={() => void open("join")}
+              create={() => void open(online ? "server" : "host")}
+              canCreate={!online || !!me?.host}
               reconnect={(id) => void run(() => reconnectSaved(id))}
+              room={room}
+              online={online}
+              selfId={selfId}
+              serverId={serverId}
+              speaking={media.speaking}
+              muted={muted}
+              deafened={deafened}
+              onMute={() => void run(toggleMute)}
+              onDeafen={() => void run(toggleDeafen)}
+              openCall={() => {
+                if (!voice) return;
+                setServerId(voice.serverId);
+                setChannelId(voice.id);
+                setPage("room");
+              }}
+              openChannel={(server, id) => {
+                setServerId(server);
+                setChannelId(id);
+                setPage("room");
+              }}
+              selectServer={(id) => {
+                setServerId(id);
+                setPage("room");
+                void window.voxy
+                  .visitServer(id)
+                  .catch((e) => setError(e.message));
+              }}
+              credit={() =>
+                void window.voxy
+                  .openExternal("https://devbarros.com/")
+                  .catch((e) => setError(e.message))
+              }
             />
           ) : channel?.kind === "text" ? (
+            <div className="chat-layout">
+            <div className="chat-column">
             <Chat
               locateMessage={
                 locatedMessage?.channelId === channelId
@@ -1534,22 +1674,35 @@ export function App() {
                 command({ type: "message", channelId, text, image, replyTo })
               }
             />
+            </div>
+            {membersOpen && (
+              <MembersPanel
+                room={room}
+                serverId={serverId}
+                selfId={selfId}
+                speaking={media.speaking}
+                onMenu={(id, x, y) => setParticipantAudio({ id, x, y })}
+                onOpen={(p) =>
+                  p.id === selfId
+                    ? void open("profile")
+                    : inbox.activeScope &&
+                      openDirect({
+                        scope: inbox.activeScope,
+                        peer: p.profile.id,
+                      })
+                }
+              />
+            )}
+            </div>
           ) : channel?.kind === "voice" ? (
-            <section className="call-view">
-              <div className="call-heading">
-                <div>
-                  <span className="eyebrow">Sala de voz</span>
-                  <h1>{channel.name}</h1>
-                </div>
-                <span className="people-count">
-                  <Users size={16} />
-                  {
-                    room.participants.filter((p) => p.channelId === channelId)
-                      .length
-                  }{" "}
-                  por aqui
-                </span>
-              </div>
+            <div className="chat-layout call-layout">
+            <section
+              className={
+                "call-view " +
+                (me?.channelId === channelId ? "joined " : "") +
+                (roomMode && me?.channelId === channelId ? "room-active" : "")
+              }
+            >
               {me?.channelId === channelId &&
                 channel.roomPreset &&
                 room.features?.rooms3d && (
@@ -1652,130 +1805,159 @@ export function App() {
                     </Suspense>
                   </RoomBoundary>
                 )}
-              {me?.channelId === channelId && (
-                <MediaGallery
-                  television={roomMode ? tvSource : undefined}
-                  onPictureInPicture={setPipActive}
-                  background={background}
-                  participants={peers}
-                  selfId={selfId}
-                  media={media}
-                  profile={profile}
-                  deafened={deafened}
-                  focus={
-                    watchCamera
-                      ? "camera:" + watchCamera
-                      : watch
-                        ? "screen:" + watch
-                        : null
-                  }
-                  onFocus={(key) => {
-                    setWatch(key?.startsWith("screen:") ? key.slice(7) : null);
-                    setWatchCamera(
-                      key?.startsWith("camera:") ? key.slice(7) : null,
-                    );
-                  }}
-                  onViewing={(screens, cameras) =>
-                    engine.setViewing(screens, cameras)
-                  }
-                  onVolume={(id, value) =>
-                    saveParticipantVolume(id, value, true)
-                  }
-                />
-              )}
               <div
                 className={
-                  "participant-grid " +
-                  (roomMode && me?.channelId === channelId
-                    ? "room-participants"
+                  "call-stage " +
+                  (me?.channelId === channelId &&
+                  peers.some((p) => p.sharing || p.camera)
+                    ? "has-media"
                     : "")
                 }
               >
-                {room.participants
-                  .filter((p) => p.channelId === channelId)
-                  .map((p) => (
-                    <article
-                      onContextMenu={(e) => {
-                        if (p.id !== selfId) {
-                          e.preventDefault();
-                          setParticipantAudio({
-                            id: p.id,
-                            x: e.clientX,
-                            y: e.clientY,
-                          });
-                        }
-                      }}
-                      key={p.id}
-                      className={
-                        "participant-card " +
-                        (media.speaking.has(p.id) ? "talking" : "")
-                      }
-                    >
-                      <Avatar
-                        className="large-avatar"
-                        avatar={p.profile.avatar}
-                      />
-                      <div className="participant-name">
-                        <span
-                          style={{
-                            color: nicknameColor(room, serverId, p.profile),
-                          }}
-                        >
-                          {p.profile.name}
-                          {p.id === selfId ? " (você)" : ""}
-                        </span>
-                        <RoleBadges
-                          roles={memberRoles(room, serverId, p.profile.id)}
-                        />
-                        <Presence value={p.profile.presence} label />
-                        <ParticipantStatus
-                          muted={p.muted}
-                          microphoneState={p.microphoneState}
-                          speaking={media.speaking.has(p.id)}
-                          deafened={p.deafened}
-                          showMicrophone
-                          locallyMuted={
-                            !!profile.mutedParticipants?.[p.profile.id]
-                          }
-                        />
-                      </div>
-                      {p.sharing && (
-                        <button
-                          className="watch-button"
-                          onClick={() => setWatch(p.id)}
-                        >
-                          <MonitorUp size={16} /> Assistir à tela
-                        </button>
-                      )}
-                      {p.id !== selfId && p.channelId === me?.channelId && (
-                        <button
-                          className="participant-options"
-                          aria-label={"Opções de " + p.profile.name}
-                          onClick={(e) => {
-                            const r = e.currentTarget.getBoundingClientRect();
+                {me?.channelId === channelId && (
+                  <MediaGallery
+                    television={roomMode ? tvSource : undefined}
+                    onPictureInPicture={setPipActive}
+                    background={background}
+                    participants={peers}
+                    selfId={selfId}
+                    media={media}
+                    profile={profile}
+                    deafened={deafened}
+                    focus={
+                      watchCamera
+                        ? "camera:" + watchCamera
+                        : watch
+                          ? "screen:" + watch
+                          : null
+                    }
+                    onFocus={(key) => {
+                      setWatch(key?.startsWith("screen:") ? key.slice(7) : null);
+                      setWatchCamera(
+                        key?.startsWith("camera:") ? key.slice(7) : null,
+                      );
+                    }}
+                    onViewing={(screens, cameras) =>
+                      engine.setViewing(screens, cameras)
+                    }
+                    onVolume={(id, value) =>
+                      saveParticipantVolume(id, value, true)
+                    }
+                  />
+                )}
+                <div
+                  className={
+                    "participant-grid " +
+                    (roomMode && me?.channelId === channelId
+                      ? "room-participants"
+                      : "")
+                  }
+                  data-count={
+                    room.participants.filter((p) => p.channelId === channelId)
+                      .length
+                  }
+                >
+                  {room.participants
+                    .filter((p) => p.channelId === channelId)
+                    .map((p) => (
+                      <article
+                        onContextMenu={(e) => {
+                          if (p.id !== selfId) {
+                            e.preventDefault();
                             setParticipantAudio({
                               id: p.id,
-                              x: r.right,
-                              y: r.bottom,
+                              x: e.clientX,
+                              y: e.clientY,
                             });
-                          }}
-                        >
-                          •••
-                        </button>
-                      )}
-                    </article>
-                  ))}
-                {!room.participants.some((p) => p.channelId === channelId) && (
-                  <div className="call-empty">
-                    <Headphones size={54} />
-                    <h2>Uma conversa começa com você.</h2>
-                    <p>Entre para falar e compartilhar sua tela.</p>
-                  </div>
-                )}
+                          }
+                        }}
+                        key={p.id}
+                        className={
+                          "participant-card " +
+                          (media.speaking.has(p.id) ? "talking " : "") +
+                          (p.id === selfId ? "self" : "")
+                        }
+                      >
+                        <div className="tile-badges">
+                          {p.sharing && (
+                            <span className="live-label">Ao vivo</span>
+                          )}
+                          {p.camera && (
+                            <span className="tile-badge">
+                              <Video size={12} aria-hidden="true" /> Câmera
+                            </span>
+                          )}
+                          <RoleBadges
+                            roles={memberRoles(room, serverId, p.profile.id)}
+                          />
+                        </div>
+                        <Avatar
+                          className="large-avatar"
+                          avatar={p.profile.avatar}
+                        />
+                        <div className="participant-name">
+                          <span
+                            style={{
+                              color: nicknameColor(room, serverId, p.profile),
+                            }}
+                          >
+                            {p.profile.name}
+                            {p.id === selfId ? " (você)" : ""}
+                          </span>
+                          <Presence value={p.profile.presence} />
+                          <ParticipantStatus
+                            muted={p.muted}
+                            microphoneState={p.microphoneState}
+                            speaking={media.speaking.has(p.id)}
+                            deafened={p.deafened}
+                            locallyMuted={
+                              !!profile.mutedParticipants?.[p.profile.id]
+                            }
+                          />
+                        </div>
+                        {p.sharing && (
+                          <button
+                            className="watch-button"
+                            onClick={() => {
+                              setWatchCamera(null);
+                              setWatch(p.id);
+                            }}
+                          >
+                            <MonitorUp size={15} /> Assistir à tela
+                          </button>
+                        )}
+                        {p.id !== selfId && p.channelId === me?.channelId && (
+                          <button
+                            className="participant-options"
+                            aria-label={"Opções de " + p.profile.name}
+                            title={"Opções de " + p.profile.name}
+                            onClick={(e) => {
+                              const r = e.currentTarget.getBoundingClientRect();
+                              setParticipantAudio({
+                                id: p.id,
+                                x: r.right,
+                                y: r.bottom,
+                              });
+                            }}
+                          >
+                            <MoreHorizontal size={17} />
+                          </button>
+                        )}
+                      </article>
+                    ))}
+                  {!room.participants.some((p) => p.channelId === channelId) && (
+                    <div className="call-empty">
+                      <span className="empty-badge">
+                        <Headphones size={26} />
+                      </span>
+                      <h2>Ninguém na sala ainda</h2>
+                      <p>Entre para falar, mostrar sua tela ou ligar a câmera.</p>
+                    </div>
+                  )}
+                </div>
               </div>
-
-              {me?.channelId === channelId && streams.length > 0 && (
-                <div className="stream-list">
+              {me?.channelId === channelId && streams.length > 1 && (
+                <div className="stream-list" aria-label="Transmissões ao vivo">
                   {streams.map((p) => (
                     <button
                       key={p.id}
@@ -1785,125 +1967,57 @@ export function App() {
                         setWatch(p.id);
                       }}
                     >
-                      <MonitorUp size={16} />
+                      <MonitorUp size={15} />
                       {p.profile.name}
                       <span className="live-label">Ao vivo</span>
                     </button>
                   ))}
                 </div>
               )}
-              <div className="call-controls">
-                {me?.channelId === channelId ? (
-                  <>
-                    <button
-                      className={
-                        "control " + (media.cameraActive ? "camera-on" : "")
-                      }
-                      title={
-                        media.cameraActive ? "Desligar câmera" : "Ativar câmera"
-                      }
-                      disabled={busy}
-                      onClick={() =>
-                        media.cameraActive
-                          ? void run(() => engine.stopCamera())
-                          : void open("camera")
-                      }
-                    >
-                      {media.cameraActive ? <VideoOff /> : <Video />}
-                    </button>
-                    {media.cameraActive && (
-                      <button
-                        title="Trocar câmera"
-                        disabled={busy}
-                        onClick={() => void open("camera")}
-                      >
-                        <Settings size={16} />
-                      </button>
-                    )}
-                    <button
-                      className={
-                        "control " + (muted || deafened ? "muted" : "")
-                      }
-                      disabled={deafened}
-                      aria-pressed={muted || deafened}
-                      title={muted ? "Ativar microfone" : "Mutar microfone"}
-                      aria-label={
-                        muted ? "Ativar microfone" : "Mutar microfone"
-                      }
-                      onClick={() => void run(toggleMute)}
-                    >
-                      <ParticipantStatus
-                        muted={muted || deafened}
-                        deafened={false}
-                        showMicrophone
-                        microphoneState={engine.microphoneState()}
-                        speaking={media.speaking.has(selfId)}
-                      />
-                    </button>
-                    <button
-                      className="control"
-                      title={deafened ? "Desativar Deafen" : "Silenciar áudio"}
-                      aria-label={
-                        deafened ? "Desativar Deafen" : "Silenciar áudio"
-                      }
-                      aria-pressed={deafened}
-                      onClick={() => void run(toggleDeafen)}
-                    >
-                      {deafened ? <HeadphoneOff /> : <Headphones />}
-                    </button>
-                    <button
-                      className={
-                        "share-control " + (media.sharing ? "sharing" : "")
-                      }
-                      disabled={busy}
-                      onClick={() =>
-                        media.sharing
-                          ? void run(() => engine.stopShare())
-                          : void open("share")
-                      }
-                    >
-                      <MonitorUp size={21} />
-                      {media.sharing
-                        ? "Parar transmissão"
-                        : "Compartilhar tela"}
-                    </button>
-                    {media.sharing && (
-                      <select
-                        aria-label="Qualidade da transmissão"
-                        value={quality}
-                        onChange={(e) => {
-                          const q = e.target.value as Quality;
-                          setQuality(q);
-                          void run(() => engine.setQuality(q));
-                        }}
-                      >
-                        {Object.entries(qualities).map(([id, q]) => (
-                          <option key={id} value={id}>
-                            {q.height}p / {q.fps} FPS
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                    <button
-                      className="control hangup"
-                      title="Sair do canal de voz"
-                      onClick={() => void run(leaveVoice)}
-                    >
-                      <PhoneOff />
-                    </button>
-                  </>
-                ) : (
+              {me?.channelId === channelId ? (
+                <CallDock
+                  busy={busy}
+                  muted={muted}
+                  deafened={deafened}
+                  microphoneState={engine.microphoneState()}
+                  speaking={media.speaking.has(selfId)}
+                  cameraActive={!!media.cameraActive}
+                  sharing={media.sharing}
+                  quality={quality}
+                  onMute={() => void run(toggleMute)}
+                  onDeafen={() => void run(toggleDeafen)}
+                  onCamera={() =>
+                    media.cameraActive
+                      ? void run(() => engine.stopCamera())
+                      : void open("camera")
+                  }
+                  onSwitchCamera={() => void open("camera")}
+                  onShare={() =>
+                    media.sharing
+                      ? void run(() => engine.stopShare())
+                      : void open("share")
+                  }
+                  onQuality={(q) => {
+                    setQuality(q);
+                    void run(() => engine.setQuality(q));
+                  }}
+                  onSettings={() => void open("profile", "Áudio e Voz")}
+                  onLeave={() => void run(leaveVoice)}
+                />
+              ) : (
+                <div className="call-join">
                   <button
                     className="primary"
                     disabled={busy}
                     onClick={() => void joinVoice(channel)}
                   >
-                    <Headphones size={20} />
+                    <Headphones size={18} />
                     {busy ? "Conectando…" : "Entrar na conversa"}
                   </button>
-                )}
-              </div>
+                </div>
+              )}
             </section>
+            </div>
           ) : (
             <div className="welcome">
               <h1>Seu servidor está pronto.</h1>
@@ -2026,7 +2140,11 @@ export function App() {
         {dialog && (
           <Modal
             variant={
-              dialog === "profile" || dialog === "manage" ? "hub" : "standard"
+              dialog === "profile" || dialog === "manage"
+                ? "hub"
+                : dialog === "share"
+                  ? "wide"
+                  : "standard"
             }
             title={
               {
@@ -2231,6 +2349,7 @@ export function App() {
                 systemAudio={systemAudio}
                 setSystemAudio={setSystemAudio}
                 busy={busy}
+                onCancel={() => setDialog(null)}
                 onShare={() =>
                   void run(async () => {
                     await engine.share(source, systemAudio, quality);

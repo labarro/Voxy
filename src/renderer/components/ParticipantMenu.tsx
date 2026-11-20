@@ -4,6 +4,8 @@ import type { Participant, ServerRole } from "../../shared/types";
 import { Avatar } from "./Avatar";
 import { Presence } from "./Presence";
 import { RoleBadges } from "./Roles";
+import { MessageCircle, Phone, UserPlus, Volume2, VolumeX, X } from "lucide-react";
+import type React from "react";
 
 export function ParticipantMenu({
   x,
@@ -109,56 +111,92 @@ export function ParticipantMenu({
       aria-label={"Perfil de " + name}
       onContextMenu={(e) => e.preventDefault()}
     >
-      {profile && (
-        <>
+      <div className={"mini-profile-top " + (profile ? "" : "plain")}>
+        {profile && (
           <div className="profile-banner">
             {banner ? (
               <img src={banner} alt={"Capa de " + name} />
             ) : (
-              <span aria-hidden="true">✦</span>
+              <span aria-hidden="true" />
             )}
           </div>
-          <Avatar avatar={profile.avatar} className="mini-profile-avatar" />
-        </>
-      )}
-      <strong style={{ color }}>{name}</strong>
-      {bannerError && (
-        <small>Capa indisponível. Abra o perfil novamente para tentar.</small>
-      )}
-      {profile && (
-        <Presence value={offline ? "offline" : profile.presence} label />
-      )}
-      <RoleBadges roles={roles} />
-      {audioAvailable && (
-        <>
-          <button type="button" onClick={toggleMute} aria-pressed={muted}>
-            {muted ? "Ouvir voz novamente" : "Mutar voz para mim"}
-          </button>
-          <label>
-            Volume individual <output>{Math.round(volume * 100)}%</output>
-            <input
-              aria-label={"Volume de " + name}
-              type="range"
-              min="0"
-              max="2"
-              step="0.05"
-              value={volume}
-              onChange={(e) => changeVolume(Number(e.target.value))}
-            />
-          </label>
-          <small>Somente a voz, para você.</small>
-        </>
-      )}
-      {direct && (
-        <button type="button" onClick={direct}>
-          Mensagem privada
+        )}
+        <button
+          type="button"
+          className="menu-close"
+          aria-label="Fechar"
+          title="Fechar"
+          onClick={close}
+        >
+          <X size={16} />
         </button>
-      )}
-      {addFriend && <button onClick={addFriend}>Adicionar amigo</button>}
-      {call && <button onClick={call}>Ligar</button>}
-      <button type="button" className="menu-close" onClick={close}>
-        Fechar
-      </button>
+        {profile && (
+          <Avatar avatar={profile.avatar} className="mini-profile-avatar" />
+        )}
+      </div>
+      <div className="mini-profile-body">
+        <strong className="mini-profile-name" style={{ color }}>
+          {name}
+        </strong>
+        {profile && (
+          <Presence value={offline ? "offline" : profile.presence} label />
+        )}
+        {bannerError && (
+          <small>Capa indisponível. Abra o perfil novamente para tentar.</small>
+        )}
+        <RoleBadges roles={roles} />
+        {(direct || addFriend || call) && (
+          <div className="mini-profile-actions">
+            {direct && (
+              <button type="button" className="primary" onClick={direct}>
+                <MessageCircle size={15} /> Mensagem privada
+              </button>
+            )}
+            {call && (
+              <button type="button" className="secondary" onClick={call}>
+                <Phone size={15} /> Ligar
+              </button>
+            )}
+            {addFriend && (
+              <button type="button" className="secondary" onClick={addFriend}>
+                <UserPlus size={15} /> Adicionar amigo
+              </button>
+            )}
+          </div>
+        )}
+        {audioAvailable && (
+          <div className="mini-profile-audio">
+            <label>
+              <span>
+                Volume individual <output>{Math.round(volume * 100)}%</output>
+              </span>
+              <span className="volume-row">
+                <Volume2 size={15} aria-hidden="true" />
+                <input
+                  aria-label={"Volume de " + name}
+                  type="range"
+                  min="0"
+                  max="2"
+                  step="0.05"
+                  value={volume}
+                  style={{ "--fill": (volume / 2) * 100 + "%" } as React.CSSProperties}
+                  onChange={(e) => changeVolume(Number(e.target.value))}
+                />
+              </span>
+            </label>
+            <button
+              type="button"
+              className={"secondary " + (muted ? "is-alert" : "")}
+              onClick={toggleMute}
+              aria-pressed={muted}
+            >
+              {muted ? <Volume2 size={15} /> : <VolumeX size={15} />}
+              {muted ? "Ouvir voz novamente" : "Mutar voz para mim"}
+            </button>
+            <small>Somente a voz, para você.</small>
+          </div>
+        )}
+      </div>
     </div>,
     document.body,
   );

@@ -9,7 +9,7 @@ export function Modal({
   title: string;
   close: () => void;
   children: ReactNode;
-  variant?: "standard" | "hub";
+  variant?: "standard" | "hub" | "wide";
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -19,7 +19,13 @@ export function Modal({
   return (
     <dialog
       ref={ref}
-      className={variant === "hub" ? "hub-dialog" : undefined}
+      className={
+        variant === "hub"
+          ? "hub-dialog"
+          : variant === "wide"
+            ? "wide-dialog"
+            : undefined
+      }
       aria-label={title}
       onCancel={(e) => {
         e.preventDefault();
@@ -31,8 +37,13 @@ export function Modal({
     >
       <header className="dialog-heading">
         <h2>{title}</h2>
-        <button title="Fechar" onClick={close}>
-          <X size={20} />
+        <button
+          className="icon-button"
+          title="Fechar"
+          aria-label="Fechar"
+          onClick={close}
+        >
+          <X size={18} />
         </button>
       </header>
       {children}

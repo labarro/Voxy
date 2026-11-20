@@ -11,6 +11,7 @@ import {
   shell,
   Tray,
   Menu,
+  screen,
 } from "electron";
 import { externalUrl } from "../shared/links";
 import { spawn } from "node:child_process";
@@ -609,12 +610,12 @@ app.whenReady().then(async () => {
     height: 820,
     minWidth: 900,
     minHeight: 620,
-    backgroundColor: "#232b3b",
+    backgroundColor: "#0a0c11",
     title: "Voxy",
     icon: identity.icon,
     show: !startHidden(process.argv),
     titleBarStyle: "hidden",
-    titleBarOverlay: { color: "#141e26", symbolColor: "#e7edf9", height: 36 },
+    titleBarOverlay: { color: "#0a0c11", symbolColor: "#eceef3", height: 36 },
     autoHideMenuBar: true,
     webPreferences: {
       preload: join(__dirname, "../preload/index.cjs"),
@@ -1102,11 +1103,28 @@ app.whenReady().then(async () => {
       thumbnailSize: { width: 320, height: 180 },
       fetchWindowIcons: false,
     });
-    return sources.map((s) => ({
-      id: s.id,
-      name: s.name,
-      thumbnail: s.thumbnail.toDataURL(),
-    }));
+    // 1.5: optional monitor label for the redesigned picker (presentation only).
+    const displays = screen.getAllDisplays();
+    const primary = screen.getPrimaryDisplay().id;
+    return sources.map((s) => {
+      const d = s.id.startsWith("screen:")
+        ? displays.find((x) => String(x.id) === s.display_id)
+        : undefined;
+      return {
+        id: s.id,
+        name: s.name,
+        thumbnail: s.thumbnail.toDataURL(),
+        ...(d
+          ? {
+              display:
+                Math.round(d.size.width * d.scaleFactor) +
+                " × " +
+                Math.round(d.size.height * d.scaleFactor) +
+                (d.id === primary ? " · Principal" : ""),
+            }
+          : {}),
+      };
+    });
   });
   handle("selectSource", async (raw) => {
     const v = z

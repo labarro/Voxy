@@ -57,6 +57,7 @@ export async function gameClients(count: number, label: string, port: number) {
           ".",
           "--use-fake-ui-for-media-stream",
           "--use-fake-device-for-media-stream",
+          "--mute-audio",
         ],
         env,
       });

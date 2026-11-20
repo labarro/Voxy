@@ -43,6 +43,7 @@ async function main() {
         ".",
         "--use-fake-ui-for-media-stream",
         "--use-fake-device-for-media-stream",
+          "--mute-audio",
       ],
       env,
     });
@@ -229,6 +230,11 @@ async function main() {
     results.push(
       "Tentar um servidor salvo indisponível preserva a conexão e a chamada atuais.",
     );
+    // 1.5: the member list lives beside the chat (not over the call lobby);
+    // opening a text channel keeps the call connected.
+    for (const p of [b, c])
+      await p.getByRole("button", { name: /^projetos/ }).first().click();
+    assert.equal(await b.locator(".voice-status").count(), 1);
     await settingsPresence(0, "away");
     await b
       .locator(".member-row")

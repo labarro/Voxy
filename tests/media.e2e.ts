@@ -69,6 +69,7 @@ async function main() {
     args: [
       "--use-fake-ui-for-media-stream",
       "--use-fake-device-for-media-stream",
+      "--mute-audio",
       "--autoplay-policy=no-user-gesture-required",
     ],
   });

@@ -58,6 +58,7 @@ async function main() {
         args: [
           ...(packed ? [] : ["."]),
           "--use-fake-device-for-media-stream",
+          "--mute-audio",
           "--use-fake-ui-for-media-stream",
           ...(process.env.CI || process.env.VOXY_TEST_SOFTWARE_GL
             ? [

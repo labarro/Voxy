@@ -172,6 +172,13 @@ async function main() {
     await page
       .getByRole("button", { name: "Parar transmissão", exact: true })
       .click();
+    await page.getByRole("button", { name: "Ativar câmera" }).first().click();
+    await page
+      .getByRole("button", { name: "Ligar câmera selecionada", exact: true })
+      .click();
+    await page.locator("dialog[open]").waitFor({ state: "detached" });
+    await sample("camera");
+    await page.getByRole("button", { name: "Desligar câmera" }).first().click();
     for (let i = 0; i < 5; i++) {
       await page
         .getByTitle("Sair do canal de voz", { exact: true })

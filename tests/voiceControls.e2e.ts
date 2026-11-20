@@ -20,6 +20,7 @@ async function main() {
     args: [
       ".",
       "--use-fake-device-for-media-stream",
+          "--mute-audio",
       "--use-fake-ui-for-media-stream",
     ],
     env,
@@ -154,7 +155,7 @@ async function main() {
     await page.waitForFunction(
       () =>
         getComputedStyle(document.querySelector(".window-titlebar")!)
-          .backgroundColor === "rgb(24, 21, 31)",
+          .backgroundColor === "rgb(17, 12, 21)", // Kuromi base (1.5 palette)
     );
     await page.screenshot({ path: join(root, "kuromi-titlebar.png") });
     await app.evaluate(({ BrowserWindow }) =>

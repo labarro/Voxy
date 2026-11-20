@@ -45,6 +45,7 @@ async function main() {
         args: [
           ".",
           "--use-fake-ui-for-media-stream",
+          "--mute-audio",
           ...(testCamera ? ["--use-fake-device-for-media-stream"] : []),
         ],
         env,

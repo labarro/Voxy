@@ -21,8 +21,13 @@ const ref = JSON.parse(await get(`${base}/git/ref/tags/v${version}`));
 const commit = execFileSync("git", ["rev-list", "-n", "1", `v${version}`], {
   encoding: "utf8",
 }).trim();
-assert.equal(ref.object.type, "commit");
-assert.equal(ref.object.sha, commit);
+// Annotated tags point to a tag object; resolve it to the tagged commit.
+const tagged =
+  ref.object.type === "tag"
+    ? JSON.parse(await get(`${base}/git/tags/${ref.object.sha}`)).object
+    : ref.object;
+assert.equal(tagged.type, "commit");
+assert.equal(tagged.sha, commit);
 const runs = JSON.parse(
   await get(`${base}/actions/workflows/release.yml/runs?per_page=10`),
 );

@@ -1,5 +1,23 @@
 # Validação do Voxy
 
+## Voxy 1.5.0 — Visual Update
+
+Redesign visual sobre a base 1.4.1 (`7df27bc`, código idêntico à tag `v1.4.1`). Validações automatizadas com dispositivos sintéticos, dois a dez clientes Electron reais em loopback e perfis isolados (`VOXY_DATA_DIR`); não substituem homologação com microfones físicos e dois computadores pela VPN.
+
+**Passaram:** `npm test` (83), `npm run build`, `test:ui` (12 páginas de configurações, 7 de administração, host/entrada reais, cargos, imagem do servidor, canais, quatro temas, Kuromi e movimento reduzido), `test:ux`, `test:social`, `test:controls` (atalhos globais, Deafen, barra do Kuromi), `test:media` (dez clientes, sons e transmissão), `test:gallery`, `test:system` (notificações, PiP, bandeja), `test:rooms3d:app`, `test:games:social` e `test:games:pool` (partida completa, 4×3).
+
+**Corrigido durante a validação:** rótulo "· Conectado" no painel de perfil; controles de microfone/fone do painel mantidos no DOM (ocultos só na tela da chamada); tooltip seguindo títulos dinâmicos (PiP); ações do chat dentro da própria mensagem e sempre clicáveis; disponibilidade do servidor conectado na Home; animação de diálogo só com opacidade; nome acessível exato nos botões principais da Home.
+
+**Ajustes de teste:** `test:controls` compara a barra de título com a nova cor base do Kuromi (`#110c15`); `test:ux` verifica a presença no painel de participantes do chat (o painel não aparece sobre o lobby de voz, a pedido); suítes de interface rodam com `--mute-audio` para não reproduzir os bipes do microfone sintético.
+
+**Não repetidos nesta entrega (pipelines não alterados):** `test:games:truco` e `test:games:chess` (interrompidos por decisão do responsável após UI, 3D, social e sinuca passarem), `test:audio`, `test:capture`, `test:calls`, `test:calls:radmin`, `test:ptt`, `test:microphone`.
+
+**Pré-existente:** `test:desktop` falha na 1.4.1 limpa já na primeira verificação (diálogo de configurações 5 px fora do centro) e está desatualizado desde a 1.3; na 1.5.0 avança até a aba de áudio, onde espera um controle que fica na sub-aba Sensibilidade desde a 1.3.
+
+**Visual:** `tests/visual-tour.e2e.ts` percorre Home, servidores, chat, DM, mini perfil, lobby de voz, câmera própria/remota, seletor de compartilhamento (fontes sintéticas), configurações, administração, Kuromi e sala 3D em 1280×720, 1600×900, 1920×1080 e janela maximizada. Antes: `evidence/1.5/visual/before`; depois: `evidence/1.5/visual/after`; referência nativa: `evidence/native-2.0/visual/after`. Escalas de DPI acima de 100 % não foram testadas automaticamente.
+
+**Desempenho:** baseline da 1.4.1 com `tests/resources.performance.ts` (Home 553 MiB, servidor 565, voz 575, minimizado 573, 3D 670, compartilhando 669, câmera 662 MiB de working set; CPU ≤ 2,3 %). Comparação da 1.5.0 em `evidence/1.5/performance/`.
+
 ## Versão 1.4.0 — 13/11/2026
 
 Passaram `npm test` (81 testes) e `npm run build`. O [workflow de release](https://github.com/labarro/Voxy/actions/runs/43536372778) concluiu os testes, geração do instalador, teste do executável empacotado/persistência e publicação. Os cinco artefatos foram baixados e conferidos contra o catálogo assinado, hashes e endpoint público. [Evidência](evidence/publication-1.4.0.json).

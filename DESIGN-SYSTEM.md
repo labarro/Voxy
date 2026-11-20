@@ -1,4 +1,67 @@
-# Interface do Voxy · 1.3.0
+# Interface do Voxy
+
+## Voxy 1.5 — "Nocturne glass" no Electron
+
+A 1.5.0 (Visual Update) leva para a arquitetura Electron a identidade criada nas betas nativas do Voxy 2.0 (`native/crates/voxy-desktop/src/design.rs` na branch `migration/2.0-native-audit`, hoje congelada). A referência foi usada apenas visualmente: voz, mídia, rede, IPC, persistência, 3D e jogos continuam os da 1.4.1.
+
+### Arquivos
+
+| Arquivo | Papel |
+| :-- | :-- |
+| `src/renderer/styles/tokens.css` | Tokens: superfícies, texto, estados de comunicação, tipografia, espaçamento, raios, sombras, camadas (z-index), movimento e "Reduzir efeitos". |
+| `src/renderer/styles/nocturne.css` | Componentes (botões, campos, switch, slider, tooltip, avatar, presença, badges, diálogos, menus) e telas (barra de título, trilho, lateral, Home, chat, chamada, compartilhamento, hubs, mini perfil). Carregado por último. |
+| `components/Personalization.tsx` | Paletas dos quatro temas e `themeVariables`, que aplica os tokens em tempo de execução (shell e prévia das configurações). |
+| `style.css`, `design-system.css`, `room3d/rooms.css` | Estilos de funcionalidades da 1.x. As cores fixas foram convertidas para tokens por `scripts/tokenize-css.mjs` (Kuromi preserva sua paleta própria). |
+
+Telas não definem cores, tamanhos ou sombras fora dos tokens.
+
+### Tokens
+
+| Papel | Voxy | Uso |
+| :-- | :-- | :-- |
+| `--vx-base` | `#0a0c11` | Barra de título e piso da janela |
+| `--vx-rail` | `#0b0d12` | Trilho de servidores |
+| `--vx-sidebar` | `#10131a` | Lateral (canais, DMs), navegação dos hubs |
+| `--vx-canvas` | `#13161e` | Área principal, com recorte de 14 px no canto |
+| `--vx-panel` | `#1a1e28` | Cartões, tiles, compositor |
+| `--vx-elevated` | `#222734` | Menus, tooltips, diálogos, dock |
+| `--accent` / `--accent-ink` | `#9b8cff` / `#06051a` | Ação principal, seleção, foco |
+| `--text-primary` / `--text-muted` / `--vx-faint` | `#eceef3` / `#a3a8b6` / `#6c7180` | Texto principal, secundário, terciário |
+| `--vx-speaking` | `#3ddc84` | Anel de fala, presença, conexão ok |
+| `--vx-danger` | `#f2555a` | Mudo, ensurdecido, desconectar, destrutivo |
+| `--vx-warning` | `#f5b94a` | Conectando, reconectando, ausente |
+| `--vx-live` | `#ff4d5e` | Transmissão ao vivo |
+
+Oceano (`#5fc8e6`), Bosque (`#a3cf7e`) e Kuromi (`#f39bcb` + lilás `#b89cf2`, superfícies ameixa e texto rosado) trocam acento e superfícies; fala, perigo, alerta e ao vivo são fixos. A cor principal personalizada continua sobrepondo o acento, com versão legível calculada. `tests/ui-themes.test.ts` verifica o contraste em todos os temas.
+
+Tipografia Segoe UI Variable (local): 11, 12, 13, 14 (corpo), 15, 18, 22, 28. Controles e navegação em peso regular; rótulos e ações em 500–600. Espaçamento em passos de 4 px. Raios 6/10/14/20 e pílula. Área clicável mínima de 36 px (ícones de 30–34 px só em barras densas, sempre com tooltip).
+
+### Materiais e efeitos
+
+"Liquid glass" adaptado ao desktop, como na nativa: superfícies opacas com brilho superior de 3,5–5 % (`--vx-sheen-card`, `--vx-sheen-float`) e contorno de 1 px. Sombras só em camadas flutuantes (tooltips, menus, diálogos, dock da chamada). Não há `backdrop-filter`: o desfoque do fundo dos diálogos da 1.4 foi removido para não custar GPU durante jogos. "Reduzir efeitos"/modo de baixo consumo remove brilho e sombras. Animações limitadas a respostas de ação (abertura de diálogo 160 ms, tooltip 120 ms, switches); `prefers-reduced-motion` zera as durações.
+
+### Componentes
+
+- **Botões:** Primary (acento), Secondary (preenchimento discreto, padrão), Ghost, `icon-button`, estados `is-alert` (mudo/ensurdecido) e `is-active` (ligado). Estado nunca depende só de cor: microfone mudo troca o ícone.
+- **Tooltip** (`components/Tooltip.tsx`): uma camada global lê o `title` existente, mostra um balão após 380 ms, ajustado à janela, sem alterar layout; preserva o nome acessível enquanto aberto.
+- **Avatares:** sempre circulares e recortados (`object-fit: cover`); anel verde de fala com espaço reservado (sem deslocar layout); ponto de presença.
+- **Switch:** todos os checkboxes são interruptores; **slider** com trilho de 4 px e preenchimento por `--fill`.
+- **Dock da chamada** (`components/CallDock.tsx`): microfone e ensurdecer | câmera, trocar câmera, tela e qualidade | configurações | sair (vermelho). Mesmos handlers da 1.4.1.
+- **Painel de participantes** (`components/MembersPanel.tsx`): no chat, "Em chamada" e "Online"; clique abre DM, botão direito abre o mini perfil.
+- **Seletor de compartilhamento** (`components/ShareForm.tsx`): abas Aplicativos/Telas, miniaturas reais, aplicativo e título derivados do nome da janela, resolução do monitor (campo opcional `display` enviado pelo processo principal), qualidade segmentada e interruptor de áudio. Captura e seleção continuam as da 1.4.1.
+
+### Estrutura
+
+Barra de título 36 px (ícone original, "Voxy", versão, contexto; controles nativos do Windows, sem duplicação). Trilho 72 px: Início, Conversas, Amigos, Avisos, servidores (ícone circular com cor estável, pílula de seleção, disponibilidade, não lidas), criar e entrar; Novidades no rodapé. Lateral 252 px: cabeçalho do servidor com status, canais de texto/voz com participantes, cartão de voz (estado, sala, servidor, latência, diagnóstico, sair) e painel de perfil (microfone e ensurdecer ficam ocultos na tela da chamada, onde o dock os oferece).
+
+Chamada: cabeçalho com canal, contagem e pílula de qualidade; grade 16:9 centralizada (tile até 440 px); com câmera ou tela ao vivo, a galeria ocupa o palco e os tiles viram uma faixa; a própria prévia local aparece usando o stream já existente. No modo 3D, a cena ocupa o palco e usa seu próprio dock.
+
+### Verificação
+
+Capturas antes (1.4.1) e depois em `evidence/1.5/visual/`, geradas por `tests/visual-tour.e2e.ts` com dois clientes Electron reais, perfis isolados e fontes de captura sintéticas. Comparação com `evidence/native-2.0/visual/after`. Escalas de DPI diferentes de 100 % dependem de homologação manual.
+
+## Histórico visual 1.3–1.4 (substituído na 1.5)
+
 
 A direção é um espaço de comunicação entre amigos: discreto na estrutura e reconhecível na assinatura de frequência. O launcher oferece dois caminhos claros, entrar e hospedar. Ardósia e azul mineral substituem a base roxa; âmbar identifica acolhimento e conexão, verde indica presença e vermelho sinaliza ações destrutivas. Temas pessoais continuam disponíveis, sem copiar a composição de outro aplicativo.
 

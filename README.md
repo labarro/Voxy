@@ -6,6 +6,24 @@
 
 ### Converse. Mostre. Fique por perto.
 
+## Novidades na versão 1.5.0 — Visual Update (em preparação, não publicada)
+
+**Versão em preparação para homologação. A última versão publicada continua sendo a [1.4.1](https://github.com/labarro/Voxy/releases/tag/v1.4.1)**, e o link de download abaixo aponta para ela. O instalador local da 1.5.0 é gerado em `release/1.5.0/`; nenhuma release pública foi criada.
+
+A 1.5.0 traz para o Voxy Electron a identidade visual desenvolvida nas betas nativas do Voxy 2.0, mantendo a arquitetura, os serviços e as funcionalidades da 1.4.1. A migração nativa em Rust foi **congelada, não descartada**: continua preservada na branch `migration/2.0-native-audit`, com suas tags e betas.
+
+- **Visual "Nocturne glass":** superfícies escuras em camadas com brilho sutil, cores de comunicação fixas (fala em verde, mudo e desconectar em vermelho, ao vivo em vermelho vivo) e um design system centralizado em `src/renderer/styles/`.
+- **Home:** saudação, chamada em andamento com microfone/ensurdecer, chamadas acontecendo agora, servidores conectados e salvos (com disponibilidade e reconexão) e mensagens recentes — só com dados que o aplicativo já tem.
+- **Navegação:** trilho com ícones circulares e pílula de seleção, lateral com status do servidor, cartão de voz com latência e painel de perfil.
+- **Chamada:** grade adaptativa 16:9, anel verde de quem fala, prévia da sua câmera/tela no lobby, galeria em destaque com faixa de participantes e dock flutuante.
+- **Compartilhar tela:** abas Aplicativos e Telas com miniaturas reais, nome do aplicativo e da janela, resolução do monitor, qualidade e áudio.
+- **Chat e DMs:** mensagens agrupadas, ações flutuantes sem deslocar o layout, painel de participantes à direita.
+- **Perfis, configurações e administração:** mini perfil com capa e volume individual; hubs com a organização visual da versão nativa. Todos os controles da 1.4.1 foram mantidos.
+- **Temas:** Voxy, Oceano, Bosque e Kuromi com as paletas do 2.0; Kuromi mantém suas ilustrações.
+- **Salas 3D e minijogos:** cenários, física e regras inalterados; HUD, menus e placares adotam os novos tokens.
+
+Voz, PTT, Mute, Deafen, compartilhamento, webcam, conectividade via Radmin VPN, hospedagem, atualizador e instalador continuam os da 1.4.1. Esta versão **não** altera a conectividade nem remove a necessidade do Radmin VPN. [Design system](DESIGN-SYSTEM.md) · [Validação da 1.5.0](TESTING.md#voxy-150--visual-update).
+
 ## Novidades na versão 1.4.1 publicada
 
 Código e última publicação confirmada: **1.4.1**. O [workflow de release](https://github.com/labarro/Voxy/actions/runs/43613943906) concluiu testes, geração, assinatura do catálogo, teste do executável empacotado e publicação. Os cinco arquivos públicos, hashes, assinatura Ed25519, notas e endpoint de atualização foram conferidos. [Evidência da publicação](evidence/publication-1.4.1.json). Saída do build: `release/1.4.1/`.

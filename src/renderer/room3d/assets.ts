@@ -1,6 +1,7 @@
 import * as T from "three";
 import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { clone } from "three/addons/utils/SkeletonUtils.js";
+import { acquireKit, releaseKit } from "./avatarKit";
 
 export const furnitureNames = [
   "loungeSofa",
@@ -23,10 +24,16 @@ export const characterNames = [
 export class RoomAssets {
   private models = new Map<string, GLTF>();
   private disposed = false;
+  private kit = false;
   async load(progress: (fraction: number) => void, charactersOnly = false) {
     const loader = new GLTFLoader(),
       base = new URL("assets/room3d/", document.baseURI);
     let loaded = 0;
+    // Skinned avatar bodies, hair and clips are shared across scenes.
+    const kit = acquireKit().then(() => {
+      if (this.disposed) releaseKit();
+      else this.kit = true;
+    });
     const entries = [
       ...(charactersOnly
         ? []
@@ -45,6 +52,8 @@ export class RoomAssets {
         }
       }),
     );
+    await kit;
+    progress(1);
   }
   get(name: string) {
     const model = this.models.get(name);
@@ -83,6 +92,8 @@ export class RoomAssets {
   }
   dispose() {
     this.disposed = true;
+    if (this.kit) releaseKit();
+    this.kit = false;
     for (const gltf of this.models.values()) this.release(gltf);
     this.models.clear();
   }

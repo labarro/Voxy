@@ -24,10 +24,14 @@ export type RoomPose = {
     | "point"
     | "sitfloor"
     | "pose"
-    | "surprise";
+    | "surprise"
+    | "drink"
+    | "toast";
   emoteAt?: number;
+  held?: "can" | "bottle" | "mug" | null;
 };
 export type Avatar3D = {
+  base?: "m" | "f";
   hair: "short" | "long" | "crest";
   hairStyle?:
     | "short"

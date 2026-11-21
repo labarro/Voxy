@@ -36,6 +36,7 @@ export const bannerSchema = z
     }
   }, "Escolha uma capa de até 960 × 360 px / 128 KB.");
 export const avatar3dSchema = z.object({
+  base: z.enum(["m", "f"]).optional(),
   hair: z.enum(["short", "long", "crest"]),
   hairStyle: z
     .enum([
@@ -333,10 +334,13 @@ export const commandSchema = z.discriminatedUnion("type", [
             "celebrate",
             "greet",
             "smoke",
+            "drink",
+            "toast",
             "none",
           ])
           .optional(),
         emoteAt: z.number().finite().nonnegative().optional(),
+        held: z.enum(["can", "bottle", "mug"]).nullable().optional(),
       })
       .nullable(),
   }),

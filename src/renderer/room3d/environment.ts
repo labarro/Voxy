@@ -1,9 +1,10 @@
 import * as T from "three";
 import type { RoomPreset } from "../../shared/types";
-import { seats } from "../../shared/room3d";
+import { BAR, barStools, seats, type Seat } from "../../shared/room3d";
 import { Resources } from "./resources";
 import { RoomAssets } from "./assets";
 import { buildRooftop } from "./Rooftop";
+import { Kit, type Palette } from "./furniture";
 
 export type RoomEnvironment = {
   screen: T.Mesh<T.PlaneGeometry, T.MeshBasicMaterial>;
@@ -12,611 +13,664 @@ export type RoomEnvironment = {
   walls: T.Mesh[];
   seatMarkers: Map<string, T.Mesh>;
   key: T.SpotLight;
+  bar?: T.Object3D;
   dispose: () => void;
 };
-export function buildEnvironment(
-  scene: T.Scene,
-  preset: RoomPreset,
-  assets: RoomAssets,
-): RoomEnvironment {
+
+export const LOUNGE: Palette = {
+  wood: "#8a5c3c",
+  woodDark: "#4b2f1f",
+  fabricA: "#2f5a63",
+  fabricB: "#b8673d",
+  fabricC: "#7c72df",
+  accent: "#d4a24c",
+  metal: "#c9a062",
+  wall: "#20393a",
+  plaster: "#cfc2ae",
+  floor: "#9a6a44",
+  rug: ["#e6dccb", "#2f5a63", "#b8673d"],
+};
+const CINEMA: Palette = {
+  wood: "#5a3a2a",
+  woodDark: "#2e1f18",
+  fabricA: "#7a2734",
+  fabricB: "#3b2b44",
+  fabricC: "#c9a062",
+  accent: "#c9a062",
+  metal: "#c9a062",
+  wall: "#1b1726",
+  plaster: "#2a2436",
+  floor: "#2a2230",
+  rug: ["#2a2230", "#7a2734", "#c9a062"],
+};
+
+// Screen/poster in the Voxy Nocturne style; shared by all rooms.
+export function makeScreen(r: Resources, kit: Kit, preset: RoomPreset, width = 7.8) {
+  const c = document.createElement("canvas");
+  c.width = 1280;
+  c.height = 720;
+  const ctx = c.getContext("2d")!;
+  const g = ctx.createLinearGradient(0, 0, 1280, 720);
+  g.addColorStop(0, "#14121f");
+  g.addColorStop(1, preset === "cinema" ? "#2a1424" : "#13283a");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 1280, 720);
+  const glow = ctx.createRadialGradient(1040, 600, 10, 1040, 600, 520);
+  glow.addColorStop(0, "rgba(124,114,223,.55)");
+  glow.addColorStop(1, "rgba(124,114,223,0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, 1280, 720);
+  ctx.strokeStyle = "rgba(201,160,98,.35)";
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 5; i++) {
+    ctx.beginPath();
+    ctx.arc(1040, 640, 140 + i * 70, Math.PI, Math.PI * 1.85);
+    ctx.stroke();
+  }
+  ctx.fillStyle = "#c9a062";
+  ctx.font = "700 30px system-ui";
+  ctx.fillText("VOXY", 96, 110);
+  ctx.fillStyle = "#f3ece2";
+  ctx.font = "700 72px system-ui";
+  const lines =
+    preset === "cinema"
+      ? ["A próxima sessão", "começa com vocês."]
+      : preset === "rooftop"
+        ? ["A cidade acordada.", "Os amigos aqui."]
+        : ["Boa companhia.", "Uma tela em comum."];
+  ctx.fillText(lines[0], 96, 330);
+  ctx.fillText(lines[1], 96, 418);
+  ctx.fillStyle = "#b9b4c9";
+  ctx.font = "28px system-ui";
+  ctx.fillText("Compartilhe uma tela para assistir juntos.", 96, 540);
+  const poster = r.keep(new T.CanvasTexture(c));
+  poster.colorSpace = T.SRGBColorSpace;
+  const screen = new T.Mesh(
+    r.keep(new T.PlaneGeometry(width, (width * 9) / 16)),
+    r.keep(new T.MeshBasicMaterial({ map: poster, toneMapped: false })),
+  );
+  void kit;
+  return { screen, poster };
+}
+
+export function seatMarker(r: Resources, scene: T.Scene, seat: Seat) {
+  const marker = new T.Mesh(
+    r.keep(new T.RingGeometry(seat.kind === "stool" ? 0.32 : 0.5, seat.kind === "stool" ? 0.36 : 0.55, 40)),
+    r.keep(
+      new T.MeshBasicMaterial({
+        color: "#c9b8ff",
+        transparent: true,
+        opacity: 0.85,
+        side: T.DoubleSide,
+        depthWrite: false,
+      }),
+    ),
+  );
+  marker.rotation.x = -Math.PI / 2;
+  marker.position.set(seat.x, 0.03, seat.z);
+  marker.visible = false;
+  scene.add(marker);
+  return marker;
+}
+
+// Seats: one consistent construction per kind, front +Z rotated by seat yaw.
+export function placeSeats(kit: Kit, scene: T.Scene, preset: RoomPreset, colliders: T.Object3D[], markers: Map<string, T.Mesh>) {
+  const list = seats(preset).filter((s) => !s.game);
+  const p = kit.palette;
+  const sofaSeats = list.filter((s) => s.kind === "sofa");
+  if (sofaSeats.length) {
+    const cx = sofaSeats.reduce((a, s) => a + s.x, 0) / sofaSeats.length,
+      cz = sofaSeats[0].z;
+    const sofa = kit.sofa(6.3, p.fabricA, 6, { depth: 1.0, legs: kit.metal() });
+    sofa.position.set(cx, 0, cz + 0.12);
+    sofa.rotation.y = sofaSeats[0].yaw;
+    scene.add(sofa);
+    kit.r.batch(sofa);
+    colliders.push(sofa);
+  }
+  for (const seat of list) {
+    markers.set(seat.id, seatMarker(kit.r, scene, seat));
+    if (seat.kind === "sofa") continue;
+    let piece: T.Object3D;
+    if (seat.kind === "puff") piece = kit.ottoman(p.fabricB);
+    else if (seat.kind === "stool") piece = kit.stool(p.fabricB);
+    else if (preset === "cinema") piece = cinemaSeat(kit);
+    else piece = kit.armchair(seat.id.startsWith("roof") ? p.fabricA : p.fabricB);
+    // Seat geometry is built around the hips: move the frame slightly back.
+    const back = seat.kind === "stool" ? 0 : -0.1;
+    piece.position.set(seat.x + Math.sin(seat.yaw) * back, 0, seat.z + Math.cos(seat.yaw) * back);
+    piece.rotation.y = seat.yaw;
+    scene.add(piece);
+    kit.r.batch(piece);
+    colliders.push(piece);
+  }
+}
+
+function cinemaSeat(kit: Kit) {
+  const g = new T.Group();
+  const fab = kit.fabric(kit.palette.fabricA, 0.85),
+    dark = kit.fabric("#2a1a22");
+  kit.mesh(g, kit.rbox(0.9, 0.24, 0.86, 0.05), dark, 0, 0.18, 0);
+  kit.mesh(g, kit.cushion(0.66, 0.16, 0.7, 0.03), fab, 0, 0.4, 0.05);
+  const back = kit.mesh(g, kit.cushion(0.7, 0.78, 0.2, 0.04), fab, 0, 0.82, -0.36);
+  back.rotation.x = -0.2;
+  kit.mesh(g, kit.cushion(0.5, 0.18, 0.14, 0.03), fab, 0, 1.18, -0.42).rotation.x = -0.25;
+  for (const s of [-1, 1]) {
+    kit.mesh(g, kit.cushion(0.14, 0.3, 0.84, 0.02), dark, s * 0.4, 0.46, 0);
+    // cup holder
+    kit.mesh(g, kit.cyl(0.045, 0.045, 0.03, 16), kit.metal(), s * 0.4, 0.62, 0.3, false);
+  }
+  return g;
+}
+
+// Bar counter, back bar, fridge, taps and decoration (west wall).
+export function buildBar(kit: Kit, scene: T.Scene, colliders: T.Object3D[], outdoor = false) {
+  const g = new T.Group();
+  g.name = "voxy-bar";
+  const p = kit.palette;
+  const len = BAR.halfZ * 2,
+    x = BAR.x;
+  const front = x + BAR.halfX;
+  // counter body with fluted wood front and stone top
+  kit.mesh(g, kit.rbox(0.78, 1.02, len, 0.03), kit.wood(p.woodDark, 0.45), x, 0.51, BAR.z);
+  const flute = kit.cyl(0.025, 0.025, 0.86, 10);
+  const flutes = new T.InstancedMesh(flute, kit.wood(p.wood, 0.45), Math.floor(len / 0.07));
+  const m = new T.Object3D();
+  for (let i = 0; i < flutes.count; i++) {
+    m.position.set(front + 0.01, 0.5, BAR.z - len / 2 + 0.06 + i * 0.07);
+    m.updateMatrix();
+    flutes.setMatrixAt(i, m.matrix);
+  }
+  flutes.castShadow = flutes.receiveShadow = true;
+  flutes.userData.dynamic = true;
+  g.add(flutes);
+  kit.mesh(g, kit.rbox(0.98, 0.06, len + 0.12, 0.02), kit.stone(), x + 0.06, 1.05, BAR.z);
+  // brass foot rail and under-counter glow
+  const rail = kit.mesh(g, kit.cyl(0.02, 0.02, len, 12), kit.metal(), front + 0.14, 0.2, BAR.z, false);
+  rail.rotation.x = Math.PI / 2;
+  kit.mesh(g, kit.rbox(0.04, 0.02, len - 0.1, 0.005, 1), kit.glow("#ffb867", 1.4), front + 0.07, 0.98, BAR.z, false);
+  // taps
+  for (let i = 0; i < 3; i++) {
+    const z = BAR.z - 0.5 + i * 0.5;
+    kit.mesh(g, kit.cyl(0.02, 0.025, 0.36, 12), kit.metal(), x - 0.05, 1.26, z);
+    kit.mesh(g, kit.cyl(0.012, 0.012, 0.14, 8), kit.metal(), x + 0.02, 1.4, z).rotation.z = Math.PI / 2;
+    kit.mesh(g, kit.lathe([[0.012, 0], [0.016, 0.05], [0.014, 0.11], [0, 0.12]], 10), kit.plain(["#7c72df", "#d4a24c", "#2f5a63"][i], 0.5), x + 0.08, 1.42, z);
+  }
+  // glasses and a tray on the counter
+  for (let i = 0; i < 4; i++)
+    kit.mesh(g, kit.lathe([[0, 0], [0.03, 0], [0.034, 0.13], [0.03, 0.13], [0.026, 0.005]], 14), kit.glass(), x + 0.16, 1.08, BAR.z + 1.2 + i * 0.1, false);
+  kit.mesh(g, kit.cyl(0.18, 0.18, 0.015, 24), kit.wood(p.wood, 0.4), x + 0.12, 1.085, BAR.z - 1.4);
+  // Back bar: shelves with backlight and unbranded bottles (instanced).
+  const wallX = outdoor ? x - 1.9 : -12.86;
+  kit.mesh(g, kit.rbox(0.36, 0.9, len + 0.6, 0.03), kit.wood(p.woodDark, 0.5), wallX + 0.2, 0.45, BAR.z);
+  kit.mesh(g, kit.rbox(0.4, 0.04, len + 0.6, 0.01), kit.stone(), wallX + 0.2, 0.92, BAR.z);
+  kit.mesh(g, kit.rbox(0.03, 1.6, len + 0.4, 0.005, 1), kit.glow("#ff9f5a", 0.55), wallX + 0.02, 1.95, BAR.z, false);
+  const shelfMat = kit.wood(p.wood, 0.45);
+  const glassColors = ["#3e6b3a", "#6b3a1f", "#c8d6d8", "#8a2f2f", "#d9a441", "#2f4a6b"];
+  const bottleGeoms = [0, 1, 2].map((k) => kit.bottle(k));
+  const perShelf = Math.floor((len + 0.2) / 0.16);
+  for (let s = 0; s < 3; s++) {
+    const y = 1.25 + s * 0.42;
+    kit.mesh(g, kit.rbox(0.28, 0.035, len + 0.4, 0.008, 1), shelfMat, wallX + 0.16, y, BAR.z);
+    for (let k = 0; k < 3; k++) {
+      const inst = new T.InstancedMesh(bottleGeoms[k], kit.glass("#ffffff", 0.85), perShelf);
+      let n = 0;
+      for (let i = 0; i < perShelf; i++) {
+        if ((i + s * 2) % 3 !== k) continue;
+        m.position.set(wallX + 0.16, y + 0.02, BAR.z - len / 2 + 0.1 + i * 0.16);
+        m.rotation.set(0, i, 0);
+        m.scale.setScalar(1);
+        m.updateMatrix();
+        inst.setMatrixAt(n, m.matrix);
+        inst.setColorAt(n, new T.Color(glassColors[(i * 7 + s * 3 + k) % glassColors.length]));
+        n++;
+      }
+      inst.count = n;
+      inst.userData.dynamic = true;
+      (inst.material as T.MeshStandardMaterial).depthWrite = true;
+      g.add(inst);
+    }
+  }
+  // Glass-door fridge with lit interior and cans.
+  const fz = BAR.z + BAR.halfZ + 0.05 - 0.45;
+  const fx = wallX + 0.9;
+  const fridge = new T.Group();
+  fridge.position.set(fx, 0, fz + 0.1);
+  kit.mesh(fridge, kit.rbox(0.66, 1.6, 0.62, 0.04), kit.plain("#1f2a2e", 0.4, 0.4), 0, 0.8, 0);
+  kit.mesh(fridge, kit.rbox(0.56, 1.36, 0.02, 0.01, 1), kit.glow("#d6f2ff", 0.5), 0, 0.84, 0.29, false);
+  kit.mesh(fridge, kit.rbox(0.58, 1.4, 0.015, 0.01, 1), kit.glass("#cfefff", 0.18), 0, 0.84, 0.32, false);
+  const can = kit.cyl(0.03, 0.03, 0.11, 12);
+  const cans = new T.InstancedMesh(can, kit.metal("#ffffff", 0.3), 24);
+  for (let i = 0; i < 24; i++) {
+    m.position.set(-0.2 + (i % 6) * 0.08, 0.32 + Math.floor(i / 6) * 0.3, 0.18);
+    m.rotation.set(0, 0, 0);
+    m.updateMatrix();
+    cans.setMatrixAt(i, m.matrix);
+    cans.setColorAt(i, new T.Color(["#7c72df", "#c9d2d6", "#d4a24c"][i % 3]));
+  }
+  cans.userData.dynamic = true;
+  fridge.add(cans);
+  kit.mesh(fridge, kit.cyl(0.012, 0.012, 0.5, 8), kit.metal(), 0.27, 0.95, 0.34);
+  fridge.rotation.y = Math.PI / 2;
+  g.add(fridge);
+  // Neon sign (own brand only).
+  if (!outdoor) {
+    const sign = kit.canvas("bar-neon", 512, (ctx, s) => {
+      ctx.clearRect(0, 0, s, s);
+      ctx.font = "italic 700 120px Georgia, serif";
+      ctx.textAlign = "center";
+      ctx.shadowColor = "#b9b0ff";
+      ctx.shadowBlur = 30;
+      ctx.fillStyle = "#e7e3ff";
+      ctx.fillText("Voxy", s / 2, s * 0.48);
+      ctx.font = "600 52px system-ui";
+      ctx.shadowColor = "#ffb867";
+      ctx.fillStyle = "#ffe2bf";
+      ctx.fillText("BAR", s / 2, s * 0.68);
+    });
+    const neon = new T.Mesh(
+      kit.r.keep(new T.PlaneGeometry(1.8, 1.8)),
+      kit.mat("neon", () => new T.MeshBasicMaterial({ map: sign, transparent: true, toneMapped: false, depthWrite: false })),
+    );
+    neon.position.set(-12.84, 3.25, BAR.z);
+    neon.rotation.y = Math.PI / 2;
+    g.add(neon);
+    const light = new T.PointLight("#b8a8ff", 6, 6, 2);
+    light.position.set(-12, 3, BAR.z);
+    g.add(light);
+  }
+  // Pendants over the counter.
+  for (const dz of [-1.6, 0, 1.6]) {
+    const pend = kit.pendant(0.13, "#ffcf8a", outdoor ? 1.2 : 2.6, "globe");
+    pend.position.set(x + 0.1, outdoor ? 3.2 : 6.0, BAR.z + dz);
+    g.add(pend);
+  }
+  const counterLight = new T.PointLight("#ffc986", 9, 7, 2);
+  counterLight.position.set(x + 0.6, 2.6, BAR.z);
+  g.add(counterLight);
+  scene.add(g);
+  kit.r.batch(g);
+  colliders.push(g);
+  // stools are seats; built by placeSeats
+  void barStools;
+  return g;
+}
+
+function windowView(kit: Kit, w: number, h: number, seed: number) {
+  const tex = kit.canvas(`city:${seed}`, 512, (ctx, s) => {
+    const sky = ctx.createLinearGradient(0, 0, 0, s);
+    sky.addColorStop(0, "#0d1530");
+    sky.addColorStop(0.6, "#28305a");
+    sky.addColorStop(1, "#5a4064");
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, s, s);
+    let seedN = seed * 9;
+    const random = () => ((seedN = (seedN * 1664525 + 1013904223) >>> 0) / 4294967296);
+    for (let layer = 0; layer < 3; layer++) {
+      let x = 0;
+      while (x < s) {
+        const bw = 20 + random() * 50,
+          bh = s * (0.2 + random() * 0.45) * (1 - layer * 0.2);
+        const y = s - bh;
+        ctx.fillStyle = ["#1a1d33", "#141729", "#0e1020"][layer];
+        ctx.fillRect(x, y, bw, bh);
+        for (let wy = y + 6; wy < s - 4; wy += 9)
+          for (let wx = x + 4; wx < x + bw - 4; wx += 7)
+            if (random() < 0.32) {
+              ctx.fillStyle = random() < 0.7 ? "rgba(255,206,140,.85)" : "rgba(190,210,255,.8)";
+              ctx.fillRect(wx, wy, 3, 4);
+            }
+        x += bw + random() * 6;
+      }
+    }
+  });
+  tex.repeat.set(1, 1);
+  const view = new T.Mesh(kit.r.keep(new T.PlaneGeometry(w, h)), kit.mat(`citymat:${seed}`, () => new T.MeshBasicMaterial({ map: tex, toneMapped: false, color: "#c8c3d8" })));
+  return view;
+}
+
+export function buildEnvironment(scene: T.Scene, preset: RoomPreset, assets: RoomAssets): RoomEnvironment {
+  void assets;
   if (preset === "rooftop") return buildRooftop(scene);
-  const r = new Resources(),
-    colliders: T.Object3D[] = [],
+  const cinema = preset === "cinema";
+  const r = new Resources();
+  const kit = new Kit(r, cinema ? CINEMA : LOUNGE);
+  const p = kit.palette;
+  const colliders: T.Object3D[] = [],
     walls: T.Mesh[] = [],
     seatMarkers = new Map<string, T.Mesh>();
-  const cinema = preset === "cinema";
-  const palette = {
-    wall: cinema ? "#343541" : "#52615e",
-    plaster: cinema ? "#454151" : "#b4aaa0",
-    wood: "#75503e",
-    cloth: cinema ? "#76536c" : "#8c718d",
-    trim: "#bda17a",
-    floor: "#8d6c51",
-  };
-  scene.background = new T.Color(cinema ? "#171925" : "#222c35");
-  scene.fog = new T.Fog(scene.background, 28, 65);
-  scene.add(new T.HemisphereLight("#dae5fa", "#8a6b56", cinema ? 0.95 : 0.95));
-  scene.add(new T.AmbientLight("#e3c9ab", cinema ? 0.3 : 0.3));
-  const key = new T.SpotLight("#ffe1b7", cinema ? 105 : 165, 35, 1.14, 0.7, 2);
-  key.position.set(0, 5.8, 1);
-  key.target.position.set(0, 0, 1);
+  scene.background = new T.Color(cinema ? "#0c0a12" : "#121618");
+  scene.fog = null;
+  // ---------------------------------------------------------------- light
+  scene.add(new T.HemisphereLight(cinema ? "#7d76a8" : "#ffe6c8", cinema ? "#1a1018" : "#3a2a20", cinema ? 0.32 : 0.55));
+  const key = new T.SpotLight(cinema ? "#c9c2ff" : "#ffd9a8", cinema ? 70 : 150, 30, 1.05, 0.75, 1.6);
+  key.position.set(0, 5.9, cinema ? 3 : 1.5);
+  key.target.position.set(0, 0, cinema ? 1 : 1.5);
   key.castShadow = true;
   key.shadow.camera.near = 0.5;
   key.shadow.camera.far = 30;
-  key.shadow.bias = -0.0003;
-  key.shadow.normalBias = 0.035;
+  key.shadow.bias = -0.0002;
+  key.shadow.normalBias = 0.03;
   key.shadow.mapSize.set(1024, 1024);
-  key.shadow.radius = 3;
+  key.shadow.radius = 4;
   scene.add(key, key.target);
-  const fill = new T.DirectionalLight("#b6c6ff", 0.7);
-  fill.position.set(5, 5, -1);
+  const fill = new T.DirectionalLight(cinema ? "#6d6ab8" : "#9db7ff", cinema ? 0.25 : 0.35);
+  fill.position.set(-6, 5, 8);
   scene.add(fill);
-  const grain = r.texture("wood"),
-    weave = r.texture("fabric");
-  const wood = r.keep(
-    new T.MeshStandardMaterial({
-      color: palette.floor,
-      map: grain,
-      roughness: 0.7,
-    }),
-  );
-  const fabric = (color: string) => {
-    const mat = r.material(color, 0.97);
-    mat.bumpMap = weave;
-    mat.bumpScale = 0.018;
-    return mat;
-  };
-  r.box(scene, 0, -0.22, 0.4, 26.3, 0.4, 24.6, "#262b30", 0.12);
-  // Continue the floor beneath the cutaway camera, avoiding a visible platform edge.
-  r.box(scene, 0, -0.06, 0.4, 26.3, 0.16, 24.6, wood, 0.04);
-  const rug = r.box(
-    scene,
-    0,
-    0.035,
-    1,
-    cinema ? 16.8 : 10,
-    0.06,
-    cinema ? 16 : 9,
-    fabric(cinema ? "#3d354c" : "#b5a093"),
-    0.05,
-  );
-  r.box(
-    scene,
-    0,
-    0.07,
-    1,
-    cinema ? 16.45 : 9.65,
-    0.015,
-    cinema ? 15.65 : 8.65,
-    fabric(cinema ? "#454052" : "#a7948b"),
-    0.03,
-  );
-  // Architectural shell: wainscot, plaster, inset window and ceiling coves.
-  walls.push(
-    r.box(scene, 0, 3.05, -11.13, 26, 6.2, 0.25, palette.plaster, 0.04),
-  );
-  walls.push(r.box(scene, -13.05, 3.1, 1, 0.22, 6.2, 24, palette.wall, 0.04));
-  walls.push(r.box(scene, 13.05, 3.1, 1, 0.22, 6.2, 24, palette.wall, 0.04));
-  walls.push(r.box(scene, 0, 3.1, 13.15, 26.2, 6.2, 0.22, palette.wall, 0.04));
-  const ceiling = r.box(
-    scene,
-    0,
-    6.15,
-    1,
-    26.3,
-    0.24,
-    24.6,
-    cinema ? "#33323f" : "#d0c8b8",
-    0.02,
-  );
-  ceiling.name = "solid-ceiling";
-  walls.push(ceiling);
-  walls.forEach((w, i) => {
-    w.name = w.name || "interior-shell-" + i;
-    (w.material as T.MeshStandardMaterial).side = T.DoubleSide;
-  });
-  colliders.push(...walls);
-  r.box(scene, 0, 0.6, -10.96, 26, 1.2, 0.08, palette.wood, 0.02);
-  for (const x of [-12.9, 12.9]) {
-    r.box(scene, x, 0.6, 0.4, 0.12, 1.2, 24, palette.wood, 0.02);
-    r.box(scene, x, 1.23, 0.4, 0.15, 0.08, 24, palette.trim, 0.01);
-    r.box(scene, x, 4.65, 0.4, 0.28, 0.14, 24, palette.wood, 0.03);
-    const strip = r.material("#ffe0a8");
-    strip.emissive.set("#f2af5d");
-    strip.emissiveIntensity = 1.1;
-    r.box(scene, x, 4.54, 0.4, 0.06, 0.045, 23.7, strip, 0);
-    const ambient = new T.PointLight("#ffc784", cinema ? 8 : 12, 13, 2);
-    ambient.position.set(x * 0.7, 3.8, 1);
-    scene.add(ambient);
-  }
-  r.box(scene, 0, 5.9, -10.94, 25.7, 0.14, 0.2, palette.wood, 0.03);
-  // Ceiling coffers, perimeter cornice and actual ceiling-mounted luminaires.
-  for (const z of [-10.8, 12.85]) {
-    r.box(scene, 0, 5.87, z, 25.8, 0.25, 0.28, palette.wood, 0.025);
-    r.box(scene, 0, 0.6, z, 25.8, 1.2, 0.07, palette.wood, 0.015);
-  }
-  for (const x of [-12.84, 12.84])
-    r.box(scene, x, 5.87, 1, 0.28, 0.25, 23.8, palette.wood, 0.025);
-  const diffuser = r.material("#e9d3ad");
-  diffuser.emissive.set("#d9b98a");
-  diffuser.emissiveIntensity = 0.5;
-  for (const x of [-7, 0, 7])
-    for (const z of [-5, 4, 10]) {
-      r.box(scene, x, 6.0, z, cinema ? 2.8 : 3.6, 0.12, 1.0, "#4b4443", 0.03);
-      r.box(scene, x, 5.92, z, cinema ? 2.5 : 3.3, 0.035, 0.7, diffuser, 0.01);
-    }
-  // Doors and rear-wall composition give every orbit a real interior elevation.
-  for (const x of cinema ? [-9, 9] : [0]) {
-    r.box(scene, x, 1.65, 12.98, 2.65, 3.3, 0.13, palette.wood, 0.04);
-    r.box(
-      scene,
-      x,
-      1.67,
-      12.88,
-      2.32,
-      3.05,
-      0.08,
-      cinema ? "#353442" : "#71817a",
-      0.03,
-    );
-    r.box(scene, x + 0.85, 1.45, 12.8, 0.045, 0.32, 0.055, palette.trim, 0.01);
-    r.box(scene, x, 3.4, 12.89, 2.8, 0.12, 0.2, palette.trim, 0.015);
-  }
-  if (cinema) {
-    r.box(scene, 0, 3.7, 12.95, 5, 1.45, 0.15, "#635b66", 0.04);
-    r.box(scene, 0, 3.7, 12.84, 4.7, 1.18, 0.06, "#202735", 0.02);
-    r.box(scene, 0, 3.55, 12.72, 0.7, 0.28, 0.28, "#41444d", 0.04);
-  } else {
-    const console = r.box(
-      scene,
-      -8,
-      0.65,
-      11.8,
-      5.4,
-      1.3,
-      0.85,
-      palette.wood,
-      0.06,
-    );
-    colliders.push(console);
-    r.box(scene, -8, 1.34, 11.8, 5.65, 0.1, 1.0, "#b9ad96", 0.035);
-    for (const x of [-9.7, -8, -6.3]) {
-      r.box(scene, x, 0.65, 11.33, 1.55, 1.05, 0.045, "#665849", 0.015);
-      r.box(scene, x, 1.0, 11.28, 0.4, 0.025, 0.04, palette.trim, 0);
-    }
-    // Hospitality station: a tray and a carafe, grouped on the counter surface.
-    r.cylinder(scene, -8.7, 1.43, 11.7, 0.55, 0.55, 0.07, "#b69d77");
-    for (const x of [-8.9, -8.5])
-      r.cylinder(scene, x, 1.58, 11.7, 0.11, 0.09, 0.22, "#ddd4c5");
-    r.cylinder(scene, -7.3, 1.63, 11.8, 0.15, 0.21, 0.48, "#565753");
-    r.cylinder(scene, -7.3, 1.9, 11.8, 0.13, 0.15, 0.06, palette.trim);
-  }
-  // A single instanced set provides the rhythm of acoustic / timber panels.
-  const slatGeometry = r.keep(new T.BoxGeometry(0.12, 4.6, 0.12)),
-    slatMaterial = r.material(cinema ? "#46394c" : "#886b53");
-  const slats = new T.InstancedMesh(slatGeometry, slatMaterial, 32);
-  const transform = new T.Object3D();
-  for (let i = 0; i < 32; i++) {
-    const side = i < 16 ? -1 : 1;
-    transform.position.set(side * (4.6 + (i % 16) * 0.14), 3.5, -10.83);
-    transform.updateMatrix();
-    slats.setMatrixAt(i, transform.matrix);
-  }
-  slats.castShadow = true;
-  slats.receiveShadow = true;
-  scene.add(slats);
-  if (!cinema) {
-    const canvas = document.createElement("canvas");
-    canvas.width = 512;
-    canvas.height = 256;
-    const ctx = canvas.getContext("2d")!;
-    const sky = ctx.createLinearGradient(0, 0, 0, 256);
-    sky.addColorStop(0, "#35496b");
-    sky.addColorStop(0.7, "#a27f8c");
-    sky.addColorStop(1, "#e2b69a");
-    ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, 512, 256);
-    ctx.fillStyle = "#cbd9e7";
-    ctx.beginPath();
-    ctx.arc(380, 60, 22, 0, Math.PI * 2);
-    ctx.fill();
-    for (let i = 0; i < 18; i++) {
-      const height = 35 + ((i * 37) % 100);
-      ctx.fillStyle = i % 2 ? "#4e536a" : "#65657a";
-      ctx.fillRect(i * 32, 256 - height, 28, height);
-      ctx.fillStyle = "#e8c391";
-      for (let j = 0; j < 3; j++)
-        ctx.fillRect(i * 32 + 6, 270 - height + j * 22, 3, 6);
-    }
-    const map = r.keep(new T.CanvasTexture(canvas));
-    map.colorSpace = T.SRGBColorSpace;
-    const windowMat = r.keep(new T.MeshBasicMaterial({ map }));
-    const windowPlane = new T.Mesh(
-      r.keep(new T.PlaneGeometry(6.5, 2.5)),
-      windowMat,
-    );
-    windowPlane.rotation.y = Math.PI / 2;
-    windowPlane.position.set(-12.9, 3, 0);
-    scene.add(windowPlane);
-    for (const z of [-3.3, 0, 3.3])
-      r.box(scene, -12.78, 3, z, 0.16, 2.7, 0.09, palette.wood, 0.02);
-    for (const y of [1.65, 4.35])
-      r.box(scene, -12.78, y, 0, 0.25, 0.1, 6.8, palette.wood, 0.02);
-    const art = document.createElement("canvas");
-    art.width = 512;
-    art.height = 384;
-    const ac = art.getContext("2d")!;
-    ac.fillStyle = "#d8c7ac";
-    ac.fillRect(0, 0, 512, 384);
-    ac.fillStyle = "#819486";
-    ac.beginPath();
-    ac.arc(160, 160, 108, 0, Math.PI * 2);
-    ac.fill();
-    ac.fillStyle = "#a47d83";
-    ac.fillRect(274, 83, 100, 230);
-    ac.strokeStyle = "#394c51";
-    ac.lineWidth = 19;
-    ac.lineCap = "round";
-    ac.beginPath();
-    ac.moveTo(80, 280);
-    ac.bezierCurveTo(190, 160, 230, 350, 425, 145);
-    ac.stroke();
-    const artMap = r.keep(new T.CanvasTexture(art));
-    artMap.colorSpace = T.SRGBColorSpace;
-    const artwork = new T.Mesh(
-      r.keep(new T.PlaneGeometry(3.3, 2.45)),
-      r.keep(new T.MeshStandardMaterial({ map: artMap, roughness: 1 })),
-    );
-    artwork.rotation.y = -Math.PI / 2;
-    artwork.position.set(12.88, 3, 0);
-    scene.add(artwork);
-    for (const y of [1.72, 4.28])
-      r.box(scene, 12.84, y, 0, 0.13, 0.09, 3.55, palette.wood, 0.02);
-    for (const z of [-1.77, 1.77])
-      r.box(scene, 12.84, 3, z, 0.13, 2.65, 0.09, palette.wood, 0.02);
-  } else {
-    const panelGeometry = r.keep(new RoundedPanelGeometry()),
-      panels = new T.InstancedMesh(panelGeometry, fabric("#40384c"), 12);
-    for (let i = 0; i < 12; i++) {
-      transform.position.set(i < 6 ? -12.88 : 12.88, 2.9, (i % 6) * 1.8 - 4.5);
-      transform.rotation.y = i < 6 ? Math.PI / 2 : -Math.PI / 2;
-      transform.updateMatrix();
-      panels.setMatrixAt(i, transform.matrix);
-    }
-    scene.add(panels);
-  }
-  const shadowCanvas = document.createElement("canvas");
-  shadowCanvas.width = shadowCanvas.height = 64;
-  const shadowCtx = shadowCanvas.getContext("2d")!;
-  const gradient = shadowCtx.createRadialGradient(32, 32, 3, 32, 32, 32);
-  gradient.addColorStop(0, "rgba(17,14,25,.4)");
-  gradient.addColorStop(1, "rgba(17,14,25,0)");
-  shadowCtx.fillStyle = gradient;
-  shadowCtx.fillRect(0, 0, 64, 64);
-  const contactMaterial = r.keep(
-    new T.MeshBasicMaterial({
-      map: r.keep(new T.CanvasTexture(shadowCanvas)),
-      transparent: true,
-      depthWrite: false,
-    }),
-  );
-  const contact = (x: number, z: number, w: number, d: number) => {
-    const mesh = new T.Mesh(r.keep(new T.PlaneGeometry(w, d)), contactMaterial);
-    mesh.rotation.x = -Math.PI / 2;
-    mesh.position.set(x, 0.09, z);
-    scene.add(mesh);
-  };
-  const prop = (
-    name: string,
-    x: number,
-    z: number,
-    w: number,
-    h: number,
-    d: number,
-    yaw = 0,
-    color?: string,
-    y = 0,
-  ) => {
-    const root = assets.prop(name),
-      bounds = new T.Box3().setFromObject(root),
-      size = bounds.getSize(new T.Vector3()),
-      center = bounds.getCenter(new T.Vector3());
-    root.position.sub(new T.Vector3(center.x, bounds.min.y, center.z));
-    const group = new T.Group();
-    group.add(root);
-    group.scale.set(w / size.x, h / size.y, d / size.z);
-    group.position.set(x, y, z);
-    group.rotation.y = yaw;
-    root.traverse((obj) => {
-      if (!(obj instanceof T.Mesh)) return;
-      const originals = Array.isArray(obj.material)
-        ? obj.material
-        : [obj.material];
-      const mats = originals.map((mat) => {
-        const n = mat.name.toLowerCase();
-        if (/carpet/.test(n)) return fabric(color ?? palette.cloth);
-        if (/plant/.test(n)) return r.material("#587d64", 0.9);
-        if (/lamp/.test(n)) {
-          const lamp = r.material("#e7cf9e", 0.9);
-          lamp.emissive.set("#d39a53");
-          lamp.emissiveIntensity = 0.25;
-          return lamp;
-        }
-        if (/metal/.test(n)) return r.material("#a68a62", 0.35, 0.6);
-        if (/wooddark/.test(n)) return r.material("#4c3934");
-        return r.material(palette.wood, 0.72);
+  // ---------------------------------------------------------------- shell
+  const floorMat = cinema
+    ? kit.mat("carpet", () => {
+        const tex = kit.canvas("carpet", 512, (ctx, s) => {
+          ctx.fillStyle = "#231c2a";
+          ctx.fillRect(0, 0, s, s);
+          ctx.strokeStyle = "#5a2a36";
+          ctx.lineWidth = 3;
+          for (let y = 0; y < s; y += 64)
+            for (let x = 0; x < s; x += 64) {
+              ctx.beginPath();
+              ctx.moveTo(x + 32, y + 8);
+              ctx.lineTo(x + 56, y + 32);
+              ctx.lineTo(x + 32, y + 56);
+              ctx.lineTo(x + 8, y + 32);
+              ctx.closePath();
+              ctx.stroke();
+              ctx.fillStyle = "#c9a06233";
+              ctx.fillRect(x + 30, y + 30, 4, 4);
+            }
+        }, 10);
+        const m = new T.MeshStandardMaterial({ map: tex, roughness: 1 });
+        m.bumpMap = kit.weave();
+        m.bumpScale = 1.4;
+        return m;
+      })
+    : kit.mat("floor", () => {
+        const map = kit.herringbone(p.floor, "#3a2416");
+        map.repeat.set(6, 6);
+        return new T.MeshStandardMaterial({ map, roughness: 0.42, metalness: 0 });
       });
-      obj.material = mats.length === 1 ? mats[0] : mats;
-      obj.castShadow = true;
-      obj.receiveShadow = true;
-    });
-    scene.add(group);
-    colliders.push(group);
-    return group;
+  const floor = new T.Mesh(r.keep(new T.PlaneGeometry(26.3, 24.6)), floorMat);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.set(0, 0, 1);
+  floor.receiveShadow = true;
+  scene.add(floor);
+  const wallMat = cinema ? kit.fabric(p.wall, 0.95) : kit.paint(p.wall, 0.88);
+  const shell = (x: number, y: number, z: number, w: number, h: number, d: number, m: T.Material = wallMat) => {
+    const mesh = kit.mesh(scene, kit.rbox(w, h, d, 0.01, 1), m, x, y, z, false);
+    walls.push(mesh);
+    return mesh;
   };
+  shell(0, 3.05, -11.13, 26.2, 6.3, 0.25);
+  shell(-13.05, 3.1, 1, 0.22, 6.3, 24.6);
+  shell(13.05, 3.1, 1, 0.22, 6.3, 24.6);
+  shell(0, 3.1, 13.15, 26.2, 6.3, 0.22);
+  const ceilingMat = kit.paint(cinema ? "#14111c" : "#2b2622", 0.95);
+  const ceiling = shell(0, 6.17, 1, 26.3, 0.24, 24.8, ceilingMat);
+  ceiling.name = "solid-ceiling";
+  for (const w of walls) (w.material as T.Material).side = T.DoubleSide;
+  colliders.push(...walls);
+  const decor = new T.Group();
+  scene.add(decor);
+  // Wainscot + cornice + baseboards (lounge) / acoustic panels (cinema)
   if (!cinema) {
-    const sofa = new T.Group();
-    sofa.position.set(0, 0, 2);
-    sofa.rotation.y = Math.PI;
-    scene.add(sofa);
-    colliders.push(sofa);
-    r.box(sofa, 0, 0.4, 0, 5.8, 0.35, 1.4, palette.wood, 0.12);
-    r.box(sofa, 0, 1.05, -0.58, 5.8, 0.95, 0.26, fabric(palette.cloth), 0.12);
-    for (const x of [-2.8, 2.8])
-      r.box(sofa, x, 0.85, 0, 0.28, 0.6, 1.4, fabric(palette.cloth), 0.12);
-    for (const x of [-1.85, 0, 1.85])
-      r.box(sofa, x, 0.5, 0.06, 1.76, 0.22, 1.03, fabric("#9b809a"), 0.1);
-    for (const x of [-2.4, 2.4])
-      for (const z of [-0.48, 0.48])
-        r.box(sofa, x, 0.15, z, 0.16, 0.3, 0.16, palette.wood, 0.02);
-    r.batch(sofa);
-    contact(0, 2, 6.7, 2.1);
-    const table = prop("tableCoffee", 0, -0.2, 3.5, 0.6, 1.5, 0);
-    colliders.push(table);
-    contact(0, -0.2, 4.2, 2.1);
-    prop("bookcaseOpenLow", 7.2, -9.8, 2.4, 1.4, 0.6, 0);
-    prop("books", 7.2, -9.8, 1.6, 0.35, 0.35, 0, undefined, 1.4);
-    const tray = r.cylinder(scene, 0.65, 0.65, -0.2, 0.4, 0.4, 0.04, "#d2b598");
-    tray.scale.z = 0.7;
-    for (const x of [0.45, 0.9])
-      r.cylinder(scene, x, 0.78, -0.2, 0.1, 0.08, 0.23, "#d9cbc0");
-  }
-  for (const seat of seats(preset)) {
-    if (seat.kind !== "sofa") {
-      const chair = new T.Group();
-      chair.name = "seat-" + seat.id;
-      chair.position.set(seat.x, 0, seat.z);
-      chair.rotation.y = seat.yaw;
-      scene.add(chair);
-      colliders.push(chair);
-      if (seat.game) {
-        r.box(chair, 0, 0.52, 0, 0.65, 0.14, 0.64, palette.wood, 0.04);
-        r.box(chair, 0, 0.62, 0.025, 0.56, 0.1, 0.55, fabric("#688a84"), 0.04);
-        r.box(chair, 0, 0.99, -0.29, 0.63, 0.6, 0.12, fabric("#688a84"), 0.045);
-        for (const x of [-0.23, 0.23])
-          for (const z of [-0.22, 0.22])
-            r.box(chair, x, 0.26, z, 0.055, 0.5, 0.055, palette.wood, 0.008);
-      } else if (seat.kind === "puff") {
-        r.box(chair, 0, 0.29, 0, 1.15, 0.56, 1.15, fabric("#ab7963"), 0.18);
-      } else {
-        r.box(
-          chair,
-          0,
-          0.29,
-          0,
-          1.28,
-          0.26,
-          1.24,
-          cinema ? "#373944" : palette.wood,
-          0.06,
-        );
-        r.box(
-          chair,
-          0,
-          0.5,
-          0.07,
-          1.04,
-          0.22,
-          0.98,
-          fabric(cinema ? "#92708b" : "#9aa999"),
-          0.1,
-        );
-        r.box(
-          chair,
-          0,
-          1.12,
-          -0.52,
-          1.2,
-          1.02,
-          0.24,
-          fabric(palette.cloth),
-          0.11,
-        );
-        for (const x of [-0.64, 0.64])
-          r.box(
-            chair,
-            x,
-            0.84,
-            0,
-            0.22,
-            0.38,
-            1.3,
-            fabric(palette.cloth),
-            0.08,
-          );
-        if (cinema) {
-          r.box(chair, 0, 0.18, 0, 0.6, 0.36, 0.7, "#373944", 0.1);
-          r.box(
-            chair,
-            0,
-            1.45,
-            -0.48,
-            0.94,
-            0.29,
-            0.23,
-            fabric("#80667a"),
-            0.09,
-          );
-          for (const x of [-0.64, 0.64])
-            r.cylinder(chair, x, 1.045, 0.32, 0.075, 0.075, 0.018, "#292a32");
-        } else
-          for (const x of [-0.46, 0.46])
-            for (const z of [-0.45, 0.45])
-              r.box(chair, x, 0.17, z, 0.12, 0.34, 0.12, palette.wood, 0.02);
-      }
-      r.batch(chair);
-      contact(seat.x, seat.z, 1.8, 1.8);
+    const wood = kit.wood(p.woodDark, 0.5);
+    for (const [x, z, w, d, ry] of [
+      [0, -10.98, 26, 0.06, 0],
+      [-12.92, 1, 24.4, 0.06, Math.PI / 2],
+      [12.92, 1, 24.4, 0.06, Math.PI / 2],
+      [0, 13.02, 26, 0.06, 0],
+    ] as [number, number, number, number, number][]) {
+      const lower = kit.mesh(decor, kit.rbox(w, 1.15, d, 0.01, 1), wood, x, 0.575, z, false);
+      lower.rotation.y = ry;
+      const cap = kit.mesh(decor, kit.rbox(w, 0.05, 0.1, 0.01, 1), kit.wood(p.wood, 0.4), x, 1.17, z, false);
+      cap.rotation.y = ry;
+      const cove = kit.mesh(decor, kit.rbox(w, 0.06, 0.06, 0.01, 1), kit.glow("#ffbf7a", 1.1), x, 5.62, z, false);
+      cove.rotation.y = ry;
+      const cornice = kit.mesh(decor, kit.rbox(w, 0.22, 0.2, 0.02, 1), wood, x, 5.95, z, false);
+      cornice.rotation.y = ry;
     }
-    const marker = new T.Mesh(
-      r.keep(new T.RingGeometry(0.64, 0.69, 32)),
-      r.keep(
-        new T.MeshBasicMaterial({
-          color: "#e0c393",
-          transparent: true,
-          opacity: 0.8,
-          side: T.DoubleSide,
-          depthWrite: false,
-        }),
-      ),
-    );
-    marker.rotation.x = -Math.PI / 2;
-    marker.position.set(seat.x, 0.105, seat.z);
-    marker.visible = false;
-    scene.add(marker);
-    seatMarkers.set(seat.id, marker);
-  }
-  for (const x of [-11, 11]) {
-    const plant = new T.Group();
-    plant.position.set(x, 0, -8.1);
-    scene.add(plant);
-    colliders.push(plant);
-    r.cylinder(plant, 0, 0.3, 0, 0.34, 0.25, 0.6, "#978d77");
-    r.cylinder(plant, 0, 0.61, 0, 0.32, 0.32, 0.045, "#343d32");
-    for (let i = 0; i < 7; i++) {
-      const angle = (i / 7) * Math.PI * 2,
-        leaf = new T.Shape();
-      leaf.moveTo(0, 0);
-      leaf.bezierCurveTo(-0.22, 0.28, -0.24, 0.75, 0, 1.25);
-      leaf.bezierCurveTo(0.24, 0.75, 0.22, 0.28, 0, 0);
-      const geo = r.keep(new T.ShapeGeometry(leaf, 12)),
-        pos = geo.getAttribute("position");
-      for (let j = 0; j < pos.count; j++) {
-        const y = pos.getY(j);
-        pos.setZ(j, 0.2 * Math.sin((y / 1.25) * Math.PI) - y * y * 0.2);
-      }
-      geo.computeVertexNormals();
-      const mat = r.keep(
-        new T.MeshStandardMaterial({
-          color: i % 2 ? "#55765b" : "#6a8666",
-          roughness: 0.9,
-          side: T.DoubleSide,
-        }),
-      );
-      const mesh = new T.Mesh(geo, mat);
-      mesh.position.set(Math.sin(angle) * 0.09, 0.58, Math.cos(angle) * 0.09);
-      mesh.rotation.set(-0.3 + (i % 3) * 0.15, angle, 0);
-      mesh.scale.setScalar(0.9 + (i % 3) * 0.15);
-      mesh.castShadow = true;
-      plant.add(mesh);
-    }
-    contact(x, -8.1, 1.6, 1.6);
-    const lamp = new T.Group();
-    lamp.position.set(x, 0, 8.8);
-    scene.add(lamp);
-    colliders.push(lamp);
-    r.cylinder(lamp, 0, 0.065, 0, 0.25, 0.29, 0.13, "#645e50");
-    r.cylinder(lamp, 0, 1.15, 0, 0.025, 0.035, 2.2, "#a58e65");
-    const shade = new T.Mesh(
-      r.keep(new T.CylinderGeometry(0.22, 0.4, 0.5, 32, 1, true)),
-      r.keep(
-        new T.MeshStandardMaterial({
-          color: "#d7c9aa",
-          roughness: 0.92,
-          side: T.DoubleSide,
-        }),
-      ),
-    );
-    shade.position.y = 2.4;
-    shade.castShadow = true;
-    lamp.add(shade);
-    r.cylinder(lamp, 0, 2.16, 0, 0.36, 0.36, 0.025, "#ddc9a3");
-    const bulb = new T.PointLight("#ffbc75", 9, 7, 2);
-    bulb.position.set(x, 2.5, 8.8);
-    scene.add(bulb);
-  }
-  if (!cinema) {
-    // Conversation nook and separate games zone, with wide circulation between them.
-    r.box(scene, -8, 0.035, 3, 6, 0.06, 7, fabric("#758c82"), 0.04);
-    const chatTable = r.cylinder(
-      scene,
-      -8,
-      0.37,
-      2.5,
-      0.85,
-      0.65,
-      0.7,
-      palette.wood,
-    );
-    colliders.push(chatTable);
-    prop("bookcaseOpenLow", -11, -5, 2.4, 1.4, 0.5, 0);
-    prop("books", -11, -5, 1.6, 0.35, 0.35, 0, undefined, 1.4);
+    // ceiling beams
+    for (const x of [-9, -4.5, 0, 4.5, 9]) kit.mesh(decor, kit.rbox(0.34, 0.32, 24.4, 0.02, 1), wood, x, 5.9, 1, false);
   } else {
-    const aisle = r.material("#d8ac72");
-    aisle.emissive.set("#d8ac72");
-    aisle.emissiveIntensity = 0.6;
-    for (const x of [-1.3, 1.3, -8, 8])
-      r.box(scene, x, 0.045, 2, 0.045, 0.03, 17, aisle, 0);
+    const panelGeo = kit.rbox(1.6, 3.2, 0.12, 0.04, 2);
+    const panels = new T.InstancedMesh(panelGeo, kit.fabric("#2a2238", 0.95), 16);
+    const m = new T.Object3D();
+    let n = 0;
+    for (const side of [-1, 1])
+      for (let i = 0; i < 8; i++) {
+        m.position.set(side * 12.86, 2.4, -8 + i * 2.6);
+        m.rotation.set(0, (side * Math.PI) / 2, 0);
+        m.updateMatrix();
+        panels.setMatrixAt(n++, m.matrix);
+      }
+    panels.userData.dynamic = true;
+    panels.receiveShadow = true;
+    decor.add(panels);
+    // sconces between panels
+    for (const side of [-1, 1])
+      for (let i = 0; i < 7; i++) {
+        const z = -6.7 + i * 2.6;
+        kit.mesh(decor, kit.lathe([[0, 0], [0.12, 0.02], [0.16, 0.22], [0.1, 0.24]], 18), kit.glow("#ffb46a", 0.9), side * 12.85, 4.3, z, false).rotation.z = (side * Math.PI) / 2;
+      }
+    // star ceiling: one points cloud
+    const stars = new Float32Array(900 * 3);
+    let s = 7;
+    const rand = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+    for (let i = 0; i < 900; i++) stars.set([(rand() - 0.5) * 25, 6.03, -10.5 + rand() * 23], i * 3);
+    const sg = r.keep(new T.BufferGeometry());
+    sg.setAttribute("position", new T.BufferAttribute(stars, 3));
+    decor.add(new T.Points(sg, r.keep(new T.PointsMaterial({ color: "#fff2d8", size: 0.045, sizeAttenuation: true }))));
+    // aisle step lights
+    for (const x of [-1.6, 1.6]) for (let i = 0; i < 6; i++) kit.mesh(decor, kit.rbox(0.18, 0.03, 0.06, 0.01, 1), kit.glow("#ffb867", 1.2), x, 0.03, -3.5 + i * 2, false);
   }
-  // Screen architecture and a deliberately composed idle slate.
-  const panel = r.box(
-    scene,
-    0,
-    3.15,
-    -10.76,
-    8.5,
-    4.7,
-    0.28,
-    cinema ? "#171821" : "#41494b",
-    0.18,
-  );
-  colliders.push(panel);
-  const warm = r.material("#e4c59a");
-  warm.emissive.set("#dba46b");
-  warm.emissiveIntensity = 0.7;
-  r.box(scene, 0, 5.54, -10.75, 8.4, 0.035, 0.1, warm, 0);
-  r.box(scene, 0, 0.55, -10.5, 8, 1, 0.8, palette.wood, 0.08);
-  const posterCanvas = document.createElement("canvas");
-  posterCanvas.width = 1280;
-  posterCanvas.height = 720;
-  const pc = posterCanvas.getContext("2d")!;
-  pc.fillStyle = cinema ? "#211e31" : "#2c3b3a";
-  pc.fillRect(0, 0, 1280, 720);
-  pc.strokeStyle = cinema ? "#8c708b" : "#8b9d8b";
-  pc.lineWidth = 2;
-  for (let i = 0; i < 4; i++) {
-    pc.beginPath();
-    pc.arc(1080, 700, 180 + i * 90, Math.PI, Math.PI * 1.8);
-    pc.stroke();
-  }
-  pc.fillStyle = "#dbc7a9";
-  pc.font = "600 32px system-ui";
-  pc.fillText("Voxy", 90, 105);
-  pc.font = "600 66px system-ui";
-  pc.fillText(cinema ? "A próxima sessão" : "Boa companhia.", 90, 320);
-  pc.fillText(cinema ? "começa com vocês." : "Uma tela em comum.", 90, 405);
-  pc.fillStyle = "#b9c1b9";
-  pc.font = "26px system-ui";
-  pc.fillText("Compartilhe uma tela para assistir juntos.", 90, 540);
-  const poster = r.keep(new T.CanvasTexture(posterCanvas));
-  poster.colorSpace = T.SRGBColorSpace;
-  const screen = new T.Mesh(
-    r.keep(new T.PlaneGeometry(7.8, 4.3875)),
-    r.keep(new T.MeshBasicMaterial({ map: poster, toneMapped: false })),
-  );
+  // ---------------------------------------------------------------- screen wall
+  const { screen, poster } = makeScreen(r, kit, preset);
   screen.position.set(0, 3.15, -10.59);
   scene.add(screen);
-  for (const wall of walls)
-    wall.material = r.keep((wall.material as T.MeshStandardMaterial).clone());
+  const frame = kit.mesh(decor, kit.rbox(8.05, 4.62, 0.12, 0.03), kit.plain("#0d0d10", 0.35, 0.3), 0, 3.15, -10.7, false);
+  void frame;
+  if (cinema) {
+    // stage, curtains, proscenium
+    kit.mesh(decor, kit.rbox(11, 0.42, 1.6, 0.04), kit.wood(p.woodDark, 0.5), 0, 0.21, -10.1);
+    colliders.push(decor.children[decor.children.length - 1]);
+    const curtain = r.keep(new T.PlaneGeometry(2.2, 5.6, 40, 1));
+    const cp = curtain.getAttribute("position");
+    for (let i = 0; i < cp.count; i++) cp.setZ(i, Math.sin(cp.getX(i) * 14) * 0.08);
+    curtain.computeVertexNormals();
+    const velvet = kit.mat("velvet", () => new T.MeshStandardMaterial({ color: "#6a1f2b", roughness: 0.75, side: T.DoubleSide }));
+    for (const s of [-1, 1]) {
+      const c = new T.Mesh(curtain, velvet);
+      c.position.set(s * 5.1, 3.05, -10.75);
+      c.castShadow = c.receiveShadow = true;
+      decor.add(c);
+    }
+    kit.mesh(decor, kit.rbox(12.5, 0.7, 0.4, 0.05), velvet, 0, 5.75, -10.8, false);
+    for (const s of [-1, 1]) {
+      const wash = new T.SpotLight("#ff8a5c", 18, 9, 0.5, 0.8, 1.5);
+      wash.position.set(s * 5, 0.4, -9.4);
+      wash.target.position.set(s * 5.1, 4, -10.8);
+      decor.add(wash, wash.target);
+    }
+    // projection booth window with a soft beam
+    kit.mesh(decor, kit.rbox(2.4, 1.1, 0.1, 0.03), kit.glow("#8ea6ff", 0.6), 0, 4.6, 13.0, false);
+    const beam = new T.Mesh(
+      r.keep(new T.ConeGeometry(2.8, 23.5, 24, 1, true)),
+      r.keep(new T.MeshBasicMaterial({ color: "#a9b6ff", transparent: true, opacity: 0.035, depthWrite: false, side: T.DoubleSide })),
+    );
+    beam.position.set(0, 3.9, 1.2);
+    beam.rotation.x = -Math.PI / 2 + 0.03;
+    decor.add(beam);
+    // rear doors
+    for (const x of [-9, 9]) {
+      kit.mesh(decor, kit.rbox(2.2, 3.1, 0.14, 0.04), kit.wood(p.woodDark), x, 1.55, 12.98, false);
+      kit.mesh(decor, kit.rbox(0.3, 0.12, 0.04, 0.01, 1), kit.glow("#4fdc8f", 1.2), x, 3.35, 12.9, false);
+    }
+    // seating carpet runner
+    decor.add(kit.rug(15.5, 10.5, ["#2b1f30", "#7a2734", "#c9a062"], 3));
+  } else {
+    // TV wall: slatted walnut with backlight; low media console; speakers.
+    const slat = kit.rbox(0.09, 5.2, 0.08, 0.01, 1);
+    const slats = new T.InstancedMesh(slat, kit.wood(p.wood, 0.5), 56);
+    const m = new T.Object3D();
+    for (let i = 0; i < 56; i++) {
+      m.position.set(-5.5 + i * 0.2, 2.75, -10.92);
+      m.updateMatrix();
+      slats.setMatrixAt(i, m.matrix);
+    }
+    slats.userData.dynamic = true;
+    slats.receiveShadow = true;
+    decor.add(slats);
+    kit.mesh(decor, kit.rbox(8.4, 0.05, 0.05, 0.01, 1), kit.glow("#b8a8ff", 1.4), 0, 0.82, -10.75, false);
+    const console = new T.Group();
+    kit.mesh(console, kit.rbox(8, 0.55, 0.6, 0.04), kit.wood(p.woodDark, 0.45), 0, 0.38, -10.45);
+    for (let i = 0; i < 4; i++) kit.mesh(console, kit.rbox(1.9, 0.42, 0.02, 0.01, 1), kit.wood(p.wood, 0.42), -3 + i * 2, 0.38, -10.14);
+    for (const x of [-3.6, 3.6]) {
+      kit.mesh(console, kit.rbox(0.5, 1.2, 0.4, 0.05), kit.plain("#1b1b1f", 0.6), x, 1.25, -10.45);
+      kit.mesh(console, kit.cyl(0.13, 0.13, 0.02, 24), kit.plain("#2b2b30", 0.4), x, 1.4, -10.24, false).rotation.x = Math.PI / 2;
+      kit.mesh(console, kit.cyl(0.08, 0.08, 0.02, 20), kit.plain("#2b2b30", 0.4), x, 1.0, -10.24, false).rotation.x = Math.PI / 2;
+    }
+    const vinyl = kit.mesh(console, kit.cyl(0.16, 0.16, 0.02, 32), kit.plain("#111", 0.3), 2.2, 0.67, -10.45, false);
+    void vinyl;
+    for (let i = 0; i < 3; i++) kit.mesh(console, kit.rbox(0.32, 0.04, 0.24, 0.006, 1), kit.plain([p.accent, "#e8dfcf", p.fabricA][i], 0.8), -2.2, 0.68 + i * 0.04, -10.45);
+    const plantA = kit.plant("bush", 3, "#2a2a2e");
+    plantA.position.set(-1.2, 0.66, -10.45);
+    plantA.scale.setScalar(0.6);
+    console.add(plantA);
+    decor.add(console);
+    colliders.push(console);
+    for (const x of [-7.3, 7.3]) {
+      const shelf = kit.bookshelf(2.4, 3.4, x > 0 ? 3 : 1);
+      shelf.position.set(x, 0, -10.8);
+      decor.add(shelf);
+      kit.r.batch(shelf);
+    }
+    // conversation zone
+    const rug = kit.rug(8.6, 6.4, p.rug, 2);
+    rug.position.set(0, 0.012, 1.2);
+    decor.add(rug);
+    const table = kit.coffeeTable(2.5, 1.15);
+    table.position.set(0, 0, -0.2);
+    decor.add(table);
+    kit.r.batch(table);
+    colliders.push(table);
+    for (const s of [-1, 1]) {
+      const lamp = kit.floorLamp();
+      lamp.position.set(s * 3.6, 0, 3.2);
+      decor.add(lamp);
+      const bulb = new T.PointLight("#ffc98a", 6, 6, 2);
+      bulb.position.set(s * 3.6, 1.6, 3.2);
+      decor.add(bulb);
+    }
+    // reading nook (west)
+    const nookRug = kit.rug(4.4, 4.4, ["#2f5a63", "#d4a24c", "#e6dccb"], 5, true);
+    nookRug.position.set(-8, 0.012, 2.5);
+    decor.add(nookRug);
+    const round = kit.roundTable(0.62, 0.62);
+    round.position.set(-8, 0, 2.5);
+    decor.add(round);
+    kit.r.batch(round);
+    colliders.push(round);
+    const candle = kit.mesh(decor, kit.cyl(0.04, 0.04, 0.1, 16), kit.plain("#efe6d6", 0.6), -8, 0.7, 2.5, false);
+    void candle;
+    const nookLight = kit.pendant(0.3, "#ffcf8a", 2.4, "dome");
+    nookLight.position.set(-8, 6.0, 2.5);
+    decor.add(nookLight);
+    const nookPoint = new T.PointLight("#ffc78a", 10, 7, 2);
+    nookPoint.position.set(-8, 3.0, 2.5);
+    decor.add(nookPoint);
+    // games corner rug + pendants over truco/chess
+    const games = kit.rug(10.5, 4.6, ["#3a2a22", "#d4a24c", "#2f5a63"], 9);
+    games.position.set(-2.5, 0.012, 8.5);
+    decor.add(games);
+    for (const [gx, gz] of [
+      [-6.6, 8.1],
+      [1.5, 8.8],
+    ]) {
+      const pend = kit.pendant(0.38, "#ffd59a", 3.2, "cone");
+      pend.position.set(gx, 6.0, gz);
+      decor.add(pend);
+      const light = new T.PointLight("#ffd29c", 9, 6, 2);
+      light.position.set(gx, 2.4, gz);
+      decor.add(light);
+    }
+    // south sideboard (existing footprint) with art above
+    const side = new T.Group();
+    kit.mesh(side, kit.rbox(5.4, 0.9, 0.7, 0.04), kit.wood(p.woodDark, 0.45), -8, 0.45, 11.85);
+    for (let i = 0; i < 3; i++) kit.mesh(side, kit.rbox(1.7, 0.74, 0.02, 0.01, 1), kit.wood(p.wood, 0.42), -9.8 + i * 1.8, 0.45, 11.49);
+    for (let i = 0; i < 4; i++) kit.mesh(side, kit.rbox(0.42, 0.08, 0.32, 0.01, 1), kit.plain([p.fabricB, p.fabricA, p.accent, "#e8dfcf"][i], 0.75), -6.8, 0.94 + i * 0.08, 11.85);
+    decor.add(side);
+    colliders.push(side);
+    const art1 = kit.art(2.6, 1.6, 1);
+    art1.position.set(-8, 2.6, 12.98);
+    art1.rotation.y = Math.PI;
+    decor.add(art1);
+    // NE: record cabinet / jukebox footprint
+    const juke = new T.Group();
+    kit.mesh(juke, kit.rbox(2.9, 1.05, 0.6, 0.05), kit.wood(p.woodDark, 0.4), 7.2, 0.53, -10.1);
+    kit.mesh(juke, kit.rbox(2.6, 0.05, 0.04, 0.01, 1), kit.glow("#ffb867", 1.2), 7.2, 1.0, -9.79, false);
+    for (let i = 0; i < 24; i++) kit.mesh(juke, kit.rbox(0.012, 0.3, 0.3, 0.002, 1), kit.plain(["#2b2b2b", p.accent, p.fabricA, "#e8dfcf"][i % 4], 0.6), 6.0 + i * 0.05, 0.75, -10.1, false);
+    const record = kit.lathe([[0.18, 0], [0.12, 0.06], [0.12, 0.22], [0.2, 0.26]], 20);
+    kit.mesh(juke, record, kit.metal(), 8.2, 1.05, -10.1);
+    decor.add(juke);
+    colliders.push(juke);
+    // windows (east) with night city
+    for (const z of [-7.5, -3.2]) {
+      kit.mesh(decor, kit.rbox(0.18, 3.0, 3.2, 0.03), kit.wood(p.woodDark, 0.4), 12.92, 3.1, z, false);
+      const view = windowView(kit, 2.9, 2.7, z < -5 ? 2 : 3);
+      view.position.set(12.82, 3.1, z);
+      view.rotation.y = -Math.PI / 2;
+      decor.add(view);
+      kit.mesh(decor, kit.rbox(0.06, 0.06, 2.9, 0.01, 1), kit.wood(p.woodDark, 0.4), 12.8, 3.1, z, false);
+      kit.mesh(decor, kit.rbox(0.06, 2.7, 0.06, 0.01, 1), kit.wood(p.woodDark, 0.4), 12.8, 3.1, z, false);
+      kit.mesh(decor, kit.rbox(0.3, 0.06, 3.0, 0.01, 1), kit.wood(p.wood, 0.4), 12.75, 1.62, z, false);
+    }
+    // wall art
+    for (const [x, y, z, ry, w, h, seed] of [
+      [-12.85, 3.1, 7.5, Math.PI / 2, 2.2, 1.5, 2],
+      [12.85, 3.0, 8.3, -Math.PI / 2, 1.6, 2.2, 3],
+      [12.85, 3.0, 4.6, -Math.PI / 2, 1.2, 1.2, 4],
+      [-12.85, 3.0, 2.5, Math.PI / 2, 1.8, 1.2, 5],
+    ] as number[][]) {
+      const art = kit.art(w, h, seed);
+      art.position.set(x, y, z);
+      art.rotation.y = ry;
+      decor.add(art);
+    }
+    // plants (corner footprints)
+    for (const [x, z, kind, seed] of [
+      [11, -8.1, "palm", 1],
+      [11, 8.8, "tall", 2],
+      [-11, 8.8, "tall", 3],
+    ] as [number, number, "palm" | "tall", number][]) {
+      const plant = kit.plant(kind, seed);
+      plant.position.set(x, 0, z);
+      decor.add(plant);
+      colliders.push(plant);
+    }
+    // pool zone: cue rack (existing footprint) and pendant over the table
+    const rack = new T.Group();
+    kit.mesh(rack, kit.rbox(1.1, 0.06, 0.5, 0.02, 1), kit.wood(p.woodDark, 0.45), 9.65, 0.03, 1.85);
+    kit.mesh(rack, kit.rbox(1.1, 1.5, 0.08, 0.02, 1), kit.wood(p.woodDark, 0.45), 9.65, 0.75, 1.65);
+    for (let i = 0; i < 5; i++) {
+      const cue = kit.mesh(rack, kit.cyl(0.012, 0.02, 1.45, 10), kit.wood(i % 2 ? "#d8bf8d" : p.wood, 0.4), 9.25 + i * 0.2, 0.78, 1.75, false);
+      cue.rotation.x = 0.05;
+    }
+    decor.add(rack);
+    colliders.push(rack);
+    const art2 = kit.art(1.4, 1.0, 6);
+    art2.position.set(9.65, 2.4, 1.6);
+    decor.add(art2);
+    // west wall rhythm: sconces
+    for (const z of [0, 5])
+      kit.mesh(decor, kit.lathe([[0, 0], [0.1, 0.02], [0.13, 0.18], [0.08, 0.2]], 16), kit.glow("#ffbd78", 1.0), -12.85, 2.6, z, false).rotation.z = -Math.PI / 2;
+    // door (south)
+    kit.mesh(decor, kit.rbox(2.6, 3.3, 0.14, 0.04), kit.wood(p.woodDark), 0, 1.65, 12.98, false);
+    kit.mesh(decor, kit.rbox(2.3, 3.0, 0.06, 0.03), kit.wood(p.wood, 0.45), 0, 1.65, 12.9, false);
+    kit.mesh(decor, kit.cyl(0.02, 0.02, 0.3, 8), kit.metal(), 0.85, 1.5, 12.82, false);
+    buildBar(kit, scene, colliders);
+  }
+  placeSeats(kit, scene, preset, colliders, seatMarkers);
+  r.batch(decor);
+  for (const wall of walls) wall.material = r.keep((wall.material as T.MeshStandardMaterial).clone());
   return {
     screen,
     poster,
@@ -629,11 +683,4 @@ export function buildEnvironment(
       r.dispose();
     },
   };
-}
-
-// Flat acoustic panels use one geometry and one draw call for both side walls.
-class RoundedPanelGeometry extends T.BoxGeometry {
-  constructor() {
-    super(1.4, 2.6, 0.12);
-  }
 }

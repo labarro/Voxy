@@ -24,7 +24,7 @@ export type Seat = {
   x: number;
   z: number;
   yaw: number;
-  kind: "sofa" | "chair" | "puff";
+  kind: "sofa" | "chair" | "puff" | "stool";
   game?: "truco" | "chess";
 };
 export const seats = (preset: RoomPreset): Seat[] =>
@@ -53,6 +53,7 @@ export const seats = (preset: RoomPreset): Seat[] =>
       ).concat([
         ...tableSeats("truco"),
         ...tableSeats("chess"),
+        ...barStools(),
         ...(preset === "rooftop"
           ? ([
               {
@@ -80,6 +81,35 @@ export const seats = (preset: RoomPreset): Seat[] =>
             ] as Seat[])
           : []),
       ]);
+// Bar counter shared by the Lounge and the Rooftop (west side). Players take a
+// drink standing in front of it; the stools are regular reservable seats.
+export const BAR = { x: -9.95, z: -6, halfX: 0.4, halfZ: 2.7 };
+export const barStools = (): Seat[] =>
+  [-7.4, -6, -4.6].map((z, i) => ({
+    id: `bar-${i}`,
+    x: -9.05,
+    z,
+    yaw: -Math.PI / 2,
+    kind: "stool" as const,
+  }));
+export function nearBar(preset: RoomPreset, x: number, z: number) {
+  return (
+    preset !== "cinema" &&
+    x > BAR.x + BAR.halfX - 0.2 &&
+    x < BAR.x + 3.2 &&
+    Math.abs(z - BAR.z) < BAR.halfZ + 0.6
+  );
+}
+export const seatHeight = (seat: Seat | undefined) =>
+  !seat
+    ? 0.5
+    : seat.game
+      ? 0.55
+      : seat.kind === "stool"
+        ? 0.78
+        : seat.kind === "puff"
+          ? 0.45
+          : 0.5;
 export const spawnPose = (slot = 0): RoomPose => ({
   x: [0, 1.2, -1.2, 2.4, -2.4, 3.6, -3.6, 4.8, -4.8, 6][slot % 10],
   z: 6,
@@ -143,6 +173,9 @@ export function walkable(preset: RoomPreset, x: number, z: number) {
       (Math.abs(x + 11) < 1.6 && Math.abs(z + 5) < 0.7)
     )
       return false;
+    // Bar counter and the service area behind it.
+    if (x < BAR.x + BAR.halfX + 0.36 && Math.abs(z - BAR.z) < BAR.halfZ + 0.3)
+      return false;
   }
   if (
     [-11, 11].some(
@@ -155,6 +188,7 @@ export function walkable(preset: RoomPreset, x: number, z: number) {
   return !seats(preset).some((s) => {
     const dx = x - s.x,
       dz = z - s.z;
+    if (s.kind === "stool") return Math.hypot(dx, dz) < 0.42;
     return (
       Math.abs(dx * Math.cos(s.yaw) - dz * Math.sin(s.yaw)) <
         (s.game ? 0.65 : 1) &&

@@ -27,7 +27,7 @@ async function main() {
       "--enable-unsafe-swiftshader",
     ],
   });
-  const dir = "test-results/pool-1.4.0";
+  const dir = "test-results/pool-1.6";
   await mkdir(dir, { recursive: true });
   try {
     const page = await browser.newPage({
@@ -48,7 +48,13 @@ async function main() {
           path: `${dir}/contact-${angle.toFixed(2)}-${height}.png`,
         });
       }
-    await writeFile(`${dir}/results.json`, JSON.stringify(results, null, 2));
+    const views: Record<string, number> = {};
+    for (const view of ["rack", "game", "balls", "side", "low", "rackside"]) {
+      views[view] = await page.evaluate((v) => (window as any).eightView(v), view);
+      await page.screenshot({ path: `${dir}/eight-${view}.png` });
+    }
+    console.log("draw calls", JSON.stringify(views));
+    await writeFile(`${dir}/results.json`, JSON.stringify({ results, views }, null, 2));
     console.log(JSON.stringify(results));
     assert(
       results.every((r) => r.errors.every((e: number) => e < 0.045)),

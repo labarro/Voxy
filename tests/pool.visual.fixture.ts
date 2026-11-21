@@ -123,3 +123,53 @@ let avatar: SocialAvatar | undefined;
     }
   return cases.sort((a, b) => b.error - a.error);
 };
+// 1.6: Eight-Ball table views (rack, mid-game with ball in hand and a called
+// pocket, close-up of numbered balls) for visual review.
+(window as any).eightView = (view: string) => {
+  avatar?.dispose();
+  avatar = undefined;
+  const state = newPool("eight", 3);
+  state.players = ["a", "b"];
+  state.phase = "aiming";
+  let target = new T.Vector3(POOL.x, 0.9, POOL.z);
+  camera.position.set(POOL.x + 2.6, 2.6, POOL.z + 2.9);
+  if (view === "game") {
+    state.opening = false;
+    state.groups = ["solids", "stripes"];
+    state.phase = "placing";
+    state.ballInHand = "kitchen";
+    state.called = 1;
+    state.balls.forEach((b, i) => {
+      if (!b.id) return;
+      const a = i * 2.39;
+      Object.assign(b, {
+        x: Math.cos(a) * (0.25 + (i % 4) * 0.22),
+        z: Math.sin(a) * (0.5 + (i % 5) * 0.3) - 0.2,
+        sunk: [2, 5, 10].includes(b.id),
+      });
+    });
+    camera.position.set(POOL.x - 1.6, 3.4, POOL.z + 2.4);
+  } else if (view === "balls") {
+    state.balls.forEach((b) => {
+      if (!b.id) return;
+      Object.assign(b, { x: ((b.id - 1) % 8) * 0.2 - 0.7, z: b.id > 8 ? 0.25 : 0 });
+    });
+    target = new T.Vector3(POOL.x, POOL.clothY, POOL.z + 0.07);
+    camera.position.set(POOL.x, POOL.clothY + 0.35, POOL.z + 0.75);
+  } else if (view === "side") {
+    camera.position.set(POOL.x + 2.4, 1.15, POOL.z + 0.6);
+    target = new T.Vector3(POOL.x, 0.7, POOL.z);
+  } else if (view === "low") {
+    camera.position.set(POOL.x + 3.2, 0.75, POOL.z + 3.4);
+    target = new T.Vector3(POOL.x, 0.5, POOL.z);
+  } else if (view === "rackside") {
+    camera.position.set(POOL.x + 2.25 + 0.9, 1.1, POOL.z - 1.65 + 0.9);
+    target = new T.Vector3(POOL.x + 2.25, 0.7, POOL.z - 1.65);
+  }
+  table.update(state, 1, ["Ana", "Bruno"], view === "rack" ? 0 : undefined);
+  table.update(state, 1, ["Ana", "Bruno"], view === "rack" ? 0 : undefined);
+  camera.lookAt(target);
+  scene.updateMatrixWorld(true);
+  renderer.render(scene, camera);
+  return renderer.info.render.calls;
+};

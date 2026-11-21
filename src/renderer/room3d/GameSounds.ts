@@ -1,4 +1,13 @@
 /** Tiny original synthesized cues; no downloads, microphone or voice graph. */
+export type GameSoundKind =
+  | "raise"
+  | "play"
+  | "win"
+  | "impact"
+  | "accept"
+  | "clack"
+  | "rail"
+  | "pocket";
 export class GameSounds {
   private context?: AudioContext;
   unlock() {
@@ -6,13 +15,17 @@ export class GameSounds {
     void this.context.resume().catch(() => {});
   }
   play(
-    kind: "raise" | "play" | "win" | "impact" | "accept",
+    kind: GameSoundKind,
     value = 3,
     gain = 0.5,
     pan = 0,
   ) {
     const c = this.context;
     if (!c || c.state !== "running" || gain <= 0) return;
+    if (kind === "clack" || kind === "rail" || kind === "pocket") {
+      this.billiards(c, kind, Math.max(0.15, Math.min(1, value)), gain, pan);
+      return;
+    }
     const base =
       kind === "raise"
         ? 170 + (value / 3) * 35
@@ -41,6 +54,50 @@ export class GameSounds {
       );
       env.gain.setValueAtTime(0.0001, at);
       env.gain.exponentialRampToValueAtTime(0.08 * gain, at + 0.005);
+      env.gain.exponentialRampToValueAtTime(0.0001, at + duration);
+      stereo.pan.value = Math.max(-1, Math.min(1, pan));
+      osc.connect(env).connect(stereo).connect(c.destination);
+      osc.start(at);
+      osc.stop(at + duration + 0.01);
+      osc.onended = () => {
+        osc.disconnect();
+        env.disconnect();
+        stereo.disconnect();
+      };
+    }
+  }
+  /** Pool: short ball clack, dull cushion thud, pocket drop with a rattle. */
+  private billiards(
+    c: AudioContext,
+    kind: "clack" | "rail" | "pocket",
+    strength: number,
+    gain: number,
+    pan: number,
+  ) {
+    const parts: [number, number, number, number, OscillatorType][] =
+      kind === "clack"
+        ? [
+            [0, 2300, 1500, 0.03, "sine"],
+            [0, 3600, 2600, 0.018, "sine"],
+          ]
+        : kind === "rail"
+          ? [[0, 150, 70, 0.07, "triangle"]]
+          : [
+              [0, 210, 80, 0.12, "triangle"],
+              [0.07, 420, 260, 0.03, "sine"],
+              [0.12, 360, 220, 0.025, "sine"],
+            ];
+    const level = 0.07 * gain * (kind === "clack" ? strength : 0.6 + strength * 0.4);
+    for (const [delay, from, to, duration, type] of parts) {
+      const at = c.currentTime + delay,
+        osc = c.createOscillator(),
+        env = c.createGain(),
+        stereo = c.createStereoPanner();
+      osc.type = type;
+      osc.frequency.setValueAtTime(from, at);
+      osc.frequency.exponentialRampToValueAtTime(to, at + duration);
+      env.gain.setValueAtTime(0.0001, at);
+      env.gain.exponentialRampToValueAtTime(Math.max(0.0002, level), at + 0.003);
       env.gain.exponentialRampToValueAtTime(0.0001, at + duration);
       stereo.pan.value = Math.max(-1, Math.min(1, pan));
       osc.connect(env).connect(stereo).connect(c.destination);

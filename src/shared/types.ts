@@ -1,4 +1,4 @@
-import type { PoolState } from "./pool";
+import type { PoolMode, PoolState } from "./pool";
 import type { TrucoView, TrucoAction } from "./truco";
 import type { TableGame } from "./gameTables";
 import type { ChessView, ChessAction } from "./chess";
@@ -218,7 +218,9 @@ export type Signal = {
   candidate?: RTCIceCandidateInit;
 };
 export type Command =
-  | { type: "pool.join" }
+  | { type: "pool.join"; mode?: PoolMode }
+  | { type: "pool.mode"; mode: PoolMode }
+  | { type: "pool.call"; pocket: number; revision: number }
   | { type: "pool.leave" }
   | { type: "game.join"; game: TableGame; seat?: number }
   | { type: "game.leave"; game: TableGame }
@@ -227,7 +229,13 @@ export type Command =
   | { type: "pool.aim"; angle: number; power: number }
   | { type: "pool.place"; x: number; z: number; revision: number }
   | { type: "pool.restart" }
-  | { type: "pool.shoot"; angle: number; power: number; revision: number }
+  | {
+      type: "pool.shoot";
+      angle: number;
+      power: number;
+      revision: number;
+      spin?: number;
+    }
   | { type: "room.tv"; participantId: string }
   | { type: "room.pose"; pose: RoomPose | null }
   | { type: "channel.room"; id: string; preset: RoomPreset | null }

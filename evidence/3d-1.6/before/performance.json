@@ -1,0 +1,57 @@
+{
+  "label": "1.2.1",
+  "measuredAt": "2026-11-21T20:59:20.778Z",
+  "results": [
+    {
+      "quality": "low",
+      "frames": 66,
+      "fps": 16.43589999003275,
+      "renderCpuMs": 14.793939393973261,
+      "drawCalls": 353,
+      "triangles": 85374,
+      "geometries": 326,
+      "textures": 73,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "viewport": "1024x600",
+      "avatars": 10,
+      "afterDispose": {
+        "geometries": 0,
+        "textures": 0
+      }
+    },
+    {
+      "quality": "medium",
+      "frames": 27,
+      "fps": 6.7288042665578365,
+      "renderCpuMs": 13.448148148272324,
+      "drawCalls": 732,
+      "triangles": 160194,
+      "geometries": 371,
+      "textures": 76,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "viewport": "1024x600",
+      "avatars": 10,
+      "afterDispose": {
+        "geometries": 0,
+        "textures": 0
+      }
+    },
+    {
+      "quality": "high",
+      "frames": 25,
+      "fps": 6.223859788888408,
+      "renderCpuMs": 8.268000000193716,
+      "drawCalls": 732,
+      "triangles": 160194,
+      "geometries": 371,
+      "textures": 76,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "viewport": "1024x600",
+      "avatars": 10,
+      "afterDispose": {
+        "geometries": 0,
+        "textures": 0
+      }
+    }
+  ]
+}

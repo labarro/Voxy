@@ -7,11 +7,21 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import { randomUUID } from "node:crypto";
 import * as T from "three";
-import { POOL, type PoolState } from "../src/shared/pool";
+import {
+  POOL,
+  POCKET_NAMES,
+  onEight,
+  type PoolState,
+} from "../src/shared/pool";
 import { chooseShot, placement } from "./pool.bot";
 import assert from "node:assert/strict";
+// --eight plays a complete Bola 8 match (mode chosen and 8 called in the HUD).
+const EIGHT = process.argv.includes("--eight");
 async function main() {
-  const root = resolve("test-results", "pool-match-" + Date.now());
+  const root = resolve(
+    "test-results",
+    (EIGHT ? "pool8-match-" : "pool-match-") + Date.now(),
+  );
   await mkdir(root, { recursive: true });
   const apps: ElectronApplication[] = [],
     pages: Page[] = [],
@@ -147,9 +157,18 @@ async function main() {
       await p
         .getByRole("button", { name: "Entrar na partida", exact: true })
         .click({ timeout: 20000 });
+      if (EIGHT && i === 0) {
+        await p.getByRole("button", { name: "Bola 8", exact: true }).click();
+        await p.waitForFunction(() => (window as any).pool?.mode === "eight");
+      }
     }
-    await a.waitForFunction(() => (window as any).pool?.phase === "aiming");
-    for (let n = 0; n < 40; n++) {
+    await a.waitForFunction(
+      (phase) => (window as any).pool?.phase === phase,
+      EIGHT ? "placing" : "aiming",
+    );
+    if (EIGHT)
+      await a.screenshot({ path: join(root, "eight-break-hud.png") });
+    for (let n = 0; n < (EIGHT ? 45 : 40); n++) {
       let state = await a.evaluate(() => (window as any).pool as PoolState);
       if (state.phase === "finished") break;
       const index = await a.evaluate(
@@ -171,6 +190,20 @@ async function main() {
         state = await p.evaluate(() => (window as any).pool);
       }
       const input = chooseShot(state);
+      if (EIGHT && onEight(state)) {
+        await p
+          .getByRole("button", {
+            name: "Anunciar " + POCKET_NAMES[input.call ?? 0],
+            exact: true,
+          })
+          .click();
+        await p.waitForFunction(
+          (pocket) => (window as any).pool?.called === pocket,
+          input.call ?? 0,
+        );
+        state = await p.evaluate(() => (window as any).pool);
+        await p.screenshot({ path: join(root, `call-${n}.png`) });
+      }
       await p
         .getByLabel("Força da tacada")
         .fill(String(Math.round(input.power * 100)));
@@ -247,11 +280,16 @@ async function main() {
       console.log("Shot", n + 1, result.phase, result.scores);
     }
     const result = await a.evaluate(() => (window as any).pool as PoolState);
-    assert.equal(result.phase, "finished");
-    assert.equal(
-      result.scores.reduce((x, y) => x + y, 0),
-      7,
-    );
+    if (EIGHT) {
+      assert.equal(result.mode, "eight");
+      assert.equal(result.phase, "finished");
+    } else {
+      assert.equal(result.phase, "finished");
+      assert.equal(
+        result.scores.reduce((x, y) => x + y, 0),
+        7,
+      );
+    }
     assert.deepEqual(errors, []);
     for (let i = 0; i < 2; i++) {
       await focus(i);
@@ -261,6 +299,8 @@ async function main() {
       join(root, "results.json"),
       JSON.stringify(
         {
+          mode: EIGHT ? "eight" : "rotation",
+          finished: result.phase === "finished",
           errors,
           shots,
           winner: result.winner,

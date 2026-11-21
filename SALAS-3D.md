@@ -19,16 +19,18 @@ O avatar usa torso orgânico, braços/pernas contínuos deformados por ossos e c
 
 Os dois ambientes têm arquitetura de 26 × 24 m. O Lounge tem área de TV, conversa e jogos; o Cinema tem 12 poltronas em três fileiras, com corredores central e laterais. Móveis e personagens mantêm suas proporções. Cada assento tem uma única construção com frente local +Z; o layout e as colisões são compartilhados entre host e renderer.
 
-## Sinuca Rotação 7
+## Sinuca: Rotação 7 e Bola 8
 
-Aproxime-se da mesa no Lounge e use **E · Jogar sinuca**, ou abra **Sinuca** e **Entrar na partida**. Dois usuários próximos à mesa iniciam a partida. A interface indica jogador da vez, próxima bola e placar. Clique na representação da mesa ou use **Direção**, ajuste **Força** e escolha **Dar tacada**. Somente o jogador da vez pode jogar, e somente após as bolas pararem.
+Aproxime-se da mesa no Lounge ou no Rooftop e use **E · Jogar sinuca**, ou abra **Sinuca**. Escolha **Rotação 7** ou **Bola 8** no seletor de modo e clique em **Entrar na partida**. Dois usuários próximos à mesa iniciam a partida. Somente o jogador da vez pode jogar, e somente depois que as bolas pararem. Quem não está jogando pode abrir a mesma HUD para acompanhar, sem controles. Regras completas, as regras WPA implementadas e as simplificações estão em [Jogos sociais](JOGOS-SOCIAIS.md).
 
-- Há uma branca e sete bolas numeradas. O primeiro contato deve ser com a menor bola ainda na mesa.
-- Cada bola encaçapada em tacada válida vale um ponto; quem encaçapa continua. Sem encaçapar, passa a vez.
-- Encaçapar a branca, não acertar nenhuma bola ou tocar outra bola primeiro é falta. As bolas encaçapadas nessa tacada voltam a posições livres e a vez passa. Não há bola na mão, regra de tabela obrigatória, efeito ou salto.
-- Vence quem somar mais pontos quando as sete bolas terminarem. **Sair da partida**, desconectar, trocar de canal ou sair do 3D reinicia o placar, preservando o adversário na espera. Para revanche, saia e entre novamente.
+- **Rotação 7:** uma branca e sete bolas numeradas. O primeiro contato é sempre na menor bola, e cada bola encaçapada legalmente vale um ponto. Em falta, as bolas da tacada voltam e o adversário recebe bola na mão.
+- **Bola 8:** 15 bolas oficiais, triângulo da WPA, abertura com bola na mão atrás da linha de cabeceira, exigência de abertura legal, mesa aberta, grupos Lisas e Listradas, regra do primeiro contato e da tabela, bola na mão depois de faltas e anúncio da caçapa da 8.
+- **Revanche** mantém o modo e alterna quem abre. O modo pode ser trocado antes do início ou no fim da partida.
+- O controle **Efeito** aplica uma rotação para puxar ou seguir com a branca, limitada e determinística. Não há efeito lateral nem salto.
 
-O host executa física 2D com passos de 1/120 s, atrito, colisões bola/bola, tabelas e seis caçapas. Snapshots a cada 100 ms vão somente aos participantes do canal; clientes interpolam a apresentação sem recalcular o resultado. Turno, distância, força e revisão são validados no host. Um atraso do processo host desacelera a partida igualmente para todos. Partidas são transitórias, sem salvamento após encerrar o host. Atualize host e participantes para 1.2.0.
+A mesa mantém as mesmas coordenadas, área de colisão e circulação de antes. Ela tem trilho de nogueira com bordas arredondadas, tabelas com bocas em ângulo, feltro com textura procedural e furos reais nas caçapas, forro e cantos de couro, diamantes, pernas torneadas, suporte de tacos corrigido e placar na cabeceira. As bolas compartilham uma única geometria e usam texturas de 256 × 128 px com os dois números. As partes fixas são agrupadas por material, e não há luz extra nem arquivo externo. A área da linha de cabeceira aparece destacada quando a bola na mão está restrita a ela. A caçapa anunciada para a 8 recebe um anel dourado.
+
+O host executa física 2D com passos de 1/120 s, atrito, colisões bola/bola, tabelas (cujos toques ficam registrados para as regras) e seis caçapas. Snapshots a cada 100 ms vão somente aos participantes do canal; os clientes interpolam a apresentação, giram as bolas pelo deslocamento e tocam sons de choque, tabela e caçapa sem recalcular o resultado. Turno, distância, força, efeito, caçapa anunciada, posição da bola na mão e revisão são validados no host. Um atraso no processo do host desacelera a partida igualmente para todos. As partidas são transitórias e não ficam salvas depois que o host fecha. Atualize o host e todos os participantes: clientes antigos não exibem a Bola 8.
 
 ## Interações sociais
 

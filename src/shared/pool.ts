@@ -595,7 +595,7 @@ export class PoolGame {
     s.called = undefined;
     if (s.opening) {
       s.opening = false;
-      // WPA 3.3: a legal break pockets a ball or drives four numbered balls to a cushion.
+      // WPA: a legal break pockets a ball or drives four numbered balls to a cushion.
       if (!potted.some((id) => id) && this.railed.size < 4) {
         s.fouls[shooter]++;
         const players = s.players,

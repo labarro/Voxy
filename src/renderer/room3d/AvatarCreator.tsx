@@ -14,6 +14,7 @@ import { avatar3dSchema } from "../../shared/validation";
 import type { Avatar3D } from "../../shared/types";
 import { defaultAvatar } from "../../shared/room3d";
 import { AvatarPreview } from "./AvatarPreview";
+import { baseFor } from "./avatarParts";
 
 const skinColors = [
   "#f4d1b5",
@@ -516,6 +517,15 @@ export default function AvatarCreator({
             {category === "Corpo" && (
               <>
                 {options(
+                  "Base",
+                  [
+                    { id: "m", name: "Masculina" },
+                    { id: "f", name: "Feminina" },
+                  ],
+                  baseFor(draft),
+                  (id) => edit({ base: id as Avatar3D["base"] }),
+                )}
+                {options(
                   "Corpo",
                   [
                     { id: "classic", name: "Clássico" },
@@ -627,7 +637,7 @@ export default function AvatarCreator({
                   "Cabelo",
                   [
                     { id: "short", name: "Curto" },
-                    { id: "crest", name: "Topete" },
+                    { id: "crest", name: "Moicano" },
                     { id: "long", name: "Longo" },
                     { id: "bob", name: "Chanel" },
                     { id: "curly", name: "Cacheado" },

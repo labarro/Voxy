@@ -68,8 +68,7 @@ export function PoolPanel({
     myTurn = s.players[s.turn] === self,
     playing = s.phase !== "waiting" && s.phase !== "finished",
     mustCall = eight && member && myTurn && onEight(s),
-    chooseMode =
-      (member && !playing) || (!member && s.players.length === 0),
+    chooseMode = (member && !playing) || (!member && s.players.length === 0),
     shownMode = member ? mode : s.players.length ? mode : wanted;
   async function run(fn: () => Promise<unknown>) {
     if (busy) return;
@@ -128,7 +127,9 @@ export function PoolPanel({
               aria-pressed={shownMode === m.id}
               disabled={busy}
               title={
-                s.phase === "finished" && s.players.length === 2 && m.id !== mode
+                s.phase === "finished" &&
+                s.players.length === 2 &&
+                m.id !== mode
                   ? "Inicia uma nova partida neste modo"
                   : undefined
               }
@@ -159,7 +160,11 @@ export function PoolPanel({
             >
               <div className="pool-player-head">
                 <i aria-hidden="true" />
-                <b>{id ? name(id) + (id === self ? " (você)" : "") : "Lugar livre"}</b>
+                <b>
+                  {id
+                    ? name(id) + (id === self ? " (você)" : "")
+                    : "Lugar livre"}
+                </b>
                 {s.winner && s.winner === id && <Trophy size={13} />}
               </div>
               <div className="pool-player-meta">
@@ -219,7 +224,11 @@ export function PoolPanel({
       </p>
       {mustCall && (s.phase === "aiming" || s.phase === "placing") && (
         <div className="pool-call">
-          <div className="pool-call-table" role="group" aria-label="Anunciar caçapa da bola 8">
+          <div
+            className="pool-call-table"
+            role="group"
+            aria-label="Anunciar caçapa da bola 8"
+          >
             {pockets.map((p, i) => (
               <button
                 key={i}
@@ -233,7 +242,11 @@ export function PoolPanel({
                 }}
                 onClick={() =>
                   void run(() =>
-                    command({ type: "pool.call", pocket: i, revision: s.revision }),
+                    command({
+                      type: "pool.call",
+                      pocket: i,
+                      revision: s.revision,
+                    }),
                   )
                 }
               />
@@ -338,7 +351,9 @@ export function PoolPanel({
           </span>
         )}
         {member && !myTurn && playing && (
-          <span className="game-hud-hint">Aguarde a tacada de {name(s.players[s.turn])}.</span>
+          <span className="game-hud-hint">
+            Aguarde a tacada de {name(s.players[s.turn])}.
+          </span>
         )}
         {(s.phase === "preparing" || s.phase === "rolling") && (
           <span className="game-hud-hint">

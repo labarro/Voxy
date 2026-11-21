@@ -147,9 +147,23 @@ test("bundled models match their license manifest and include real idle, walking
       for (const image of json.images ?? [])
         assert(!image.uri || image.uri === "Textures/colormap.png");
     }
+    if (file.path.startsWith("avatars/") && file.path.endsWith(".glb")) {
+      const json = JSON.parse(
+        bytes.subarray(20, 20 + bytes.readUInt32LE(12)).toString(),
+      );
+      // Everything is embedded: no downloads at runtime.
+      for (const image of json.images ?? []) assert(!image.uri);
+      for (const buffer of json.buffers ?? []) assert(!buffer.uri);
+      if (file.path === "avatars/animations.glb") {
+        const names = json.animations.map((a: any) => a.name);
+        for (const name of ["Idle_Loop", "Walk_Loop", "Sitting_Idle_Loop", "Jog_Fwd_Loop"])
+          assert(names.includes(name), name);
+      } else assert(json.skins?.length, file.path);
+    }
   }
-  assert(total < 2 * 1024 * 1024, "local asset payload stays under 2 MiB");
-  for (const folder of ["characters", "furniture"])
+  // 1.6 ships skinned avatars and their clips; the bundle stays well below 10 MiB.
+  assert(total < 10 * 1024 * 1024, "local asset payload stays under 10 MiB");
+  for (const folder of ["characters", "furniture", "avatars"])
     assert(
       (await readFile(join(base, folder, "LICENSE.txt"), "utf8")).includes(
         "CC0",

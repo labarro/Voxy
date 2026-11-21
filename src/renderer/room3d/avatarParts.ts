@@ -188,7 +188,7 @@ export function garments(p: Prepared, a: Avatar3D) {
     pants = a.bottomColor ?? "#30394c",
     shoeColor = a.shoeColor ?? "#e5ded2";
   const thickness = {
-    tee: 0.006,
+    tee: 0.01,
     sweater: 0.011,
     hoodie: 0.015,
     jacket: 0.017,
@@ -321,7 +321,8 @@ export function garments(p: Prepared, a: Avatar3D) {
   const hideKey = `${top}|${bottom}|${shoes}`;
   const hidden = bodyGeometry(
     p,
-    (i) => topField(i) < -0.03 || pantsField(i) < -0.03 || shoeField(i) < -0.02,
+    (i) =>
+      topField(i) < -0.012 || pantsField(i) < -0.02 || shoeField(i) < -0.02,
     hideKey,
   );
   return { parts, body: hidden };

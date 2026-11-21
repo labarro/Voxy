@@ -76,7 +76,7 @@ export class RoomCamera {
     if (this.mode === "watch") return;
     this.wantedDistance = T.MathUtils.clamp(
       this.wantedDistance * Math.exp(delta * 0.0012),
-      this.mode === "free" ? 7 : 3.2,
+      this.mode === "free" ? 7 : 2.7,
       this.mode === "free" ? 20 : 13,
     );
   }
@@ -134,7 +134,7 @@ export class RoomCamera {
       wantedTarget =
         this.mode === "free"
           ? this.freeTarget.clone()
-          : new T.Vector3(pose.x, pose.seat ? 1.85 : 1.55, pose.z);
+          : new T.Vector3(pose.x, pose.seat ? 1.45 : 1.62, pose.z);
       wantedPosition = new T.Vector3(
         wantedTarget.x +
           Math.sin(this.yaw) * this.distance * Math.cos(this.pitch),

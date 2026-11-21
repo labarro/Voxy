@@ -19,6 +19,7 @@ import {
   Tv,
   X,
   ChevronDown,
+  Beer,
 } from "lucide-react";
 import type {
   Command,
@@ -114,6 +115,7 @@ export default function RoomView({
     scene = useRef<SocialScene | undefined>(undefined);
   const [poolOpen, setPoolOpen] = useState(false);
   const [radial, setRadial] = useState(false);
+  const [bar, setBar] = useState(false);
   const [notice, setNotice] = useState(""),
     [occupancy, setOccupancy] = useState(1),
     [state, setState] = useState(initialScene),
@@ -246,6 +248,7 @@ export default function RoomView({
           }
         },
       );
+      view.barHandler = () => setBar(true);
       scene.current = view;
       const timer = setInterval(() => {
         view.update(data());
@@ -380,6 +383,21 @@ export default function RoomView({
           setRadial(true);
           return;
         }
+        if (bar && /^Digit[123]$/.test(event.code)) {
+          event.preventDefault();
+          scene.current?.takeDrink(
+            (["can", "bottle", "mug"] as const)[
+              Number(event.code.slice(5)) - 1
+            ],
+          );
+          setBar(false);
+          return;
+        }
+        if (event.key === "Escape" && bar) {
+          event.preventDefault();
+          setBar(false);
+          return;
+        }
         if (event.key === "Escape") {
           if (
             document.fullscreenElement &&
@@ -420,6 +438,55 @@ export default function RoomView({
             setRadial(false);
           }}
         />
+      )}
+      {bar && state.drink?.near && (
+        <div
+          className="room-bar-menu"
+          role="dialog"
+          aria-label="Escolher bebida"
+        >
+          <header>
+            <Beer size={15} />
+            <strong>Bar</strong>
+            <span>Escolha sua bebida</span>
+            <button aria-label="Fechar bar" onClick={() => setBar(false)}>
+              <X size={14} />
+            </button>
+          </header>
+          <div className="room-bar-options">
+            {(
+              [
+                ["can", "Lata"],
+                ["bottle", "Garrafa"],
+                ["mug", "Caneca"],
+              ] as const
+            ).map(([kind, label], i) => (
+              <button
+                key={kind}
+                className={state.drink?.held === kind ? "is-active" : ""}
+                onClick={() => {
+                  scene.current?.takeDrink(kind);
+                  setBar(false);
+                  mount.current?.querySelector("canvas")?.focus();
+                }}
+              >
+                <kbd>{i + 1}</kbd>
+                {label}
+              </button>
+            ))}
+          </div>
+          {state.drink?.held && (
+            <button
+              className="room-bar-return"
+              onClick={() => {
+                scene.current?.stowDrink();
+                setBar(false);
+              }}
+            >
+              Devolver ao balcão
+            </button>
+          )}
+        </div>
       )}
       <div className="room-social-actions">
         <button
@@ -703,6 +770,17 @@ export default function RoomView({
       )}
       {state.ready && !expanded && (
         <>
+          {state.drink?.held && state.mode !== "watch" && (
+            <div className="room-drink-actions" aria-label="Bebida">
+              <button onClick={() => scene.current?.drink()}>
+                <Beer size={14} /> Beber <kbd>Q</kbd>
+              </button>
+              <button onClick={() => scene.current?.toast()}>Brindar</button>
+              <button onClick={() => scene.current?.stowDrink()}>
+                Guardar
+              </button>
+            </div>
+          )}
           <div className="room-context">
             {state.mode === "watch" ? (
               <button onClick={returnToRoom}>

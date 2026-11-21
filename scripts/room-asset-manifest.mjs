@@ -23,8 +23,20 @@ async function scan(directory, prefix = "") {
 }
 const manifest = {
   license: "CC0-1.0",
-  author: "Kenney",
+  author: "Kenney; Quaternius",
   sources: [
+    {
+      name: "Universal Base Characters (Standard)",
+      author: "Quaternius",
+      url: "https://quaternius.com/packs/universalbasecharacters.html",
+      licenseFile: "avatars/LICENSE.txt",
+    },
+    {
+      name: "Universal Animation Library (Standard)",
+      author: "Quaternius",
+      url: "https://quaternius.com/packs/universalanimationlibrary.html",
+      licenseFile: "avatars/LICENSE.txt",
+    },
     {
       name: "Furniture Kit",
       version: "2.0",

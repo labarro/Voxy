@@ -613,6 +613,8 @@ export class SocialAvatar {
       }
     }
     this.body.position.z += this.forward;
+    this.body.position.x = 0;
+    if (!poolRig) this.poolShift.multiplyScalar(0.8);
     // The source idle looks at the floor; lift the gaze towards people.
     if (!poolRig && !cards) this.rotateWorld(this.bone("Head"), right, -0.13);
     // ----- floor sitting: legs forward along the floor
@@ -659,6 +661,10 @@ export class SocialAvatar {
           poolRig.bridge.z,
         ),
         grip = new T.Vector3(poolRig.grip.x, poolRig.grip.y, poolRig.grip.z);
+      this.reachFor([
+        [bridgeHand, bridge],
+        [gripHand as 0 | 1, grip],
+      ]);
       this.handErrors[bridgeHand] = ik(bridgeHand, bridge);
       this.handErrors[gripHand] = ik(gripHand as 0 | 1, grip);
       this.poolAligned = this.handErrors.every((e) => e < 0.035);
@@ -679,6 +685,49 @@ export class SocialAvatar {
     this.updateFace(dt, emote, t);
     this.rig.updateMatrixWorld(true);
     this.updateSmoke(t);
+  }
+  // Shift/lower the body so both hands can reach their targets (the stance
+  // solver was tuned for different proportions). Smoothed for stability.
+  private poolShift = new T.Vector3();
+  private reachFor(targets: [0 | 1, T.Vector3][]) {
+    const start = this.body.position.clone();
+    this.body.position.add(this.poolShift);
+    const wanted = this.poolShift.clone();
+    for (let iteration = 0; iteration < 4; iteration++) {
+      this.rig.updateMatrixWorld(true);
+      const delta = new T.Vector3();
+      for (const [hand, target] of targets) {
+        const s = hand === 0 ? "r" : "l";
+        const shoulder = this.bone("upperarm_" + s).getWorldPosition(
+            new T.Vector3(),
+          ),
+          elbow = this.bone("lowerarm_" + s).getWorldPosition(new T.Vector3()),
+          wristBone = this.bone("hand_" + s).getWorldPosition(new T.Vector3()),
+          palm = this.handFrames[hand].getWorldPosition(new T.Vector3());
+        const reach =
+          (shoulder.distanceTo(elbow) +
+            elbow.distanceTo(wristBone) +
+            wristBone.distanceTo(palm)) *
+          0.92;
+        const to = target.clone().sub(shoulder),
+          d = to.length();
+        if (d > reach)
+          delta.addScaledVector(to, (d - reach) / d / targets.length);
+      }
+      if (delta.lengthSq() < 1e-8) break;
+      // world delta → avatar-local delta (group has no scale)
+      const inv = this.group.getWorldQuaternion(new T.Quaternion()).invert();
+      const local = delta.applyQuaternion(inv);
+      wanted.add(local);
+      this.body.position.add(local);
+    }
+    wanted.x = T.MathUtils.clamp(wanted.x, -0.45, 0.45);
+    wanted.z = T.MathUtils.clamp(wanted.z, -0.45, 0.6);
+    wanted.y = T.MathUtils.clamp(wanted.y, -0.4, 0.12);
+    // Converge quickly but without jitter between frames.
+    this.poolShift.lerp(wanted, 0.5);
+    this.body.position.copy(start).add(this.poolShift);
+    this.rig.updateMatrixWorld(true);
   }
   private emoteArms(
     emote: string | undefined,

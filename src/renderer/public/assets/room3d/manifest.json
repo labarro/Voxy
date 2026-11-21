@@ -1,7 +1,19 @@
 {
   "license": "CC0-1.0",
-  "author": "Kenney",
+  "author": "Kenney; Quaternius",
   "sources": [
+    {
+      "name": "Universal Base Characters (Standard)",
+      "author": "Quaternius",
+      "url": "https://quaternius.com/packs/universalbasecharacters.html",
+      "licenseFile": "avatars/LICENSE.txt"
+    },
+    {
+      "name": "Universal Animation Library (Standard)",
+      "author": "Quaternius",
+      "url": "https://quaternius.com/packs/universalanimationlibrary.html",
+      "licenseFile": "avatars/LICENSE.txt"
+    },
     {
       "name": "Furniture Kit",
       "version": "2.0",
@@ -16,6 +28,31 @@
     }
   ],
   "files": [
+    {
+      "path": "avatars/animations.glb",
+      "bytes": 4295864,
+      "sha256": "e13a382969b766e94c23ca49099f5e438eb98bfc898b27e69ca551e30d93b615"
+    },
+    {
+      "path": "avatars/body-f.glb",
+      "bytes": 928904,
+      "sha256": "0c12882fafdc533788c187b67ad4f655658686ed99bc304e4b9358abbc74987d"
+    },
+    {
+      "path": "avatars/body-m.glb",
+      "bytes": 870828,
+      "sha256": "d4f289c58c3f04b67185198ba2bd98751c49ddebd65e26a75d1aec6396012c59"
+    },
+    {
+      "path": "avatars/hair.glb",
+      "bytes": 951576,
+      "sha256": "68b02f0c40dbd10da7075b033d1811ed995034ed4406dcbabd018b90b7d2ae53"
+    },
+    {
+      "path": "avatars/LICENSE.txt",
+      "bytes": 650,
+      "sha256": "e31d6c62ad9a393bd35b11210f22214007ef8e053ca1f729d6cd29333861bfcf"
+    },
     {
       "path": "characters/character-female-b.glb",
       "bytes": 249988,

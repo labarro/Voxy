@@ -1,4 +1,40 @@
 {
+  "1.6.0": {
+    "date": "2026-11-21",
+    "title": "3D Overhaul — salas, personagens e sinuca reformulados",
+    "items": [
+      "Personagens novos: corpos estilizados com esqueleto e animações reais, rosto expressivo, boca que acompanha a sua voz e piscadas.",
+      "Lounge, Cinema e Rooftop reconstruídos do zero com móveis, iluminação e materiais próprios.",
+      "Sinuca com mesa e bolas novas e a modalidade Bola 8 (lisas e listradas), além da Rotação 7.",
+      "Área de bar no Lounge e no Rooftop: pegue lata, garrafa ou caneca, caminhe com ela, beba e brinde com os amigos."
+    ],
+    "features": [
+      "Modalidade Bola 8 baseada nas regras WPA: formação, quebra, mesa aberta, grupos de lisas e listradas, faltas, bola na mão, chamada de caçapa da bola 8, vitória, derrota e revanche alternando a quebra.",
+      "Seletor de modalidade (Rotação 7 ou Bola 8), HUD com grupos, bolas restantes, faltas, estado e vencedor, visível também para espectadores.",
+      "Efeito opcional na bola branca (siga/puxe) com controle na HUD.",
+      "Bar com balcão, banquetas, geladeira, chopeiras e prateleiras; tecla E abre a escolha da bebida e Q bebe.",
+      "Pegar, segurar, caminhar, sentar, beber, brindar (com tilintar quando duas pessoas brindam juntas) e guardar a bebida, sincronizado para todos.",
+      "Base corporal masculina ou feminina no criador de personagem, mantendo todas as opções e aparências salvas.",
+      "Selo discreto de voz ao lado do nome e boca animada somente enquanto há áudio real (respeitando mudo, ensurdecer e PTT).",
+      "Shift para correr; caminhar passou a ser o padrão."
+    ],
+    "improvements": [
+      "Avatares com malhas contínuas e skinning: roupas derivadas do corpo que deformam com as animações, bainhas limpas, sapatos, saias, capuz e golas.",
+      "Cabelos curtos, médios, longos, ondulados, cacheados, afro, rabo de cavalo, tranças, coque e moicano; barba, bigode e sobrancelhas novas.",
+      "Animações esqueléticas de parado, caminhada, corrida, sentar, falar, dançar e comemorar, com transições suaves e velocidade das pernas ajustada ao deslocamento.",
+      "Lounge com parede da TV em ripas de madeira, sofá modular, cantinho de leitura, área de jogos, janelas com vista noturna, quadros, plantas e luz indireta.",
+      "Cinema com cortinas, palco, poltronas reclináveis, céu estrelado, luz de corredor e feixe do projetor.",
+      "Rooftop ao entardecer com deck, guarda-corpo de vidro, pergolados, varal de luzes, lareira externa e skyline.",
+      "Reflexos suaves de ambiente, sombras e tone mapping revisados; câmera enquadra melhor as novas proporções.",
+      "Mesa de sinuca, bolas numeradas legíveis nos dois lados, tacos, sons de colisão, tabela e caçapa.",
+      "Mesas de Truco e xadrez agora têm cadeiras próprias."
+    ],
+    "fixes": [
+      "Personagens com aparência de primitivas, olhos e bocas fora do rosto e peças flutuando foram substituídos.",
+      "Sentar alinha quadril, pernas e encosto ao móvel; levantar volta ao ponto livre.",
+      "Texturas embutidas dos modelos carregam no aplicativo empacotado."
+    ]
+  },
   "1.5.0": {
     "date": "2026-11-20",
     "title": "Visual Update — a identidade do Voxy 2.0 no Voxy que você já usa",

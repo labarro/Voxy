@@ -102,7 +102,8 @@ export class Kit {
         ctx.fillRect(0, 0, s, s);
         for (let y = 0; y < s; y += 2)
           for (let x = 0; x < s; x += 2) {
-            const v = 128 + (((x + y) / 2) % 2 ? 18 : -18) + (random() - 0.5) * 24;
+            const v =
+              128 + (((x + y) / 2) % 2 ? 18 : -18) + (random() - 0.5) * 24;
             ctx.fillStyle = `rgb(${v},${v},${v})`;
             ctx.fillRect(x, y, 2, 2);
           }
@@ -129,34 +130,40 @@ export class Kit {
       false,
     );
   }
+  // Long planks laid in a staggered (brick) pattern with tone variation.
   herringbone(base: string, dark: string) {
-    return this.canvas(`herring:${base}`, 1024, (ctx, s) => {
-      const random = rng(99);
-      ctx.fillStyle = dark;
-      ctx.fillRect(0, 0, s, s);
-      const L = 128,
-        W = 32;
-      ctx.save();
-      for (let row = -4; row < 20; row++)
-        for (let col = -4; col < 20; col++) {
-          const x = col * W * 2 + row * W,
-            y = row * W * 2 - col * 0;
-          for (const flip of [0, 1]) {
-            ctx.save();
-            ctx.translate(x + flip * W, y + flip * W);
-            ctx.rotate(flip ? -Math.PI / 4 : Math.PI / 4);
-            const tone = new T.Color(base).offsetHSL(0, (random() - 0.5) * 0.06, (random() - 0.5) * 0.08);
+    return this.canvas(
+      `planks:${base}`,
+      1024,
+      (ctx, s) => {
+        const random = rng(99);
+        ctx.fillStyle = dark;
+        ctx.fillRect(0, 0, s, s);
+        const W = 64,
+          L = 512;
+        for (let row = 0; row < s / W; row++) {
+          const offset = ((row * 197) % 5) * (L / 5);
+          for (let x = -L; x < s + L; x += L) {
+            const px = x + offset;
+            const tone = new T.Color(base).offsetHSL(
+              (random() - 0.5) * 0.01,
+              (random() - 0.5) * 0.06,
+              (random() - 0.5) * 0.09,
+            );
             ctx.fillStyle = `#${tone.getHexString()}`;
-            ctx.fillRect(0, 0, L, W - 2);
-            ctx.globalAlpha = 0.12;
-            ctx.fillStyle = "#3a2414";
-            for (let k = 0; k < 6; k++) ctx.fillRect(0, random() * (W - 2), L, 1);
+            ctx.fillRect(px + 1, row * W + 1, L - 2, W - 2);
+            for (let k = 0; k < 9; k++) {
+              ctx.globalAlpha = 0.05 + random() * 0.07;
+              ctx.fillStyle = random() > 0.5 ? "#3a2414" : "#f3dcc0";
+              const y = row * W + 3 + random() * (W - 6);
+              ctx.fillRect(px + 2, y, L - 4, 1 + random() * 1.5);
+            }
             ctx.globalAlpha = 1;
-            ctx.restore();
           }
         }
-      ctx.restore();
-    }, 1);
+      },
+      1,
+    );
   }
   marble() {
     return this.canvas("marble", 512, (ctx, s) => {
@@ -192,7 +199,12 @@ export class Kit {
   wood(color = this.palette.wood, rough = 0.55) {
     return this.mat(`wood:${color}:${rough}`, () => {
       const map = this.grain();
-      return new T.MeshStandardMaterial({ color, map, roughness: rough, metalness: 0 });
+      return new T.MeshStandardMaterial({
+        color,
+        map,
+        roughness: rough,
+        metalness: 0,
+      });
     });
   }
   fabric(color: string, rough = 0.95) {
@@ -212,7 +224,11 @@ export class Kit {
     });
   }
   metal(color = this.palette.metal, rough = 0.32) {
-    return this.mat(`metal:${color}:${rough}`, () => new T.MeshStandardMaterial({ color, roughness: rough, metalness: 1 }));
+    return this.mat(
+      `metal:${color}:${rough}`,
+      () =>
+        new T.MeshStandardMaterial({ color, roughness: rough, metalness: 1 }),
+    );
   }
   paint(color: string, rough = 0.9) {
     return this.mat(`paint:${color}:${rough}`, () => {
@@ -223,19 +239,63 @@ export class Kit {
     });
   }
   plain(color: string, rough = 0.7, metal = 0) {
-    return this.mat(`plain:${color}:${rough}:${metal}`, () => new T.MeshStandardMaterial({ color, roughness: rough, metalness: metal }));
+    return this.mat(
+      `plain:${color}:${rough}:${metal}`,
+      () =>
+        new T.MeshStandardMaterial({
+          color,
+          roughness: rough,
+          metalness: metal,
+        }),
+    );
   }
   glow(color: string, intensity = 1.6) {
-    return this.mat(`glow:${color}:${intensity}`, () => new T.MeshStandardMaterial({ color: "#111", emissive: color, emissiveIntensity: intensity, roughness: 1 }));
+    return this.mat(
+      `glow:${color}:${intensity}`,
+      () =>
+        new T.MeshStandardMaterial({
+          color: "#111",
+          emissive: color,
+          emissiveIntensity: intensity,
+          roughness: 1,
+        }),
+    );
   }
   glass(tint = "#cfe3e8", opacity = 0.28) {
-    return this.mat(`glass:${tint}:${opacity}`, () => new T.MeshStandardMaterial({ color: tint, roughness: 0.05, metalness: 0.1, transparent: true, opacity, depthWrite: false }));
+    return this.mat(
+      `glass:${tint}:${opacity}`,
+      () =>
+        new T.MeshStandardMaterial({
+          color: tint,
+          roughness: 0.05,
+          metalness: 0.1,
+          transparent: true,
+          opacity,
+          depthWrite: false,
+        }),
+    );
   }
   stone() {
-    return this.mat("marble", () => new T.MeshStandardMaterial({ color: "#ffffff", map: this.marble(), roughness: 0.18 }));
+    return this.mat(
+      "marble",
+      () =>
+        new T.MeshStandardMaterial({
+          color: "#ffffff",
+          map: this.marble(),
+          roughness: 0.18,
+        }),
+    );
   }
   leaf(color: string) {
-    return this.mat(`leaf:${color}`, () => new T.MeshStandardMaterial({ color, roughness: 0.75, side: T.DoubleSide }));
+    return this.mat(
+      `leaf:${color}`,
+      () =>
+        new T.MeshStandardMaterial({
+          color,
+          roughness: 0.75,
+          side: T.DoubleSide,
+        }),
+    );
   }
 
   // ---------------------------------------------------------- geometry
@@ -260,12 +320,25 @@ export class Kit {
     return this.r.keep(g);
   }
   lathe(points: [number, number][], seg = 24) {
-    return this.r.keep(new T.LatheGeometry(points.map(([x, y]) => new T.Vector2(x, y)), seg));
+    return this.r.keep(
+      new T.LatheGeometry(
+        points.map(([x, y]) => new T.Vector2(x, y)),
+        seg,
+      ),
+    );
   }
   cyl(rt: number, rb: number, h: number, seg = 20) {
     return this.r.keep(new T.CylinderGeometry(rt, rb, h, seg));
   }
-  mesh(parent: T.Object3D, g: T.BufferGeometry, m: T.Material, x = 0, y = 0, z = 0, shadow = true) {
+  mesh(
+    parent: T.Object3D,
+    g: T.BufferGeometry,
+    m: T.Material,
+    x = 0,
+    y = 0,
+    z = 0,
+    shadow = true,
+  ) {
     const mesh = new T.Mesh(g, m);
     mesh.position.set(x, y, z);
     mesh.castShadow = shadow;
@@ -275,12 +348,33 @@ export class Kit {
   }
 
   // ---------------------------------------------------------- furniture
-  leg(parent: T.Object3D, x: number, z: number, h: number, mat: T.Material, style: "taper" | "pin" | "block" = "taper") {
-    if (style === "block") return this.mesh(parent, this.rbox(0.07, h, 0.07, 0.015), mat, x, h / 2, z);
-    if (style === "pin") return this.mesh(parent, this.cyl(0.014, 0.01, h, 10), mat, x, h / 2, z);
+  leg(
+    parent: T.Object3D,
+    x: number,
+    z: number,
+    h: number,
+    mat: T.Material,
+    style: "taper" | "pin" | "block" = "taper",
+  ) {
+    if (style === "block")
+      return this.mesh(
+        parent,
+        this.rbox(0.07, h, 0.07, 0.015),
+        mat,
+        x,
+        h / 2,
+        z,
+      );
+    if (style === "pin")
+      return this.mesh(parent, this.cyl(0.014, 0.01, h, 10), mat, x, h / 2, z);
     return this.mesh(parent, this.cyl(0.024, 0.014, h, 12), mat, x, h / 2, z);
   }
-  sofa(width: number, color: string, seats = 3, opts: { arms?: boolean; legs?: T.Material; depth?: number } = {}) {
+  sofa(
+    width: number,
+    color: string,
+    seats = 3,
+    opts: { arms?: boolean; legs?: T.Material; depth?: number } = {},
+  ) {
     const g = new T.Group();
     const depth = opts.depth ?? 0.95,
       seatH = 0.46;
@@ -294,19 +388,63 @@ export class Kit {
       cw = inner / seats;
     for (let i = 0; i < seats; i++) {
       const x = -inner / 2 + cw * (i + 0.5);
-      this.mesh(g, this.cushion(cw - 0.02, 0.15, depth - 0.24, 0.022), fab, x, seatH - 0.07, 0.08);
-      const back = this.mesh(g, this.cushion(cw - 0.03, 0.46, 0.2, 0.03), fab, x, seatH + 0.2, -depth / 2 + 0.17);
+      this.mesh(
+        g,
+        this.cushion(cw - 0.02, 0.15, depth - 0.24, 0.022),
+        fab,
+        x,
+        seatH - 0.07,
+        0.08,
+      );
+      const back = this.mesh(
+        g,
+        this.cushion(cw - 0.03, 0.46, 0.2, 0.03),
+        fab,
+        x,
+        seatH + 0.2,
+        -depth / 2 + 0.17,
+      );
       back.rotation.x = -0.14;
     }
     // back frame
-    this.mesh(g, this.rbox(width, 0.5, 0.16, 0.06), base, 0, 0.55, -depth / 2 + 0.08);
+    this.mesh(
+      g,
+      this.rbox(width, 0.5, 0.16, 0.06),
+      base,
+      0,
+      0.55,
+      -depth / 2 + 0.08,
+    );
     if (arm)
-      for (const s of [-1, 1]) this.mesh(g, this.cushion(arm, 0.36, depth, 0.02), base, s * (width / 2 - arm / 2), 0.5, 0);
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) this.leg(g, sx * (width / 2 - 0.08), sz * (depth / 2 - 0.08), 0.13, legs);
+      for (const s of [-1, 1])
+        this.mesh(
+          g,
+          this.cushion(arm, 0.36, depth, 0.02),
+          base,
+          s * (width / 2 - arm / 2),
+          0.5,
+          0,
+        );
+    for (const sx of [-1, 1])
+      for (const sz of [-1, 1])
+        this.leg(
+          g,
+          sx * (width / 2 - 0.08),
+          sz * (depth / 2 - 0.08),
+          0.13,
+          legs,
+        );
     // throw pillows
     if (seats >= 2)
       for (const s of [-1, 1]) {
-        const p = this.mesh(g, this.cushion(0.36, 0.34, 0.12, 0.04), this.fabric(this.palette.fabricC), s * (inner / 2 - 0.25), seatH + 0.16, -depth / 2 + 0.33);
+        const p = this.mesh(
+          g,
+          this.cushion(0.36, 0.34, 0.12, 0.04),
+          this.fabric(this.palette.fabricC),
+          s * (inner / 2 - 0.25),
+          seatH + 0.16,
+          -depth / 2 + 0.33,
+        );
         p.rotation.set(-0.25, s * 0.25, s * 0.08);
       }
     return g;
@@ -317,20 +455,48 @@ export class Kit {
       wood = legs ?? this.wood(this.palette.woodDark, 0.5);
     this.mesh(g, this.rbox(0.82, 0.2, 0.82, 0.05), fab, 0, 0.26, 0);
     this.mesh(g, this.cushion(0.6, 0.14, 0.66, 0.025), fab, 0, 0.42, 0.06);
-    const back = this.mesh(g, this.cushion(0.76, 0.56, 0.18, 0.03), fab, 0, 0.66, -0.33);
+    const back = this.mesh(
+      g,
+      this.cushion(0.76, 0.56, 0.18, 0.03),
+      fab,
+      0,
+      0.66,
+      -0.33,
+    );
     back.rotation.x = -0.18;
-    for (const s of [-1, 1]) this.mesh(g, this.cushion(0.14, 0.3, 0.78, 0.02), fab, s * 0.34, 0.5, 0);
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) this.leg(g, sx * 0.33, sz * 0.33, 0.16, wood);
+    for (const s of [-1, 1])
+      this.mesh(g, this.cushion(0.14, 0.3, 0.78, 0.02), fab, s * 0.34, 0.5, 0);
+    for (const sx of [-1, 1])
+      for (const sz of [-1, 1]) this.leg(g, sx * 0.33, sz * 0.33, 0.16, wood);
     return g;
   }
   ottoman(color: string, round = true) {
     const g = new T.Group();
     const fab = this.fabric(color);
     if (round) {
-      const body = this.lathe([[0, 0.04], [0.34, 0.04], [0.37, 0.1], [0.38, 0.3], [0.36, 0.4], [0.3, 0.44], [0, 0.45]], 28);
+      const body = this.lathe(
+        [
+          [0, 0.04],
+          [0.34, 0.04],
+          [0.37, 0.1],
+          [0.38, 0.3],
+          [0.36, 0.4],
+          [0.3, 0.44],
+          [0, 0.45],
+        ],
+        28,
+      );
       this.mesh(g, body, fab, 0, 0, 0);
       // tufting button
-      this.mesh(g, this.cyl(0.03, 0.03, 0.02, 10), this.fabric(new T.Color(color).multiplyScalar(0.7).getStyle()), 0, 0.452, 0, false);
+      this.mesh(
+        g,
+        this.cyl(0.03, 0.03, 0.02, 10),
+        this.fabric(new T.Color(color).multiplyScalar(0.7).getStyle()),
+        0,
+        0.452,
+        0,
+        false,
+      );
     } else this.mesh(g, this.cushion(0.6, 0.38, 0.6, 0.03), fab, 0, 0.23, 0);
     return g;
   }
@@ -343,61 +509,275 @@ export class Kit {
     top.absarc(w / 2 - r, 0, d / 2, -Math.PI / 2, Math.PI / 2, false);
     top.lineTo(-w / 2 + r, d / 2);
     top.absarc(-w / 2 + r, 0, d / 2, Math.PI / 2, Math.PI * 1.5, false);
-    const geo = new T.ExtrudeGeometry(top, { depth: 0.05, bevelEnabled: true, bevelSize: 0.015, bevelThickness: 0.015, bevelSegments: 3, curveSegments: 24 });
+    const geo = new T.ExtrudeGeometry(top, {
+      depth: 0.05,
+      bevelEnabled: true,
+      bevelSize: 0.015,
+      bevelThickness: 0.015,
+      bevelSegments: 3,
+      curveSegments: 24,
+    });
     geo.rotateX(Math.PI / 2);
-    this.mesh(g, this.r.keep(geo), this.wood(this.palette.woodDark, 0.38), 0, 0.42, 0);
-    const shelf = new T.ExtrudeGeometry(top, { depth: 0.025, bevelEnabled: false, curveSegments: 20 });
+    this.mesh(
+      g,
+      this.r.keep(geo),
+      this.wood(this.palette.woodDark, 0.38),
+      0,
+      0.42,
+      0,
+    );
+    const shelf = new T.ExtrudeGeometry(top, {
+      depth: 0.025,
+      bevelEnabled: false,
+      curveSegments: 20,
+    });
     shelf.rotateX(Math.PI / 2);
     shelf.scale(0.86, 1, 0.8);
     this.mesh(g, this.r.keep(shelf), this.wood(this.palette.wood), 0, 0.14, 0);
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) this.leg(g, sx * (w / 2 - 0.22), sz * (d / 2 - 0.12), 0.4, this.metal(), "pin");
+    for (const sx of [-1, 1])
+      for (const sz of [-1, 1])
+        this.leg(
+          g,
+          sx * (w / 2 - 0.22),
+          sz * (d / 2 - 0.12),
+          0.4,
+          this.metal(),
+          "pin",
+        );
     // styling: books, bowl, candle
     const books = [this.palette.accent, "#e8dfcf", this.palette.fabricB];
-    books.forEach((c, i) => this.mesh(g, this.rbox(0.26 - i * 0.02, 0.035, 0.2, 0.006, 1), this.plain(c, 0.8), -w * 0.22, 0.465 + i * 0.036, 0.02));
-    this.mesh(g, this.lathe([[0, 0], [0.09, 0.005], [0.14, 0.05], [0.15, 0.07]], 28), this.plain("#d9cfc0", 0.4), w * 0.2, 0.44, 0);
-    for (let i = 0; i < 3; i++) this.mesh(g, this.r.keep(new T.SphereGeometry(0.035, 12, 8)), this.plain(["#d8823e", "#c94f3c", "#e3b74b"][i], 0.6), w * 0.2 + (i - 1) * 0.045, 0.5, (i % 2) * 0.03, false);
+    books.forEach((c, i) =>
+      this.mesh(
+        g,
+        this.rbox(0.26 - i * 0.02, 0.035, 0.2, 0.006, 1),
+        this.plain(c, 0.8),
+        -w * 0.22,
+        0.465 + i * 0.036,
+        0.02,
+      ),
+    );
+    this.mesh(
+      g,
+      this.lathe(
+        [
+          [0, 0],
+          [0.09, 0.005],
+          [0.14, 0.05],
+          [0.15, 0.07],
+        ],
+        28,
+      ),
+      this.plain("#d9cfc0", 0.4),
+      w * 0.2,
+      0.44,
+      0,
+    );
+    for (let i = 0; i < 3; i++)
+      this.mesh(
+        g,
+        this.r.keep(new T.SphereGeometry(0.035, 12, 8)),
+        this.plain(["#d8823e", "#c94f3c", "#e3b74b"][i], 0.6),
+        w * 0.2 + (i - 1) * 0.045,
+        0.5,
+        (i % 2) * 0.03,
+        false,
+      );
     return g;
   }
   sideTable(round = true) {
     const g = new T.Group();
     if (round) {
       this.mesh(g, this.cyl(0.26, 0.26, 0.04, 28), this.stone(), 0, 0.56, 0);
-      this.mesh(g, this.lathe([[0.16, 0], [0.05, 0.08], [0.035, 0.3], [0.05, 0.54]], 20), this.metal(), 0, 0, 0);
+      this.mesh(
+        g,
+        this.lathe(
+          [
+            [0.16, 0],
+            [0.05, 0.08],
+            [0.035, 0.3],
+            [0.05, 0.54],
+          ],
+          20,
+        ),
+        this.metal(),
+        0,
+        0,
+        0,
+      );
     } else {
-      this.mesh(g, this.rbox(0.5, 0.04, 0.5, 0.012), this.wood(this.palette.woodDark, 0.4), 0, 0.56, 0);
-      for (const sx of [-1, 1]) for (const sz of [-1, 1]) this.leg(g, sx * 0.21, sz * 0.21, 0.54, this.wood(this.palette.woodDark, 0.4), "block");
+      this.mesh(
+        g,
+        this.rbox(0.5, 0.04, 0.5, 0.012),
+        this.wood(this.palette.woodDark, 0.4),
+        0,
+        0.56,
+        0,
+      );
+      for (const sx of [-1, 1])
+        for (const sz of [-1, 1])
+          this.leg(
+            g,
+            sx * 0.21,
+            sz * 0.21,
+            0.54,
+            this.wood(this.palette.woodDark, 0.4),
+            "block",
+          );
     }
     return g;
   }
   roundTable(radius: number, height = 0.74) {
     const g = new T.Group();
-    this.mesh(g, this.cyl(radius, radius, 0.05, 40), this.wood(this.palette.woodDark, 0.4), 0, height, 0);
-    this.mesh(g, this.r.keep(new T.TorusGeometry(radius, 0.012, 6, 48)), this.metal(), 0, height - 0.01, 0, false).rotation.x = Math.PI / 2;
-    this.mesh(g, this.lathe([[0.32, 0], [0.3, 0.03], [0.07, 0.08], [0.055, height - 0.2], [0.09, height - 0.05]], 24), this.metal(this.palette.metal, 0.4), 0, 0, 0);
+    this.mesh(
+      g,
+      this.cyl(radius, radius, 0.05, 40),
+      this.wood(this.palette.woodDark, 0.4),
+      0,
+      height,
+      0,
+    );
+    this.mesh(
+      g,
+      this.r.keep(new T.TorusGeometry(radius, 0.012, 6, 48)),
+      this.metal(),
+      0,
+      height - 0.01,
+      0,
+      false,
+    ).rotation.x = Math.PI / 2;
+    this.mesh(
+      g,
+      this.lathe(
+        [
+          [0.32, 0],
+          [0.3, 0.03],
+          [0.07, 0.08],
+          [0.055, height - 0.2],
+          [0.09, height - 0.05],
+        ],
+        24,
+      ),
+      this.metal(this.palette.metal, 0.4),
+      0,
+      0,
+      0,
+    );
     return g;
   }
   floorLamp(warm = "#ffd29a") {
     const g = new T.Group();
-    this.mesh(g, this.cyl(0.17, 0.19, 0.03, 24), this.metal("#2a2522", 0.4), 0, 0.015, 0);
+    this.mesh(
+      g,
+      this.cyl(0.17, 0.19, 0.03, 24),
+      this.metal("#2a2522", 0.4),
+      0,
+      0.015,
+      0,
+    );
     this.mesh(g, this.cyl(0.012, 0.012, 1.6, 8), this.metal(), 0, 0.82, 0);
-    const shade = this.lathe([[0.16, 0], [0.2, 0.0], [0.15, 0.3], [0.12, 0.3]], 28);
-    const sm = this.mat(`shade:${warm}`, () => new T.MeshStandardMaterial({ color: "#f2e6d2", emissive: warm, emissiveIntensity: 0.55, roughness: 0.9, side: T.DoubleSide }));
+    const shade = this.lathe(
+      [
+        [0.16, 0],
+        [0.2, 0.0],
+        [0.15, 0.3],
+        [0.12, 0.3],
+      ],
+      28,
+    );
+    const sm = this.mat(
+      `shade:${warm}`,
+      () =>
+        new T.MeshStandardMaterial({
+          color: "#f2e6d2",
+          emissive: warm,
+          emissiveIntensity: 0.55,
+          roughness: 0.9,
+          side: T.DoubleSide,
+        }),
+    );
     this.mesh(g, shade, sm, 0, 1.52, 0, false);
     return g;
   }
-  pendant(radius = 0.22, warm = "#ffcf8a", drop = 0.9, style: "dome" | "globe" | "cone" = "dome") {
+  pendant(
+    radius = 0.22,
+    warm = "#ffcf8a",
+    drop = 0.9,
+    style: "dome" | "globe" | "cone" = "dome",
+  ) {
     const g = new T.Group();
-    this.mesh(g, this.cyl(0.004, 0.004, drop, 6), this.plain("#1a1a1a"), 0, -drop / 2, 0, false);
+    this.mesh(
+      g,
+      this.cyl(0.004, 0.004, drop, 6),
+      this.plain("#1a1a1a"),
+      0,
+      -drop / 2,
+      0,
+      false,
+    );
     const bulb = this.glow(warm, 2.2);
     if (style === "globe") {
-      this.mesh(g, this.r.keep(new T.SphereGeometry(radius, 20, 14)), this.mat(`globe:${warm}`, () => new T.MeshStandardMaterial({ color: "#fff7ea", emissive: warm, emissiveIntensity: 1.1, roughness: 0.6, transparent: true, opacity: 0.95 })), 0, -drop - radius, 0, false);
+      this.mesh(
+        g,
+        this.r.keep(new T.SphereGeometry(radius, 20, 14)),
+        this.mat(
+          `globe:${warm}`,
+          () =>
+            new T.MeshStandardMaterial({
+              color: "#fff7ea",
+              emissive: warm,
+              emissiveIntensity: 1.1,
+              roughness: 0.6,
+              transparent: true,
+              opacity: 0.95,
+            }),
+        ),
+        0,
+        -drop - radius,
+        0,
+        false,
+      );
     } else {
       const points: [number, number][] =
         style === "cone"
-          ? [[0.02, 0], [radius * 0.3, -0.02], [radius, -radius * 1.1], [radius * 0.98, -radius * 1.12]]
-          : [[0.02, 0], [radius * 0.5, -0.03], [radius * 0.9, -radius * 0.55], [radius, -radius * 0.82]];
-      this.mesh(g, this.lathe(points, 28), this.mat("pendant-shell", () => new T.MeshStandardMaterial({ color: this.palette.metal, metalness: 1, roughness: 0.3, side: T.DoubleSide })), 0, -drop, 0, false);
-      this.mesh(g, this.r.keep(new T.SphereGeometry(radius * 0.32, 12, 8)), bulb, 0, -drop - radius * 0.62, 0, false);
+          ? [
+              [0.02, 0],
+              [radius * 0.3, -0.02],
+              [radius, -radius * 1.1],
+              [radius * 0.98, -radius * 1.12],
+            ]
+          : [
+              [0.02, 0],
+              [radius * 0.5, -0.03],
+              [radius * 0.9, -radius * 0.55],
+              [radius, -radius * 0.82],
+            ];
+      this.mesh(
+        g,
+        this.lathe(points, 28),
+        this.mat(
+          "pendant-shell",
+          () =>
+            new T.MeshStandardMaterial({
+              color: this.palette.metal,
+              metalness: 1,
+              roughness: 0.3,
+              side: T.DoubleSide,
+            }),
+        ),
+        0,
+        -drop,
+        0,
+        false,
+      );
+      this.mesh(
+        g,
+        this.r.keep(new T.SphereGeometry(radius * 0.32, 12, 8)),
+        bulb,
+        0,
+        -drop - radius * 0.62,
+        0,
+        false,
+      );
     }
     return g;
   }
@@ -405,12 +785,37 @@ export class Kit {
     const g = new T.Group();
     const wood = this.wood(this.palette.woodDark, 0.5);
     const shelves = Math.max(3, Math.round(h / 0.42));
-    for (const s of [-1, 1]) this.mesh(g, this.rbox(0.04, h, 0.36, 0.01, 1), wood, s * (w / 2 - 0.02), h / 2, 0);
+    for (const s of [-1, 1])
+      this.mesh(
+        g,
+        this.rbox(0.04, h, 0.36, 0.01, 1),
+        wood,
+        s * (w / 2 - 0.02),
+        h / 2,
+        0,
+      );
     this.mesh(g, this.rbox(w, h, 0.02, 0.005, 1), wood, 0, h / 2, -0.17);
-    for (let i = 0; i <= shelves; i++) this.mesh(g, this.rbox(w - 0.04, 0.035, 0.34, 0.006, 1), wood, 0, 0.03 + (i * (h - 0.06)) / shelves, 0);
+    for (let i = 0; i <= shelves; i++)
+      this.mesh(
+        g,
+        this.rbox(w - 0.04, 0.035, 0.34, 0.006, 1),
+        wood,
+        0,
+        0.03 + (i * (h - 0.06)) / shelves,
+        0,
+      );
     // books: one instanced draw call
     const random = rng(seed * 13);
-    const colors = [this.palette.accent, this.palette.fabricA, this.palette.fabricB, "#e7dcc7", "#2f3b48", "#8a5a3c", "#6e7f6a", "#b9893f"];
+    const colors = [
+      this.palette.accent,
+      this.palette.fabricA,
+      this.palette.fabricB,
+      "#e7dcc7",
+      "#2f3b48",
+      "#8a5a3c",
+      "#6e7f6a",
+      "#b9893f",
+    ];
     const count = shelves * 14;
     const geom = this.r.keep(new T.BoxGeometry(1, 1, 1));
     const books = new T.InstancedMesh(geom, this.plain("#ffffff", 0.75), count);
@@ -432,7 +837,12 @@ export class Kit {
         m.scale.set(bw, bh, 0.24 + random() * 0.05);
         m.updateMatrix();
         books.setMatrixAt(n, m.matrix);
-        books.setColorAt(n, c.set(colors[Math.floor(random() * colors.length)]).offsetHSL(0, 0, (random() - 0.5) * 0.1));
+        books.setColorAt(
+          n,
+          c
+            .set(colors[Math.floor(random() * colors.length)])
+            .offsetHSL(0, 0, (random() - 0.5) * 0.1),
+        );
         n++;
         x += bw + 0.004;
       }
@@ -441,40 +851,117 @@ export class Kit {
     books.castShadow = books.receiveShadow = true;
     g.add(books);
     // a couple of objects
-    this.mesh(g, this.lathe([[0, 0], [0.07, 0.01], [0.09, 0.12], [0.05, 0.22], [0.06, 0.26]], 18), this.plain("#d7c8b1", 0.35), w / 2 - 0.16, 0.05 + ((shelves - 1) * (h - 0.06)) / shelves, 0);
+    this.mesh(
+      g,
+      this.lathe(
+        [
+          [0, 0],
+          [0.07, 0.01],
+          [0.09, 0.12],
+          [0.05, 0.22],
+          [0.06, 0.26],
+        ],
+        18,
+      ),
+      this.plain("#d7c8b1", 0.35),
+      w / 2 - 0.16,
+      0.05 + ((shelves - 1) * (h - 0.06)) / shelves,
+      0,
+    );
     return g;
   }
-  plant(kind: "tall" | "bush" | "palm" = "tall", seed = 1, potColor = "#d8cbb8") {
+  plant(
+    kind: "tall" | "bush" | "palm" = "tall",
+    seed = 1,
+    potColor = "#d8cbb8",
+  ) {
     const g = new T.Group();
     const random = rng(seed * 7 + 1);
     const potH = kind === "tall" ? 0.5 : 0.36;
-    this.mesh(g, this.lathe([[0, 0], [0.16, 0], [0.2, potH * 0.6], [0.22, potH], [0.2, potH], [0, potH - 0.03]], 24), this.plain(potColor, 0.85), 0, 0, 0);
-    this.mesh(g, this.cyl(0.19, 0.19, 0.02, 20), this.plain("#3c2a1f", 1), 0, potH - 0.03, 0, false);
+    this.mesh(
+      g,
+      this.lathe(
+        [
+          [0, 0],
+          [0.16, 0],
+          [0.2, potH * 0.6],
+          [0.22, potH],
+          [0.2, potH],
+          [0, potH - 0.03],
+        ],
+        24,
+      ),
+      this.plain(potColor, 0.85),
+      0,
+      0,
+      0,
+    );
+    this.mesh(
+      g,
+      this.cyl(0.19, 0.19, 0.02, 20),
+      this.plain("#3c2a1f", 1),
+      0,
+      potH - 0.03,
+      0,
+      false,
+    );
     // leaves: curved blades merged into one geometry
     const blades: T.BufferGeometry[] = [];
     const count = kind === "tall" ? 18 : kind === "palm" ? 12 : 28;
     for (let i = 0; i < count; i++) {
-      const len = kind === "tall" ? 0.7 + random() * 0.7 : kind === "palm" ? 0.9 + random() * 0.4 : 0.35 + random() * 0.25;
+      const len =
+        kind === "tall"
+          ? 0.7 + random() * 0.7
+          : kind === "palm"
+            ? 0.9 + random() * 0.4
+            : 0.35 + random() * 0.25;
       const width = kind === "palm" ? 0.28 : kind === "tall" ? 0.12 : 0.1;
       const blade = new T.PlaneGeometry(width, len, 1, 6);
       const pos = blade.getAttribute("position");
       for (let k = 0; k < pos.count; k++) {
         const t = (pos.getY(k) + len / 2) / len;
-        pos.setX(k, pos.getX(k) * Math.sin(Math.min(1, t * 1.15) * Math.PI) * (kind === "palm" ? 1 : 0.9));
+        pos.setX(
+          k,
+          pos.getX(k) *
+            Math.sin(Math.min(1, t * 1.15) * Math.PI) *
+            (kind === "palm" ? 1 : 0.9),
+        );
         pos.setZ(k, t * t * len * (kind === "palm" ? 0.55 : 0.32));
         pos.setY(k, t * len);
       }
       blade.computeVertexNormals();
-      const tilt = kind === "tall" ? 0.15 + random() * 0.35 : 0.5 + random() * 0.6;
+      const tilt =
+        kind === "tall" ? 0.15 + random() * 0.35 : 0.5 + random() * 0.6;
       blade.rotateX(-tilt);
       blade.rotateY(random() * Math.PI * 2);
-      blade.translate((random() - 0.5) * 0.08, potH - 0.02 + (kind === "tall" ? random() * 0.5 : 0), (random() - 0.5) * 0.08);
+      blade.translate(
+        (random() - 0.5) * 0.08,
+        potH - 0.02 + (kind === "tall" ? random() * 0.5 : 0),
+        (random() - 0.5) * 0.08,
+      );
       blades.push(blade);
     }
     const merged = mergeGeometries(blades)!;
     blades.forEach((b) => b.dispose());
-    this.mesh(g, this.r.keep(merged), this.leaf(kind === "palm" ? "#4d7b4a" : kind === "tall" ? "#3f6e48" : "#5b8a4f"), 0, 0, 0);
-    if (kind === "tall") this.mesh(g, this.cyl(0.015, 0.02, 0.9, 6), this.plain("#5a4632"), 0, potH + 0.4, 0);
+    this.mesh(
+      g,
+      this.r.keep(merged),
+      this.leaf(
+        kind === "palm" ? "#4d7b4a" : kind === "tall" ? "#3f6e48" : "#5b8a4f",
+      ),
+      0,
+      0,
+      0,
+    );
+    if (kind === "tall")
+      this.mesh(
+        g,
+        this.cyl(0.015, 0.02, 0.9, 6),
+        this.plain("#5a4632"),
+        0,
+        potH + 0.4,
+        0,
+      );
     return g;
   }
   art(w: number, h: number, seed: number, frame = this.palette.woodDark) {
@@ -505,44 +992,82 @@ export class Kit {
       ctx.lineWidth = 6;
       ctx.beginPath();
       ctx.moveTo(s * 0.1, s * (0.3 + random() * 0.4));
-      ctx.bezierCurveTo(s * 0.4, s * random(), s * 0.6, s * random(), s * 0.9, s * (0.3 + random() * 0.4));
+      ctx.bezierCurveTo(
+        s * 0.4,
+        s * random(),
+        s * 0.6,
+        s * random(),
+        s * 0.9,
+        s * (0.3 + random() * 0.4),
+      );
       ctx.stroke();
     });
-    this.mesh(g, this.rbox(w + 0.08, h + 0.08, 0.05, 0.01, 1), this.wood(frame, 0.45), 0, 0, 0);
-    const canvas = new T.Mesh(this.r.keep(new T.PlaneGeometry(w, h)), this.mat(`artmat:${seed}`, () => new T.MeshStandardMaterial({ map: tex, roughness: 0.85 })));
+    this.mesh(
+      g,
+      this.rbox(w + 0.08, h + 0.08, 0.05, 0.01, 1),
+      this.wood(frame, 0.45),
+      0,
+      0,
+      0,
+    );
+    const canvas = new T.Mesh(
+      this.r.keep(new T.PlaneGeometry(w, h)),
+      this.mat(
+        `artmat:${seed}`,
+        () => new T.MeshStandardMaterial({ map: tex, roughness: 0.85 }),
+      ),
+    );
     canvas.position.z = 0.027;
     g.add(canvas);
     return g;
   }
-  rug(w: number, d: number, colors: [string, string, string], seed = 1, round = false) {
-    const tex = this.canvas(`rug:${colors.join()}:${seed}:${round}`, 512, (ctx, s) => {
-      const random = rng(seed);
-      ctx.fillStyle = colors[0];
-      ctx.fillRect(0, 0, s, s);
-      ctx.strokeStyle = colors[1];
-      ctx.lineWidth = 10;
-      ctx.strokeRect(22, 22, s - 44, s - 44);
-      ctx.lineWidth = 3;
-      ctx.strokeRect(42, 42, s - 84, s - 84);
-      ctx.fillStyle = colors[2];
-      for (let i = 0; i < 8; i++) {
-        ctx.globalAlpha = 0.5;
-        const x = 80 + random() * (s - 160),
-          y = 80 + random() * (s - 160);
-        ctx.beginPath();
-        ctx.ellipse(x, y, 30 + random() * 70, 8 + random() * 16, random() * 3, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-      const img = ctx.getImageData(0, 0, s, s);
-      for (let i = 0; i < img.data.length; i += 4) {
-        const n = (random() - 0.5) * 16;
-        img.data[i] += n;
-        img.data[i + 1] += n;
-        img.data[i + 2] += n;
-      }
-      ctx.putImageData(img, 0, 0);
-    });
+  rug(
+    w: number,
+    d: number,
+    colors: [string, string, string],
+    seed = 1,
+    round = false,
+  ) {
+    const tex = this.canvas(
+      `rug:${colors.join()}:${seed}:${round}`,
+      512,
+      (ctx, s) => {
+        const random = rng(seed);
+        ctx.fillStyle = colors[0];
+        ctx.fillRect(0, 0, s, s);
+        ctx.strokeStyle = colors[1];
+        ctx.lineWidth = 10;
+        ctx.strokeRect(22, 22, s - 44, s - 44);
+        ctx.lineWidth = 3;
+        ctx.strokeRect(42, 42, s - 84, s - 84);
+        ctx.fillStyle = colors[2];
+        for (let i = 0; i < 8; i++) {
+          ctx.globalAlpha = 0.5;
+          const x = 80 + random() * (s - 160),
+            y = 80 + random() * (s - 160);
+          ctx.beginPath();
+          ctx.ellipse(
+            x,
+            y,
+            30 + random() * 70,
+            8 + random() * 16,
+            random() * 3,
+            0,
+            Math.PI * 2,
+          );
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        const img = ctx.getImageData(0, 0, s, s);
+        for (let i = 0; i < img.data.length; i += 4) {
+          const n = (random() - 0.5) * 16;
+          img.data[i] += n;
+          img.data[i + 1] += n;
+          img.data[i + 2] += n;
+        }
+        ctx.putImageData(img, 0, 0);
+      },
+    );
     tex.repeat.set(1, 1);
     const m = this.mat(`rugmat:${colors.join()}:${seed}:${round}`, () => {
       const mm = new T.MeshStandardMaterial({ map: tex, roughness: 1 });
@@ -550,7 +1075,9 @@ export class Kit {
       mm.bumpScale = 1.2;
       return mm;
     });
-    const geo = round ? this.r.keep(new T.CylinderGeometry(w / 2, w / 2, 0.02, 48)) : this.rbox(w, 0.02, d, 0.008, 1);
+    const geo = round
+      ? this.r.keep(new T.CylinderGeometry(w / 2, w / 2, 0.02, 48))
+      : this.rbox(w, 0.02, d, 0.008, 1);
     const mesh = new T.Mesh(geo, m);
     mesh.position.y = 0.012;
     mesh.receiveShadow = true;
@@ -559,21 +1086,76 @@ export class Kit {
   stool(color: string) {
     const g = new T.Group();
     const metal = this.metal("#2b2724", 0.35);
-    this.mesh(g, this.cushion(0.42, 0.08, 0.42, 0.015), this.leather(color), 0, 0.74, 0);
+    this.mesh(
+      g,
+      this.cushion(0.42, 0.08, 0.42, 0.015),
+      this.leather(color),
+      0,
+      0.74,
+      0,
+    );
     this.mesh(g, this.cyl(0.03, 0.03, 0.66, 10), metal, 0, 0.37, 0);
     this.mesh(g, this.cyl(0.2, 0.22, 0.03, 24), metal, 0, 0.015, 0);
-    this.mesh(g, this.r.keep(new T.TorusGeometry(0.16, 0.011, 6, 24)), this.metal(), 0, 0.3, 0).rotation.x = Math.PI / 2;
-    const back = this.mesh(g, this.cushion(0.38, 0.2, 0.06, 0.012), this.leather(color), 0, 0.95, -0.2);
+    this.mesh(
+      g,
+      this.r.keep(new T.TorusGeometry(0.16, 0.011, 6, 24)),
+      this.metal(),
+      0,
+      0.3,
+      0,
+    ).rotation.x = Math.PI / 2;
+    const back = this.mesh(
+      g,
+      this.cushion(0.38, 0.2, 0.06, 0.012),
+      this.leather(color),
+      0,
+      0.95,
+      -0.2,
+    );
     back.rotation.x = -0.12;
-    for (const s of [-1, 1]) this.mesh(g, this.cyl(0.008, 0.008, 0.24, 6), metal, s * 0.15, 0.85, -0.2);
+    for (const s of [-1, 1])
+      this.mesh(
+        g,
+        this.cyl(0.008, 0.008, 0.24, 6),
+        metal,
+        s * 0.15,
+        0.85,
+        -0.2,
+      );
     return g;
   }
   // Generic (unbranded) bottle shape.
   bottle(kind: number) {
     const profiles: [number, number][][] = [
-      [[0, 0], [0.04, 0], [0.042, 0.005], [0.042, 0.19], [0.03, 0.23], [0.014, 0.27], [0.014, 0.32], [0, 0.32]],
-      [[0, 0], [0.05, 0], [0.052, 0.005], [0.052, 0.17], [0.045, 0.2], [0.016, 0.24], [0.016, 0.3], [0, 0.3]],
-      [[0, 0], [0.036, 0], [0.038, 0.005], [0.038, 0.14], [0.02, 0.2], [0.013, 0.27], [0, 0.27]],
+      [
+        [0, 0],
+        [0.04, 0],
+        [0.042, 0.005],
+        [0.042, 0.19],
+        [0.03, 0.23],
+        [0.014, 0.27],
+        [0.014, 0.32],
+        [0, 0.32],
+      ],
+      [
+        [0, 0],
+        [0.05, 0],
+        [0.052, 0.005],
+        [0.052, 0.17],
+        [0.045, 0.2],
+        [0.016, 0.24],
+        [0.016, 0.3],
+        [0, 0.3],
+      ],
+      [
+        [0, 0],
+        [0.036, 0],
+        [0.038, 0.005],
+        [0.038, 0.14],
+        [0.02, 0.2],
+        [0.013, 0.27],
+        [0, 0.27],
+      ],
     ];
     return this.lathe(profiles[kind % profiles.length], 14);
   }

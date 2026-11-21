@@ -123,7 +123,10 @@ export class PoolTable {
   readonly group = new T.Group();
   private balls: T.Mesh[] = [];
   private sink = new Map<number, number>();
-  private last = new Map<number, { x: number; z: number; vx: number; vz: number; sunk: boolean }>();
+  private last = new Map<
+    number,
+    { x: number; z: number; vx: number; vz: number; sunk: boolean }
+  >();
   private lastClock = -1;
   private guide: T.Line;
   private ghost: T.Mesh;
@@ -255,11 +258,23 @@ export class PoolTable {
       number,
     ][] = [];
     for (const sx of [-1, 1]) {
-      segments.push([[sx * HX, -HZ + corner], [sx * HX, -side], [sx, 0], 1, 0.4]);
+      segments.push([
+        [sx * HX, -HZ + corner],
+        [sx * HX, -side],
+        [sx, 0],
+        1,
+        0.4,
+      ]);
       segments.push([[sx * HX, side], [sx * HX, HZ - corner], [sx, 0], 0.4, 1]);
     }
     for (const sz of [-1, 1])
-      segments.push([[-HX + corner, sz * HZ], [HX - corner, sz * HZ], [0, sz], 1, 1]);
+      segments.push([
+        [-HX + corner, sz * HZ],
+        [HX - corner, sz * HZ],
+        [0, sz],
+        1,
+        1,
+      ]);
     for (const [a, b, out, ja, jb] of segments) {
       const mesh = new T.Mesh(cushionGeometry(a, b, out, ja, jb), cushionCloth);
       mesh.rotation.x = -Math.PI / 2;
@@ -303,8 +318,28 @@ export class PoolTable {
     );
     apron.userData.dynamic = true; // stays a standalone collider mesh
     colliders.push(apron);
-    r.box(fixed, 0, 0.66, 0, OUTER_X * 2 - 0.02, 0.035, OUTER_Z * 2 - 0.02, wood, 0.015);
-    r.box(fixed, 0, 0.875, 0, OUTER_X * 2 - 0.01, 0.03, OUTER_Z * 2 - 0.01, wood, 0.012);
+    r.box(
+      fixed,
+      0,
+      0.66,
+      0,
+      OUTER_X * 2 - 0.02,
+      0.035,
+      OUTER_Z * 2 - 0.02,
+      wood,
+      0.015,
+    );
+    r.box(
+      fixed,
+      0,
+      0.875,
+      0,
+      OUTER_X * 2 - 0.01,
+      0.03,
+      OUTER_Z * 2 - 0.01,
+      wood,
+      0.012,
+    );
     const leg = r.keep(
       new T.LatheGeometry(
         [
@@ -336,7 +371,9 @@ export class PoolTable {
     r.box(fixed, 0, 0.12, 0, 0.07, 0.05, OUTER_Z * 2 - 0.42, darkWood, 0.015);
 
     // Pocket cups: leather liners and a dark bottom under each cloth hole.
-    const liner = r.keep(new T.CylinderGeometry(P, P * 0.82, 0.12, 20, 1, true)),
+    const liner = r.keep(
+        new T.CylinderGeometry(P, P * 0.82, 0.12, 20, 1, true),
+      ),
       bottom = r.keep(new T.CircleGeometry(P * 0.82, 20)),
       linerMaterial = r.keep(
         new T.MeshStandardMaterial({
@@ -395,7 +432,11 @@ export class PoolTable {
         sightPositions.push([sx * (HX + CUSHION + RAIL / 2), (k * HZ) / 4, 0]);
     for (const sz of [-1, 1])
       for (const k of [-1, 0, 1])
-        sightPositions.push([(k * HX) / 2, sz * (HZ + CUSHION + RAIL / 2), Math.PI / 2]);
+        sightPositions.push([
+          (k * HX) / 2,
+          sz * (HZ + CUSHION + RAIL / 2),
+          Math.PI / 2,
+        ]);
     const sights = new T.InstancedMesh(
       r.keep(new T.ShapeGeometry(diamondShape)),
       r.material("#eee4cf", 0.28),
@@ -405,12 +446,19 @@ export class PoolTable {
       q = new T.Quaternion();
     sightPositions.forEach(([x, z, yaw], i) => {
       q.setFromEuler(new T.Euler(-Math.PI / 2, 0, yaw));
-      m4.compose(new T.Vector3(x, RAIL_TOP + 0.0015, z), q, new T.Vector3(1, 1, 1));
+      m4.compose(
+        new T.Vector3(x, RAIL_TOP + 0.0015, z),
+        q,
+        new T.Vector3(1, 1, 1),
+      );
       sights.setMatrixAt(i, m4);
     });
     g.add(sights);
     // Foot spot.
-    const spot = new T.Mesh(r.keep(new T.CircleGeometry(0.007, 12)), r.material("#e8e2d0", 0.8));
+    const spot = new T.Mesh(
+      r.keep(new T.CircleGeometry(0.007, 12)),
+      r.material("#e8e2d0", 0.8),
+    );
     spot.rotation.x = -Math.PI / 2;
     spot.position.set(FOOT_SPOT.x * S, POOL.clothY + 0.0008, FOOT_SPOT.z * S);
     fixed.add(spot);
@@ -431,10 +479,20 @@ export class PoolTable {
       ),
     );
     area.rotation.x = -Math.PI / 2;
-    area.position.set(0, POOL.clothY + 0.001, HEAD_STRING * S + kitchenDepth / 2);
+    area.position.set(
+      0,
+      POOL.clothY + 0.001,
+      HEAD_STRING * S + kitchenDepth / 2,
+    );
     const line = new T.Mesh(
       r.keep(new T.PlaneGeometry(HX * 2, 0.006)),
-      r.keep(new T.MeshBasicMaterial({ color: "#f6e7b8", transparent: true, opacity: 0.7 })),
+      r.keep(
+        new T.MeshBasicMaterial({
+          color: "#f6e7b8",
+          transparent: true,
+          opacity: 0.7,
+        }),
+      ),
     );
     line.rotation.x = -Math.PI / 2;
     line.position.set(0, POOL.clothY + 0.0015, HEAD_STRING * S);
@@ -491,8 +549,12 @@ export class PoolTable {
       ball.name = "pool-ball-" + id;
       // Number discs start facing up with a deterministic twist.
       ball.quaternion
-        .setFromEuler(new T.Euler(-Math.PI / 2 + ((id * 0.37) % 0.5) - 0.25, 0, 0))
-        .premultiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 1, 0), id * 2.1));
+        .setFromEuler(
+          new T.Euler(-Math.PI / 2 + ((id * 0.37) % 0.5) - 0.25, 0, 0),
+        )
+        .premultiply(
+          new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 1, 0), id * 2.1),
+        );
       ball.visible = false;
       g.add(ball);
       this.balls.push(ball);
@@ -535,7 +597,17 @@ export class PoolTable {
     const boardZ = -OUTER_Z + RAIL / 2;
     r.box(g, 0, 1.25, boardZ - 0.035, 1.17, 0.32, 0.05, darkWood, 0.02);
     for (const x of [-0.45, 0.45])
-      r.box(g, x, (RAIL_TOP + 1.1) / 2, boardZ - 0.035, 0.025, 1.1 - RAIL_TOP, 0.025, darkWood, 0);
+      r.box(
+        g,
+        x,
+        (RAIL_TOP + 1.1) / 2,
+        boardZ - 0.035,
+        0.025,
+        1.1 - RAIL_TOP,
+        0.025,
+        darkWood,
+        0,
+      );
     const score = new T.Mesh(
       r.keep(new T.PlaneGeometry(1.12, 0.28)),
       r.keep(new T.MeshBasicMaterial({ map: this.boardTexture })),
@@ -573,7 +645,10 @@ export class PoolTable {
         if (fresh && before && !before.sunk && rolling)
           events.push({ kind: "pocket", x: b.x, z: b.z, strength: 1 });
         const pocket = pockets.reduce((best, p) =>
-          Math.hypot(p.x - b.x, p.z - b.z) < Math.hypot(best.x - b.x, best.z - b.z) ? p : best,
+          Math.hypot(p.x - b.x, p.z - b.z) <
+          Math.hypot(best.x - b.x, best.z - b.z)
+            ? p
+            : best,
         );
         m.visible = progress < 1;
         m.position.set(
@@ -599,22 +674,38 @@ export class PoolTable {
         m.position.set(x, POOL.clothY + R, z);
         if (fresh && rolling && before && !before.sunk) {
           const change = Math.hypot(b.vx - before.vx, b.vz - before.vz),
-            speedUp =
-              Math.hypot(b.vx, b.vz) - Math.hypot(before.vx, before.vz);
+            speedUp = Math.hypot(b.vx, b.vz) - Math.hypot(before.vx, before.vz);
           if (change > 0.35 || speedUp > 0.12) {
             const nearRail =
               Math.abs(b.x) > POOL.halfX - POOL.radius - 0.08 ||
               Math.abs(b.z) > POOL.halfZ - POOL.radius - 0.08;
             if (nearRail && speedUp <= 0.12)
-              events.push({ kind: "rail", x: b.x, z: b.z, strength: Math.min(1, change / 3) });
+              events.push({
+                kind: "rail",
+                x: b.x,
+                z: b.z,
+                strength: Math.min(1, change / 3),
+              });
             else if (change > clack) {
               clack = change;
-              clackAt = { kind: "clack", x: b.x, z: b.z, strength: Math.min(1, change / 3) };
+              clackAt = {
+                kind: "clack",
+                x: b.x,
+                z: b.z,
+                strength: Math.min(1, change / 3),
+              };
             }
           }
         }
       }
-      if (fresh) this.last.set(b.id, { x: b.x, z: b.z, vx: b.vx, vz: b.vz, sunk: b.sunk });
+      if (fresh)
+        this.last.set(b.id, {
+          x: b.x,
+          z: b.z,
+          vx: b.vx,
+          vz: b.vz,
+          sunk: b.sunk,
+        });
     }
     if (clackAt) events.push(clackAt);
     this.lastClock = s.clock;
@@ -667,7 +758,15 @@ export class PoolTable {
   }
   private drawBoard(s: PoolState, names: string[]) {
     const eight = poolMode(s) === "eight";
-    const text = JSON.stringify([s.scores, s.turn, s.phase, names, s.mode, s.groups, s.winner]);
+    const text = JSON.stringify([
+      s.scores,
+      s.turn,
+      s.phase,
+      names,
+      s.mode,
+      s.groups,
+      s.winner,
+    ]);
     if (text === this.boardText) return;
     this.boardText = text;
     const c = this.board.getContext("2d")!;

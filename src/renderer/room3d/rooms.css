@@ -1586,3 +1586,87 @@ dialog:has(.avatar-creator) > header h2 {
     grid-template-columns: 1fr;
   }
 }
+
+/* 1.6 · Bar and drinks */
+.room-bar-menu {
+  position: absolute;
+  left: 50%;
+  bottom: 156px;
+  transform: translateX(-50%);
+  z-index: 6;
+  min-width: 280px;
+  padding: 12px;
+  border-radius: 16px;
+  color: var(--text-primary);
+  background: var(--room-glass);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: 0 18px 50px #0008;
+  backdrop-filter: blur(14px);
+}
+.room-bar-menu header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+.room-bar-menu header span {
+  opacity: 0.65;
+  font-size: 12px;
+}
+.room-bar-menu header button {
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: transparent;
+}
+.room-bar-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.room-bar-options button,
+.room-bar-return,
+.room-drink-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 12%, #ffffff08);
+  border: 1px solid #ffffff14;
+  color: var(--text-primary);
+  font-size: 12.5px;
+}
+.room-bar-options button:hover,
+.room-drink-actions button:hover,
+.room-bar-options button.is-active {
+  background: var(--vx-accent-soft-hover);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.room-bar-return {
+  width: 100%;
+  margin-top: 8px;
+  background: transparent;
+}
+.room-drink-actions {
+  position: absolute;
+  left: 50%;
+  bottom: 152px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  padding: 5px;
+  border-radius: 16px;
+  background: var(--room-glass);
+  border: 1px solid #ffffff12;
+  z-index: 3;
+}
+.room-drink-actions button {
+  padding: 6px 10px;
+  border-radius: 11px;
+}

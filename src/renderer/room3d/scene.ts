@@ -1,5 +1,14 @@
 import * as T from "three";
-import { defaultAvatar, seats, spawnPose, walkable } from "../../shared/room3d";
+import {
+  defaultAvatar,
+  nearBar,
+  seatHeight,
+  seats,
+  spawnPose,
+  walkable,
+} from "../../shared/room3d";
+import { RoomEnvironment as StudioLight } from "three/addons/environments/RoomEnvironment.js";
+import type { HeldDrink } from "./avatar";
 import type {
   Participant,
   RoomPose,
@@ -50,11 +59,13 @@ export type SceneState = {
   triangles: number;
   poolReady?: boolean;
   poolAngle?: number;
+  drink?: { near: boolean; held: HeldDrink | null };
 };
 type PersonModel = {
   avatar: SocialAvatar;
   resources: Resources;
   label: T.Sprite;
+  voice: T.Sprite;
   ring: T.Mesh;
   signature: string;
   seat: string | null;
@@ -139,6 +150,11 @@ export class SocialScene {
   private fps = 0;
   private shadowAt = 0;
   private expanded = false;
+  private running = false;
+  private envMap?: T.Texture;
+  private seatIndex = new Map<string, ReturnType<typeof seats>[number]>();
+  private toastHeard = new Set<string>();
+  barHandler?: () => void;
   constructor(
     private element: HTMLElement,
     private preset: RoomPreset,
@@ -172,7 +188,7 @@ export class SocialScene {
     });
     this.renderer.outputColorSpace = T.SRGBColorSpace;
     this.renderer.toneMapping = T.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.18;
+    this.renderer.toneMappingExposure = 1.05;
     this.renderer.shadowMap.type = T.PCFSoftShadowMap;
     this.renderer.shadowMap.autoUpdate = false;
     this.renderer.setClearColor("#222c35");
@@ -216,6 +232,13 @@ export class SocialScene {
       });
       if (this.disposed) return;
       this.environment = buildEnvironment(this.scene, this.preset, this.assets);
+      for (const seat of seats(this.preset)) this.seatIndex.set(seat.id, seat);
+      // Soft studio reflections give metals/glass/varnish a believable sheen.
+      const pmrem = new T.PMREMGenerator(this.renderer);
+      this.envMap = pmrem.fromScene(new StudioLight(), 0.04).texture;
+      pmrem.dispose();
+      this.scene.environment = this.envMap;
+      this.scene.environmentIntensity = this.preset === "rooftop" ? 0.22 : 0.3;
       if (this.preset !== "cinema")
         this.poolTable = new PoolTable(this.scene, this.environment.colliders);
       if (this.preset !== "cinema")
@@ -501,7 +524,14 @@ export class SocialScene {
       } else void this.shootPool().catch(() => {});
       return;
     }
-    if (event.repeat && ["KeyE", "KeyC", "KeyR"].includes(event.code)) return;
+    if (event.code.startsWith("Shift")) this.running = true;
+    if (event.repeat && ["KeyE", "KeyC", "KeyR", "KeyQ"].includes(event.code))
+      return;
+    if (event.code === "KeyQ" && this.pose.held) {
+      event.preventDefault();
+      this.drink();
+      return;
+    }
     if (
       [
         "KeyW",
@@ -536,6 +566,7 @@ export class SocialScene {
   };
   private keyup = (event: KeyboardEvent) => {
     this.keys.delete(event.code);
+    if (event.code.startsWith("Shift")) this.running = false;
   };
   private clearKeys = () => {
     this.keys.clear();
@@ -714,6 +745,27 @@ export class SocialScene {
           Math.hypot(b.x - this.pose.x, b.z - this.pose.z),
       )[0];
   }
+  takeDrink(kind: HeldDrink) {
+    this.pose.held = kind;
+    this.pose.emote = "none";
+    this.dirty = true;
+    this.emit();
+  }
+  stowDrink() {
+    this.pose.held = null;
+    if (this.pose.emote === "drink" || this.pose.emote === "toast")
+      this.pose.emote = "none";
+    this.dirty = true;
+    this.emit();
+  }
+  drink() {
+    if (!this.pose.held) return;
+    this.emote("drink");
+  }
+  toast() {
+    if (!this.pose.held) return;
+    this.emote("toast");
+  }
   emote(value: NonNullable<RoomPose["emote"]>) {
     this.pose.emote = value;
     this.pose.emoteAt = Date.now();
@@ -725,8 +777,21 @@ export class SocialScene {
       Math.hypot(this.pose.x - POOL.x, this.pose.z - POOL.z) < 2.9
     );
   }
+  private nearCounter() {
+    if (!nearBar(this.preset, this.pose.x, this.pose.z)) return false;
+    const seat = this.nearestSeat();
+    return !(
+      seat?.kind === "stool" &&
+      Math.hypot(seat.x - this.pose.x, seat.z - this.pose.z) < 0.75
+    );
+  }
   private interaction() {
     if (this.pose.seat) return { label: "Levantar", available: true };
+    if (this.nearCounter())
+      return {
+        label: this.pose.held ? "Trocar bebida" : "Pegar bebida",
+        available: true,
+      };
     if (
       this.preset !== "cinema" &&
       Math.hypot(
@@ -760,6 +825,10 @@ export class SocialScene {
   }
   interact() {
     if (!this.ready || this.data.paused) return;
+    if (!this.pose.seat && this.nearCounter()) {
+      this.barHandler?.();
+      return;
+    }
     if (this.pose.seat?.match(/^(truco|chess)-/)) {
       this.leaveGame(this.pose.seat.startsWith("truco-") ? "truco" : "chess");
       return;
@@ -848,20 +917,22 @@ export class SocialScene {
     const appearance = person.profile.avatar3d ?? defaultAvatar,
       avatar = new SocialAvatar(this.assets, appearance),
       resources = new Resources();
-    const label = resources.label(
+    const label = nameTag(
+      resources,
       person.profile.name,
-      person.profile.nicknameColor || "#eee8dd",
-      256,
-      64,
+      person.profile.nicknameColor || "#f1ecf8",
     );
-    label.position.y = 2.45;
-    label.scale.set(0.95, 0.2375, 1);
+    label.position.y = 2.3;
     avatar.group.add(label);
+    const voice = voiceBadge(resources);
+    voice.position.y = 2.3;
+    voice.visible = false;
+    avatar.group.add(voice);
     const ring = new T.Mesh(
-      resources.keep(new T.RingGeometry(0.38, 0.43, 32)),
+      resources.keep(new T.RingGeometry(0.36, 0.4, 40)),
       resources.keep(
         new T.MeshBasicMaterial({
-          color: "#a1ddbf",
+          color: "#b9adff",
           side: T.DoubleSide,
           transparent: true,
           opacity: 0.8,
@@ -870,13 +941,14 @@ export class SocialScene {
       ),
     );
     ring.rotation.x = -Math.PI / 2;
-    ring.position.y = 0.11;
+    ring.position.y = 0.025;
     avatar.group.add(ring);
     this.scene.add(avatar.group);
     return {
       avatar,
       resources,
       label,
+      voice,
       ring,
       seat: null,
       settling: false,
@@ -898,6 +970,10 @@ export class SocialScene {
       drawCalls: this.renderer.info.render.calls,
       triangles: this.renderer.info.render.triangles,
       poolReady: this.poolReady(),
+      drink: {
+        near: !this.pose.seat && this.nearCounter(),
+        held: this.pose.held ?? null,
+      },
       poolAngle: this.poolAngle,
     });
   }
@@ -1135,7 +1211,9 @@ export class SocialScene {
         );
       }
     }
-    this.velocity.lerp(input.multiplyScalar(3.5), 1 - Math.exp(-dt * 14));
+    // Walk by default; hold Shift to run (routes walk briskly).
+    const speed = this.running && !waypoint ? 4.6 : waypoint ? 3.2 : 2.9;
+    this.velocity.lerp(input.multiplyScalar(speed), 1 - Math.exp(-dt * 12));
     const moving = this.velocity.length() > 0.12 && !this.pose.seat;
     if (moving && this.pose.emote === "sitfloor") {
       this.pose.emote = "none";
@@ -1233,15 +1311,14 @@ export class SocialScene {
           Math.cos(pose.yaw - group.rotation.y),
         ) *
         (1 - Math.exp(-dt * 15));
+      const talking = this.data.speaking.has(person.id) && !person.muted;
+      model.avatar.setSpeaking(talking);
+      model.avatar.setHeld(pose.held ?? null);
       model.avatar.update(
         dt,
         pose.moving,
         !!pose.seat,
-        pose.seat?.startsWith("puff")
-          ? 0.7
-          : pose.seat?.startsWith("truco-") || pose.seat?.startsWith("chess-")
-            ? 0.62
-            : 0.74,
+        seatHeight(pose.seat ? this.seatIndex.get(pose.seat) : undefined),
         person.id === this.self && this.preview
           ? { ...pose, emote: this.preview, emoteAt: this.previewAt }
           : pose,
@@ -1279,15 +1356,60 @@ export class SocialScene {
             : undefined,
       );
       model.seat = pose.seat;
-      model.label.position.y =
-        (pose.seat ? 1.92 : 2.45) * (person.profile.avatar3d?.height ?? 1);
+      const tagY =
+        (pose.seat ? 1.82 : 2.32) * (person.profile.avatar3d?.height ?? 1) +
+        (pose.seat?.startsWith("bar-") ? 0.3 : 0);
+      model.label.position.y = tagY;
+      // Voice badge sits left of the name and pulses only on real activity.
+      model.voice.position.set(
+        -(model.label.userData.pill as number) / 2 - 0.07,
+        tagY,
+        0,
+      );
+      if (talking)
+        model.voice.material.opacity = 0.75 + Math.sin(time / 90) * 0.25;
+      // Toasts: a clink when two people raise their drinks together.
+      if (
+        pose.emote === "toast" &&
+        pose.held &&
+        pose.emoteAt &&
+        Date.now() - pose.emoteAt < 1500
+      ) {
+        const key = person.id + ":" + pose.emoteAt;
+        if (!this.toastHeard.has(key)) {
+          const partner = this.data.people.find((other) => {
+            const o = other.id === this.self ? this.pose : other.roomPose;
+            return (
+              other.id !== person.id &&
+              o?.emote === "toast" &&
+              !!o.held &&
+              !!o.emoteAt &&
+              Math.abs(o.emoteAt - pose.emoteAt!) < 2500 &&
+              Math.hypot(o.x - pose.x, o.z - pose.z) < 1.9
+            );
+          });
+          if (partner) {
+            this.toastHeard.add(key);
+            sound("clink", pose.x, pose.z);
+          }
+        }
+      }
+      if (pose.emote === "drink" && pose.held && pose.emoteAt) {
+        const since = Date.now() - pose.emoteAt,
+          key = "sip:" + person.id + ":" + pose.emoteAt;
+        if (since > 950 && since < 1400 && !this.toastHeard.has(key)) {
+          this.toastHeard.add(key);
+          sound("sip", pose.x, pose.z);
+        }
+      }
       model.label.visible =
         person.id !== this.self &&
         settings.names &&
         this.rig.mode !== "watch" &&
         !this.poolActive &&
         !this.tableActive;
-      model.ring.visible = this.data.speaking.has(person.id) && !person.muted;
+      model.ring.visible = talking;
+      model.voice.visible = talking && model.label.visible;
     }
     this.trucoTable?.update(
       truco,
@@ -1382,6 +1504,7 @@ export class SocialScene {
     this.sounds.dispose();
     this.environment?.dispose();
     this.assets.dispose();
+    this.envMap?.dispose();
     this.renderer.dispose();
     this.renderer.forceContextLoss();
     this.renderer.domElement.remove();
@@ -1390,4 +1513,76 @@ export class SocialScene {
     this.environment = undefined;
     this.texture = undefined;
   }
+}
+
+// Compact glass name tag (Nocturne style): legible without covering faces.
+function nameTag(r: Resources, name: string, color: string) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 96;
+  const ctx = canvas.getContext("2d")!;
+  ctx.font = "600 40px system-ui";
+  const text = name.slice(0, 24);
+  const width = Math.min(500, ctx.measureText(text).width + 56);
+  const x = (512 - width) / 2;
+  ctx.fillStyle = "rgba(18,16,30,.72)";
+  ctx.beginPath();
+  ctx.roundRect(x, 14, width, 68, 34);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(201,184,255,.35)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillStyle = color;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, 256, 49);
+  const texture = r.keep(new T.CanvasTexture(canvas));
+  texture.colorSpace = T.SRGBColorSpace;
+  const sprite = new T.Sprite(
+    r.keep(
+      new T.SpriteMaterial({
+        map: texture,
+        depthWrite: false,
+        transparent: true,
+      }),
+    ),
+  );
+  const world = 0.62;
+  sprite.scale.set(world, (world * 96) / 512, 1);
+  sprite.userData.pill = (width / 512) * world;
+  sprite.renderOrder = 10;
+  return sprite;
+}
+function voiceBadge(r: Resources) {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 64;
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = "#7c72df";
+  ctx.beginPath();
+  ctx.arc(32, 32, 28, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  for (const [x, h] of [
+    [20, 14],
+    [32, 26],
+    [44, 14],
+  ]) {
+    ctx.beginPath();
+    ctx.roundRect(x - 4, 32 - h / 2, 8, h, 4);
+    ctx.fill();
+  }
+  const texture = r.keep(new T.CanvasTexture(canvas));
+  texture.colorSpace = T.SRGBColorSpace;
+  const sprite = new T.Sprite(
+    r.keep(
+      new T.SpriteMaterial({
+        map: texture,
+        depthWrite: false,
+        transparent: true,
+      }),
+    ),
+  );
+  sprite.scale.set(0.11, 0.11, 1);
+  sprite.renderOrder = 11;
+  return sprite;
 }

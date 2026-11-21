@@ -66,22 +66,22 @@ export function AvatarPreview({
       );
       element.appendChild(renderer.domElement);
       renderer.domElement.addEventListener("webglcontextlost", contextLost);
-      scene.add(new T.HemisphereLight("#f5e9d8", "#64717f", 2));
-      const key = new T.DirectionalLight("#ffe0b0", 3);
-      key.position.set(-3, 5, -4);
+      scene.add(new T.HemisphereLight("#f5e9d8", "#4a4458", 1.4));
+      const key = new T.DirectionalLight("#ffe2bd", 2.6);
+      key.position.set(2.5, 4, 4);
       scene.add(key);
       const rim = new T.DirectionalLight("#b9bdf2", 2);
-      rim.position.set(4, 3, 3);
+      rim.position.set(-3, 3.5, -4);
       scene.add(rim);
       resources.cylinder(scene, 0, -0.1, 0, 1.05, 1.1, 0.18, "#475158");
       const stool = resources.cylinder(
         scene,
         0,
-        0.27,
-        0,
-        0.43,
-        0.38,
-        0.54,
+        0.25,
+        -0.04,
+        0.3,
+        0.28,
+        0.5,
         "#8b6c63",
       );
       stool.visible = false;
@@ -165,7 +165,7 @@ export function AvatarPreview({
           dt,
           current.current.pose === "walk",
           current.current.pose === "sit",
-          0.72,
+          0.5,
         );
         renderer!.render(scene, camera);
       };

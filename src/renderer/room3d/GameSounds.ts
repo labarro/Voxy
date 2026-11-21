@@ -7,21 +7,22 @@ export type GameSoundKind =
   | "accept"
   | "clack"
   | "rail"
-  | "pocket";
+  | "pocket"
+  | "clink"
+  | "sip";
 export class GameSounds {
   private context?: AudioContext;
   unlock() {
     this.context ??= new AudioContext();
     void this.context.resume().catch(() => {});
   }
-  play(
-    kind: GameSoundKind,
-    value = 3,
-    gain = 0.5,
-    pan = 0,
-  ) {
+  play(kind: GameSoundKind, value = 3, gain = 0.5, pan = 0) {
     const c = this.context;
     if (!c || c.state !== "running" || gain <= 0) return;
+    if (kind === "clink" || kind === "sip") {
+      this.drinks(c, kind, gain, pan);
+      return;
+    }
     if (kind === "clack" || kind === "rail" || kind === "pocket") {
       this.billiards(c, kind, Math.max(0.15, Math.min(1, value)), gain, pan);
       return;
@@ -66,6 +67,47 @@ export class GameSounds {
       };
     }
   }
+  /** Glass clink for toasts and a soft gulp while sipping. */
+  private drinks(
+    c: AudioContext,
+    kind: "clink" | "sip",
+    gain: number,
+    pan: number,
+  ) {
+    const parts: [number, number, number, number][] =
+      kind === "clink"
+        ? [
+            [0, 2650, 0.32, 0.06],
+            [0, 3960, 0.22, 0.04],
+            [0.09, 2650, 0.25, 0.04],
+          ]
+        : [
+            [0, 210, 0.09, 0.05],
+            [0.32, 190, 0.09, 0.045],
+          ];
+    for (const [delay, freq, duration, level] of parts) {
+      const at = c.currentTime + delay,
+        osc = c.createOscillator(),
+        env = c.createGain(),
+        stereo = c.createStereoPanner();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, at);
+      if (kind === "sip")
+        osc.frequency.exponentialRampToValueAtTime(freq * 0.7, at + duration);
+      env.gain.setValueAtTime(0.0001, at);
+      env.gain.exponentialRampToValueAtTime(level * gain, at + 0.004);
+      env.gain.exponentialRampToValueAtTime(0.0001, at + duration);
+      stereo.pan.value = Math.max(-1, Math.min(1, pan));
+      osc.connect(env).connect(stereo).connect(c.destination);
+      osc.start(at);
+      osc.stop(at + duration + 0.02);
+      osc.onended = () => {
+        osc.disconnect();
+        env.disconnect();
+        stereo.disconnect();
+      };
+    }
+  }
   /** Pool: short ball clack, dull cushion thud, pocket drop with a rattle. */
   private billiards(
     c: AudioContext,
@@ -87,7 +129,8 @@ export class GameSounds {
               [0.07, 420, 260, 0.03, "sine"],
               [0.12, 360, 220, 0.025, "sine"],
             ];
-    const level = 0.07 * gain * (kind === "clack" ? strength : 0.6 + strength * 0.4);
+    const level =
+      0.07 * gain * (kind === "clack" ? strength : 0.6 + strength * 0.4);
     for (const [delay, from, to, duration, type] of parts) {
       const at = c.currentTime + delay,
         osc = c.createOscillator(),
@@ -97,7 +140,10 @@ export class GameSounds {
       osc.frequency.setValueAtTime(from, at);
       osc.frequency.exponentialRampToValueAtTime(to, at + duration);
       env.gain.setValueAtTime(0.0001, at);
-      env.gain.exponentialRampToValueAtTime(Math.max(0.0002, level), at + 0.003);
+      env.gain.exponentialRampToValueAtTime(
+        Math.max(0.0002, level),
+        at + 0.003,
+      );
       env.gain.exponentialRampToValueAtTime(0.0001, at + duration);
       stereo.pan.value = Math.max(-1, Math.min(1, pan));
       osc.connect(env).connect(stereo).connect(c.destination);

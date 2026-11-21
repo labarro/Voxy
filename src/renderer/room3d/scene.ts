@@ -30,7 +30,7 @@ import { TrucoTable } from "./TrucoTable";
 import { cardMotion } from "../../shared/cardMotion";
 import { ChessTable } from "./ChessTable";
 import { chessMotion } from "../../shared/chessMotion";
-import { GameSounds } from "./GameSounds";
+import { GameSounds, type GameSoundKind } from "./GameSounds";
 export type SceneSnapshot = {
   pool?: PoolState;
   games?: SocialGamesView;
@@ -97,6 +97,7 @@ export class SocialScene {
   private poolActive = false;
   private poolAngle = 0;
   private poolPower = 0.55;
+  private poolSpin = 0;
   private aimingPool = false;
   private previousPoolAngle = 0;
   private shootingPool = false;
@@ -360,9 +361,10 @@ export class SocialScene {
       this.routeEnd = undefined;
     }
   }
-  setPoolAim(angle: number, power: number) {
+  setPoolAim(angle: number, power: number, spin = this.poolSpin) {
     this.poolAngle = angle;
     this.poolPower = power;
+    this.poolSpin = Math.max(-1, Math.min(1, spin));
     this.aimDirty = true;
     this.emit();
   }
@@ -383,6 +385,7 @@ export class SocialScene {
       angle: this.poolAngle,
       power: this.poolPower,
       revision: s.revision,
+      ...(this.poolSpin ? { spin: this.poolSpin } : {}),
     }).finally(() => {
       this.shootingPool = false;
     });
@@ -932,7 +935,7 @@ export class SocialScene {
       ? truco.clock
       : this.tableClock + time - this.tableAt;
     const sound = (
-      type: "raise" | "play" | "win" | "impact" | "accept",
+      type: GameSoundKind,
       x: number,
       z: number,
       value?: number,
@@ -1068,15 +1071,24 @@ export class SocialScene {
         }
       }
     }
-    this.poolTable?.update(
-      drawn,
-      dt,
-      pool?.players.map(
-        (id) =>
-          this.data.people.find((p) => p.id === id)?.profile.name ?? "Jogador",
-      ),
-      this.poolActive && myPoolTurn ? this.poolAngle : undefined,
-    );
+    const poolEvents =
+      this.poolTable?.update(
+        drawn,
+        dt,
+        pool?.players.map(
+          (id) =>
+            this.data.people.find((p) => p.id === id)?.profile.name ??
+            "Jogador",
+        ),
+        this.poolActive && myPoolTurn ? this.poolAngle : undefined,
+      ) ?? [];
+    for (const e of poolEvents)
+      sound(
+        e.kind,
+        POOL.x + e.x * POOL.scale,
+        POOL.z + e.z * POOL.scale,
+        e.strength,
+      );
     this.configureQuality();
     const ratio = Math.min(
       devicePixelRatio,

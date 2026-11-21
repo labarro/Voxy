@@ -1,5 +1,10 @@
 import { createServer, type Server as HttpServer } from "node:http";
-import { randomUUID, timingSafeEqual, createHash } from "node:crypto";
+import {
+  randomUUID,
+  randomInt,
+  timingSafeEqual,
+  createHash,
+} from "node:crypto";
 import { Server } from "socket.io";
 import { z } from "zod";
 import { Store } from "../../database/store";
@@ -833,6 +838,8 @@ export class RoomHost {
         break;
       }
       case "pool.join":
+      case "pool.mode":
+      case "pool.call":
       case "pool.leave":
       case "pool.aim":
       case "pool.place":
@@ -847,7 +854,7 @@ export class RoomHost {
           throw Error("Entre no Lounge 3D para jogar.");
         let game = this.poolGames.get(channel.id);
         if (!game) {
-          game = new PoolGame();
+          game = new PoolGame(randomInt(1, 2 ** 31));
           this.poolGames.set(channel.id, game);
           this.startGameTimer();
         }
@@ -858,8 +865,11 @@ export class RoomHost {
           if (c.type === "pool.join") {
             if (this.gameRooms.get(channel.id)?.seat(p.profile.id))
               throw Error("Saia da mesa atual antes de entrar na sinuca.");
-            game.join(p.id);
-          } else if (c.type === "pool.aim") game.aim(p.id, c.angle, c.power);
+            game.join(p.id, c.mode);
+          } else if (c.type === "pool.mode") game.setMode(p.id, c.mode);
+          else if (c.type === "pool.call")
+            game.call(p.id, c.pocket, c.revision);
+          else if (c.type === "pool.aim") game.aim(p.id, c.angle, c.power);
           else if (c.type === "pool.place")
             game.place(p.id, c.x, c.z, c.revision);
           else if (c.type === "pool.restart") game.restart(p.id);
@@ -877,7 +887,7 @@ export class RoomHost {
               0.65
             )
               throw Error("Aguarde o personagem se posicionar para a tacada.");
-            game.shoot(p.id, c.angle, c.power, c.revision);
+            game.shoot(p.id, c.angle, c.power, c.revision, c.spin ?? 0);
           }
         }
         this.emitPool(channel.id, game);

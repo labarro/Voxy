@@ -278,7 +278,19 @@ export const commandSchema = z.discriminatedUnion("type", [
     }),
   ]),
   z.object({ type: z.literal("game.leave"), game: z.enum(["truco", "chess"]) }),
-  z.object({ type: z.literal("pool.join") }),
+  z.object({
+    type: z.literal("pool.join"),
+    mode: z.enum(["rotation", "eight"]).optional(),
+  }),
+  z.object({
+    type: z.literal("pool.mode"),
+    mode: z.enum(["rotation", "eight"]),
+  }),
+  z.object({
+    type: z.literal("pool.call"),
+    pocket: z.number().int().min(0).max(5),
+    revision: z.number().int().nonnegative(),
+  }),
   z.object({ type: z.literal("pool.leave") }),
   z.object({
     type: z.literal("pool.aim"),
@@ -305,6 +317,7 @@ export const commandSchema = z.discriminatedUnion("type", [
       .max(Math.PI * 2),
     power: z.number().finite().min(0.05).max(1),
     revision: z.number().int().nonnegative(),
+    spin: z.number().finite().min(-1).max(1).optional(),
   }),
   z.object({ type: z.literal("room.tv"), participantId: id }),
   z.object({

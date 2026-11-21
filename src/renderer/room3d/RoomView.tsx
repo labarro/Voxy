@@ -451,7 +451,9 @@ export default function RoomView({
           close={() => setPoolOpen(false)}
           angle={state.poolAngle}
           ready={state.poolReady}
-          aim={(angle, power) => scene.current?.setPoolAim(angle, power)}
+          aim={(angle, power, spin) =>
+            scene.current?.setPoolAim(angle, power, spin)
+          }
           shoot={() =>
             scene.current?.shootPool() ??
             Promise.reject(Error("Aguarde a sala carregar."))

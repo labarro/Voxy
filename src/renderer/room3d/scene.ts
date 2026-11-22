@@ -1,5 +1,6 @@
 import * as T from "three";
 import {
+  BAR,
   defaultAvatar,
   nearBar,
   seatHeight,
@@ -235,7 +236,9 @@ export class SocialScene {
       for (const seat of seats(this.preset)) this.seatIndex.set(seat.id, seat);
       // Soft studio reflections give metals/glass/varnish a believable sheen.
       const pmrem = new T.PMREMGenerator(this.renderer);
-      this.envMap = pmrem.fromScene(new StudioLight(), 0.04).texture;
+      const studio = new StudioLight();
+      this.envMap = pmrem.fromScene(studio, 0.04).texture;
+      studio.dispose();
       pmrem.dispose();
       this.scene.environment = this.envMap;
       this.scene.environmentIntensity = this.preset === "rooftop" ? 0.22 : 0.3;
@@ -412,6 +415,38 @@ export class SocialScene {
     }).finally(() => {
       this.shootingPool = false;
     });
+  }
+  // Walk to the free spot in front of the counter and open the drink menu.
+  approachBar() {
+    if (this.preset === "cinema") return;
+    if (this.pose.seat?.match(/^(truco|chess)-/)) {
+      this.afterStand = () => this.approachBar();
+      this.leaveGame(this.pose.seat.startsWith("truco-") ? "truco" : "chess");
+      return;
+    }
+    if (this.pose.seat) this.interact();
+    // Pick the first free place along the counter (between stools).
+    const others = this.data.people
+      .filter((p) => p.id !== this.self && p.roomPose)
+      .map((p) => p.roomPose!);
+    const spot = [-0.7, 0.7, -2.1, 2.1]
+      .map((dz) => ({ x: BAR.x + BAR.halfX + 1.0, z: BAR.z + dz }))
+      .find((c) =>
+        others.every((o) => Math.hypot(o.x - c.x, o.z - c.z) > 0.8),
+      ) ?? { x: BAR.x + BAR.halfX + 1.0, z: BAR.z - 0.7 };
+    const arrive = () => {
+      this.velocity.set(0, 0);
+      this.pose.yaw = -Math.PI / 2;
+      this.pose.moving = false;
+      this.dirty = true;
+      this.barHandler?.();
+    };
+    if (Math.hypot(this.pose.x - spot.x, this.pose.z - spot.z) < 0.3) {
+      arrive();
+      return;
+    }
+    this.route = walkPath(this.preset, this.pose, spot);
+    this.routeEnd = arrive;
   }
   approachPool() {
     if (this.preset === "cinema") return;
@@ -1212,7 +1247,7 @@ export class SocialScene {
       }
     }
     // Walk by default; hold Shift to run (routes walk briskly).
-    const speed = this.running && !waypoint ? 4.6 : waypoint ? 3.2 : 2.9;
+    const speed = this.running && !waypoint ? 4.4 : waypoint ? 2.4 : 2.1;
     this.velocity.lerp(input.multiplyScalar(speed), 1 - Math.exp(-dt * 12));
     const moving = this.velocity.length() > 0.12 && !this.pose.seat;
     if (moving && this.pose.emote === "sitfloor") {

@@ -1,5 +1,37 @@
 # Validação do Voxy
 
+## Voxy 1.6.0 — 3D Overhaul
+
+Reformulação do 3D sobre a 1.5.0 publicada (`6403e57`). Validações automatizadas com mídia sintética, dois clientes Electron reais em loopback, perfis isolados (`VOXY_DATA_DIR`) e o host real; capturas offline com Edge/SwiftShader. Não substituem homologação com GPUs de entrada, computadores distintos pela VPN, microfones físicos ou sessões longas.
+
+**Passaram:** `npm test` (95), `npm run build`, `test:rooms3d:app` (dois clientes, sinuca, cigarro virtual, TV/WebRTC, criador, troca de ambiente), `test:games:social` (Rooftop, xadrez e sinuca no Rooftop), `tests/room3d.overhaul.app.ts` (novo: bases feminina/masculina persistidas, atalho **Bar** e tecla E, caneca e lata sincronizadas para o outro cliente, caminhar segurando, beber com Q recebido pelo outro, brinde entre os dois, guardar, Rooftop e Cinema reconstruídos), `test:games:pool` (Rotação 7 completa, 9 tacadas, snapshots idênticos nos dois clientes), `tests/pool.app.match.ts --eight` (Bola 8 completa, 16 tacadas, chamada da caçapa da 8, vitória legal), `test:games:chess` (partida completa entre dois clientes) e `test:games:truco` (quatro clientes, partida completa).
+
+**Corrigido durante a validação:**
+- texturas embutidas nos GLB não carregavam no app por causa da CSP (`blob:` liberado em `img-src`/`connect-src`);
+- mesas de Truco e xadrez sem cadeiras;
+- IK do taco sem alcance com as novas proporções (o corpo agora se desloca até as duas mãos alcançarem; "Dar tacada" voltava desabilitado);
+- dois personagens no mesmo ponto do balcão;
+- caminhada padrão rápida demais, que disparava a animação de corrida.
+
+**Ajustes de teste:**
+- `tests/room3d-polish.test.ts`: zoom mínimo 2,7 e alvo 1,62 da câmera; manifesto com a pasta `avatars/` e limite de 10 MiB.
+- `tests/pool.app.match.ts`: espera a nova sequência da tacada com polling por tempo, em vez de exigir ver a fase `preparing` (~0,7 s) por `requestAnimationFrame`, que é estrangulado em janelas ocupadas; o resultado final e a igualdade entre clientes continuam verificados.
+
+**Capturas antes/depois:** antes em `evidence/3d-1.6/before` (1.5.0 no Electron); depois em `evidence/3d-1.6/after/electron` (app real, dois clientes) e `evidence/3d-1.6/after/offline` (renders do mesmo código: avatares de frente/costas/rosto, estados animados — andar, segurar, beber, sentado falando, acenar —, Lounge, Cinema e Rooftop em vários ângulos, mesa de Truco com jogadores sentados).
+
+**Desempenho** (`tests/room3d.performance.ts`, dez avatares, 1024×600; mesmos parâmetros antes/depois):
+
+| Nível | GPU (RTX 5060 Ti, D3D11) 1.5.0 → 1.6.0 | SwiftShader (software) 1.5.0 → 1.6.0 |
+|---|---|---|
+| Baixo | 22,0 → 22,2 FPS (teto 24) · CPU 1,34 → 1,38 ms · 353 → 262 draw calls · 85 mil → 283 mil triângulos | 16,4 → 10,2 FPS · 353 → 262 draw calls |
+| Médio | 36,7 → 37,0 FPS (teto 40) · CPU 1,55 → 1,41 ms · 448 → 317 draw calls · 104 mil → 346 mil triângulos | 6,7 → 3,0 FPS · 732 → 480 draw calls |
+| Alto | 55,2 → 55,2 FPS (teto 60) · CPU 1,37 → 1,20 ms · 415 → 298 draw calls · 98 mil → 325 mil triângulos | 6,2 → 2,7 FPS · 732 → 480 draw calls |
+
+Geometrias residentes 371 → 194 e texturas 76 → 58 (avatares compartilham buffers derivados). Com GPU, os tetos de FPS continuam sendo atingidos e o custo de CPU por quadro não aumentou; em renderização por software, o aumento de triângulos dos corpos com skinning reduz o FPS — por isso o nível Baixo continua recomendado para computadores sem aceleração. Uma geometria do gerador de reflexos (`RoomEnvironment`) não era liberada ao sair; corrigido e reconferido. Arquivos: `evidence/3d-1.6/before/performance*.json` e `evidence/3d-1.6/after/room3d-performance-1.6.0*.json`. RAM/VRAM do processo não foram medidas nesta rodada.
+
+**Pendências:** primeira pessoa não implementada; deixar o copo sobre a mesa não implementado (guardar remove o recipiente); a boca é estilizada e acompanha o gate de fala, não fonemas; tênis e botas derivam do pé descalço suavizado; o tom de pele é aplicado sobre a textura pintada (a sombra de barba da base masculina permanece). Validar em GPUs integradas e com 10 pessoas reais.
+
+
 ## Voxy 1.5.0 — Visual Update
 
 Redesign visual sobre a base 1.4.1 (`7df27bc`, código idêntico à tag `v1.4.1`). Validações automatizadas com dispositivos sintéticos, dois a dez clientes Electron reais em loopback e perfis isolados (`VOXY_DATA_DIR`); não substituem homologação com microfones físicos e dois computadores pela VPN.

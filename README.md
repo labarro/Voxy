@@ -6,9 +6,23 @@
 
 ### Converse. Mostre. Fique por perto.
 
+## Novidades na versão 1.6.0 — 3D Overhaul
+
+Código em preparação: **1.6.0**. Última versão publicada: **1.5.0** (abaixo). Saída do build: `release/1.6.0/`. A 1.6.0 só será indicada como publicada depois que o workflow de release concluir e os arquivos forem conferidos.
+
+A 1.6.0 reformula toda a experiência 3D sobre o Voxy Electron 1.5.0, sem retomar a migração nativa. Voz, PTT, Mute, Deafen, compartilhamento, webcam, sinalização, hospedagem e atualizador continuam os mesmos.
+
+- **Personagens novos:** corpos estilizados (base masculina ou feminina) com esqueleto e animações reais (parado, caminhar, correr com **Shift**, sentar, falar, dançar, comemorar). Roupas contínuas que deformam com o corpo, 12 cabelos (curto a afro, rabo, tranças, coque, moicano), barba/bigode, óculos, fones, chapéus, colar, pulseira e mochila. Rosto com piscadas e boca que acompanha a fala real. Aparências salvas continuam válidas.
+- **Ambientes reconstruídos:** Lounge (parede da TV em madeira, sofá modular, cantinho de leitura, área de jogos, janelas com vista noturna), Cinema (palco, cortinas, poltronas reclináveis, céu estrelado) e Rooftop ao entardecer (deck, pergolados, varal de luzes, lareira, skyline), com iluminação, reflexos e materiais novos.
+- **Sinuca:** mesa, bolas numeradas e tacos redesenhados; **Bola 8** baseada nas regras WPA (lisas e listradas, mesa aberta, faltas, bola na mão, chamada da caçapa da 8, revanche alternando a quebra) além da **Rotação 7**; HUD com grupos, bolas restantes e faltas, também para espectadores; efeito opcional na branca.
+- **Bar:** no Lounge e no Rooftop, **E** no balcão para pegar lata, garrafa ou caneca; caminhe e sente com a bebida, **Q** para beber, **Brindar** (com tilintar quando duas pessoas brindam juntas) e **Guardar**. Visível para todos; puramente cosmético.
+- **Mesas de Truco e xadrez** com cadeiras; placas de nome compactas e selo de voz ao lado do nome.
+
+**Host e participantes precisam atualizar para a 1.6.0** (layout, bebidas e Bola 8 são validados no host). Modelos de personagem: Quaternius, CC0 ([créditos](THIRD-PARTY-NOTICES.md)). Detalhes: [Salas 3D](SALAS-3D.md) · [Jogos sociais](JOGOS-SOCIAIS.md) · [Assets](ASSETS-3D.md) · [Validação da 1.6.0](TESTING.md#voxy-160--3d-overhaul). As capturas e medições usam GPU por software/aceleração local e clientes na mesma máquina; não substituem homologação com computadores e GPUs diferentes.
+
 ## Novidades na versão 1.5.0 publicada — Visual Update
 
-Código e última publicação confirmada: **1.5.0**. O [workflow de release](https://github.com/labarro/Voxy/actions/runs/44797207304) concluiu testes, geração, assinatura do catálogo, teste do executável empacotado e publicação; os cinco arquivos públicos, hashes, assinatura Ed25519, notas e endpoint de atualização foram conferidos. [Evidência da publicação](evidence/publication-1.5.0.json). Saída do build: `release/1.5.0/`.
+Última publicação confirmada: **1.5.0**. O [workflow de release](https://github.com/labarro/Voxy/actions/runs/44797207304) concluiu testes, geração, assinatura do catálogo, teste do executável empacotado e publicação; os cinco arquivos públicos, hashes, assinatura Ed25519, notas e endpoint de atualização foram conferidos. [Evidência da publicação](evidence/publication-1.5.0.json). Saída do build: `release/1.5.0/`.
 
 A 1.5.0 traz para o Voxy Electron a identidade visual desenvolvida nas betas nativas do Voxy 2.0, mantendo a arquitetura, os serviços e as funcionalidades da 1.4.1. A migração nativa em Rust foi **congelada, não descartada**: continua preservada na branch `migration/2.0-native-audit`, com suas tags e betas.
 

@@ -1,0 +1,151 @@
+{
+  "result": {
+    "kind": "truco",
+    "revision": 158,
+    "clock": 1795312652782,
+    "actionAt": 1795312653332,
+    "phase": "finished",
+    "dealer": 1,
+    "mano": 2,
+    "turn": 2,
+    "handNumber": 7,
+    "trick": 1,
+    "value": 3,
+    "scores": [
+      12,
+      9
+    ],
+    "played": [
+      [
+        {
+          "seat": 2,
+          "card": {
+            "rank": "3",
+            "suit": "h"
+          },
+          "covered": false,
+          "at": 1795312644360,
+          "sequence": 124
+        },
+        {
+          "seat": 3,
+          "card": {
+            "rank": "2",
+            "suit": "c"
+          },
+          "covered": false,
+          "at": 1795312645320,
+          "sequence": 126
+        },
+        {
+          "seat": 0,
+          "card": {
+            "rank": "4",
+            "suit": "d"
+          },
+          "covered": false,
+          "at": 1795312646255,
+          "sequence": 128
+        },
+        {
+          "seat": 1,
+          "card": {
+            "rank": "4",
+            "suit": "c"
+          },
+          "covered": false,
+          "at": 1795312647279,
+          "sequence": 130
+        }
+      ],
+      [
+        {
+          "seat": 2,
+          "card": {
+            "rank": "2",
+            "suit": "h"
+          },
+          "covered": false,
+          "at": 1795312649704,
+          "sequence": 132
+        },
+        {
+          "seat": 3,
+          "card": {
+            "rank": "7",
+            "suit": "h"
+          },
+          "covered": false,
+          "at": 1795312650774,
+          "sequence": 134
+        },
+        {
+          "seat": 0,
+          "card": {
+            "rank": "6",
+            "suit": "s"
+          },
+          "covered": false,
+          "at": 1795312651770,
+          "sequence": 136
+        },
+        {
+          "seat": 1,
+          "card": {
+            "rank": "Q",
+            "suit": "d"
+          },
+          "covered": false,
+          "at": 1795312652782,
+          "sequence": 138
+        }
+      ]
+    ],
+    "trickWinners": [
+      0,
+      0
+    ],
+    "elevenVotes": [],
+    "iron": false,
+    "message": "Partida encerrada. Dupla vencedora: 1.",
+    "vira": {
+      "rank": "Q",
+      "suit": "c"
+    },
+    "lastRaiseTeam": 0,
+    "animation": {
+      "type": "win",
+      "actor": 0,
+      "at": 1795312652782,
+      "sequence": 141
+    },
+    "winner": 0,
+    "players": [
+      "de51da69-a21e-42eb-bad5-3da4af8efcef",
+      "c64372d0-112c-420b-88a1-825ad1cb7d62",
+      "329838a6-401d-45e2-9e14-cf633097cc43",
+      "52b67ce8-17b0-4b7d-b20e-05e5d693ce85"
+    ],
+    "reconnecting": [],
+    "paused": false,
+    "hand": [
+      {
+        "rank": "6",
+        "suit": "d"
+      }
+    ],
+    "counts": [
+      1,
+      1,
+      1,
+      1
+    ]
+  },
+  "errors": [],
+  "checks": [
+    "four Electron clients",
+    "physical seat approach",
+    "3D card picking",
+    "complete match"
+  ]
+}

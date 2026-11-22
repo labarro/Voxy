@@ -12,7 +12,7 @@
       "Modalidade Bola 8 baseada nas regras WPA: formação, quebra, mesa aberta, grupos de lisas e listradas, faltas, bola na mão, chamada de caçapa da bola 8, vitória, derrota e revanche alternando a quebra.",
       "Seletor de modalidade (Rotação 7 ou Bola 8), HUD com grupos, bolas restantes, faltas, estado e vencedor, visível também para espectadores.",
       "Efeito opcional na bola branca (siga/puxe) com controle na HUD.",
-      "Bar com balcão, banquetas, geladeira, chopeiras e prateleiras; tecla E abre a escolha da bebida e Q bebe.",
+      "Bar com balcão, banquetas, geladeira, chopeiras e prateleiras; o atalho Bar na HUD caminha até um lugar livre no balcão, E abre a escolha da bebida e Q bebe.",
       "Pegar, segurar, caminhar, sentar, beber, brindar (com tilintar quando duas pessoas brindam juntas) e guardar a bebida, sincronizado para todos.",
       "Base corporal masculina ou feminina no criador de personagem, mantendo todas as opções e aparências salvas.",
       "Selo discreto de voz ao lado do nome e boca animada somente enquanto há áudio real (respeitando mudo, ensurdecer e PTT).",

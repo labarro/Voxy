@@ -25,10 +25,11 @@ test("camera follows with damping, clamps zoom/pitch and resets without a discon
   assert(camera.position.distanceTo(initial) < 2);
   for (let i = 0; i < 180; i++) rig.update(1 / 60, pose, []);
   assert(camera.position.y > 1.2);
-  assert(camera.position.distanceTo(new T.Vector3(0, 1.55, 0)) >= 3.1);
+  // 1.6: closer minimum zoom (2.7) aimed at chest/head height of the new avatars.
+  assert(camera.position.distanceTo(new T.Vector3(0, 1.62, 0)) >= 2.6);
   rig.zoom(100000);
   for (let i = 0; i < 180; i++) rig.update(1 / 60, pose, []);
-  assert(camera.position.distanceTo(new T.Vector3(0, 1.55, 0)) <= 13.01);
+  assert(camera.position.distanceTo(new T.Vector3(0, 1.62, 0)) <= 13.01);
   const before = camera.position.clone();
   rig.reset();
   rig.update(1 / 60, pose, []);
@@ -156,7 +157,12 @@ test("bundled models match their license manifest and include real idle, walking
       for (const buffer of json.buffers ?? []) assert(!buffer.uri);
       if (file.path === "avatars/animations.glb") {
         const names = json.animations.map((a: any) => a.name);
-        for (const name of ["Idle_Loop", "Walk_Loop", "Sitting_Idle_Loop", "Jog_Fwd_Loop"])
+        for (const name of [
+          "Idle_Loop",
+          "Walk_Loop",
+          "Sitting_Idle_Loop",
+          "Jog_Fwd_Loop",
+        ])
           assert(names.includes(name), name);
       } else assert(json.skins?.length, file.path);
     }

@@ -1,4 +1,18 @@
-# Assets e animações · atualização 1.4.0
+# Assets e animações · atualização 1.6.0
+
+## Pipeline dos avatares (1.6.0)
+
+Os avatares passam a usar modelos com esqueleto e animações reais. Fontes CC0 (Quaternius): **Universal Base Characters (Standard)** (bases masculina e feminina, cabelos, sobrancelhas e barba) e **Universal Animation Library (Standard)** (clipes). Licença e conversões: `src/renderer/public/assets/room3d/avatars/LICENSE.txt`.
+
+- `tools/avatar-assets/build.mjs` (ferramenta de desenvolvimento com dependências próprias em `tools/avatar-assets/package.json`, fora do app) converte os glTF para GLB, solda e deduplica, reencoda texturas em WebP (1024 px cor/normal, 512 px rugosidade) e mantém 14 clipes. Resultado: `body-m.glb` (0,87 MB), `body-f.glb` (0,93 MB), `hair.glb` (0,95 MB) e `animations.glb` (4,3 MB). Depois rode `npm run assets:rooms3d`.
+- `avatarKit.ts` carrega os quatro arquivos uma vez (contagem de referências entre cena e preview), faz o retarget dos clipes pelo nome dos ossos (rotações; translação do quadril escalada para cada base), mede a passada das animações e a pose sentada e acrescenta ossos de mandíbula, olhos e sobrancelha ao rig. Boca e olhos são localizados automaticamente pelas UVs da textura do rosto e pela malha dos olhos.
+- `avatarParts.ts` deriva do corpo, em cache por base e tipo físico: cascas de roupa por campo de cobertura contínuo (bainhas limpas, suavização com restrição para fora do corpo, punhos/golas/sola por cor de vértice), saia, capuz e golas, cabelos derivados (chanel, ondulado, rabo, tranças, cacheado, afro, moicano), barba/bigode presos à mandíbula e acessórios. A pele recebe o tom escolhido sobre a textura pintada.
+- `avatar.ts` monta cada personagem clonando apenas ossos, cria materiais próprios e combina `AnimationMixer`, IK de dois ossos (taco, cartas, bebidas, emotes) e camadas procedurais (inclinação e alcance na sinuca, olhar, piscar, fala).
+- `furniture.ts` reúne materiais (madeira, tecido, couro, metal, mármore, vidro, emissivos) e móveis próprios (sofás, poltronas, pufes, mesas, luminárias, pendentes, estantes, plantas, quadros, tapetes, banquetas, cadeiras, garrafas). `environment.ts` e `Rooftop.ts` montam os ambientes e o bar; peças estáticas são unidas por material e repetições usam instancing.
+
+O pacote local de modelos soma 8,4 MB (o limite verificado pelos testes passou de 2 para 10 MiB). Nada é baixado durante o uso. A CSP passou a aceitar `blob:` em `img-src`/`connect-src`, porque o GLTFLoader decodifica texturas embutidas por URLs de objeto locais.
+
+## Atualização 1.4.0
 
 As novas mesas, baralho, peças de xadrez e Rooftop são construídos em Three.js pelo Voxy. O baralho usa texturas Canvas próprias, compartilhadas e pequenas; faces adversárias não são solicitadas ao renderer. Peças de xadrez compartilham modelos por tipo/cor. Cidade e arquitetura estática agrupam geometrias por material.
 

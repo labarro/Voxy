@@ -1,0 +1,961 @@
+{
+  "mode": "rotation",
+  "finished": true,
+  "errors": [],
+  "shots": [
+    {
+      "input": {
+        "angle": -0.02635956931423555,
+        "power": 0.72,
+        "pots": 1
+      },
+      "result": {
+        "players": [
+          "DVV4AfOMOkHCfAZIAAAA",
+          "mS7NkJV-YFcYzBZVAAAB"
+        ],
+        "scores": [
+          1,
+          0
+        ],
+        "turn": 0,
+        "phase": "aiming",
+        "revision": 409,
+        "clock": 11.899999999999965,
+        "message": "Bola encaçapada! Continue jogando.",
+        "balls": [
+          {
+            "id": 0,
+            "x": -0.2956931608404619,
+            "z": -2.1525014321510585,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 1,
+            "x": -0.0379937776111457,
+            "z": -0.99296572611859,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 2,
+            "x": -0.12670170613875165,
+            "z": -1.2310351013557808,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 3,
+            "x": 1.0542190602962143,
+            "z": -0.046471925394303684,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 4,
+            "x": -0.8009739445584854,
+            "z": -1.2085681259985068,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 5,
+            "x": -0.09127601835626718,
+            "z": -2.140581615188418,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 6,
+            "x": 0.3408599652275314,
+            "z": -0.8845204218686459,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 7,
+            "x": -0.022409100621308298,
+            "z": -1.4979567045497397,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          }
+        ],
+        "mode": "rotation",
+        "breaker": 0,
+        "seed": 92862825,
+        "fouls": [
+          0,
+          0
+        ],
+        "shot": {
+          "actor": "DVV4AfOMOkHCfAZIAAAA",
+          "angle": -0.026354471705114374,
+          "power": 0.72,
+          "started": 8.500000000000158,
+          "sequence": 3,
+          "x": 0,
+          "z": 1.25
+        }
+      }
+    },
+    {
+      "input": {
+        "angle": 2.778728497173176,
+        "power": 0.12,
+        "score": -20.12,
+        "pots": 0
+      },
+      "result": {
+        "players": [
+          "DVV4AfOMOkHCfAZIAAAA",
+          "mS7NkJV-YFcYzBZVAAAB"
+        ],
+        "scores": [
+          1,
+          0
+        ],
+        "turn": 1,
+        "phase": "placing",
+        "revision": 644,
+        "clock": 16.39999999999971,
+        "message": "Falta: branca encaçapada ou primeiro contato incorreto. Vez do adversário. Reposicione a branca em um espaço livre.",
+        "balls": [
+          {
+            "id": 0,
+            "x": -0.10855562290841284,
+            "z": -1.6539830028551563,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 1,
+            "x": -0.0379937776111457,
+            "z": -0.99296572611859,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 2,
+            "x": -0.12670170613875165,
+            "z": -1.2310351013557808,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 3,
+            "x": 1.0542190602962143,
+            "z": -0.046471925394303684,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 4,
+            "x": -0.8009739445584854,
+            "z": -1.2085681259985068,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 5,
+            "x": -0.09127601835626718,
+            "z": -2.140581615188418,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 6,
+            "x": 0.3408599652275314,
+            "z": -0.8845204218686459,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 7,
+            "x": 0.027660027462476162,
+            "z": -1.4050059790505967,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          }
+        ],
+        "mode": "rotation",
+        "breaker": 0,
+        "seed": 92862825,
+        "fouls": [
+          1,
+          0
+        ],
+        "shot": {
+          "actor": "DVV4AfOMOkHCfAZIAAAA",
+          "angle": 2.7787387021001724,
+          "power": 0.12,
+          "started": 14.399999999999823,
+          "sequence": 410,
+          "x": -0.2956931608404619,
+          "z": -2.1525014321510585
+        }
+      }
+    },
+    {
+      "input": {
+        "angle": -0.7975283354575876,
+        "power": 0.72,
+        "pots": 1
+      },
+      "result": {
+        "players": [
+          "DVV4AfOMOkHCfAZIAAAA",
+          "mS7NkJV-YFcYzBZVAAAB"
+        ],
+        "scores": [
+          1,
+          1
+        ],
+        "turn": 1,
+        "phase": "aiming",
+        "revision": 1069,
+        "clock": 22.39999999999937,
+        "message": "Bola encaçapada! Continue jogando.",
+        "balls": [
+          {
+            "id": 0,
+            "x": -0.44037658813360864,
+            "z": -0.586392578838893,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 1,
+            "x": 0.4078792541887214,
+            "z": -0.39282346401969964,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 2,
+            "x": -1.0913917569971523,
+            "z": 2.181916092533332,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 3,
+            "x": 1.0542190602962143,
+            "z": -0.046471925394303684,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 4,
+            "x": -0.9531797357444931,
+            "z": -1.2293625308623317,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 5,
+            "x": -0.09127601835626718,
+            "z": -2.140581615188418,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 6,
+            "x": 1.074368854760107,
+            "z": -1.3479207749645403,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 7,
+            "x": 0.15915512632800272,
+            "z": -1.4357149667874067,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          }
+        ],
+        "mode": "rotation",
+        "breaker": 0,
+        "seed": 92862825,
+        "fouls": [
+          1,
+          0
+        ],
+        "shot": {
+          "actor": "mS7NkJV-YFcYzBZVAAAB",
+          "angle": -0.7976154681614086,
+          "power": 0.72,
+          "started": 18.799999999999574,
+          "sequence": 646,
+          "x": 0.24758440492711314,
+          "z": -0.6849966511235689
+        }
+      }
+    },
+    {
+      "input": {
+        "angle": 1.7406103627583263,
+        "power": 0.24,
+        "pots": 1
+      },
+      "result": {
+        "players": [
+          "DVV4AfOMOkHCfAZIAAAA",
+          "mS7NkJV-YFcYzBZVAAAB"
+        ],
+        "scores": [
+          1,
+          2
+        ],
+        "turn": 1,
+        "phase": "aiming",
+        "revision": 1267,
+        "clock": 28.39999999999903,
+        "message": "Bola encaçapada! Continue jogando.",
+        "balls": [
+          {
+            "id": 0,
+            "x": 0.3128419990864638,
+            "z": -0.5872635241533705,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 1,
+            "x": 1.064067932006094,
+            "z": -0.08339483838514716,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 2,
+            "x": -1.0913917569971523,
+            "z": 2.181916092533332,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 3,
+            "x": 1.0542190602962143,
+            "z": -0.046471925394303684,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 4,
+            "x": -0.9531797357444931,
+            "z": -1.2293625308623317,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 5,
+            "x": -0.09127601835626718,
+            "z": -2.140581615188418,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 6,
+            "x": 1.074368854760107,
+            "z": -1.3479207749645403,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 7,
+            "x": 0.15915512632800272,
+            "z": -1.4357149667874067,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          }
+        ],
+        "mode": "rotation",
+        "breaker": 0,
+        "seed": 92862825,
+        "fouls": [
+          1,
+          0
+        ],
+        "shot": {
+          "actor": "mS7NkJV-YFcYzBZVAAAB",
+          "angle": 1.740616863013945,
+          "power": 0.24,
+          "started": 26.699999999999125,
+          "sequence": 1070,
+          "x": -0.44037658813360864,
+          "z": -0.586392578838893
+        }
+      }
+    },
+    {
+      "input": {
+        "angle": -1.203475252858901,
+        "power": 0.32,
+        "pots": 1
+      },
+      "result": {
+        "players": [
+          "DVV4AfOMOkHCfAZIAAAA",
+          "mS7NkJV-YFcYzBZVAAAB"
+        ],
+        "scores": [
+          1,
+          3
+        ],
+        "turn": 1,
+        "phase": "aiming",
+        "revision": 1675,
+        "clock": 35.59999999999862,
+        "message": "Bola encaçapada! Continue jogando.",
+        "balls": [
+          {
+            "id": 0,
+            "x": 0.32873118753269376,
+            "z": -0.6700461888948062,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 1,
+            "x": 1.064067932006094,
+            "z": -0.08339483838514716,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 2,
+            "x": -1.0913917569971523,
+            "z": 2.181916092533332,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 3,
+            "x": 1.0542190602962143,
+            "z": -0.046471925394303684,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 4,
+            "x": -1.139937236692675,
+            "z": -2.1217836579269855,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 5,
+            "x": -0.09127601835626718,
+            "z": -2.140581615188418,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 6,
+            "x": 1.074368854760107,
+            "z": -1.3479207749645403,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 7,
+            "x": 0.15915512632800272,
+            "z": -1.4357149667874067,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          }
+        ],
+        "mode": "rotation",
+        "breaker": 0,
+        "seed": 92862825,
+        "fouls": [
+          1,
+          0
+        ],
+        "shot": {
+          "actor": "mS7NkJV-YFcYzBZVAAAB",
+          "angle": -1.2034045192500902,
+          "power": 0.32,
+          "started": 32.199999999998816,
+          "sequence": 1268,
+          "x": 0.3128419990864638,
+          "z": -0.5872635241533705
+        }
+      }
+    },
+    {
+      "input": {
+        "angle": -0.16561066118362192,
+        "power": 0.12,
+        "score": -20.12,
+        "pots": 0
+      },
+      "result": {
+        "players": [
+          "DVV4AfOMOkHCfAZIAAAA",
+          "mS7NkJV-YFcYzBZVAAAB"
+        ],
+        "scores": [
+          1,
+          3
+        ],
+        "turn": 0,
+        "phase": "placing",
+        "revision": 1911,
+        "clock": 39.4999999999984,
+        "message": "Falta: branca encaçapada ou primeiro contato incorreto. Vez do adversário. Reposicione a branca em um espaço livre.",
+        "balls": [
+          {
+            "id": 0,
+            "x": 0.2301252555124315,
+            "z": -1.2709645790339723,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 1,
+            "x": 1.064067932006094,
+            "z": -0.08339483838514716,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 2,
+            "x": -1.0913917569971523,
+            "z": 2.181916092533332,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 3,
+            "x": 1.0542190602962143,
+            "z": -0.046471925394303684,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 4,
+            "x": -1.139937236692675,
+            "z": -2.1217836579269855,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 5,
+            "x": -0.09127601835626718,
+            "z": -2.140581615188418,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 6,
+            "x": 1.074368854760107,
+            "z": -1.3479207749645403,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 7,
+            "x": 0.14667064078307673,
+            "z": -1.4655137787202122,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          }
+        ],
+        "mode": "rotation",
+        "breaker": 0,
+        "seed": 92862825,
+        "fouls": [
+          1,
+          1
+        ],
+        "shot": {
+          "actor": "mS7NkJV-YFcYzBZVAAAB",
+          "angle": -0.16563174601426187,
+          "power": 0.12,
+          "started": 37.499999999998515,
+          "sequence": 1676,
+          "x": 0.32873118753269376,
+          "z": -0.6700461888948062
+        }
+      }
+    },
+    {
+      "input": {
+        "angle": -1.4340719914800775,
+        "power": 0.18,
+        "pots": 1
+      },
+      "result": {
+        "players": [
+          "DVV4AfOMOkHCfAZIAAAA",
+          "mS7NkJV-YFcYzBZVAAAB"
+        ],
+        "scores": [
+          2,
+          3
+        ],
+        "turn": 0,
+        "phase": "aiming",
+        "revision": 2155,
+        "clock": 43.499999999998174,
+        "message": "Bola encaçapada! Continue jogando.",
+        "balls": [
+          {
+            "id": 0,
+            "x": 0.08591434379845637,
+            "z": -2.1161847384742325,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 1,
+            "x": 1.064067932006094,
+            "z": -0.08339483838514716,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 2,
+            "x": -1.0913917569971523,
+            "z": 2.181916092533332,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 3,
+            "x": 1.0542190602962143,
+            "z": -0.046471925394303684,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 4,
+            "x": -1.139937236692675,
+            "z": -2.1217836579269855,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 5,
+            "x": -1.105248812736964,
+            "z": -2.1505534680398695,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 6,
+            "x": 1.074368854760107,
+            "z": -1.3479207749645403,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 7,
+            "x": 0.14667064078307673,
+            "z": -1.4655137787202122,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          }
+        ],
+        "mode": "rotation",
+        "breaker": 0,
+        "seed": 92862825,
+        "fouls": [
+          1,
+          1
+        ],
+        "shot": {
+          "actor": "DVV4AfOMOkHCfAZIAAAA",
+          "angle": -1.4341370463637406,
+          "power": 0.18,
+          "started": 41.39999999999829,
+          "sequence": 1913,
+          "x": 0.32480458622601927,
+          "z": -2.0833364263058627
+        }
+      }
+    },
+    {
+      "input": {
+        "angle": 2.1192928046274564,
+        "power": 0.32,
+        "pots": 1
+      },
+      "result": {
+        "players": [
+          "DVV4AfOMOkHCfAZIAAAA",
+          "mS7NkJV-YFcYzBZVAAAB"
+        ],
+        "scores": [
+          3,
+          3
+        ],
+        "turn": 0,
+        "phase": "aiming",
+        "revision": 2542,
+        "clock": 48.69999999999788,
+        "message": "Bola encaçapada! Continue jogando.",
+        "balls": [
+          {
+            "id": 0,
+            "x": -0.3244865611228897,
+            "z": -1.756079303739322,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 1,
+            "x": 1.064067932006094,
+            "z": -0.08339483838514716,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 2,
+            "x": -1.0913917569971523,
+            "z": 2.181916092533332,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 3,
+            "x": 1.0542190602962143,
+            "z": -0.046471925394303684,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 4,
+            "x": -1.139937236692675,
+            "z": -2.1217836579269855,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 5,
+            "x": -1.105248812736964,
+            "z": -2.1505534680398695,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 6,
+            "x": 1.1245574177832451,
+            "z": -0.16819615081661887,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 7,
+            "x": 0.14501920056437317,
+            "z": -1.4582764999429814,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          }
+        ],
+        "mode": "rotation",
+        "breaker": 0,
+        "seed": 92862825,
+        "fouls": [
+          1,
+          1
+        ],
+        "shot": {
+          "actor": "DVV4AfOMOkHCfAZIAAAA",
+          "angle": 2.1193533106967144,
+          "power": 0.32,
+          "started": 45.399999999998066,
+          "sequence": 2156,
+          "x": 0.08591434379845637,
+          "z": -2.1161847384742325
+        }
+      }
+    },
+    {
+      "input": {
+        "angle": 2.1555816554417313,
+        "power": 0.72,
+        "pots": 1
+      },
+      "result": {
+        "players": [
+          "DVV4AfOMOkHCfAZIAAAA",
+          "mS7NkJV-YFcYzBZVAAAB"
+        ],
+        "scores": [
+          4,
+          3
+        ],
+        "turn": 0,
+        "phase": "finished",
+        "revision": 2960,
+        "clock": 53.39999999999761,
+        "message": "Fim de partida. Vence quem fez mais pontos.",
+        "balls": [
+          {
+            "id": 0,
+            "x": -0.02942890160171962,
+            "z": -1.4490604540637209,
+            "vx": 0,
+            "vz": 0,
+            "sunk": false
+          },
+          {
+            "id": 1,
+            "x": 1.064067932006094,
+            "z": -0.08339483838514716,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 2,
+            "x": -1.0913917569971523,
+            "z": 2.181916092533332,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 3,
+            "x": 1.0542190602962143,
+            "z": -0.046471925394303684,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 4,
+            "x": -1.139937236692675,
+            "z": -2.1217836579269855,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 5,
+            "x": -1.105248812736964,
+            "z": -2.1505534680398695,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 6,
+            "x": 1.1245574177832451,
+            "z": -0.16819615081661887,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          },
+          {
+            "id": 7,
+            "x": -1.1401383473127698,
+            "z": 0.17477539862038122,
+            "vx": 0,
+            "vz": 0,
+            "sunk": true
+          }
+        ],
+        "mode": "rotation",
+        "breaker": 0,
+        "seed": 92862825,
+        "fouls": [
+          1,
+          1
+        ],
+        "shot": {
+          "actor": "DVV4AfOMOkHCfAZIAAAA",
+          "angle": 2.1556561591381964,
+          "power": 0.72,
+          "started": 49.89999999999781,
+          "sequence": 2543,
+          "x": -0.3244865611228897,
+          "z": -1.756079303739322
+        },
+        "winner": "DVV4AfOMOkHCfAZIAAAA"
+      }
+    }
+  ],
+  "winner": "DVV4AfOMOkHCfAZIAAAA",
+  "scores": [
+    4,
+    3
+  ],
+  "checks": [
+    "two real Electron clients",
+    "complete seven-ball match",
+    "physical mouse aim",
+    "keyboard fine aim",
+    "windup before impulse",
+    "legal ball-in-hand placement by clicking cloth",
+    "identical authoritative snapshots after every shot",
+    "winning result"
+  ]
+}

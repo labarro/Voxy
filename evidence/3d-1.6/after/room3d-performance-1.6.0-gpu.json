@@ -1,0 +1,57 @@
+{
+  "label": "1.6.0-gpu",
+  "measuredAt": "2026-11-22T01:54:40.827Z",
+  "results": [
+    {
+      "quality": "low",
+      "frames": 93,
+      "fps": 23.241284518305637,
+      "renderCpuMs": 3.0913978495024224,
+      "drawCalls": 262,
+      "triangles": 282678,
+      "geometries": 163,
+      "textures": 53,
+      "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "viewport": "1024x600",
+      "avatars": 10,
+      "afterDispose": {
+        "geometries": 0,
+        "textures": 0
+      }
+    },
+    {
+      "quality": "medium",
+      "frames": 151,
+      "fps": 37.74245150969103,
+      "renderCpuMs": 3.2735099335824023,
+      "drawCalls": 315.4172185430464,
+      "triangles": 344954.1456953642,
+      "geometries": 193,
+      "textures": 58,
+      "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "viewport": "1024x600",
+      "avatars": 10,
+      "afterDispose": {
+        "geometries": 0,
+        "textures": 0
+      }
+    },
+    {
+      "quality": "high",
+      "frames": 219,
+      "fps": 54.693938712799,
+      "renderCpuMs": 2.736073059340318,
+      "drawCalls": 297.83561643835617,
+      "triangles": 324456.7397260274,
+      "geometries": 193,
+      "textures": 58,
+      "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Ti (0x00002D04) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "viewport": "1024x600",
+      "avatars": 10,
+      "afterDispose": {
+        "geometries": 0,
+        "textures": 0
+      }
+    }
+  ]
+}

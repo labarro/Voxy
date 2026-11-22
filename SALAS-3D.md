@@ -1,4 +1,40 @@
-# Salas 3D · Voxy 1.4.1
+# Salas 3D · Voxy 1.6.0 (3D Overhaul)
+
+A 1.6.0 reformula toda a experiência tridimensional sobre a base Electron 1.5.0: personagens, ambientes, iluminação, câmera, sinuca e uma nova área de bar. Voz por proximidade, compartilhamento/TV, webcam, Truco, xadrez e a sincronização pelo host continuam os mesmos mecanismos. **Host e participantes precisam estar na 1.6.0**: o layout (bar e banquetas), os campos novos da pose (`held`, emotes `drink`/`toast`) e a Bola 8 são validados no host; clientes antigos não desenham as bebidas nem as 16 bolas.
+
+## Personagens
+
+- **Modelos:** corpos estilizados (base masculina e feminina) com malha contínua, esqueleto de 65 ossos e animações esqueléticas reais, a partir dos pacotes CC0 da Quaternius ([créditos](THIRD-PARTY-NOTICES.md)). A cabeça é levemente ampliada para leitura à distância; o corpo masculino de origem, musculoso demais, é suavizado em todas as variações.
+- **Roupas:** cada peça é uma "casca" contínua derivada do próprio corpo e presa aos mesmos ossos, por isso acompanha qualquer animação sem juntas aparentes. As bainhas seguem linhas limpas; a superfície passa por cima dos sulcos musculares sem afundar no corpo; a pele coberta é removida para não atravessar o tecido. Camiseta, suéter, moletom (com capuz), jaqueta, camisa, sobretudo, terno e jaqueta college; calça, short e saia; tênis, botas e sapatos.
+- **Cabelos:** curto, longo, chanel, ondulado, cacheado, afro, rabo de cavalo, tranças, coque, raspado, moicano e sem cabelo, com cor e mechas. Chapéus comprimem o volume do cabelo para dentro da copa. Barba, barba rala e bigode acompanham a mandíbula.
+- **Rosto:** olhos em malha com piscadas, sobrancelhas presas a um osso próprio (expressões discretas), mandíbula adicionada ao rig para falar. Formato do rosto e olhos ajustam escala sem tirar os elementos do lugar.
+- **Animações:** parado, caminhar, correr (Shift), sentar, falar sentado e em pé, dançar, comemorar, acenar com a mão aberta, aplaudir, apontar, pose, surpresa, cigarro virtual, sentar no chão, segurar e beber. A velocidade das pernas acompanha o deslocamento real (também dos outros participantes), reduzindo pés deslizando.
+- **Criador:** acrescenta **Base Masculina/Feminina**. Todas as opções e aparências salvas continuam válidas; perfis antigos escolhem a base pelo cabelo/saia.
+
+## Ambientes
+
+- **Lounge:** parede da TV em ripas de nogueira com luz indireta, console baixo e caixas de som, estantes com livros, sofá modular, mesa de centro, poltronas e pufes, cantinho de leitura com mesa redonda, área de jogos com tapete e pendentes, janelas com vista noturna, quadros, plantas, aparador, gabinete de discos, suporte de tacos e o **bar**.
+- **Cinema:** palco com cortinas de veludo, proscênio, painéis acústicos, arandelas, céu estrelado, luz de corredor, carpete estampado, cabine de projeção com feixe e poltronas reclináveis com porta-copos.
+- **Rooftop:** entardecer com céu em degradê, lua e skyline em três camadas; deck de madeira, guarda-corpo de vidro, dois pergolados, varal de luzes, lareira externa com poltronas, floreiras, tela externa no núcleo de serviço e **bar** com cobertura.
+- **Luz e materiais:** madeira, tecidos, couro, metal escovado, mármore e vidro com texturas procedurais pequenas; reflexos suaves de ambiente (PMREM), tone mapping ACES, sombras da luz principal, emissivos discretos e luzes pontuais (desligadas no nível Baixo). Peças estáticas são agrupadas por material e repetições usam instancing.
+
+## Bar e bebidas
+
+Aproxime-se do balcão (lado oeste do Lounge e do Rooftop) e pressione **E · Pegar bebida**: escolha **Lata (1)**, **Garrafa (2)** ou **Caneca (3)**. O personagem segura a bebida, pode caminhar, correr e sentar com ela. **Q** ou **Beber** levanta o braço, leva a borda aos lábios, inclina a cabeça e o recipiente e volta ao repouso (cerca de 3,5 s), com um som discreto de gole. **Brindar** ergue a bebida; quando duas pessoas brindam a menos de ~1,9 m, toca um tilintar. **Guardar** ou **Devolver ao balcão** solta o recipiente. Tudo é sincronizado pela pose existente (`held` e emotes), sem estado novo no host além da validação. As banquetas são assentos reserváveis comuns. Não há marcas comerciais, embriaguez nem efeito em controles: é uma interação cosmética.
+
+## Voz e identificação
+
+O selo de voz ao lado do nome e o anel no chão aparecem só quando o áudio real do participante abre o gate de fala do motor de voz (respeitando Mute, PTT e áudio ausente). Enquanto isso, a boca abre e fecha de forma estilizada; em silêncio, fica fechada. As placas de nome são pílulas compactas sobre a cabeça. Nenhum mecanismo de áudio foi alterado para os efeitos visuais.
+
+## Controles
+
+**WASD** caminha, **Shift** corre, **E** interage (sentar/levantar, bar, mesas), **Q** bebe, **G** abre a roda social, **C** alterna câmera, **R** reposiciona, **F** tela cheia. A câmera mira na altura do peito/cabeça das novas proporções, aproxima mais (zoom mínimo menor) e mantém a proteção contra paredes e contra entrar no personagem.
+
+## Desempenho e qualidade
+
+Os níveis Baixo/Médio/Alto mantêm os tetos de 24/40/60 FPS, sombras dinâmicas apenas em Médio/Alto e luzes pontuais desligadas em Baixo. Os avatares compartilham geometrias derivadas e texturas entre si; cada um cria apenas materiais e o esqueleto. O pacote local de modelos tem 8,4 MB (manifesto com SHA-256). Medições: [TESTING.md](TESTING.md#voxy-160--3d-overhaul).
+
+## Revisão 1.4.1
 
 Na revisão 1.4.1, clique/arraste no feltro e solte para fixar a mira da sinuca. Espaço/Enter no canvas executa; Esc desfaz a seleção. O modo de baixo consumo (Configurações → Windows) mantém a entrada tradicional por padrão e reduz a qualidade 3D quando você abrir um ambiente. Renderização e TV pausam quando o ambiente fica oculto; sair para o canal libera os recursos gráficos. [Medições e limites](STABILITY-1.4.1.md).
 

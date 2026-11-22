@@ -1,0 +1,11 @@
+{
+  "errors": [],
+  "checks": [
+    "two native clients",
+    "all twelve radial actions synchronized",
+    "keyboard opening and Escape cancellation",
+    "Rooftop channel selection",
+    "voice remains connected",
+    "walk to Rooftop chess and pool"
+  ]
+}

@@ -40,6 +40,13 @@ async function main() {
       window.focus();
     });
   };
+  // Bring the follow camera close for detail captures (clamped by the rig).
+  const zoomIn = async (page: Page, amount = 1400) => {
+    const box = await page.locator(".room3d canvas").boundingBox();
+    if (!box) return;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.wheel(0, -amount);
+  };
   const shot = async (page: Page, name: string, wait = 600) => {
     await page.waitForTimeout(wait);
     await page.screenshot({ path: join(root, name + ".png") });
@@ -159,6 +166,20 @@ async function main() {
       );
     }
     const [a, b] = pages;
+    // Own participant id arrives with the connection event; poses are split
+    // between mine and the other participant's.
+    for (const page of pages)
+      await page.evaluate(() => {
+        const w = window as any;
+        w.others = {};
+        window.voxy.onEvent((event: any) => {
+          if (event.type === "connection" && event.selfId)
+            w.selfId = event.selfId;
+          if (event.type !== "room-pose") return;
+          if (event.id === w.selfId) w.myPose = event.pose;
+          else w.others[event.id] = event.pose;
+        });
+      });
     const host = await a.evaluate(() =>
       window.voxy.host({
         address: "127.0.0.1",
@@ -199,30 +220,23 @@ async function main() {
       await page
         .locator('.room3d canvas[data-ready="true"]')
         .waitFor({ timeout: 45000 });
-      await page.evaluate(
-        (self) => {
-          const w = window as any;
-          w.others = {};
-          window.voxy.onEvent((event: any) => {
-            if (event.type !== "room-pose") return;
-            if (event.id === self) w.myPose = event.pose;
-            else w.others[event.id] = event.pose;
-          });
-        },
-        await page.evaluate(() => window.voxy.profile().then((p) => p.id)),
-      );
     }
     // Ana walks to the bar and takes a mug.
     await activate(0);
     await shot(a, "lounge-entry", 900);
-    await walk(a, "KeyA", "p.x < -4.3");
-    await walk(a, "KeyW", "p.z < -5.3");
-    await walk(a, "KeyA", "p.x < -8.1");
+    // The Bar shortcut walks to the counter and opens the drink menu.
+    await a.getByRole("button", { name: "Bar", exact: true }).click();
+    await a
+      .getByRole("dialog", { name: "Escolher bebida" })
+      .waitFor({ timeout: 30000 });
     await a.waitForFunction(() =>
       document
         .querySelector(".room-context")
         ?.textContent?.includes("Pegar bebida"),
     );
+    // E at the counter reopens the same menu (keyboard path).
+    await a.keyboard.press("Escape");
+    await a.locator(".room3d canvas").focus();
     await a.keyboard.press("KeyE");
     await a.getByRole("dialog", { name: "Escolher bebida" }).waitFor();
     await shot(a, "bar-menu", 300);
@@ -233,17 +247,40 @@ async function main() {
     await b.waitForFunction(() =>
       Object.values((window as any).others).some((p: any) => p?.held === "mug"),
     );
-    await walk(b, "KeyA", "p.x < -3.6");
-    await walk(b, "KeyW", "p.z < -4.2");
-    await walk(b, "KeyA", "p.x < -7.0");
-    await b.keyboard.press("KeyE");
-    await b.getByRole("dialog", { name: "Escolher bebida" }).waitFor();
+    await b.getByRole("button", { name: "Bar", exact: true }).click();
+    await b
+      .getByRole("dialog", { name: "Escolher bebida" })
+      .waitFor({ timeout: 30000 });
     await b.getByRole("button", { name: /Lata/ }).click();
     await b.waitForFunction(() => (window as any).myPose?.held === "can");
-    // Walking while holding keeps the container (others receive moving+held).
-    await walk(b, "KeyS", "p.z > -3.6", 8000);
-    await b.waitForFunction(() => (window as any).myPose?.held === "can");
-    await walk(b, "KeyW", "p.z < -4.6", 8000);
+    // Walking while holding keeps the container: route to the pool table and
+    // back; Ana receives moving poses that still carry the can.
+    await b.getByRole("button", { name: "Sinuca", exact: true }).click();
+    await b.waitForFunction(
+      () =>
+        (window as any).myPose?.moving &&
+        (window as any).myPose?.held === "can",
+    );
+    await shot(b, "walking-with-can", 200);
+    const close = b.getByRole("button", { name: "Fechar", exact: true });
+    await b.waitForTimeout(1500);
+    if (await close.count())
+      await close
+        .first()
+        .click()
+        .catch(() => {});
+    await activate(0);
+    await a.waitForFunction(() =>
+      Object.values((window as any).others).some(
+        (p: any) => p?.moving && p?.held === "can",
+      ),
+    );
+    await activate(1);
+    await b.getByRole("button", { name: "Bar", exact: true }).click();
+    await b
+      .getByRole("dialog", { name: "Escolher bebida" })
+      .waitFor({ timeout: 40000 });
+    await b.keyboard.press("Escape");
     // Ana drinks; Bruno receives the drink emote.
     await activate(0);
     await a.locator(".room3d canvas").focus();
@@ -255,6 +292,7 @@ async function main() {
         (p: any) => p?.emote === "drink",
       ),
     );
+    await zoomIn(b);
     await shot(b, "bruno-sees-ana-drinking", 1300);
     // Toast together.
     await b.getByRole("button", { name: "Brindar", exact: true }).click();
@@ -265,40 +303,16 @@ async function main() {
         (p: any) => p?.emote === "toast",
       ),
     );
+    await zoomIn(a);
     await shot(a, "toast-ana", 700);
     await activate(1);
     await shot(b, "toast-bruno", 300);
-    // Sit on a bar stool holding the drink, then stand up.
-    await activate(0);
-    await a.locator(".room3d canvas").focus();
-    await walk(a, "KeyS", "p.z > -5.2", 6000).catch(() => {});
-    await a.waitForTimeout(200);
-    const seated = await a.evaluate(
-      () => document.querySelector(".room-context")?.textContent ?? "",
-    );
-    if (/Sentar/.test(seated)) {
-      await a.keyboard.press("KeyE");
-      await a.waitForFunction(() =>
-        (window as any).myPose?.seat?.startsWith("bar-"),
-      );
-      await shot(a, "stool-seated", 1200);
-      await a.keyboard.press("KeyE");
-      await a.waitForFunction(() => !(window as any).myPose?.seat);
-    }
     // Stow the drink.
     await a.getByRole("button", { name: "Guardar", exact: true }).click();
     await a.waitForFunction(() => (window as any).myPose?.held == null);
-    // Bruno walks to the sofa and sits.
     await activate(1);
     await b.getByRole("button", { name: "Guardar", exact: true }).click();
-    await walk(b, "KeyD", "p.x > -4.4");
-    await walk(b, "KeyS", "p.z > 4.6");
-    await walk(b, "KeyD", "p.x > -2.6", 6000).catch(() => {});
-    if (/Sentar/.test((await b.locator(".room-context").textContent()) ?? "")) {
-      await b.keyboard.press("KeyE");
-      await b.waitForFunction(() => !!(window as any).myPose?.seat);
-      await shot(b, "sofa-seated", 1200);
-    }
+    await b.waitForFunction(() => (window as any).myPose?.held == null);
     // Rooftop and cinema captures.
     await setPreset("rooftop");
     for (const page of pages)

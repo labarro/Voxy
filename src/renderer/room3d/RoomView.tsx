@@ -497,6 +497,7 @@ export default function RoomView({
         </button>
         {preset !== "cinema" && (
           <>
+            <button onClick={() => scene.current?.approachBar()}>Bar</button>
             <button onClick={() => scene.current?.approachPool()}>
               Sinuca
             </button>

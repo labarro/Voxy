@@ -1,0 +1,14 @@
+{
+  "errors": [],
+  "checks": [
+    "two Electron clients with skinned avatars (female and male bases)",
+    "avatar base persisted in the profile",
+    "bar interaction menu (keyboard and pointer)",
+    "mug and can held, synchronized to the other client",
+    "walking while holding keeps the container",
+    "drink emote synchronized",
+    "toast between two participants",
+    "stow drink",
+    "rooftop and cinema load with the rebuilt environments"
+  ]
+}

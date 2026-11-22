@@ -166,8 +166,7 @@ async function main() {
       (phase) => (window as any).pool?.phase === phase,
       EIGHT ? "placing" : "aiming",
     );
-    if (EIGHT)
-      await a.screenshot({ path: join(root, "eight-break-hud.png") });
+    if (EIGHT) await a.screenshot({ path: join(root, "eight-break-hud.png") });
     for (let n = 0; n < (EIGHT ? 45 : 40); n++) {
       let state = await a.evaluate(() => (window as any).pool as PoolState);
       if (state.phase === "finished") break;
@@ -254,8 +253,19 @@ async function main() {
         await p
           .getByRole("button", { name: "Dar tacada", exact: true })
           .click({ timeout: 20000 });
+      // The preparing phase lasts ~0.65 s of simulation; poll by time (not
+      // requestAnimationFrame, throttled in busy/background windows) and
+      // accept the new shot sequence even if that short phase was skipped.
       await p.waitForFunction(
-        () => (window as any).pool?.phase === "preparing",
+        (sequence) => {
+          const pool = (window as any).pool;
+          return (
+            pool?.phase === "preparing" ||
+            (pool?.shot && pool.shot.sequence !== sequence)
+          );
+        },
+        state.shot?.sequence ?? -1,
+        { polling: 50 },
       );
       await p.waitForTimeout(450);
       await p.screenshot({ path: join(root, `preparation-${n}.png`) });

@@ -614,7 +614,7 @@ export class SocialAvatar {
     }
     this.body.position.z += this.forward;
     this.body.position.x = 0;
-    if (!poolRig) this.poolShift.multiplyScalar(0.8);
+    if (!poolRig && !cards) this.poolShift.multiplyScalar(0.8);
     // The source idle looks at the floor; lift the gaze towards people.
     if (!poolRig && !cards) this.rotateWorld(this.bone("Head"), right, -0.13);
     // ----- floor sitting: legs forward along the floor
@@ -671,7 +671,15 @@ export class SocialAvatar {
       this.placeCue(poolRig);
     } else if (cards) {
       this.cigarette.visible = false;
-      [cards.right, cards.left].forEach((target, i) => {
+      // Seated: lean the body slightly so both hands reach the table targets.
+      this.reachFor(
+        [
+          [0, new T.Vector3(cards.left.x, cards.left.y, cards.left.z)],
+          [1, new T.Vector3(cards.right.x, cards.right.y, cards.right.z)],
+        ],
+        { x: 0.15, zMin: -0.1, zMax: 0.25, yMin: -0.05, yMax: 0.12 },
+      );
+      [cards.left, cards.right].forEach((target, i) => {
         this.handErrors[i] = ik(
           i as 0 | 1,
           new T.Vector3(target.x, target.y, target.z),
@@ -689,7 +697,10 @@ export class SocialAvatar {
   // Shift/lower the body so both hands can reach their targets (the stance
   // solver was tuned for different proportions). Smoothed for stability.
   private poolShift = new T.Vector3();
-  private reachFor(targets: [0 | 1, T.Vector3][]) {
+  private reachFor(
+    targets: [0 | 1, T.Vector3][],
+    limit = { x: 0.45, zMin: -0.45, zMax: 0.6, yMin: -0.4, yMax: 0.12 },
+  ) {
     const start = this.body.position.clone();
     this.body.position.add(this.poolShift);
     const wanted = this.poolShift.clone();
@@ -721,9 +732,9 @@ export class SocialAvatar {
       wanted.add(local);
       this.body.position.add(local);
     }
-    wanted.x = T.MathUtils.clamp(wanted.x, -0.45, 0.45);
-    wanted.z = T.MathUtils.clamp(wanted.z, -0.45, 0.6);
-    wanted.y = T.MathUtils.clamp(wanted.y, -0.4, 0.12);
+    wanted.x = T.MathUtils.clamp(wanted.x, -limit.x, limit.x);
+    wanted.z = T.MathUtils.clamp(wanted.z, limit.zMin, limit.zMax);
+    wanted.y = T.MathUtils.clamp(wanted.y, limit.yMin, limit.yMax);
     // Converge quickly but without jitter between frames.
     this.poolShift.lerp(wanted, 0.5);
     this.body.position.copy(start).add(this.poolShift);

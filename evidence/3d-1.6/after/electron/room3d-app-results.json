@@ -1,0 +1,24 @@
+{
+  "errors": [],
+  "checks": [
+    "two Electron clients",
+    "pool join/aim/power/shot UI and identical authoritative results",
+    "virtual cigarette pose received by the other client",
+    "native background rendering suspension with call preserved",
+    "profile persistence",
+    "host preset UI",
+    "automatic 3D entry",
+    "remote occupancy",
+    "movement",
+    "view switching without new microphone capture",
+    "mute",
+    "deafen",
+    "remote WebRTC video decoded in TV and expanded player",
+    "direct 3D settings shortcut",
+    "character creator apply without microphone recapture",
+    "extended avatar styles synchronized to the other client",
+    "room fullscreen and native Escape",
+    "watch camera and transmission fullscreen",
+    "live preset change"
+  ]
+}

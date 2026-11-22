@@ -603,8 +603,8 @@ export function buildRooftop(scene: T.Scene): RoomEnvironment {
   for (let ring = 0; ring < 3; ring++)
     for (let i = 0; i < 50; i++) {
       const a = (i / 50) * Math.PI * 2 + ring * 0.07;
-      const dist = 32 + ring * 14 + random() * 8;
-      const h = 8 + random() * (18 + ring * 10);
+      const dist = 46 + ring * 16 + random() * 8;
+      const h = 6 + random() * (14 + ring * 10);
       const w = 4 + random() * 6;
       m.position.set(Math.cos(a) * dist, h / 2 - 12, Math.sin(a) * dist);
       m.rotation.set(0, -a, 0);

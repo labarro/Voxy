@@ -6,9 +6,9 @@
 
 ### Converse. Mostre. Fique por perto.
 
-## Novidades na versão 1.6.0 — 3D Overhaul
+## Novidades na versão 1.6.0 publicada — 3D Overhaul
 
-Código em preparação: **1.6.0**. Última versão publicada: **1.5.0** (abaixo). Saída do build: `release/1.6.0/`. A 1.6.0 só será indicada como publicada depois que o workflow de release concluir e os arquivos forem conferidos.
+Código e última publicação confirmada: **1.6.0**. O [workflow de release](https://github.com/labarro/Voxy/actions/runs/44973928357) concluiu testes, geração, assinatura do catálogo, teste do executável empacotado e publicação; os cinco arquivos públicos, hashes, assinatura Ed25519, notas e endpoint de atualização foram conferidos. [Baixar a 1.6.0](https://github.com/labarro/Voxy/releases/tag/v1.6.0) · [Evidência da publicação](evidence/publication-1.6.0.json). Saída do build: `release/1.6.0/`.
 
 A 1.6.0 reformula toda a experiência 3D sobre o Voxy Electron 1.5.0, sem retomar a migração nativa. Voz, PTT, Mute, Deafen, compartilhamento, webcam, sinalização, hospedagem e atualizador continuam os mesmos.
 
@@ -22,7 +22,7 @@ A 1.6.0 reformula toda a experiência 3D sobre o Voxy Electron 1.5.0, sem retoma
 
 ## Novidades na versão 1.5.0 publicada — Visual Update
 
-Última publicação confirmada: **1.5.0**. O [workflow de release](https://github.com/labarro/Voxy/actions/runs/44797207304) concluiu testes, geração, assinatura do catálogo, teste do executável empacotado e publicação; os cinco arquivos públicos, hashes, assinatura Ed25519, notas e endpoint de atualização foram conferidos. [Evidência da publicação](evidence/publication-1.5.0.json). Saída do build: `release/1.5.0/`.
+Histórico publicado: **1.5.0**. O [workflow de release](https://github.com/labarro/Voxy/actions/runs/44797207304) concluiu testes, geração, assinatura do catálogo, teste do executável empacotado e publicação; os cinco arquivos públicos, hashes, assinatura Ed25519, notas e endpoint de atualização foram conferidos. [Evidência da publicação](evidence/publication-1.5.0.json). Saída do build: `release/1.5.0/`.
 
 A 1.5.0 traz para o Voxy Electron a identidade visual desenvolvida nas betas nativas do Voxy 2.0, mantendo a arquitetura, os serviços e as funcionalidades da 1.4.1. A migração nativa em Rust foi **congelada, não descartada**: continua preservada na branch `migration/2.0-native-audit`, com suas tags e betas.
 

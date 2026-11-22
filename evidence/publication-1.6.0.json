@@ -1,0 +1,54 @@
+{
+  "version": "1.6.0",
+  "checkedAt": "2026-11-22T02:08:43.414Z",
+  "release": "https://github.com/labarro/Voxy/releases/tag/v1.6.0",
+  "publishedAt": "2026-11-22T02:01:26Z",
+  "tagCommit": "ee0c63ba004913ac4f08c23b1c895589d8761615",
+  "workflow": "https://github.com/labarro/Voxy/actions/runs/44973928357",
+  "signature": "Ed25519 verified against bundled trusted key",
+  "manifest": "SHA-512 matched signed catalog",
+  "notes": "current catalog entry matches source",
+  "endpoint": {
+    "url": "https://www.devbarros.com/voxy/updates/",
+    "version": "1.6.0",
+    "manifest": "matched"
+  },
+  "assets": [
+    {
+      "name": "Voxy-Setup-1.6.0-x64.exe",
+      "bytes": 130002424,
+      "sha256": "8a333e5596d79a1d8b3c769d691044b754293129833b5917543e7ab6cb3bf534",
+      "githubDigest": "sha256:8a333e5596d79a1d8b3c769d691044b754293129833b5917543e7ab6cb3bf534",
+      "sha512": "8C8O2uNHTcVmRwiaigmD1LsUNpl8vhH2ldMeV2DFg1WJZZbYSheX4Mbuh/uChQzeYJtdg+xt2NFlaAXvdYLmVg=="
+    },
+    {
+      "name": "Voxy-Setup-1.6.0-x64.exe.blockmap",
+      "bytes": 136310,
+      "sha256": "f9c243ccae7aa0b5913c233cdd47e2dba6e20570e4f6da7a8fcc37d0579d1d6a",
+      "githubDigest": "sha256:f9c243ccae7aa0b5913c233cdd47e2dba6e20570e4f6da7a8fcc37d0579d1d6a",
+      "sha512": "FVy2WUlfZ+Wk0pah2b6/AOjPvaeux7UImRdBE9XObN3nhnzrBL94z7HoFQ3SYGHNKgsFCUqXQYU6AfVysAqFYw=="
+    },
+    {
+      "name": "latest.yml",
+      "bytes": 345,
+      "sha256": "6b3ce4f6035b09277eb25961147eea7eb6b12b60baefab6ee454393cece219b3",
+      "githubDigest": "sha256:6b3ce4f6035b09277eb25961147eea7eb6b12b60baefab6ee454393cece219b3",
+      "sha512": "2zzl8lSlSPGNDAPA9pN0sYQI11rEva3/Shtj+fLm0mO8aZm6/wtUuVF9dVae1TNIk7JFD3T/zob5zqGIjmZmDQ=="
+    },
+    {
+      "name": "voxy-release.json",
+      "bytes": 40795,
+      "sha256": "34b42a5514a28b7053bc8c1eb0be2bda93c087e5706d06ba936d3a61351f2615",
+      "githubDigest": "sha256:34b42a5514a28b7053bc8c1eb0be2bda93c087e5706d06ba936d3a61351f2615",
+      "sha512": "llSqnUnwgGTdtVayKLnxwQooud5eVK6+8aylgcISqCC5fVVvwjMeK4702qpm5RYawsP/TXPSxQvRIMAEr18ODg=="
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "bytes": 91,
+      "sha256": "6547945ee2394161401ef67cedeb0e3367ea9f891b6200a41227291c0c4bdc6a",
+      "githubDigest": "sha256:6547945ee2394161401ef67cedeb0e3367ea9f891b6200a41227291c0c4bdc6a",
+      "sha512": "fPMJb7OV8O5K9gsQqOyN6isqFHF5D4z6MUAAxdmZ7Cm7iH2iFFAQ2HHcWPgjCf5Q04VWJcddKSul+cclYCVkDw=="
+    }
+  ],
+  "nsisInstallation": "not run on personal installation"
+}

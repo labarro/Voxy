@@ -6,9 +6,9 @@
 
 ### Converse. Mostre. Fique por perto.
 
-## Novidades na versão 1.7.0 em preparação — Social Polish
+## Novidades na versão 1.7.0 publicada — Social Polish
 
-Código em preparação: **1.7.0**. Última publicação confirmada: **1.6.0** ([baixar](https://github.com/labarro/Voxy/releases/tag/v1.6.0)). Saída do build: `release/1.7.0/`.
+Código e última publicação confirmada: **1.7.0**. O [workflow de release](https://github.com/labarro/Voxy/actions/runs/45282534302) concluiu testes, geração, assinatura do catálogo, teste do executável empacotado e publicação; os cinco arquivos públicos, hashes, assinatura Ed25519, notas e endpoint de atualização foram conferidos. [Baixar a 1.7.0](https://github.com/labarro/Voxy/releases/tag/v1.7.0) · [Evidência da publicação](evidence/publication-1.7.0.json). Saída do build: `release/1.7.0/`.
 
 A 1.7.0 corrige o lobby de transmissões, reformula a aba Amigos, adiciona GIF animado ao perfil e alinha a barra lateral, sobre a 1.6.0 Electron. Voz, PTT, webcam, sinalização, hospedagem, DMs, salas 3D e minijogos continuam os mesmos.
 
@@ -22,7 +22,7 @@ A 1.7.0 corrige o lobby de transmissões, reformula a aba Amigos, adiciona GIF a
 
 ## Novidades na versão 1.6.0 publicada — 3D Overhaul
 
-Última publicação confirmada: **1.6.0**. O [workflow de release](https://github.com/labarro/Voxy/actions/runs/44973928357) concluiu testes, geração, assinatura do catálogo, teste do executável empacotado e publicação; os cinco arquivos públicos, hashes, assinatura Ed25519, notas e endpoint de atualização foram conferidos. [Baixar a 1.6.0](https://github.com/labarro/Voxy/releases/tag/v1.6.0) · [Evidência da publicação](evidence/publication-1.6.0.json). Saída do build: `release/1.6.0/`.
+Histórico publicado: **1.6.0**. O [workflow de release](https://github.com/labarro/Voxy/actions/runs/44973928357) concluiu testes, geração, assinatura do catálogo, teste do executável empacotado e publicação; os cinco arquivos públicos, hashes, assinatura Ed25519, notas e endpoint de atualização foram conferidos. [Baixar a 1.6.0](https://github.com/labarro/Voxy/releases/tag/v1.6.0) · [Evidência da publicação](evidence/publication-1.6.0.json). Saída do build: `release/1.6.0/`.
 
 A 1.6.0 reformula toda a experiência 3D sobre o Voxy Electron 1.5.0, sem retomar a migração nativa. Voz, PTT, Mute, Deafen, compartilhamento, webcam, sinalização, hospedagem e atualizador continuam os mesmos.
 

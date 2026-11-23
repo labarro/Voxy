@@ -134,6 +134,12 @@ export type Profile = {
   accentColor?: string;
   nicknameColor?: string;
   banner?: string;
+  /**
+   * Animated avatar (GIF). Locally a data URL; in a room the host replaces it
+   * with an "avatar:<sha256>" reference that clients fetch on demand. The
+   * static `avatar` stays as the poster/fallback for older clients.
+   */
+  avatarMotion?: string;
   mediaSubscriptions?: boolean;
   volumes?: Record<string, number>;
   streamVolumes?: Record<string, number>;
@@ -164,6 +170,7 @@ export type Participant = {
     | "presence"
     | "nicknameColor"
     | "banner"
+    | "avatarMotion"
     | "mediaSubscriptions"
     | "avatar3d"
   >;
@@ -314,6 +321,8 @@ export type Command =
       presence?: Presence;
       nicknameColor?: string;
       banner?: string;
+      animatedBanner?: string;
+      avatarMotion?: string;
     };
 export type ServerRole = {
   id: string;

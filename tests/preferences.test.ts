@@ -114,6 +114,8 @@ test("imagem: formato real, limites e mensagem sem texto", () => {
     width: 1,
     height: 1,
     bytes: Buffer.from(PNG.split(",")[1], "base64").length,
+    frames: 1,
+    format: "png",
   });
   assert(
     commandSchema.safeParse({

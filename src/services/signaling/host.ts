@@ -156,7 +156,16 @@ export class RoomHost {
         socket.data.profile = {
           ...p.data,
           avatar: this.store.registerAvatar(p.data.avatar),
-          banner: p.data.banner ? this.store.registerAvatar(p.data.banner) : "",
+          banner:
+            p.data.animatedBanner || p.data.banner
+              ? this.store.registerAvatar(
+                  p.data.animatedBanner || p.data.banner!,
+                )
+              : "",
+          animatedBanner: undefined,
+          avatarMotion: p.data.avatarMotion
+            ? this.store.registerAvatar(p.data.avatarMotion)
+            : "",
         };
       } catch (error) {
         return next(
@@ -182,6 +191,7 @@ export class RoomHost {
           presence: profile.presence,
           nicknameColor: profile.nicknameColor,
           banner: profile.banner,
+          avatarMotion: profile.avatarMotion,
           mediaSubscriptions: profile.mediaSubscriptions,
           avatar3d: profile.avatar3d,
         },
@@ -1075,9 +1085,13 @@ export class RoomHost {
         if (c.presence !== undefined) p.profile.presence = c.presence;
         if (c.nicknameColor !== undefined)
           p.profile.nicknameColor = c.nicknameColor;
-        if (c.banner !== undefined)
-          p.profile.banner = c.banner
-            ? this.store.registerAvatar(c.banner)
+        if (c.banner !== undefined || c.animatedBanner !== undefined) {
+          const banner = c.animatedBanner || c.banner;
+          p.profile.banner = banner ? this.store.registerAvatar(banner) : "";
+        }
+        if (c.avatarMotion !== undefined)
+          p.profile.avatarMotion = c.avatarMotion
+            ? this.store.registerAvatar(c.avatarMotion)
             : "";
         this.store.rememberProfile(p.profile);
         this.store.direct.remember(p.profile);

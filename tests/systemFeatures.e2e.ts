@@ -337,6 +337,8 @@ async function main() {
     await b
       .getByRole("button", { name: "Iniciar transmissão", exact: true })
       .click();
+    // 1.7: a remote share is only "available" until the viewer opts in.
+    await a.locator(".participant-card.is-sharing .watch-button").click();
     await a
       .locator('.player[data-kind="screen"]')
       .getByRole("button", {

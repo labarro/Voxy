@@ -48,13 +48,20 @@ const participants: Participant[] = [
 ];
 function Fixture() {
   const [focus, setFocus] = useState<string | null>(null),
-    [background, setBackground] = useState(false);
+    [background, setBackground] = useState(false),
+    [watching, setWatching] = useState<ReadonlySet<string>>(() => new Set());
   (window as any).setGalleryBackground = setBackground;
+  (window as any).setWatching = (ids: string[]) => setWatching(new Set(ids));
+  (window as any).watching = [...watching];
   return (
     <div className="call-view" style={{ height: "100vh", overflow: "auto" }}>
       <MediaGallery
         background={background}
         participants={participants}
+        watching={watching}
+        onStopWatching={(id) =>
+          setWatching((v) => new Set([...v].filter((x) => x !== id)))
+        }
         selfId="local"
         profile={{
           id: "local",

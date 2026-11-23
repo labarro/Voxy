@@ -2,6 +2,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Participant, ServerRole } from "../../shared/types";
 import { Avatar } from "./Avatar";
+import { BannerImage } from "./ProfileBanner";
+import { loadMotionImage } from "../motionImages";
 import { Presence } from "./Presence";
 import { RoleBadges } from "./Roles";
 import { MessageCircle, Phone, UserPlus, Volume2, VolumeX, X } from "lucide-react";
@@ -55,8 +57,8 @@ export function ParticipantMenu({
       return;
     }
     setBanner("");
-    void window.voxy
-      .profileImage(value)
+    // Cached Blob URL shared with other views; GIF covers stay animated.
+    void loadMotionImage(value)
       .then((image) => {
         if (alive) setBanner(image);
       })
@@ -115,7 +117,7 @@ export function ParticipantMenu({
         {profile && (
           <div className="profile-banner">
             {banner ? (
-              <img src={banner} alt={"Capa de " + name} />
+              <BannerImage src={banner} alt={"Capa de " + name} />
             ) : (
               <span aria-hidden="true" />
             )}

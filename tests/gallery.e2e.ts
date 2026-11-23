@@ -39,6 +39,18 @@ async function main() {
     });
     await page.addInitScript("window.__name = fn => fn;");
     await page.goto(`http://127.0.0.1:${(server.address() as any).port}`);
+    // Two people are sharing, but nothing remote opens until the viewer
+    // chooses: only the webcam is shown and no screen is subscribed.
+    await page.waitForFunction(
+      () =>
+        document.querySelectorAll(".player video").length === 1 &&
+        (window as any).viewing !== undefined,
+    );
+    assert.deepEqual(await page.evaluate(() => (window as any).viewing), {
+      screens: [],
+      cameras: ["a"],
+    });
+    await page.evaluate(() => (window as any).setWatching(["a", "b"]));
     await page.waitForFunction(
       () =>
         document.querySelectorAll(".player video").length === 3 &&
@@ -67,18 +79,30 @@ async function main() {
       .getByRole("button", { name: "Voltar à grade", exact: true })
       .click();
     assert.equal(await page.locator(".player").count(), 3);
+    // Closing a remote screen stops watching it (back to "available").
+    await page
+      .getByRole("button", { name: "Parar de assistir", exact: true })
+      .first()
+      .click();
+    await page.waitForFunction(
+      () =>
+        (window as any).viewing.screens.length === 1 &&
+        (window as any).watching.length === 1,
+    );
+    assert.equal(await page.locator(".player").count(), 2);
+    // Closing the webcam only hides it locally, with "Mostrar todas".
     await page
       .getByRole("button", { name: "Fechar visualização", exact: true })
       .first()
       .click();
-    await page.waitForFunction(
-      () => (window as any).viewing.screens.length === 1,
-    );
-    assert.equal(await page.locator(".player").count(), 2);
+    assert.equal(await page.locator(".player").count(), 1);
     await page
       .getByRole("button", { name: "Mostrar todas", exact: true })
       .click();
-    assert.equal(await page.locator(".player").count(), 3);
+    await page.evaluate(() => (window as any).setWatching(["a", "b"]));
+    await page.waitForFunction(
+      () => document.querySelectorAll(".player").length === 3,
+    );
     await page
       .getByLabel("Volume da transmissão", { exact: true })
       .last()
@@ -114,6 +138,8 @@ async function main() {
       "test-results/gallery.json",
       JSON.stringify(
         {
+          optInScreens: true,
+          stopWatching: true,
           grid: true,
           expanded: true,
           individualVolume: true,

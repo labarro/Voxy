@@ -4,7 +4,7 @@ import {
   shortcutConflict,
   DEFAULT_NOTIFICATIONS,
 } from "./preferences";
-import { MAX_IMAGE_BYTES } from "./constants";
+import { MAX_IMAGE_BYTES, PROFILE_GIF } from "./constants";
 import { validateImage } from "./image";
 const id = z.string().min(1).max(100),
   name = z.string().trim().min(1).max(60);
@@ -23,18 +23,40 @@ export const avatarSchema = z
 export const colorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 export const bannerSchema = z
   .string()
-  .max(180000)
+  .max(Math.ceil(PROFILE_GIF.banner.bytes / 3) * 4 + 40)
   .refine((value) => {
     if (!value) return true;
     try {
       const image = validateImage(value);
       return (
-        image.width <= 960 && image.height <= 360 && image.bytes <= 128 * 1024
+        image.width <= PROFILE_GIF.banner.width &&
+        image.height <= PROFILE_GIF.banner.height &&
+        image.bytes <=
+          (image.format === "gif" ? PROFILE_GIF.banner.bytes : 128 * 1024)
       );
     } catch {
       return false;
     }
-  }, "Escolha uma capa de até 960 × 360 px / 128 KB.");
+  }, "Escolha uma capa de até 960 × 360 px (128 KB, ou 1 MB para GIF).");
+/** Animated avatar: a validated GIF, or "" when the avatar is static. */
+export const avatarMotionSchema = z
+  .string()
+  .max(Math.ceil(PROFILE_GIF.avatar.bytes / 3) * 4 + 40)
+  .refine((value) => {
+    if (!value) return true;
+    try {
+      const image = validateImage(value);
+      return (
+        image.format === "gif" &&
+        image.frames > 1 &&
+        image.width <= PROFILE_GIF.avatar.side &&
+        image.height <= PROFILE_GIF.avatar.side &&
+        image.bytes <= PROFILE_GIF.avatar.bytes
+      );
+    } catch {
+      return false;
+    }
+  }, "Escolha um GIF animado de até 256 px / 384 KB.");
 export const avatar3dSchema = z.object({
   base: z.enum(["m", "f"]).optional(),
   hair: z.enum(["short", "long", "crest"]),
@@ -201,6 +223,7 @@ const profileObjectSchema = z.object({
   accentColor: z.union([colorSchema, z.literal("")]).default(""),
   nicknameColor: z.union([colorSchema, z.literal("")]).default(""),
   banner: bannerSchema.default(""),
+  avatarMotion: avatarMotionSchema.default(""),
   volumes: z.record(z.uuid(), z.number().min(0).max(2)).default({}),
   streamVolumes: z.record(z.uuid(), z.number().min(0).max(1)).default({}),
   mutedParticipants: z.record(z.uuid(), z.boolean()).default({}),
@@ -217,9 +240,14 @@ export const publicProfileSchema = profileObjectSchema
     presence: true,
     nicknameColor: true,
     banner: true,
+    avatarMotion: true,
     avatar3d: true,
   })
-  .extend({ mediaSubscriptions: z.boolean().default(false) });
+  .extend({
+    mediaSubscriptions: z.boolean().default(false),
+    /** GIF banner, kept apart so 1.6 hosts (which reject it) ignore it. */
+    animatedBanner: bannerSchema.optional(),
+  });
 export const imageSchema = z
   .string()
   .max(Math.ceil(MAX_IMAGE_BYTES / 3) * 4 + 40)
@@ -466,6 +494,8 @@ export const commandSchema = z.discriminatedUnion("type", [
     presence: z.enum(["online", "away", "busy"]).optional(),
     nicknameColor: z.union([colorSchema, z.literal("")]).optional(),
     banner: bannerSchema.optional(),
+    avatarMotion: avatarMotionSchema.optional(),
+    animatedBanner: bannerSchema.optional(),
   }),
 ]);
 export const signalSchema = z

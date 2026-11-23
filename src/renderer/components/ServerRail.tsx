@@ -20,6 +20,46 @@ const labels = {
 };
 export type AppPage =
   "home" | "room" | "news" | "dm" | "friends" | "notifications";
+/**
+ * Every navigation entry of the rail (Home, DMs, friends, notifications,
+ * create, join, news) uses this one button so size, centering, hover, the
+ * selection pill and tooltip placement cannot drift between entries.
+ */
+function RailButton({
+  label,
+  icon,
+  active = false,
+  tone,
+  disabled,
+  onClick,
+  children,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  active?: boolean;
+  tone?: "create";
+  disabled?: boolean;
+  onClick: () => void;
+  children?: React.ReactNode;
+}) {
+  return (
+    <button
+      className={
+        "rail-button " + (active ? "selected " : "") + (tone ? "tone-" + tone : "")
+      }
+      title={label}
+      aria-label={label}
+      aria-current={active ? "page" : undefined}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      <span className="rail-glyph" aria-hidden="true">
+        {icon}
+      </span>
+      {children}
+    </button>
+  );
+}
 /** Stable hue per server so initials tiles are recognizable at a glance. */
 function hue(id: string) {
   let h = 0;
@@ -64,23 +104,18 @@ export function ServerRail({
   );
   return (
     <nav className="server-rail" aria-label="Servidores">
-      <button
-        className={"brand " + (page === "home" ? "active" : "")}
-        title="Home"
-        aria-label="Home"
-        aria-current={page === "home" ? "page" : undefined}
+      <RailButton
+        label="Home"
+        icon={<House size={20} />}
+        active={page === "home"}
         onClick={() => navigate("home")}
-      >
-        <House size={20} />
-      </button>
-      <button
-        className={"rail-action " + (page === "dm" ? "selected" : "")}
-        title="Mensagens privadas"
-        aria-label="Mensagens privadas"
-        aria-current={page === "dm" ? "page" : undefined}
+      />
+      <RailButton
+        label="Mensagens privadas"
+        icon={<MessageCircle size={20} />}
+        active={page === "dm"}
         onClick={() => navigate("dm")}
       >
-        <MessageCircle size={20} />
         {unread > 0 && (
           <span
             className="unread-badge rail-unread"
@@ -89,35 +124,29 @@ export function ServerRail({
             {unread > 99 ? "99+" : unread}
           </span>
         )}
-      </button>
-      <button
-        className={"rail-action " + (page === "friends" ? "selected" : "")}
-        title="Amigos"
-        aria-label="Amigos"
-        aria-current={page === "friends" ? "page" : undefined}
+      </RailButton>
+      <RailButton
+        label="Amigos"
+        icon={<Users size={20} />}
+        active={page === "friends"}
         onClick={() => navigate("friends")}
       >
-        <Users size={20} />
         {(room.friendships || []).some((f) => f.status === "pending") && (
           <i className="status-dot" />
         )}
-      </button>
-      <button
-        className={
-          "rail-action " + (page === "notifications" ? "selected" : "")
-        }
-        title="Notificações"
-        aria-label="Notificações"
-        aria-current={page === "notifications" ? "page" : undefined}
+      </RailButton>
+      <RailButton
+        label="Notificações"
+        icon={<Bell size={20} />}
+        active={page === "notifications"}
         onClick={() => navigate("notifications")}
       >
-        <Bell size={20} />
         {notifications > 0 && (
           <span className="unread-badge rail-unread">
             {notifications > 99 ? "99+" : notifications}
           </span>
         )}
-      </button>
+      </RailButton>
       <div className="rail-divider" />
       <div className="rail-server-list">
         {room.servers.map((s) => (
@@ -190,33 +219,26 @@ export function ServerRail({
           );
         })}
       </div>
-      <button
-        className="rail-action rail-create"
-        title={online ? "Criar servidor" : "Hospedar sala"}
-        aria-label={online ? "Criar servidor" : "Hospedar sala"}
+      <RailButton
+        label={online ? "Criar servidor" : "Hospedar sala"}
+        icon={<Plus size={20} />}
+        tone="create"
         onClick={create}
         disabled={online && !canCreate}
-      >
-        <Plus size={20} />
-      </button>
-      <button
-        className="rail-action rail-create"
-        title="Entrar em sala"
-        aria-label="Entrar em sala"
+      />
+      <RailButton
+        label="Entrar em sala"
+        icon={<LogIn size={20} />}
+        tone="create"
         onClick={join}
-      >
-        <LogIn size={20} />
-      </button>
+      />
       <div className="rail-spacer" />
-      <button
-        className={"rail-action rail-news " + (page === "news" ? "selected" : "")}
-        title="Novidades do Voxy"
-        aria-label="Novidades do Voxy"
-        aria-current={page === "news" ? "page" : undefined}
+      <RailButton
+        label="Novidades do Voxy"
+        icon={<Sparkles size={20} />}
+        active={page === "news"}
         onClick={() => navigate("news")}
-      >
-        <Sparkles size={20} />
-      </button>
+      />
     </nav>
   );
 }

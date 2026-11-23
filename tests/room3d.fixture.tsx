@@ -188,6 +188,8 @@ function Fixture() {
       )}
       <MediaGallery
         participants={people}
+        watching={new Set(people.filter((p) => p.sharing).map((p) => p.id))}
+        onStopWatching={() => {}}
         selfId="self"
         profile={profile}
         media={media}

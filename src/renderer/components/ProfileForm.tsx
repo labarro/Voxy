@@ -3,6 +3,7 @@ import type { Profile, RoomState } from "../../shared/types";
 import { NotificationSettings } from "./NotificationSettings";
 import { useRef, useState, useEffect } from "react";
 import { Avatar } from "./Avatar";
+import { prepareProfileGif, readGif } from "../profileGif";
 import { PTT_KEYS, isPttKey, shortcutConflict } from "../../shared/preferences";
 import { ShortcutPicker } from "./ShortcutPicker";
 import { MicrophonePreview } from "./MicrophonePreview";
@@ -162,11 +163,21 @@ export function ProfileForm({
     setPhotoError("");
     let bitmap: ImageBitmap | undefined;
     try {
-      if (
+      if (file.type === "image/gif") {
+        // Animated GIF: a still poster (first frame) becomes the regular
+        // avatar and the GIF rides apart, so it keeps animating after
+        // saving and syncing. A single-frame GIF is handled as a still.
+        const { info } = await readGif(file);
+        if (info.frames > 1) {
+          const { gif, poster } = await prepareProfileGif(file, "avatar");
+          setProfile({ ...profile, avatar: poster, avatarMotion: gif });
+          return;
+        }
+      } else if (
         !["image/png", "image/jpeg", "image/webp"].includes(file.type) ||
         file.size > 5 * 1024 * 1024
       )
-        throw Error("Escolha PNG, JPEG ou WebP de até 5 MB.");
+        throw Error("Escolha PNG, JPEG, WebP ou GIF de até 5 MB.");
       bitmap = await createImageBitmap(file);
       if (
         bitmap.width > 8192 ||
@@ -195,7 +206,7 @@ export function ProfileForm({
         throw Error(
           "Não foi possível reduzir a foto para 32 KB. Escolha uma imagem mais simples.",
         );
-      setProfile({ ...profile, avatar });
+      setProfile({ ...profile, avatar, avatarMotion: "" });
     } catch (e) {
       setPhotoError((e as Error).message || "Não foi possível abrir a foto.");
     } finally {
@@ -287,7 +298,11 @@ export function ProfileForm({
         </section>
         <section hidden={category !== "Perfil"}>
           <div className="profile-preview">
-            <Avatar avatar={profile.avatar} className="large-avatar" />
+            <Avatar
+              avatar={profile.avatar}
+              motion={profile.avatarMotion || ""}
+              className="large-avatar"
+            />
             <div>
               <h3>{profile.name}</h3>
               <p>Sua identidade nas conversas.</p>
@@ -301,20 +316,26 @@ export function ProfileForm({
                 className={profile.avatar === a ? "chosen" : ""}
                 title={"Avatar " + a}
                 aria-label={"Avatar " + a}
-                onClick={() => setProfile({ ...profile, avatar: a })}
+                onClick={() =>
+                  setProfile({ ...profile, avatar: a, avatarMotion: "" })
+                }
               >
                 {a}
               </button>
             ))}
           </div>
           <div className="profile-photo-picker">
-            <Avatar avatar={profile.avatar} className="large-avatar" />
+            <Avatar
+              avatar={profile.avatar}
+              motion={profile.avatarMotion || ""}
+              className="large-avatar"
+            />
             <div>
               <input
                 ref={photoInput}
                 type="file"
                 hidden
-                accept="image/png,image/jpeg,image/webp"
+                accept="image/png,image/jpeg,image/webp,image/gif"
                 aria-label="Arquivo de foto de perfil"
                 onChange={(e) => {
                   void choosePhoto(e.target.files?.[0]);
@@ -329,8 +350,9 @@ export function ProfileForm({
                 {photoBusy ? "Preparando foto…" : "Escolher foto do computador"}
               </button>
               <small>
-                PNG, JPEG ou WebP de até 5 MB. Recorte central quadrado de 128
-                px. Selecione um emoji para remover a foto. Salve para aplicar.
+                PNG, JPEG, WebP ou GIF animado. Recorte central quadrado; GIFs
+                continuam animados (até 384 KB após o ajuste). Selecione um
+                emoji para remover a foto. Salve para aplicar.
               </small>
             </div>
           </div>

@@ -6,9 +6,23 @@
 
 ### Converse. Mostre. Fique por perto.
 
+## Novidades na versão 1.7.0 em preparação — Social Polish
+
+Código em preparação: **1.7.0**. Última publicação confirmada: **1.6.0** ([baixar](https://github.com/labarro/Voxy/releases/tag/v1.6.0)). Saída do build: `release/1.7.0/`.
+
+A 1.7.0 corrige o lobby de transmissões, reformula a aba Amigos, adiciona GIF animado ao perfil e alinha a barra lateral, sobre a 1.6.0 Electron. Voz, PTT, webcam, sinalização, hospedagem, DMs, salas 3D e minijogos continuam os mesmos.
+
+- **Transmissões sob escolha:** quando alguém começa a compartilhar, o cartão dessa pessoa ganha o selo **Ao vivo** e o botão **Assistir** — nada abre sozinho, e o vídeo e o áudio da tela só são assinados e reproduzidos depois do clique. **Parar** (no cartão ou no **×** do player) fecha somente a visualização; você continua na chamada. Com duas ou mais transmissões, um seletor acima da grade permite escolher quais assistir (lado a lado). Quem compartilha continua vendo a própria prévia. Ao encerrar, selo, botão, seletor e player somem.
+- **Cartão do participante:** selos no topo, avatar ao centro e nome com o botão na base, em faixas separadas — sem sobreposição em cartões grandes ou na faixa compacta sob o vídeo, que agora rola na horizontal.
+- **Amigos:** abas **Todos**, **Online**, **Pendentes** e **Adicionar amigo**; busca; uma entrada por pessoa mesmo com amizade em vários servidores; online primeiro, com atividade (em voz, transmitindo); **Mensagem** e **Chamada privada** como ações rápidas e menu com **Ver perfil**, **Copiar ID** e **Remover amizade**. Presença, pedidos e chamadas continuam dependendo do host conectado: quem não está nele aparece com presença não confirmada (nunca "Offline"), e o botão de chamada só existe quando a pessoa está presente.
+- **Perfis animados:** foto e capa aceitam PNG, JPEG, WebP e GIF (animado ou estático), com prévia animada antes de salvar. GIFs maiores são recortados e reduzidos continuando animados (avatar até 384 KB/256 px; capa até 1 MB/960 × 360). O GIF é validado pela estrutura real (quadros e pixels decodificados limitados), chega aos outros sob demanda e fica em cache; a sala só transporta a foto estática pequena. Animações pausam fora da tela e com a janela oculta, ficam limitadas a 12 simultâneas e mostram a imagem estática com **movimento reduzido** do Windows ou no **modo de baixo consumo**.
+- **Barra lateral:** um único componente para Home, mensagens, amigos, notificações, criar servidor, entrar em sala e novidades; todos 44 × 44 no mesmo eixo dos servidores, inclusive quando a lista de servidores rola.
+
+**Host e participantes devem atualizar para a 1.7.0** para ver GIFs de outros participantes. Um host 1.6.0 aceita clientes 1.7.0, mas ignora o GIF (mostra a foto estática) e não exibe capas GIF. Detalhes: [Personalização e amigos](SOCIAL-E-PERSONALIZACAO.md#amigos-e-chamadas-privadas) · [Validação da 1.7.0](TESTING.md#voxy-170--social-polish). Testes feitos com três instâncias na mesma máquina, captura de tela e GIFs sintéticos; não substituem homologação entre computadores diferentes.
+
 ## Novidades na versão 1.6.0 publicada — 3D Overhaul
 
-Código e última publicação confirmada: **1.6.0**. O [workflow de release](https://github.com/labarro/Voxy/actions/runs/44973928357) concluiu testes, geração, assinatura do catálogo, teste do executável empacotado e publicação; os cinco arquivos públicos, hashes, assinatura Ed25519, notas e endpoint de atualização foram conferidos. [Baixar a 1.6.0](https://github.com/labarro/Voxy/releases/tag/v1.6.0) · [Evidência da publicação](evidence/publication-1.6.0.json). Saída do build: `release/1.6.0/`.
+Última publicação confirmada: **1.6.0**. O [workflow de release](https://github.com/labarro/Voxy/actions/runs/44973928357) concluiu testes, geração, assinatura do catálogo, teste do executável empacotado e publicação; os cinco arquivos públicos, hashes, assinatura Ed25519, notas e endpoint de atualização foram conferidos. [Baixar a 1.6.0](https://github.com/labarro/Voxy/releases/tag/v1.6.0) · [Evidência da publicação](evidence/publication-1.6.0.json). Saída do build: `release/1.6.0/`.
 
 A 1.6.0 reformula toda a experiência 3D sobre o Voxy Electron 1.5.0, sem retomar a migração nativa. Voz, PTT, Mute, Deafen, compartilhamento, webcam, sinalização, hospedagem e atualizador continuam os mesmos.
 
@@ -53,7 +67,7 @@ O host deixa de atualizar jogos sem partidas; medidores param de publicar nívei
 Voz, chat e compartilhamento de tela para o seu grupo de amigos.<br />
 Um aplicativo desktop para Windows, com mídia P2P e sala hospedada no seu computador.
 
-![Versão 1.5.0](https://img.shields.io/badge/vers%C3%A3o-1.5.0-9b8cff?style=flat-square)
+![Versão 1.7.0](https://img.shields.io/badge/vers%C3%A3o-1.7.0-9b8cff?style=flat-square)
 ![Windows 10 e 11 x64](https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-4389e8?style=flat-square)
 ![WebRTC P2P](https://img.shields.io/badge/WebRTC-P2P-68d6b1?style=flat-square)
 ![Até 10 participantes](https://img.shields.io/badge/at%C3%A9-10%20participantes-c9233c?style=flat-square)

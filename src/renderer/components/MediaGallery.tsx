@@ -5,6 +5,8 @@ import { Player } from "./Player";
 export function MediaGallery({
   television,
   participants,
+  watching,
+  onStopWatching,
   selfId,
   media,
   profile,
@@ -18,6 +20,9 @@ export function MediaGallery({
 }: {
   television?: string | null;
   participants: Participant[];
+  /** Remote screens the viewer chose to watch; others stay "available". */
+  watching: ReadonlySet<string>;
+  onStopWatching: (id: string) => void;
   selfId: string;
   media: VoiceView;
   profile: Profile;
@@ -35,7 +40,10 @@ export function MediaGallery({
   const callbacks = useRef({ onViewing, onFocus });
   callbacks.current = { onViewing, onFocus };
   const sources = participants.flatMap((p) => [
-    ...(p.sharing
+    // A remote share never opens on its own: it only joins the gallery (and
+    // is only subscribed to, decoded and heard) after the viewer opts in.
+    // The sharer's own local preview stays visible.
+    ...(p.sharing && (p.id === selfId || watching.has(p.id))
       ? [{ key: "screen:" + p.id, kind: "screen" as const, p }]
       : []),
     ...(p.camera
@@ -128,6 +136,10 @@ export function MediaGallery({
             onVolume={(v) => onVolume(p.id, v)}
             expand={() => onFocus(expanded ? null : key)}
             close={() => {
+              if (kind === "screen" && p.id !== selfId) {
+                onStopWatching(p.id);
+                return;
+              }
               setHidden((v) => new Set([...v, key]));
               if (expanded) onFocus(null);
             }}

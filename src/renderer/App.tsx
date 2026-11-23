@@ -13,7 +13,7 @@ import {
 } from "./components/Personalization";
 import { MAX_PARTICIPANTS } from "../shared/constants";
 import { PTT_KEYS } from "../shared/preferences";
-import { Avatar, AvatarImages } from "./components/Avatar";
+import { Avatar, AvatarImages, AvatarMotion } from "./components/Avatar";
 import { ParticipantStatus } from "./components/ParticipantStatus";
 import { Chat } from "./components/Chat";
 import { ParticipantMenu } from "./components/ParticipantMenu";
@@ -38,6 +38,7 @@ import {
   lazy,
   Suspense,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type FormEvent,
@@ -55,6 +56,8 @@ import {
   HeadphoneOff,
   Settings,
   MonitorUp,
+  MonitorOff,
+  MonitorPlay,
   PhoneOff,
   LogIn,
   Radio,
@@ -140,6 +143,11 @@ export function App() {
   const { inbox, notice, clearNotice, error: inboxError } = useInbox();
   const [directTarget, setDirectTarget] = useState<DirectTarget | null>(null);
   const [watchCamera, setWatchCamera] = useState<string | null>(null);
+  // Remote screens the viewer explicitly chose to watch. A share that just
+  // started is only "available" until the viewer opts in here.
+  const [watching, setWatching] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
   const [cameraDevice, setCameraDevice] = useState("");
   const pendingServer = useRef<string | null>(null);
   const [notes, setNotes] = useState<ReleaseNotes | null>(null);
@@ -307,6 +315,7 @@ export function App() {
           latest.current.room = empty;
           setWatch(null);
           setWatchCamera(null);
+          setWatching(new Set());
           setPage((current) => (current === "room" ? "home" : current));
         }
       }
@@ -409,6 +418,50 @@ export function App() {
       (p) => p.channelId && p.channelId === me?.channelId,
     ),
     streams = peers.filter((p) => p.sharing);
+  const remoteStreams = streams.filter((p) => p.id !== selfId);
+  const streamKey = remoteStreams
+    .map((p) => p.id)
+    .sort()
+    .join(",");
+  // A finished share (or someone leaving the call) drops its watch state,
+  // controls and focus.
+  useEffect(() => {
+    const live = new Set(streamKey ? streamKey.split(",") : []);
+    setWatching((current) =>
+      [...current].every((id) => live.has(id))
+        ? current
+        : new Set([...current].filter((id) => live.has(id))),
+    );
+    setWatch((current) =>
+      current && current !== latest.current.selfId && !live.has(current)
+        ? null
+        : current,
+    );
+  }, [streamKey]);
+  function watchScreen(id: string) {
+    setWatchCamera(null);
+    // The first chosen screen opens expanded; picking another one while
+    // already watching shows them side by side instead of hiding the first.
+    const others = [...watching].some((x) => x !== id);
+    if (id !== selfId)
+      setWatching((current) =>
+        current.has(id) ? current : new Set([...current, id]),
+      );
+    setWatch(others ? null : id);
+  }
+  function stopWatching(id: string) {
+    setWatching((current) => {
+      if (!current.has(id)) return current;
+      const next = new Set(current);
+      next.delete(id);
+      return next;
+    });
+    setWatch((current) => (current === id ? null : current));
+  }
+  const galleryHasMedia = peers.some(
+    (p) =>
+      p.camera || (p.sharing && (p.id === selfId || watching.has(p.id))),
+  );
   useEffect(() => {
     const eligible = !!voice?.roomPreset && !!room.features?.rooms3d;
     const entry = profile?.room3d?.entry ?? "ask";
@@ -705,6 +758,7 @@ export function App() {
     engine.leave();
     setWatch(null);
     setWatchCamera(null);
+    setWatching(new Set());
     await command({ type: "voice", channelId: null });
   }
   async function toggleMute() {
@@ -851,6 +905,23 @@ export function App() {
   const latency = rtts.length
     ? Math.round(rtts.reduce((n, v) => n + v, 0) / rtts.length)
     : undefined;
+  // Static avatar → animated GIF reference, for every profile we know.
+  const avatarMotion = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const p of [
+      ...Object.values(room.profiles ?? {}),
+      ...room.participants.map((x) => x.profile),
+    ])
+      if (p?.avatarMotion && p.avatar) map[p.avatar] = p.avatarMotion;
+    if (profile?.avatarMotion) map[profile.avatar] = profile.avatarMotion;
+    return { map, enabled: !profile?.lowResourceMode };
+  }, [
+    room.profiles,
+    room.participants,
+    profile?.avatar,
+    profile?.avatarMotion,
+    profile?.lowResourceMode,
+  ]);
   if (!profile)
     return (
       <>
@@ -860,6 +931,7 @@ export function App() {
     );
   return (
     <AvatarImages.Provider value={room.avatars ?? {}}>
+     <AvatarMotion.Provider value={avatarMotion}>
       <TooltipLayer />
       <header className="window-titlebar">
         <img
@@ -1768,10 +1840,7 @@ export function App() {
                           setRoomMode(false);
                           setError(message);
                         }}
-                        focus={(id) => {
-                          setWatchCamera(null);
-                          setWatch(id);
-                        }}
+                        focus={watchScreen}
                         onSource={setTvSource}
                         sourceId={room.televisions?.[channel.id]}
                         pool={room.poolGames?.[channel.id]}
@@ -1808,18 +1877,56 @@ export function App() {
               <div
                 className={
                   "call-stage " +
-                  (me?.channelId === channelId &&
-                  peers.some((p) => p.sharing || p.camera)
+                  (me?.channelId === channelId && galleryHasMedia
                     ? "has-media"
                     : "")
                 }
               >
+                {me?.channelId === channelId && remoteStreams.length > 1 && (
+                  <div
+                    className="stream-picker"
+                    role="group"
+                    aria-label="Escolha qual transmissão assistir"
+                  >
+                    <span className="stream-picker-label">
+                      <Radio size={14} aria-hidden="true" />
+                      {remoteStreams.length} transmissões
+                    </span>
+                    {remoteStreams.map((p) => (
+                      <button
+                        key={p.id}
+                        className={watching.has(p.id) ? "active" : ""}
+                        aria-pressed={watching.has(p.id)}
+                        title={
+                          watching.has(p.id)
+                            ? "Parar de assistir"
+                            : "Assistir à transmissão"
+                        }
+                        onClick={() =>
+                          watching.has(p.id)
+                            ? stopWatching(p.id)
+                            : watchScreen(p.id)
+                        }
+                      >
+                        <Avatar avatar={p.profile.avatar} />
+                        <span className="stream-picker-name">
+                          {p.profile.name}
+                        </span>
+                        <span className="stream-picker-state">
+                          {watching.has(p.id) ? "Assistindo" : "Assistir"}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {me?.channelId === channelId && (
                   <MediaGallery
                     television={roomMode ? tvSource : undefined}
                     onPictureInPicture={setPipActive}
                     background={background}
                     participants={peers}
+                    watching={watching}
+                    onStopWatching={stopWatching}
                     selfId={selfId}
                     media={media}
                     profile={profile}
@@ -1832,7 +1939,11 @@ export function App() {
                           : null
                     }
                     onFocus={(key) => {
-                      setWatch(key?.startsWith("screen:") ? key.slice(7) : null);
+                      if (key?.startsWith("screen:")) {
+                        watchScreen(key.slice(7));
+                        return;
+                      }
+                      setWatch(null);
                       setWatchCamera(
                         key?.startsWith("camera:") ? key.slice(7) : null,
                       );
@@ -1872,77 +1983,107 @@ export function App() {
                           }
                         }}
                         key={p.id}
+                        data-participant={p.id}
                         className={
                           "participant-card " +
                           (media.speaking.has(p.id) ? "talking " : "") +
+                          (p.sharing ? "is-sharing " : "") +
+                          (watching.has(p.id) ? "is-watched " : "") +
                           (p.id === selfId ? "self" : "")
                         }
                       >
-                        <div className="tile-badges">
-                          {p.sharing && (
-                            <span className="live-label">Ao vivo</span>
+                        <div className="tile-top">
+                          <div className="tile-badges">
+                            {p.sharing && (
+                              <span className="live-label">Ao vivo</span>
+                            )}
+                            {p.camera && (
+                              <span className="tile-badge">
+                                <Video size={12} aria-hidden="true" /> Câmera
+                              </span>
+                            )}
+                            <RoleBadges
+                              roles={memberRoles(room, serverId, p.profile.id)}
+                            />
+                          </div>
+                          {p.id !== selfId && p.channelId === me?.channelId && (
+                            <button
+                              className="participant-options"
+                              aria-label={"Opções de " + p.profile.name}
+                              title={"Opções de " + p.profile.name}
+                              onClick={(e) => {
+                                const r =
+                                  e.currentTarget.getBoundingClientRect();
+                                setParticipantAudio({
+                                  id: p.id,
+                                  x: r.right,
+                                  y: r.bottom,
+                                });
+                              }}
+                            >
+                              <MoreHorizontal size={17} />
+                            </button>
                           )}
-                          {p.camera && (
-                            <span className="tile-badge">
-                              <Video size={12} aria-hidden="true" /> Câmera
+                        </div>
+                        <div className="tile-center">
+                          <Avatar
+                            className="large-avatar"
+                            avatar={p.profile.avatar}
+                          />
+                        </div>
+                        <div className="tile-foot">
+                          <div className="participant-name">
+                            <span
+                              style={{
+                                color: nicknameColor(room, serverId, p.profile),
+                              }}
+                            >
+                              {p.profile.name}
+                              {p.id === selfId ? " (você)" : ""}
                             </span>
-                          )}
-                          <RoleBadges
-                            roles={memberRoles(room, serverId, p.profile.id)}
-                          />
+                            <Presence value={p.profile.presence} />
+                            <ParticipantStatus
+                              muted={p.muted}
+                              microphoneState={p.microphoneState}
+                              speaking={media.speaking.has(p.id)}
+                              deafened={p.deafened}
+                              locallyMuted={
+                                !!profile.mutedParticipants?.[p.profile.id]
+                              }
+                            />
+                          </div>
+                          {p.sharing &&
+                            p.id !== selfId &&
+                            me?.channelId === channelId &&
+                            (watching.has(p.id) ? (
+                              <button
+                                className="watch-button watching"
+                                aria-pressed="true"
+                                aria-label={
+                                  "Parar de assistir à tela de " +
+                                  p.profile.name
+                                }
+                                title="Parar de assistir"
+                                onClick={() => stopWatching(p.id)}
+                              >
+                                <MonitorOff size={14} aria-hidden="true" />
+                                <span>Parar</span>
+                              </button>
+                            ) : (
+                              <button
+                                className="watch-button"
+                                aria-pressed="false"
+                                aria-label={
+                                  "Assistir à tela de " + p.profile.name
+                                }
+                                title="Assistir à transmissão"
+                                onClick={() => watchScreen(p.id)}
+                              >
+                                <MonitorPlay size={14} aria-hidden="true" />
+                                <span>Assistir</span>
+                              </button>
+                            ))}
                         </div>
-                        <Avatar
-                          className="large-avatar"
-                          avatar={p.profile.avatar}
-                        />
-                        <div className="participant-name">
-                          <span
-                            style={{
-                              color: nicknameColor(room, serverId, p.profile),
-                            }}
-                          >
-                            {p.profile.name}
-                            {p.id === selfId ? " (você)" : ""}
-                          </span>
-                          <Presence value={p.profile.presence} />
-                          <ParticipantStatus
-                            muted={p.muted}
-                            microphoneState={p.microphoneState}
-                            speaking={media.speaking.has(p.id)}
-                            deafened={p.deafened}
-                            locallyMuted={
-                              !!profile.mutedParticipants?.[p.profile.id]
-                            }
-                          />
-                        </div>
-                        {p.sharing && (
-                          <button
-                            className="watch-button"
-                            onClick={() => {
-                              setWatchCamera(null);
-                              setWatch(p.id);
-                            }}
-                          >
-                            <MonitorUp size={15} /> Assistir à tela
-                          </button>
-                        )}
-                        {p.id !== selfId && p.channelId === me?.channelId && (
-                          <button
-                            className="participant-options"
-                            aria-label={"Opções de " + p.profile.name}
-                            title={"Opções de " + p.profile.name}
-                            onClick={(e) => {
-                              const r = e.currentTarget.getBoundingClientRect();
-                              setParticipantAudio({
-                                id: p.id,
-                                x: r.right,
-                                y: r.bottom,
-                              });
-                            }}
-                          >
-                            <MoreHorizontal size={17} />
-                          </button>
-                        )}
                       </article>
                     ))}
                   {!room.participants.some((p) => p.channelId === channelId) && (
@@ -1956,24 +2097,6 @@ export function App() {
                   )}
                 </div>
               </div>
-              {me?.channelId === channelId && streams.length > 1 && (
-                <div className="stream-list" aria-label="Transmissões ao vivo">
-                  {streams.map((p) => (
-                    <button
-                      key={p.id}
-                      className={watch === p.id ? "active" : ""}
-                      onClick={() => {
-                        setWatchCamera(null);
-                        setWatch(p.id);
-                      }}
-                    >
-                      <MonitorUp size={15} />
-                      {p.profile.name}
-                      <span className="live-label">Ao vivo</span>
-                    </button>
-                  ))}
-                </div>
-              )}
               {me?.channelId === channelId ? (
                 <CallDock
                   busy={busy}
@@ -2492,6 +2615,7 @@ export function App() {
           </Modal>
         )}
       </div>
+     </AvatarMotion.Provider>
     </AvatarImages.Provider>
   );
 }

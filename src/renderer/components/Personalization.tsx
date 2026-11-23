@@ -1,5 +1,7 @@
 import { useRef, useState, type CSSProperties } from "react";
 import type { Profile } from "../../shared/types";
+import { BannerImage } from "./ProfileBanner";
+import { prepareProfileGif, readGif } from "../profileGif";
 function luminance(color: string) {
   const rgb = [1, 3, 5]
     .map((i) => parseInt(color.slice(i, i + 2), 16) / 255)
@@ -289,11 +291,20 @@ export function BannerPicker({
     setError("");
     let bitmap: ImageBitmap | undefined;
     try {
-      if (
+      if (file.type === "image/gif") {
+        // Animated GIFs stay animated (kept or re-encoded as GIF); a
+        // single-frame GIF continues through the still pipeline below.
+        const { info } = await readGif(file);
+        if (info.frames > 1) {
+          const { gif } = await prepareProfileGif(file, "banner");
+          changeRef.current(gif);
+          return;
+        }
+      } else if (
         !["image/png", "image/jpeg", "image/webp"].includes(file.type) ||
         file.size > 5 * 1024 * 1024
       )
-        throw Error("Escolha PNG, JPEG ou WebP de até 5 MB.");
+        throw Error("Escolha PNG, JPEG, WebP ou GIF de até 5 MB.");
       bitmap = await createImageBitmap(file);
       if (
         bitmap.width > 8192 ||
@@ -334,7 +345,7 @@ export function BannerPicker({
       <h3>Capa do perfil</h3>
       <div className="profile-banner">
         {value ? (
-          <img src={value} alt="Prévia da sua capa" />
+          <BannerImage src={value} alt="Prévia da sua capa" />
         ) : (
           <span>Seu espaço, seu estilo.</span>
         )}
@@ -343,7 +354,7 @@ export function BannerPicker({
         hidden
         ref={input}
         type="file"
-        accept="image/png,image/jpeg,image/webp"
+        accept="image/png,image/jpeg,image/webp,image/gif"
         aria-label="Arquivo de capa do perfil"
         onChange={(e) => {
           void choose(e.target.files?.[0]);
@@ -369,8 +380,8 @@ export function BannerPicker({
         )}
       </div>
       <small>
-        Recorte central de 960 × 360 px. Salve as configurações para
-        compartilhar.
+        Recorte central de 960 × 360 px. PNG, JPEG, WebP ou GIF animado
+        (até 1 MB após o ajuste). Salve as configurações para compartilhar.
       </small>
       {error && (
         <p role="alert" className="modal-error">

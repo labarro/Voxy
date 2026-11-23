@@ -81,6 +81,20 @@ let notificationView: NotificationView = {};
 let tray: Tray | undefined;
 let controls = { muted: false, deafened: false };
 let lastNotificationAlert = 0;
+/**
+ * Profile images sent to a host. A 1.6 host rejects a GIF in `banner`, so the
+ * GIF goes in `animatedBanner` (ignored there) and `banner` stays static or
+ * empty; `avatarMotion` is likewise stripped by older hosts, which keep
+ * showing the static poster in `avatar`.
+ */
+function profileImages(p: Profile) {
+  const gif = (p.banner ?? "").startsWith("data:image/gif");
+  return {
+    banner: gif ? "" : p.banner,
+    animatedBanner: gif ? p.banner : undefined,
+    avatarMotion: p.avatarMotion ?? "",
+  };
+}
 function showWindow() {
   revealRequested = true;
   if (!win || win.isDestroyed()) return;
@@ -296,7 +310,7 @@ async function connect(invite: string, ownerKey?: string) {
         presence: profile.presence ?? "online",
         nicknameColor: profile.nicknameColor,
         mediaSubscriptions: true,
-        banner: profile.banner,
+        ...profileImages(profile),
         avatar3d: profile.avatar3d,
       },
       ownerKey,
@@ -950,7 +964,7 @@ app.whenReady().then(async () => {
           presence: profile.presence ?? "online",
           nicknameColor: profile.nicknameColor,
           mediaSubscriptions: true,
-          banner: profile.banner,
+          ...profileImages(profile),
           avatar3d: profile.avatar3d,
         },
       };
@@ -963,7 +977,7 @@ app.whenReady().then(async () => {
         presence: profile.presence ?? "online",
         nicknameColor: profile.nicknameColor,
         mediaSubscriptions: true,
-        banner: profile.banner,
+        ...profileImages(profile),
         avatar3d: profile.avatar3d,
       });
     return profile;

@@ -1,0 +1,249 @@
+{
+  "before": false,
+  "checks": [
+    "três instâncias reais conectadas ao host local",
+    "barra lateral: 8 entradas 44×44 no mesmo eixo, SVGs centrados, em 1440/1024/900 px; tooltip alinhado",
+    "transmissão iniciada atualiza o cartão sem abrir o player remoto; prévia local do transmissor preservada",
+    "clique voluntário em Assistir abre e decodifica a transmissão",
+    "Parar de assistir fecha só a visualização; a chamada continua",
+    "várias transmissões: seletor escolhe quais assistir; sem sobreposição em 1280/1024/900 px",
+    "transmissão encerrada remove player, botão, selo e seletor",
+    "Amigos: Todos/Online/Pendentes, aceitar solicitação, busca e estado vazio",
+    "Adicionar amigo: copiar o próprio ID",
+    "Mensagem abre a conversa privada",
+    "Chamada privada entregue ao amigo presente e recusada",
+    "GIF malformado rejeitado antes da decodificação",
+    "GIF acima de 15 MB (18605383 bytes) recusado sem decodificar",
+    "GIF grande (6262898 bytes, 480 px, 30 quadros) reduzido a 313936 bytes mantendo 30 quadros",
+    "prévia animada de avatar e capa antes de salvar",
+    "GIF persistido no perfil (avatar animado + pôster estático, capa GIF)",
+    "avatar e capa GIF reproduzidos animados em outra instância (ImageDecoder: >1 quadro)",
+    "movimento reduzido exibe o pôster estático",
+    "os três continuam na chamada de voz durante todo o roteiro"
+  ],
+  "measures": {
+    "rail-1440": [
+      {
+        "label": "Home",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Mensagens privadas",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Amigos",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Notificações",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Estúdio",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": null,
+        "glyphOffsetY": null
+      },
+      {
+        "label": "Criar servidor",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Entrar em sala",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Novidades do Voxy",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      }
+    ],
+    "rail-1024": [
+      {
+        "label": "Home",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Mensagens privadas",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Amigos",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Notificações",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Estúdio",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": null,
+        "glyphOffsetY": null
+      },
+      {
+        "label": "Criar servidor",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Entrar em sala",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Novidades do Voxy",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      }
+    ],
+    "rail-900": [
+      {
+        "label": "Home",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Mensagens privadas",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Amigos",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Notificações",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Estúdio",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": null,
+        "glyphOffsetY": null
+      },
+      {
+        "label": "Criar servidor",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Entrar em sala",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Novidades do Voxy",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      }
+    ],
+    "tooltip": {
+      "gap": 10,
+      "dy": 0
+    },
+    "gifInput": {
+      "avatar": 18405,
+      "big": 6262898,
+      "banner": 123148
+    },
+    "bigGifReencoded": {
+      "bytes": 313936,
+      "frames": 30,
+      "width": 128
+    },
+    "remoteAvatar": {
+      "src": "blob:",
+      "type": "image/gif",
+      "frames": 8,
+      "bytes": 18405
+    },
+    "remoteBanner": {
+      "frames": 10,
+      "bytes": 123148
+    }
+  },
+  "errors": []
+}

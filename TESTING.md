@@ -1,5 +1,22 @@
 # Validação do Voxy
 
+## Voxy 1.7.0 — Social Polish
+
+Sobre a 1.6.0 publicada (`aeba654`). Validação com **três instâncias Electron reais** (Ana, Bruno e Carla; perfis isolados por `VOXY_DATA_DIR`), host real em loopback, captura de tela real do Windows via `desktopCapturer` e GIFs sintéticos gerados no teste. Não substitui homologação entre computadores distintos pela VPN, GPUs diferentes ou GIFs do mundo real.
+
+**Passaram:** `npm test` (99, incluindo o novo `tests/profileMotion.test.ts`), `npm run build`, `tests/gallery.e2e.ts` (atualizado para telas sob escolha), `tests/systemFeatures.e2e.ts` (PiP da tela agora após clicar em Assistir) e o novo `tests/socialPolish.app.ts`:
+
+- barra lateral com 9 servidores (lista rolando): 8 entradas 44 × 44, deslocamento 0 px do eixo e ícones centrados em 1440, 1024 e 900 px; dica 10 px à direita, centrada verticalmente;
+- transmissão iniciada sem abrir o player remoto nem criar vídeo no espectador; prévia local de quem compartilha; Assistir decodifica (`readyState ≥ 2`); Parar fecha só a visualização e mantém a chamada; duas transmissões com seletor, lado a lado; sem sobreposição de avatar, nome, selo e botão em 1280/1024/900 px; transmissão encerrada remove player, botão, selo e seletor;
+- Amigos: solicitações de Bruno e Carla, aceitar, Todos/Online/Pendentes, busca e estado vazio, menu, copiar o próprio ID, abrir DM e chamada privada recebida e recusada por Bruno;
+- GIF malformado recusado; GIF de 18,7 MB recusado sem decodificar; GIF de 6,2 MB (480 px, 30 quadros) reduzido a 314 KB com os 30 quadros; prévia animada; perfil salvo com GIF + pôster WebP; **avatar e capa reproduzidos animados na instância de Bruno** (ImageDecoder: 8 e 10 quadros); movimento reduzido mostra o pôster; os três permanecem na voz durante todo o roteiro.
+
+**Corrigido durante a validação:** `fetch()` de `data:` bloqueado pela CSP (decodificação local, CSP mantida); duas transmissões escolhidas ficavam uma escondida pela ampliação; busca de Amigos quebrada pela regra global de `label`; faixa de participantes escondia quem não cabia; dock quebrava em duas linhas abaixo de ~1000 px.
+
+**Capturas antes/depois:** `evidence/social-1.7/before` (1.6.0, mesmo roteiro) e `evidence/social-1.7/after`.
+
+**Pendências:** áudio/vídeo de compartilhamento continuam P2P sem SFU; a tela da TV nas salas 3D segue mostrando a transmissão escolhida para a sala (comportamento da 1.6.0); presença de amigos fora do host conectado continua indisponível por arquitetura.
+
 ## Voxy 1.6.0 — 3D Overhaul
 
 Reformulação do 3D sobre a 1.5.0 publicada (`6403e57`). Validações automatizadas com mídia sintética, dois clientes Electron reais em loopback, perfis isolados (`VOXY_DATA_DIR`) e o host real; capturas offline com Edge/SwiftShader. Não substituem homologação com GPUs de entrada, computadores distintos pela VPN, microfones físicos ou sessões longas.

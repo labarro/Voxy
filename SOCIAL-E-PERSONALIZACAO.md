@@ -30,11 +30,17 @@ Clique com o botão direito em um membro ou no autor de uma mensagem para abrir 
 
 ## Amigos e chamadas privadas
 
-O ícone **Amigos** abre a lista e mostra seu UUID para copiar. Cole o ID de outra pessoa em **Adicionar por ID**; o destinatário pode aceitar ou recusar. Também é possível adicionar pelo mini perfil, cancelar solicitações e remover amizades.
+Desde a 1.7.0, o ícone **Amigos** abre as abas **Todos**, **Online**, **Pendentes** e **Adicionar amigo**. Em **Adicionar amigo**, cole o ID de outra pessoa e copie o seu. O destinatário aceita ou recusa em **Pendentes**. Também é possível adicionar pelo mini perfil; o menu **⋮** de cada amigo tem **Ver perfil**, **Copiar ID** e **Remover amizade** (ou **Cancelar solicitação**). A mesma pessoa aparece uma única vez, mesmo com amizade em vários servidores; quem está no servidor conectado aparece primeiro, com presença e atividade. Os demais ficam com presença não confirmada, e ações que dependem do host (responder, remover, ligar) indicam em qual servidor entrar.
 
 O Voxy mantém sua arquitetura de rede privada: amizades e pedidos são guardados pelo host da sala, com uma cópia da lista no histórico local. A pessoa precisa ter se conectado ao mesmo host uma vez para seu ID ser encontrado. Solicitações, presença ao vivo e chamadas exigem conexão à mesma sala; esta implementação não cria um serviço global de descoberta entre hosts independentes.
 
 **Mensagem** abre a DM existente. **Ligar** envia um convite com expiração de 45 segundos; o destinatário precisa aceitar antes de a mídia começar. A chamada usa um canal temporário visível e acessível apenas às duas pessoas. Encerrar, sair ou desconectar remove o canal e libera a mídia. Entrar na chamada privada substitui a chamada de voz anterior.
+
+## Foto e capa animadas (1.7.0)
+
+Em **Configurações → Perfil**, a foto e a capa aceitam PNG, JPEG, WebP e GIF. Um GIF animado é mantido como GIF: se já couber no limite (foto até 256 px/384 KB; capa até 960 × 360/1 MB) fica byte a byte; senão é recortado ao centro e reduzido quadro a quadro, sem virar imagem estática. A prévia já anima antes de salvar; escolher um emoji ou outra foto remove a animação. O primeiro quadro vira a foto estática usada por quem tem movimento reduzido, pelo modo de baixo consumo e por hosts anteriores à 1.7.0.
+
+O host recebe o GIF uma vez e o distribui por referência; cada participante baixa o arquivo quando ele aparece na tela (dois por vez) e o guarda em cache. Arquivos acima de 15 MB, malformados, com mais de 300 quadros ou com excesso de pixels decodificados são recusados antes de decodificar. GIFs não são aceitos no chat.
 
 ## Chat e histórico
 

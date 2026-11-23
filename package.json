@@ -1,6 +1,6 @@
 {
   "name": "voxy-desktop",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "private": true,
   "description": "Voz e tela entre amigos pela sua rede privada",
   "author": "Voxy",
@@ -51,6 +51,7 @@
   "dependencies": {
     "chess.js": "1.4.0",
     "electron-updater": "6.8.9",
+    "gifenc": "1.0.3",
     "lucide-react": "^0.468.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
@@ -82,7 +83,7 @@
     "appId": "dev.voxy.desktop",
     "productName": "Voxy",
     "directories": {
-      "output": "release/1.6.0"
+      "output": "release/1.7.0"
     },
     "files": [
       "dist/**/*",

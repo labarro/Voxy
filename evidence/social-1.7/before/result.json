@@ -1,0 +1,211 @@
+{
+  "before": true,
+  "checks": [
+    "três instâncias reais conectadas ao host local"
+  ],
+  "measures": {
+    "rail-1440": [
+      {
+        "label": "Home",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Mensagens privadas",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Amigos",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Notificações",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Estúdio",
+        "width": 44,
+        "height": 44,
+        "offset": -5,
+        "glyphOffsetX": null,
+        "glyphOffsetY": null
+      },
+      {
+        "label": "Criar servidor",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Entrar em sala",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Novidades do Voxy",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      }
+    ],
+    "rail-1024": [
+      {
+        "label": "Home",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Mensagens privadas",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Amigos",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Notificações",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Estúdio",
+        "width": 44,
+        "height": 44,
+        "offset": -5,
+        "glyphOffsetX": null,
+        "glyphOffsetY": null
+      },
+      {
+        "label": "Criar servidor",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Entrar em sala",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Novidades do Voxy",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      }
+    ],
+    "rail-900": [
+      {
+        "label": "Home",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Mensagens privadas",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Amigos",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Notificações",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Estúdio",
+        "width": 44,
+        "height": 44,
+        "offset": -5,
+        "glyphOffsetX": null,
+        "glyphOffsetY": null
+      },
+      {
+        "label": "Criar servidor",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Entrar em sala",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      },
+      {
+        "label": "Novidades do Voxy",
+        "width": 44,
+        "height": 44,
+        "offset": 0,
+        "glyphOffsetX": 0,
+        "glyphOffsetY": 0
+      }
+    ],
+    "tooltip": {
+      "gap": 10,
+      "dy": 0
+    }
+  },
+  "errors": []
+}

@@ -1,4 +1,38 @@
 {
+  "1.7.0": {
+    "date": "2026-11-23",
+    "title": "Social Polish — transmissões sob escolha, Amigos renovado e perfis animados",
+    "items": [
+      "Transmissões de tela não abrem mais sozinhas: o cartão mostra que a pessoa está ao vivo e você escolhe quando Assistir ou Parar de assistir, sem sair da chamada.",
+      "Aba Amigos reformulada com Todos, Online, Pendentes e Adicionar amigo, busca, ações rápidas e presença apenas quando confirmada pelo servidor conectado.",
+      "Foto de perfil e capa aceitam GIF animado, com prévia antes de salvar e animação visível para os outros participantes.",
+      "Botões da barra lateral alinhados no mesmo eixo, inclusive Criar servidor e Entrar em sala com muitos servidores."
+    ],
+    "features": [
+      "Três estados de transmissão: disponível (cartão com selo Ao vivo e botão Assistir), assistindo (vídeo na área de visualização) e parou de assistir (vídeo fechado, chamada mantida).",
+      "Seletor de transmissões quando duas ou mais pessoas compartilham ao mesmo tempo; escolher uma segunda mostra as duas lado a lado.",
+      "Amigos: uma única entrada por pessoa mesmo com amizade em vários servidores, ordenada por quem está online, com atividade (em voz, transmitindo, chamada privada).",
+      "Amigos: Mensagem e Chamada privada como ações rápidas; menu com Ver perfil, Copiar ID e Remover amizade ou Cancelar solicitação.",
+      "Amigos: seção Adicionar amigo com validação do ID e botão para copiar o seu próprio ID; estados vazios para lista, online, pendentes e busca.",
+      "Avatar e capa em PNG, JPEG, WebP ou GIF (animado ou estático), com prévia animada, persistência, remoção e substituição.",
+      "GIFs maiores que o limite são recortados e reduzidos continuando animados (avatar até 384 KB; capa até 1 MB)."
+    ],
+    "improvements": [
+      "Cartão do participante reorganizado em três faixas (selos, avatar, nome e ação), sem posicionamento sobreposto, adaptado a cartões grandes e à faixa compacta.",
+      "Nada é assinado, decodificado ou tocado (inclusive o áudio da transmissão) antes de você escolher assistir; a prévia local de quem compartilha continua.",
+      "Faixa de participantes sob os vídeos rola na horizontal em vez de esconder quem não cabe; a barra de controles não quebra mais em duas linhas.",
+      "GIFs de perfil chegam sob demanda (dois por vez) e ficam em cache; o estado da sala só leva a foto estática pequena, para não pesar na chamada.",
+      "Animações de perfil pausam fora da tela e com a janela oculta, limitadas a 12 simultâneas, e exibem a imagem estática com movimento reduzido do sistema ou no modo de baixo consumo.",
+      "Componente único para os botões da barra lateral, com o mesmo tamanho, centralização dos ícones, destaque e dica de ferramenta."
+    ],
+    "fixes": [
+      "O botão rosa Assistir à tela cobria o avatar, o nome e os indicadores do participante.",
+      "Começar a compartilhar abria a transmissão automaticamente para todos na chamada.",
+      "Uma transmissão encerrada podia deixar botão, seletor ou foco para trás.",
+      "Os ícones de servidor saíam do eixo quando a lista rolava, deixando Criar servidor e Entrar em sala desalinhados.",
+      "A aba Amigos repetia a mesma pessoa em cada servidor e indicava Offline para quem apenas não estava no servidor conectado."
+    ]
+  },
   "1.6.0": {
     "date": "2026-11-21",
     "title": "3D Overhaul — salas, personagens e sinuca reformulados",

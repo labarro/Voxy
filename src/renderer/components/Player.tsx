@@ -188,7 +188,14 @@ export function Player({
           >
             <Maximize size={18} />
           </button>
-          <button title="Fechar visualização" onClick={close}>
+          <button
+            title={
+              kind === "screen" && !local
+                ? "Parar de assistir"
+                : "Fechar visualização"
+            }
+            onClick={close}
+          >
             <X size={18} />
           </button>
         </div>
